@@ -1,0 +1,20 @@
+{
+  "projects": [
+    {
+      "src": "web",
+      "name": "desarrollo-integral-landing",
+      "buildCommand": "npm run build",
+      "outputDirectory": "web/.next"
+    }
+  ],
+  "env": [
+    {
+      "key": "VITE_SUPABASE_URL",
+      "value": "@vite_supabase_url"
+    },
+    {
+      "key": "VITE_SUPABASE_ANON_KEY",
+      "value": "@vite_supabase_anon_key"
+    }
+  ]
+}
