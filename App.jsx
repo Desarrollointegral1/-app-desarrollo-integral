@@ -3586,13 +3586,13 @@ export default function App() {
     );
   const TABS = [
     "Movilidad",
-    "Entrada en Calor",
+    "Calor",
     "Activación",
     "Entrenamiento",
-    "Periodizacion",
+    "Periodiz.",
     "Asistencia",
     "Peso Max",
-    "Evolucion",
+    "Evolución",
     "Resumen",
     "Diario",
     "Bioimpedancia",
@@ -3789,24 +3789,10 @@ export default function App() {
             </div>
           )}{" "}
         </div>{" "}
-        {/* Tabs 3 filas */}{" "}
-        <div style={{ display: "flex", gap: 5, padding: "0 16px 5px" }}>
-          {TABS.slice(0, 4).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={tabBtn(tab === t)}>
-              {t}
-            </button>
-          ))}
-        </div>{" "}
-        <div style={{ display: "flex", gap: 5, padding: "0 16px 5px" }}>
-          {TABS.slice(4, 7).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={tabBtn(tab === t)}>
-              {t}
-            </button>
-          ))}
-        </div>{" "}
-        <div style={{ display: "flex", gap: 5, padding: "0 16px", marginBottom: 14 }}>
-          {TABS.slice(7).map((t) => (
-            <button key={t} onClick={() => setTab(t)} style={tabBtn(tab === t)}>
+        {/* Tabs — fila única scrollable */}{" "}
+        <div style={{ display: "flex", gap: 5, padding: "8px 16px 10px", overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          {TABS.map((t) => (
+            <button key={t} onClick={() => setTab(t)} style={{ ...tabBtn(tab === t), flex: "none", whiteSpace: "nowrap", padding: "8px 12px", fontSize: 11 }}>
               {t}
             </button>
           ))}
@@ -3833,7 +3819,7 @@ export default function App() {
               ))}
             </div>
           )}{" "}
-          {tab === "Entrada en Calor" && (
+          {tab === "Calor" && (
             <div>
               <div
                 style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}
@@ -3951,7 +3937,7 @@ export default function App() {
               })}{" "}
             </div>
           )}{" "}
-          {tab === "Periodizacion" && (
+          {tab === "Periodiz." && (
             <div>
               <div
                 style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}
@@ -3962,7 +3948,7 @@ export default function App() {
             </div>
           )}{" "}
           {tab === "Asistencia" && <Asistencia asistencia={al.asistencia || []} onMarcar={marcarAsistencia} />}{" "}
-          {tab === "Evolucion" && <EvolucionCargas historiales={historiales} plan={plan} />}{" "}
+          {tab === "Evolución" && <EvolucionCargas historiales={historiales} plan={plan} />}{" "}
           {tab === "Resumen" && (
             <div>
               {" "}
