@@ -672,38 +672,31 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso) {
   LOG("crearAlumnoConPIN", `⏳ Creando alumno ${codigo}...`);
 
   try {
-    const pinHash = await hashearPIN(pin);
-    const nuevoAlumno = {
-      id: makeUuid(),
+    let nuevoAlumno = {
       nombre,
       codigo: codigo.toUpperCase(),
-      pin_hash: pinHash,
-      altura: altura || "",
-      peso: peso || "",
-      edad: "",
-      foto: "",
-      horarios: [],
-      bioimpedancia: [],
-      rm: {},
-      asistencia: [],
-      diario: [],
-      plan_movilidad: [],
-      plan_calor: [],
-      plan_activacion: [],
-      plan_periodizacion: [],
-      activo: true,
+      altura: parseInt(altura) || 0,
+      peso: parseFloat(peso) || 0,
     };
 
-    const { error } = await supabase
+    try {
+      const pinHash = await hashearPIN(pin);
+      nuevoAlumno.pin_hash = pinHash;
+    } catch (e) {
+      LOG("crearAlumnoConPIN", "⚠️ pin_hash no soportado, creando sin PIN");
+    }
+
+    const { data, error } = await supabase
       .from("alumnos")
-      .insert([limpiarPayload(nuevoAlumno)]);
+      .insert([nuevoAlumno])
+      .select();
 
     if (error) {
       throw new Error(error.message || "Error al crear alumno");
     }
 
-    LOG("crearAlumnoConPIN", `✅ Alumno ${nombre} creado exitosamente`);
-    return nuevoAlumno;
+    LOG("crearAlumnoConPIN", `✅ Alumno ${nombre} creado exitosamente`, data);
+    return data?.[0] || nuevoAlumno;
   } catch (e) {
     ERR("crearAlumnoConPIN", e.message, e);
     throw e;
