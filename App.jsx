@@ -178,7 +178,7 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
         {foto ? (
           <img src={foto} alt="foto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
-          <div style={{ color: S.lgray, fontSize: editable ? 20 : 16 }}>{editable ? "📷" : "👤"}</div>
+          <div style={{ color: S.gray, fontSize: editable ? 20 : 15, fontWeight: 700 }}>{editable ? "+" : "?"}</div>
         )}{" "}
       </div>{" "}
       {editable && (
@@ -875,11 +875,12 @@ function EjercicioEditor({ items, onChange, showVideo }) {
   );
 }
 // ── DIAS EDITOR ───────────────────────────────────────────────────────
-function DiasEditor({ dias, onChange }) {
+function DiasEditor({ dias = [], onChange }) {
   const [selDia, setSelDia] = useState(0);
   const [editDia, setEditDia] = useState(false);
   const [diaForm, setDiaForm] = useState({ dia: "", subtitulo: "" });
-  const d = dias[selDia];
+  const safeSelDia = Math.min(selDia, Math.max(0, dias.length - 1));
+  const d = dias[safeSelDia];
   const updateEjs = (ejs) => {
     const arr = [...dias];
     arr[selDia] = { ...arr[selDia], ejercicios: ejs };
@@ -905,6 +906,12 @@ function DiasEditor({ dias, onChange }) {
     onChange(arr);
     setSelDia(Math.min(selDia, arr.length - 1));
   };
+  if (!d) return (
+    <div style={{ ...card, padding: 24, textAlign: "center" }}>
+      <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>Sin días de entrenamiento</div>
+      <button onClick={() => { onChange([{ dia: "Día 1", subtitulo: "Ejercicios", ejercicios: [] }]); setSelDia(0); }} style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "8px 16px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>+ Agregar Día</button>
+    </div>
+  );
   return (
     <div>
       {" "}
@@ -2630,7 +2637,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
         }}
       >
         {" "}
-        <div style={{ color: S.white, fontWeight: 900, fontSize: 17 }}>PANEL ADMIN</div>{" "}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src={ICON} width={28} height={28} alt="DI" style={{ opacity: 0.85 }} />
+          <div>
+            <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1.5, textTransform: "uppercase" }}>Panel Admin</div>
+            <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1 }}>Desarrollo Integral</div>
+          </div>
+        </div>{" "}
         <button
           onClick={onClose}
           style={{
@@ -3269,9 +3282,15 @@ function Login({ onLogin, onAdmin }) {
         fontFamily: "system-ui",
       }}
     >
-      <img src={ICON} width={260} height={260} alt="DI" style={{ display: "block" }} />
-      <div style={{ width: "100%", maxWidth: 340, marginTop: 36 }}>
-        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>
+      {/* Header de marca */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <img src={ICON} width={72} height={72} alt="DI" style={{ display: "block", margin: "0 auto 14px", opacity: 0.9 }} />
+        <div style={{ fontSize: 18, fontWeight: 800, color: S.white, letterSpacing: 3, textTransform: "uppercase" }}>Desarrollo Integral</div>
+        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, marginTop: 4, textTransform: "uppercase" }}>Centro de Entrenamiento</div>
+      </div>
+
+      <div style={{ width: "100%", maxWidth: 340, background: "#111111", border: "1px solid #222", borderRadius: 14, padding: "28px 24px" }}>
+        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
           Código
         </div>
         <input
@@ -3279,11 +3298,11 @@ function Login({ onLogin, onAdmin }) {
           onChange={(e) => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="Ej: DI-001"
-          style={{ ...inp, fontSize: 16, padding: "14px 16px" }}
+          style={{ ...inp, fontSize: 15, padding: "12px 14px", background: "#181818", border: "1px solid #2a2a2a" }}
           disabled={cargando}
         />
 
-        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, marginTop: 14 }}>
+        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14 }}>
           PIN (4 dígitos)
         </div>
         <input
@@ -3293,53 +3312,51 @@ function Login({ onLogin, onAdmin }) {
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="••••"
           maxLength={4}
-          style={{ ...inp, fontSize: 16, padding: "14px 16px" }}
+          style={{ ...inp, fontSize: 15, padding: "12px 14px", background: "#181818", border: "1px solid #2a2a2a" }}
           disabled={cargando}
         />
 
-        <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 8 }}>
           <input
             type="checkbox"
             id="adminCheck"
             checked={esAdmin}
             onChange={(e) => setEsAdmin(e.target.checked)}
-            style={{ cursor: "pointer", width: 18, height: 18 }}
+            style={{ cursor: "pointer", width: 16, height: 16, accentColor: S.white }}
             disabled={cargando}
           />
-          <label htmlFor="adminCheck" style={{ color: S.white, fontSize: 13, cursor: "pointer", userSelect: "none" }}>
-            Acceso Admin
+          <label htmlFor="adminCheck" style={{ color: S.gray, fontSize: 12, cursor: "pointer", userSelect: "none", letterSpacing: 0.5 }}>
+            Acceso administrador
           </label>
         </div>
 
-        {err && <div style={{ color: S.red, fontSize: 13, marginTop: 12 }}>{err}</div>}
+        {err && <div style={{ color: S.red, fontSize: 12, marginTop: 10, padding: "8px 10px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
         <button
           onClick={go}
           disabled={cargando}
           style={{
             width: "100%",
-            marginTop: 20,
-            background: cargando ? S.gray : S.white,
-            color: cargando ? S.lgray : S.bg,
+            marginTop: 18,
+            background: cargando ? "#1e1e1e" : S.white,
+            color: cargando ? S.gray : S.bg,
             border: "none",
             borderRadius: 8,
-            padding: 14,
-            fontSize: 14,
-            fontWeight: 900,
+            padding: "13px",
+            fontSize: 13,
+            fontWeight: 800,
             letterSpacing: 2,
             textTransform: "uppercase",
             cursor: cargando ? "not-allowed" : "pointer",
-            opacity: cargando ? 0.6 : 1,
+            opacity: cargando ? 0.7 : 1,
           }}
         >
           {cargando ? "Validando..." : "Ingresar"}
         </button>
+      </div>
 
-        <div style={{ marginTop: 20, ...card, padding: 12, fontSize: 12, color: S.gray }}>
-          <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Uso:</div>
-          <div>• Alumno: tu código + PIN</div>
-          <div style={{ marginTop: 4 }}>• Admin: pide credenciales al creador</div>
-        </div>
+      <div style={{ marginTop: 16, fontSize: 11, color: S.lgray, textAlign: "center" }}>
+        Alumno: código + PIN · Admin: credenciales del creador
       </div>
     </div>
   );
@@ -3365,6 +3382,7 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
         }}
       >
         {" "}
+        <img src={ICON} width={44} height={44} alt="DI" style={{ opacity: 0.25, marginBottom: 20 }} />
         <div className="di-pop" style={{ animationDelay: "0s" }}>
           <FotoAlumno foto={alumno.foto} size={80} />
         </div>{" "}
@@ -3550,7 +3568,10 @@ export default function App() {
           justifyContent: "center",
         }}
       >
-        <div style={{ color: S.gray, fontSize: 13, letterSpacing: 2 }}>CARGANDO...</div>
+        <div style={{ textAlign: "center" }}>
+          <img src={ICON} width={48} height={48} alt="DI" style={{ opacity: 0.3, marginBottom: 16, display: "block", margin: "0 auto 16px" }} />
+          <div style={{ color: S.lgray, fontSize: 11, letterSpacing: 3, textTransform: "uppercase" }}>Cargando...</div>
+        </div>
       </div>
     );
   if (adminMode)
@@ -3638,7 +3659,9 @@ export default function App() {
         {/* Header */}{" "}
         <div
           style={{
-            padding: "14px 16px 0",
+            padding: "14px 16px 12px",
+            borderBottom: "1px solid #1c1c1c",
+            marginBottom: 4,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
