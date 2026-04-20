@@ -2323,6 +2323,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
+  const [selectedDia, setSelectedDia] = useState(null);
   const [form, setForm] = useState(null);
   const [rm, setRm] = useState(() => {
     const r = {};
@@ -2703,6 +2704,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
                 ["Calor", "calor"],
                 ["Activac.", "activacion"],
                 ["Period.", "periodizacion"],
+                ["Plan Día", "plan-dias"],
               ].map(([l, k]) => (
                 <button
                   key={k}
@@ -2746,6 +2748,60 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
             {planTab === "periodizacion" && al && (
               <div style={{ ...card, overflow: "hidden", padding: 14 }}>
                 <PeriodizacionEditor data={al.plan.periodizacion} onChange={(v) => updatePlan("periodizacion", v)} />
+              </div>
+            )}{" "}
+            {planTab === "plan-dias" && al && (
+              <div style={{ ...card, padding: 12 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 12 }}>Asignar planes por día: {al.nombre}</h3>
+                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+                  {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo", "Fijo"].map((dia) => (
+                    <button
+                      key={dia}
+                      onClick={() => setSelectedDia(selectedDia === dia ? null : dia)}
+                      style={{
+                        background: selectedDia === dia ? S.white : S.card,
+                        color: selectedDia === dia ? S.bg : S.gray,
+                        border: `1px solid ${S.border}`,
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      {dia}
+                    </button>
+                  ))}
+                </div>
+                {selectedDia && (
+                  <div style={{ ...card, padding: 10, background: S.card2 }}>
+                    <p style={{ marginTop: 0 }}>
+                      <strong>{selectedDia}</strong>: Selecciona plan
+                    </p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {["Bilateral", "Unilateral"].map((tipo) => (
+                        <button
+                          key={tipo}
+                          onClick={() => {
+                            LOG("AdminPanel", `Plan asignado: ${selectedDia} → ${tipo}`);
+                            setToastMsg(`Plan "${tipo}" asignado para ${selectedDia}`);
+                          }}
+                          style={{
+                            flex: 1,
+                            background: S.white,
+                            color: S.bg,
+                            border: "none",
+                            padding: "8px 12px",
+                            borderRadius: 6,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {tipo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}{" "}
           </div>
@@ -3322,7 +3378,10 @@ export default function App() {
     );
   if (!alumno) return <Login onLogin={login} onAdmin={() => setAdminMode(true)} alumnos={alumnos} />;
   const al = alumnos.find((a) => a.id === alumno.id) || alumno;
-  const plan = al.plan;
+  const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+  const hoyTexto = DIAS_SEMANA[new Date().getDay()];
+  const planHoy = al.planes?.find(p => p.dia_semana === hoyTexto || p.dia_semana === "Fijo") || al.plan || al.planes?.[0];
+  const plan = planHoy || al.plan;
   const semanaActual = getSemanaActual(plan.periodizacion);
   const sem = plan.periodizacion.find((p) => p.semana === semanaActual) || plan.periodizacion[0];
   const prevSem = plan.periodizacion.find((p) => p.semana === semanaActual - 1);

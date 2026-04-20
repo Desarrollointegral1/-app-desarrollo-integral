@@ -146,7 +146,15 @@ export async function cargarDatos(fallback) {
 
     const alumnos = await Promise.all(
       rows.map(async (row) => {
-        const dias = await getPlanDias(row.id);
+        const planes = await cargarPlanesXDia(row.id, row);
+        // Mantener 'plan' para compatibilidad, apuntando al primer plan
+        const planCompat = planes.length > 0 ? planes[0] : {
+          movilidad:     row.plan_movilidad     || [],
+          calor:         row.plan_calor         || [],
+          activacion:    row.plan_activacion    || [],
+          periodizacion: row.plan_periodizacion || [],
+          dias: [],
+        };
         return {
           id:            row.id,
           nombre:        row.nombre,
@@ -161,12 +169,13 @@ export async function cargarDatos(fallback) {
           rm:            row.rm            || {},
           asistencia:    row.asistencia    || [],
           diario:        row.diario        || [],
+          planes,
           plan: {
-            movilidad:     row.plan_movilidad     || [],
-            calor:         row.plan_calor         || [],
-            activacion:    row.plan_activacion    || [],
-            periodizacion: row.plan_periodizacion || [],
-            dias,
+            movilidad:     planCompat.movilidad     || [],
+            calor:         planCompat.calor         || [],
+            activacion:    planCompat.activacion    || [],
+            periodizacion: planCompat.periodizacion || [],
+            dias:          planCompat.dias          || [],
           },
         };
       })
@@ -401,14 +410,145 @@ export async function getPlanEjercicios(plan_dia_id) {
   }));
 }
 
-async function _savePlanDias(alumno_id, dias) {
-  LOG("_savePlanDias", `⏳ Guardando ${dias.length} día(s) para ${alumno_id}`);
+// ══════════════════════════════════════════════════════════════════════
+// PLANES POR DÍA DE SEMANA
+// ══════════════════════════════════════════════════════════════════════
 
-  // Borrar en cascada (plan_ejercicios se elimina por FK)
+export async function cargarPlanesXDia(alumno_id, row) {
+  LOG("cargarPlanesXDia", `⏳ Cargando planes por día para ${alumno_id}`);
+
+  try {
+    const { data: alPlanes, error } = await supabase
+      .from("alumno_planes")
+      .select("*")
+      .eq("alumno_id", alumno_id);
+
+    if (error) throw error;
+
+    if (!alPlanes || alPlanes.length === 0) {
+      LOG("cargarPlanesXDia", `ℹ️ Sin planes específicos, creando "Fijo"...`);
+      const dias = await getPlanDias(alumno_id);
+      return [{
+        id: makeUuid(),
+        dia_semana: "Fijo",
+        nombre: "Plan Único",
+        estado: "activo",
+        dias,
+        movilidad:     row.plan_movilidad     || [],
+        calor:         row.plan_calor         || [],
+        activacion:    row.plan_activacion    || [],
+        periodizacion: row.plan_periodizacion || [],
+      }];
+    }
+
+    const planesConDetalles = await Promise.all(
+      alPlanes.map(async (ap) => {
+        const dias = await getPlanDiasPorAlumnoPlan(ap.id);
+        return {
+          id: ap.id,
+          dia_semana: ap.dia_semana,
+          nombre: ap.nombre,
+          estado: ap.estado,
+          dias,
+          movilidad:     row.plan_movilidad     || [],
+          calor:         row.plan_calor         || [],
+          activacion:    row.plan_activacion    || [],
+          periodizacion: row.plan_periodizacion || [],
+        };
+      })
+    );
+
+    LOG("cargarPlanesXDia", `✅ ${planesConDetalles.length} plan(es) cargado(s)`, planesConDetalles.map(p => p.dia_semana));
+    return planesConDetalles;
+
+  } catch (e) {
+    ERR("cargarPlanesXDia", "Error cargando planes por día", e);
+    return [];
+  }
+}
+
+export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
+  LOG("getPlanDiasPorAlumnoPlan", `⏳ Cargando días para plan ${alumno_plan_id}`);
+
+  const { data: dias, error } = await supabase
+    .from("plan_dias")
+    .select("*, plan_ejercicios(*)")
+    .eq("alumno_plan_id", alumno_plan_id)
+    .order("orden");
+
+  if (error) {
+    ERR("getPlanDiasPorAlumnoPlan", `Error al cargar días`, error);
+    return [];
+  }
+
+  if (!dias || dias.length === 0) {
+    LOG("getPlanDiasPorAlumnoPlan", `ℹ️ Sin días para este plan`);
+    return [];
+  }
+
+  const result = dias.map((d) => ({
+    dia:       d.dia,
+    subtitulo: d.subtitulo || "",
+    ejercicios: (d.plan_ejercicios || [])
+      .sort((a, b) => a.orden - b.orden)
+      .map((e) => ({
+        id:         e.id,
+        nombre:     e.nombre      || "",
+        desc:       e.descripcion || "",
+        video:      e.video       || "",
+        mediaLocal: "",
+        historial:  [],
+      })),
+  }));
+
+  LOG("getPlanDiasPorAlumnoPlan", `✅ ${result.length} día(s)`);
+  return result;
+}
+
+export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
+  LOG("crearPlanAlumno", `⏳ Creando plan para ${dia_semana} de ${alumno_id}`);
+
+  try {
+    const nombre = typeof plan_template === 'string' ? plan_template : (plan_template.nombre || 'Plan');
+    const dias = typeof plan_template === 'string' ? [] : (plan_template.dias || []);
+
+    const { data: nuevoAlPlan, error } = await supabase
+      .from("alumno_planes")
+      .insert({
+        alumno_id,
+        nombre,
+        dia_semana,
+        estado: 'activo'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      ERR("crearPlanAlumno", `No se pudo crear plan`, error);
+      return { ok: false, error };
+    }
+
+    if (dias.length > 0) {
+      await _savePlanDias(nuevoAlPlan.id, dias, true);
+    }
+
+    LOG("crearPlanAlumno", `✅ Plan creado para ${dia_semana}`);
+    return { ok: true, data: nuevoAlPlan };
+
+  } catch (e) {
+    ERR("crearPlanAlumno", "Error creando plan", e);
+    return { ok: false, error: e };
+  }
+}
+
+async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
+  const deleteFilter = isAlumnoPlan ? "alumno_plan_id" : "alumno_id";
+  LOG("_savePlanDias", `⏳ Guardando ${dias.length} día(s) para ${idParam}`);
+
   const { error: delErr } = await supabase
     .from("plan_dias")
     .delete()
-    .eq("alumno_id", alumno_id);
+    .eq(deleteFilter, idParam);
 
   if (delErr) {
     ERR("_savePlanDias", "Error al borrar plan anterior", delErr);
@@ -416,9 +556,16 @@ async function _savePlanDias(alumno_id, dias) {
   }
 
   for (let i = 0; i < dias.length; i++) {
+    const insertData = { id: makeUuid(), dia: dias[i].dia||"Día", subtitulo: dias[i].subtitulo||"", orden: i };
+    if (isAlumnoPlan) {
+      insertData.alumno_plan_id = idParam;
+    } else {
+      insertData.alumno_id = idParam;
+    }
+
     const { data: diaRow, error: diaErr } = await supabase
       .from("plan_dias")
-      .insert({ id: makeUuid(), alumno_id, dia: dias[i].dia||"Día", subtitulo: dias[i].subtitulo||"", orden: i })
+      .insert(insertData)
       .select()
       .single();
 
@@ -429,7 +576,6 @@ async function _savePlanDias(alumno_id, dias) {
 
     for (let j = 0; j < (dias[i].ejercicios || []).length; j++) {
       const ej = dias[i].ejercicios[j];
-      // Usar el id del ejercicio si ya es UUID válido; sino generar uno nuevo
       const ejId = isUuid(ej.id) ? ej.id : makeUuid();
       const { error: ejErr } = await supabase.from("plan_ejercicios").insert({
         id:          ejId,
@@ -445,7 +591,7 @@ async function _savePlanDias(alumno_id, dias) {
     }
   }
 
-  LOG("_savePlanDias", `✅ Plan guardado para ${alumno_id}.`);
+  LOG("_savePlanDias", `✅ Plan guardado para ${idParam}.`);
 }
 
 
