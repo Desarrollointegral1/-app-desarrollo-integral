@@ -22,10 +22,14 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <div className="flex flex-col items-center justify-center flex-1 py-32 w-full">
-          <Image src="/logos/DI-ICON-SOLO.svg" alt="Desarrollo Integral" width={72} height={72} className="mb-10 opacity-80" priority />
-          <p className="text-xs tracking-[0.35em] text-gray-600 uppercase mb-8">Wellness starts with movement</p>
+      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+        {/* Watermark background */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+          <Image src="/logos/DI-ICON-FILL.svg" alt="" width={560} height={560} className="opacity-[0.05]" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center justify-center flex-1 py-32 w-full">
+          <Image src="/logos/DI-ICON-SOLO.svg" alt="Desarrollo Integral" width={96} height={96} className="mb-10 opacity-95" priority />
+          <p className="text-xs tracking-[0.35em] text-gray-500 uppercase mb-8">Wellness starts with movement</p>
           <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] mb-8 max-w-3xl tracking-tight">
             Fuerza, movimiento<br />y rendimiento<br className="hidden md:block" /> a largo plazo.
           </h1>
@@ -36,7 +40,7 @@ export default function Home() {
             Acceder a la plataforma
           </a>
         </div>
-        <div className="w-full max-w-3xl mx-auto pb-20 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-white/10 pt-12">
+        <div className="relative z-10 w-full max-w-3xl mx-auto pb-20 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-white/10 pt-12">
           {[
             ["30+", "años de experiencia"],
             ["100%", "planes individuales"],
@@ -53,15 +57,20 @@ export default function Home() {
 
       {/* IDENTIDAD */}
       <section className="py-32 px-6 border-t border-white/10">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-8">Qué es Desarrollo Integral</p>
-          <p className="text-2xl md:text-3xl font-light leading-relaxed text-gray-200 mb-8">
-            Un centro de entrenamiento y un método de trabajo desarrollado a partir de más de 30 años de experiencia.
-          </p>
-          <div className="border-l border-white/20 pl-6 space-y-4 text-gray-400 text-base leading-relaxed">
-            <p>No se trabaja con planes genéricos.</p>
-            <p>Cada alumno entrena con un <strong className="text-white">plan de entrenamiento personalizado</strong>, diseñado según su punto de partida, sus objetivos y su evolución.</p>
-            <p>El foco está en construir un cuerpo fuerte, funcional y adaptable en el tiempo.</p>
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-8">Qué es Desarrollo Integral</p>
+            <p className="text-2xl md:text-3xl font-light leading-relaxed text-gray-200 mb-8">
+              Un centro de entrenamiento y un método de trabajo desarrollado a partir de más de 30 años de experiencia.
+            </p>
+            <div className="border-l border-white/20 pl-6 space-y-4 text-gray-400 text-base leading-relaxed">
+              <p>No se trabaja con planes genéricos.</p>
+              <p>Cada alumno entrena con un <strong className="text-white">plan de entrenamiento personalizado</strong>, diseñado según su punto de partida, sus objetivos y su evolución.</p>
+              <p>El foco está en construir un cuerpo fuerte, funcional y adaptable en el tiempo.</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center">
+            <Image src="/logos/DI-ICON-FILL.svg" alt="Desarrollo Integral" width={220} height={220} className="opacity-20" />
           </div>
         </div>
       </section>
@@ -212,8 +221,8 @@ export default function Home() {
           <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-10">Equipo</p>
           <div className="grid md:grid-cols-2 gap-12">
             <div className="border border-white/10 p-8">
-              <div className="w-12 h-12 bg-white/10 rounded-full mb-6 flex items-center justify-center">
-                <Image src="/logos/DI-ICON-SOLO.svg" alt="DI" width={24} height={24} />
+              <div className="mb-6">
+                <Image src="/logos/DI-ICON-FILL.svg" alt="DI" width={48} height={48} className="opacity-70" />
               </div>
               <h3 className="text-xl font-bold mb-1">Ariel Rebesberger</h3>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Head Coach — Método y rendimiento</p>
@@ -223,8 +232,8 @@ export default function Home() {
               </p>
             </div>
             <div className="border border-white/10 p-8">
-              <div className="w-12 h-12 bg-white/10 rounded-full mb-6 flex items-center justify-center">
-                <Image src="/logos/DI-ICON-SOLO.svg" alt="DI" width={24} height={24} />
+              <div className="mb-6">
+                <Image src="/logos/DI-ICON-FILL.svg" alt="DI" width={48} height={48} className="opacity-70" />
               </div>
               <h3 className="text-xl font-bold mb-1">Griselda Politino</h3>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Movimiento y salud</p>
@@ -257,9 +266,12 @@ export default function Home() {
       </section>
 
       {/* CIERRE */}
-      <section className="py-32 px-6 border-t border-white/10 text-center">
-        <div className="max-w-2xl mx-auto">
-          <Image src="/logos/DI-ICON-OUTLINE.svg" alt="DI" width={64} height={64} className="mx-auto mb-10 opacity-40" />
+      <section className="relative py-32 px-6 border-t border-white/10 text-center overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
+          <Image src="/logos/DI-LOGO-OUTLINE.svg" alt="" width={900} height={600} className="opacity-[0.06]" />
+        </div>
+        <div className="relative z-10 max-w-2xl mx-auto">
+          <Image src="/logos/DI-ICON-OUTLINE.svg" alt="DI" width={72} height={72} className="mx-auto mb-10 opacity-50" />
           <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-snug">
             Entrenamiento estructurado.<br />
             Seguimiento real.<br />
