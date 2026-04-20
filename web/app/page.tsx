@@ -10,10 +10,10 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-sm px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Image src="/logos/DI-TYPEFACE.svg" alt="Desarrollo Integral" width={160} height={28} priority />
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <a href="#metodo" className="hover:text-white transition-colors">Método</a>
-            <a href="#plataforma" className="hover:text-white transition-colors">Plataforma</a>
-            <a href="#equipo" className="hover:text-white transition-colors">Equipo</a>
+          <div className="flex items-center gap-4 md:gap-6 text-sm text-gray-400">
+            <a href="#metodo" className="hidden md:block hover:text-white transition-colors">Método</a>
+            <a href="#plataforma" className="hidden md:block hover:text-white transition-colors">Plataforma</a>
+            <a href="#equipo" className="hidden md:block hover:text-white transition-colors">Equipo</a>
             <a href={APP_URL} className="border border-white text-white px-4 py-1.5 text-sm font-medium hover:bg-white hover:text-black transition-colors">
               Ingresar
             </a>
@@ -22,19 +22,21 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-20">
-        <Image src="/logos/DI-LOGO-FILL.svg" alt="Desarrollo Integral" width={220} height={220} className="mb-12 opacity-95" priority />
-        <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-6">Wellness starts with movement</p>
-        <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 max-w-3xl">
-          Fuerza, movimiento y<br />rendimiento a largo plazo.
-        </h1>
-        <p className="text-gray-400 text-lg max-w-xl mb-12 leading-relaxed">
-          Planes de entrenamiento personalizados, con seguimiento y registro completo de cada proceso.
-        </p>
-        <a href={APP_URL} className="bg-white text-black px-10 py-4 text-sm font-bold tracking-widest uppercase hover:bg-gray-100 transition-colors">
-          Acceder a la plataforma
-        </a>
-        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <div className="flex flex-col items-center justify-center flex-1 py-32 w-full">
+          <Image src="/logos/DI-ICON-SOLO.svg" alt="Desarrollo Integral" width={72} height={72} className="mb-10 opacity-80" priority />
+          <p className="text-xs tracking-[0.35em] text-gray-600 uppercase mb-8">Wellness starts with movement</p>
+          <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] mb-8 max-w-3xl tracking-tight">
+            Fuerza, movimiento<br />y rendimiento<br className="hidden md:block" /> a largo plazo.
+          </h1>
+          <p className="text-gray-500 text-base md:text-lg max-w-md mb-12 leading-relaxed">
+            Planes de entrenamiento personalizados, con seguimiento y registro completo de cada proceso.
+          </p>
+          <a href={APP_URL} className="bg-white text-black px-12 py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-gray-100 transition-colors">
+            Acceder a la plataforma
+          </a>
+        </div>
+        <div className="w-full max-w-3xl mx-auto pb-20 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-white/10 pt-12">
           {[
             ["30+", "años de experiencia"],
             ["100%", "planes individuales"],
@@ -43,7 +45,7 @@ export default function Home() {
           ].map(([num, label]) => (
             <div key={label}>
               <div className="text-2xl font-bold mb-1">{num}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider">{label}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wider">{label}</div>
             </div>
           ))}
         </div>
