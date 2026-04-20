@@ -2345,111 +2345,107 @@ function Dashboard({ alumnos, onSelect }) {
   );
 }
 // ── BIOIMPEDANCIA ─────────────────────────────────────────────────────
-const BIO_CAMPOS = [
-  { key: "peso", label: "Peso (kg)" },
-  { key: "masa_muscular", label: "Masa muscular (kg)" },
-  { key: "grasa_corporal", label: "Grasa corporal (%)" },
-  { key: "grasa_visceral", label: "Grasa visceral" },
-  { key: "masa_osea", label: "Masa ósea (kg)" },
-  { key: "agua_corporal", label: "Agua corporal (%)" },
-  { key: "imc", label: "IMC" },
-];
-
 function BioimpedanciaSection({ alumnoId, showToast, readOnly = false }) {
   const [registros, setRegistros] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(null);
-  const [guardando, setGuardando] = useState(false);
-  const emptyForm = () => ({
-    fecha: new Date().toISOString().split("T")[0],
-    peso: "", masa_muscular: "", grasa_corporal: "",
-    grasa_visceral: "", masa_osea: "", agua_corporal: "",
-    imc: "", observaciones: ""
-  });
+  const [subiendo, setSubiendo] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [fecha, setFecha] = useState(() => new Date().toISOString().split("T")[0]);
+  const [archivo, setArchivo] = useState(null);
+  const fileRef = useRef();
 
   useEffect(() => {
     if (!alumnoId) return;
     cargarBioimpedancia(alumnoId).then(d => { setRegistros(d); setLoading(false); });
   }, [alumnoId]);
 
-  const guardar = async () => {
-    if (!form) return;
-    setGuardando(true);
+  const subir = async () => {
+    if (!archivo) { showToast && showToast("Seleccioná un archivo"); return; }
+    setSubiendo(true);
     try {
-      const nuevo = await guardarBioimpedancia(alumnoId, form);
+      const nuevo = await guardarBioimpedancia(alumnoId, { fecha, archivo });
       setRegistros(prev => [nuevo, ...prev]);
-      setForm(null);
+      setShowForm(false);
+      setArchivo(null);
       showToast && showToast("Bioimpedancia guardada ✓");
-    } catch { showToast && showToast("Error al guardar"); }
-    setGuardando(false);
+    } catch (e) { showToast && showToast("Error al subir: " + e.message); }
+    setSubiendo(false);
   };
 
-  const eliminar = async (id) => {
+  const eliminar = async (r) => {
     if (!window.confirm("¿Eliminar este registro?")) return;
-    await eliminarBioimpedancia(id);
-    setRegistros(prev => prev.filter(r => r.id !== id));
+    await eliminarBioimpedancia(r.id, r.archivo_url);
+    setRegistros(prev => prev.filter(x => x.id !== r.id));
     showToast && showToast("Eliminado");
   };
 
   if (loading) return <div style={{ color: S.gray, padding: 16, fontSize: 13 }}>Cargando...</div>;
 
+  const isImg = (url) => url && /\.(png|jpe?g|webp|gif)$/i.test(url);
+
   return (
     <div>
-      {!readOnly && !form && (
+      {!readOnly && !showForm && (
         <button
-          onClick={() => setForm(emptyForm())}
+          onClick={() => setShowForm(true)}
           style={{ background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 16, width: "100%" }}
         >
-          + Cargar nueva medición
+          + Cargar estudio
         </button>
       )}
-      {form && (
+      {showForm && (
         <div style={{ ...card, padding: 14, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10 }}>Nueva medición</div>
+          <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10 }}>Nuevo estudio</div>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>FECHA</div>
-            <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} style={inp} />
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>FECHA DEL ESTUDIO</div>
+            <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={inp} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            {BIO_CAMPOS.map(({ key, label }) => (
-              <div key={key}>
-                <div style={{ fontSize: 10, color: S.gray, marginBottom: 3 }}>{label}</div>
-                <input type="number" step="0.1" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ ...inp, padding: "6px 8px", fontSize: 13 }} />
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>OBSERVACIONES</div>
-            <textarea value={form.observaciones} onChange={e => setForm(f => ({ ...f, observaciones: e.target.value }))} rows={2} style={{ ...inp, resize: "vertical" }} />
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>ARCHIVO (imagen o PDF)</div>
+            <div
+              onClick={() => fileRef.current && fileRef.current.click()}
+              style={{ border: "2px dashed " + S.border, borderRadius: 8, padding: "20px", textAlign: "center", cursor: "pointer", background: S.card2 }}
+            >
+              {archivo
+                ? <div style={{ color: S.green, fontSize: 13 }}>✓ {archivo.name}</div>
+                : <div style={{ color: S.gray, fontSize: 13 }}>Tocá para seleccionar archivo</div>
+              }
+            </div>
+            <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={e => setArchivo(e.target.files[0] || null)} />
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={guardar} disabled={guardando} style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "9px", fontWeight: 700, cursor: "pointer" }}>
-              {guardando ? "Guardando..." : "GUARDAR"}
+            <button onClick={subir} disabled={subiendo} style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "9px", fontWeight: 700, cursor: "pointer" }}>
+              {subiendo ? "Subiendo..." : "GUARDAR"}
             </button>
-            <button onClick={() => setForm(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "9px 14px", cursor: "pointer" }}>Cancelar</button>
+            <button onClick={() => { setShowForm(false); setArchivo(null); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "9px 14px", cursor: "pointer" }}>Cancelar</button>
           </div>
         </div>
       )}
       {registros.length === 0 ? (
-        <div style={{ color: S.lgray, fontSize: 13, textAlign: "center", padding: 20 }}>Sin mediciones registradas</div>
+        <div style={{ color: S.lgray, fontSize: 13, textAlign: "center", padding: 24 }}>Sin estudios cargados</div>
       ) : (
         registros.map((r) => (
-          <div key={r.id} style={{ ...card, padding: 12, marginBottom: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.fecha}</div>
-              {!readOnly && (
-                <button onClick={() => eliminar(r.id)} style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>✕</button>
-              )}
+          <div key={r.id} style={{ ...card, padding: 12, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: r.archivo_url ? 10 : 0 }}>
+              <div>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.fecha}</div>
+                {r.nombre_archivo && <div style={{ fontSize: 11, color: S.gray, marginTop: 2 }}>{r.nombre_archivo}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {r.archivo_url && (
+                  <a href={r.archivo_url} target="_blank" rel="noreferrer"
+                    style={{ background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 5, padding: "4px 10px", fontSize: 11, textDecoration: "none" }}>
+                    Ver
+                  </a>
+                )}
+                {!readOnly && (
+                  <button onClick={() => eliminar(r)} style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>✕</button>
+                )}
+              </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              {BIO_CAMPOS.filter(c => r[c.key] != null).map(({ key, label }) => (
-                <div key={key} style={{ background: S.card2, borderRadius: 6, padding: "6px 10px" }}>
-                  <div style={{ fontSize: 10, color: S.gray }}>{label}</div>
-                  <div style={{ fontSize: 14, color: S.white, fontWeight: 600 }}>{r[key]}</div>
-                </div>
-              ))}
-            </div>
-            {r.observaciones && <div style={{ marginTop: 8, fontSize: 12, color: S.gray, fontStyle: "italic" }}>{r.observaciones}</div>}
+            {r.archivo_url && isImg(r.archivo_url) && (
+              <img src={r.archivo_url} alt="bio" style={{ width: "100%", borderRadius: 8, maxHeight: 300, objectFit: "contain", background: "#000" }} />
+            )}
           </div>
         ))
       )}
