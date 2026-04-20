@@ -921,3 +921,61 @@ export async function subirVideo(archivo) {
     throw e;
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// BIOIMPEDANCIA (archivos)
+// ══════════════════════════════════════════════════════════════════════
+
+const BIO_BUCKET = "bioimpedancia-archivos";
+
+async function _ensureBioBucket() {
+  const { data: buckets } = await supabase.storage.listBuckets();
+  if (buckets && buckets.find(b => b.name === BIO_BUCKET)) return;
+  await supabase.storage.createBucket(BIO_BUCKET, { public: true });
+}
+
+export async function cargarBioimpedancia(alumno_id) {
+  const { data, error } = await supabase
+    .from("bioimpedancia")
+    .select("id, alumno_id, fecha, archivo_url, nombre_archivo, created_at")
+    .eq("alumno_id", alumno_id)
+    .order("fecha", { ascending: false });
+  if (error) { ERR("cargarBioimpedancia", error.message, error); return []; }
+  return data || [];
+}
+
+export async function guardarBioimpedancia(alumno_id, datos) {
+  // datos: { fecha, archivo (File object) }
+  let archivo_url = null;
+  let nombre_archivo = null;
+
+  if (datos.archivo) {
+    await _ensureBioBucket();
+    const ext = datos.archivo.name.split(".").pop();
+    const key = `${alumno_id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from(BIO_BUCKET)
+      .upload(key, datos.archivo, { cacheControl: "3600", upsert: false });
+    if (upErr) { ERR("guardarBioimpedancia/upload", upErr.message, upErr); throw upErr; }
+    const { data: urlData } = supabase.storage.from(BIO_BUCKET).getPublicUrl(key);
+    archivo_url = urlData.publicUrl;
+    nombre_archivo = datos.archivo.name;
+  }
+
+  const row = { alumno_id, fecha: datos.fecha || new Date().toISOString().split("T")[0], archivo_url, nombre_archivo };
+  const { data, error } = await supabase.from("bioimpedancia").insert([row]).select().single();
+  if (error) { ERR("guardarBioimpedancia", error.message, error); throw error; }
+  return data;
+}
+
+export async function eliminarBioimpedancia(id, archivo_url) {
+  // Eliminar archivo de storage si existe
+  if (archivo_url) {
+    try {
+      const path = archivo_url.split(`/${BIO_BUCKET}/`)[1];
+      if (path) await supabase.storage.from(BIO_BUCKET).remove([path]);
+    } catch (e) { /* no bloquear si falla el storage */ }
+  }
+  const { error } = await supabase.from("bioimpedancia").delete().eq("id", id);
+  if (error) { ERR("eliminarBioimpedancia", error.message, error); throw error; }
+}
