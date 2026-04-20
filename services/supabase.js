@@ -509,7 +509,15 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
   LOG("crearPlanAlumno", `⏳ Creando plan para ${dia_semana} de ${alumno_id}`);
 
   try {
-    const nombre = typeof plan_template === 'string' ? plan_template : (plan_template.nombre || 'Plan');
+    let nombre;
+    if (typeof plan_template === 'string') {
+      nombre = plan_template;
+    } else if (plan_template.nombre) {
+      nombre = plan_template.nombre;
+    } else {
+      const sub = plan_template?.dias?.[0]?.subtitulo || '';
+      nombre = sub.includes('Unilateral') ? 'Unilateral' : sub.includes('Bilateral') ? 'Bilateral' : 'Plan';
+    }
     const dias = typeof plan_template === 'string' ? [] : (plan_template.dias || []);
 
     const { data: nuevoAlPlan, error } = await supabase

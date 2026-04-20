@@ -12,6 +12,8 @@ import {
   loginAdmin,
   crearAlumnoConPIN,
   subirVideo,
+  crearPlanAlumno,
+  cargarPlanesXDia,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -49,6 +51,23 @@ const ICON_BLACK =
   );
 let ICON = ICON_WHITE;
 const ALUMNOS_INIT = [];
+
+// Lista de ejercicios predefinidos para autocompletado
+const EJS_SUGERIDOS = [
+  // Movilidad
+  "Obelisco","Movilidad de cadera","Puente activacion lumbar","Dorsiflexion del tobillo","Bicho muerto","Estiramiento del gato","Superman en cuadrupedia",
+  // Calor
+  "Remo a un brazo (banda)","Jalon brazos estirados (banda)","Rotacion interna (banda)","Rotacion externa (banda)","Aperturas (banda)","Press Paloff (banda)",
+  // Activacion
+  "Rotacion con disco","Buenos dias con disco","Remo con disco",
+  // Bilateral
+  "Press Militar","Sentadilla con barra","Press de Banca","Peso Muerto","Jalon al pecho","Hip Thrust bilateral",
+  // Unilateral
+  "Fuerza impulso un brazo","Zancada a una pierna","Pecho inclinado mancuerna","Peso muerto a una pierna","Remo un brazo mancuerna","Hip Thrust a una pierna",
+  // Extras comunes
+  "Curl de biceps","Extension de triceps","Elevaciones laterales","Face pull","Remo con barra","Pull over","Fondos en paralelas",
+  "Sentadilla bulgara","Estocada","Step up","Glute bridge","Good morning","Romanian deadlift",
+];
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }) {
   if (!msg) return null;
@@ -633,10 +652,15 @@ function EjercicioEditor({ items, onChange, showVideo }) {
               {" "}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>NOMBRE</div>{" "}
               <input
+                list="ejs-sugeridos"
                 value={form.nombre}
                 onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                placeholder="Escribí para buscar..."
                 style={{ ...inp, marginBottom: 8 }}
-              />{" "}
+              />
+              <datalist id="ejs-sugeridos">
+                {EJS_SUGERIDOS.map((n) => <option key={n} value={n} />)}
+              </datalist>{" "}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>{" "}
               <textarea
                 value={form.desc}
@@ -2340,7 +2364,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
     [ne, setNe] = useState("");
   const [nh, setNh] = useState([{ dia: "", hora: "" }]);
   const [ntemplate, setNtemplate] = useState("bilateral");
-  const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
+  const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
+  const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
   const al = alumnos.find((a) => a.id === selId) || alumnos[0];
   const startEdit = () =>
     setForm({
@@ -2388,8 +2413,29 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
         ...nuevoAl,
         horarios: nh.filter((h) => h.dia),
         plan: JSON.parse(JSON.stringify(tpl)),
+        planes: [],
         plantilla_id: null,
       };
+
+      // Crear planes para los días seleccionados
+      const diasAsignados = Object.keys(ndias).filter(dia => ndias[dia]);
+      if (diasAsignados.length > 0) {
+        for (const dia of diasAsignados) {
+          const planTipo = ndias[dia] || "bilateral";
+          const planTemplate = planTipo === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL;
+          const res = await crearPlanAlumno(nuevoAl.id, dia, planTemplate);
+          if (res.ok) {
+            alumnoConPlan.planes.push(res.data);
+          }
+        }
+      } else {
+        // Si no seleccionó días, crear plan "Fijo" por defecto
+        const res = await crearPlanAlumno(nuevoAl.id, "Fijo", tpl);
+        if (res.ok) {
+          alumnoConPlan.planes.push(res.data);
+        }
+      }
+
       // Actualizar estado local
       onUpdate((prev) => [...(Array.isArray(prev) ? prev : []), alumnoConPlan]);
       setNn("");
@@ -2400,11 +2446,33 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
       setNe("");
       setNh([{ dia: "", hora: "" }]);
       setNtemplate("bilateral");
+      setNdias({});
       showToast && showToast("Alumno creado ✓");
       setSec("dashboard");
     } catch (e) {
       console.error("[crearAlumno] Excepción:", e);
       showToast && showToast("Error inesperado. Ver consola.");
+    }
+  };
+  const asignarPlanDia = async (tipoPlane) => {
+    if (!selectedDia || !al) return;
+    const tpl = tipoPlane === "Unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL;
+    try {
+      const result = await crearPlanAlumno(al.id, selectedDia, tpl);
+      if (result.ok) {
+        showToast && showToast(`Plan "${tipoPlane}" asignado para ${selectedDia} ✓`);
+        const alumnoActualizado = {
+          ...al,
+          planes: await cargarPlanesXDia(al.id, al)
+        };
+        onUpdate(alumnos.map((a) => (a.id === al.id ? alumnoActualizado : a)));
+        setSelectedDia(null);
+      } else {
+        showToast && showToast("Error al asignar plan");
+      }
+    } catch (e) {
+      console.error("[asignarPlanDia]", e);
+      showToast && showToast("Error: " + e.message);
     }
   };
   const secBtn = (l, k) => (
@@ -2505,8 +2573,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
                 <div style={{ color: S.white, fontWeight: 700, marginBottom: 14 }}>Editar alumno</div>{" "}
                 {[
                   ["Nombre", form.nombre, "nombre"],
-                  ["Username", form.username, "username"],
-                  ["Codigo", form.codigo, "codigo"],
+                  ["Username (login)", form.codigo, "codigo"],
                   ["Peso", form.peso, "peso"],
                   ["Altura", form.altura, "altura"],
                   ["Edad", form.edad, "edad"],
@@ -2699,10 +2766,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
               {" "}
               {[
-                ["Entreno", "entrenamiento"],
                 ["Movil.", "movilidad"],
                 ["Calor", "calor"],
                 ["Activac.", "activacion"],
+                ["Princip.", "entrenamiento"],
                 ["Period.", "periodizacion"],
                 ["Plan Día", "plan-dias"],
               ].map(([l, k]) => (
@@ -2752,56 +2819,59 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
             )}{" "}
             {planTab === "plan-dias" && al && (
               <div style={{ ...card, padding: 12 }}>
-                <h3 style={{ marginTop: 0, marginBottom: 12 }}>Asignar planes por día: {al.nombre}</h3>
-                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-                  {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo", "Fijo"].map((dia) => (
-                    <button
-                      key={dia}
-                      onClick={() => setSelectedDia(selectedDia === dia ? null : dia)}
-                      style={{
-                        background: selectedDia === dia ? S.white : S.card,
-                        color: selectedDia === dia ? S.bg : S.gray,
-                        border: `1px solid ${S.border}`,
-                        padding: "6px 12px",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontSize: 12,
-                      }}
-                    >
-                      {dia}
-                    </button>
-                  ))}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12 }}>
+                  Plan por día — {al.nombre}
                 </div>
-                {selectedDia && (
-                  <div style={{ ...card, padding: 10, background: S.card2 }}>
-                    <p style={{ marginTop: 0 }}>
-                      <strong>{selectedDia}</strong>: Selecciona plan
-                    </p>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {["Bilateral", "Unilateral"].map((tipo) => (
-                        <button
-                          key={tipo}
-                          onClick={() => {
-                            LOG("AdminPanel", `Plan asignado: ${selectedDia} → ${tipo}`);
-                            setToastMsg(`Plan "${tipo}" asignado para ${selectedDia}`);
-                          }}
-                          style={{
-                            flex: 1,
-                            background: S.white,
-                            color: S.bg,
-                            border: "none",
-                            padding: "8px 12px",
-                            borderRadius: 6,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {tipo}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo", "Fijo"].map((dia) => {
+                    const planActual = al.planes?.find(p => p.dia_semana === dia);
+                    const isSelected = selectedDia === dia;
+                    return (
+                      <div
+                        key={dia}
+                        onClick={() => setSelectedDia(isSelected ? null : dia)}
+                        style={{
+                          background: isSelected ? S.card2 : S.card,
+                          border: `1px solid ${isSelected ? S.white : S.border}`,
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 3 }}>{dia}</div>
+                        <div style={{ fontSize: 12, color: planActual ? S.green : S.lgray, fontWeight: 600 }}>
+                          {planActual ? planActual.nombre || "Asignado" : "Sin plan"}
+                        </div>
+                        {isSelected && (
+                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                            {["Bilateral", "Unilateral"].map((tipo) => (
+                              <button
+                                key={tipo}
+                                onClick={(e) => { e.stopPropagation(); asignarPlanDia(tipo); }}
+                                style={{
+                                  flex: 1,
+                                  background: S.white,
+                                  color: S.bg,
+                                  border: "none",
+                                  padding: "6px 4px",
+                                  borderRadius: 5,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {tipo}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11, color: S.lgray }}>
+                  Tocá un día para asignarle un plan de entrenamiento
+                </div>
               </div>
             )}{" "}
           </div>
@@ -2917,12 +2987,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
               Crear nuevo alumno
             </div>{" "}
             {[
-              ["Nombre", nn, setNn],
-              ["Código (ej: DI-001)", nc, setNc],
+              ["Nombre completo", nn, setNn],
+              ["Username (para login)", nc, setNc],
               ["PIN (4 dígitos)", npin, setNpin],
-              ["Peso", np, setNp],
-              ["Altura", na, setNa],
-              ["Edad", ne, setNe],
+              ["Peso (kg)", np, setNp],
+              ["Altura (cm)", na, setNa],
             ].map(([label, val, set]) => (
               <div key={label} style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
