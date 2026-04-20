@@ -14,6 +14,9 @@ import {
   subirVideo,
   crearPlanAlumno,
   cargarPlanesXDia,
+  cargarBioimpedancia,
+  guardarBioimpedancia,
+  eliminarBioimpedancia,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -55,18 +58,17 @@ const ALUMNOS_INIT = [];
 // Lista de ejercicios predefinidos para autocompletado
 const EJS_SUGERIDOS = [
   // Movilidad
-  "Obelisco","Movilidad de cadera","Puente activacion lumbar","Dorsiflexion del tobillo","Bicho muerto","Estiramiento del gato","Superman en cuadrupedia",
-  // Calor
+  "Obelisco","Sentadilla de Activacion de Peso","Movilidad de cadera","Puente invertido mesa","Dorsiflexion del tobillo","Bicho muerto","Estiramiento del gato","Superman en cuadrupedia","Rotaciones toracicas","Plancha isometrica 15s","Espinales nados",
+  // Entrada en calor (banda)
   "Remo a un brazo (banda)","Jalon brazos estirados (banda)","Rotacion interna (banda)","Rotacion externa (banda)","Aperturas (banda)","Press Paloff (banda)",
-  // Activacion
-  "Rotacion con disco","Buenos dias con disco","Remo con disco",
-  // Bilateral
-  "Press Militar","Sentadilla con barra","Press de Banca","Peso Muerto","Jalon al pecho","Hip Thrust bilateral",
-  // Unilateral
-  "Fuerza impulso un brazo","Zancada a una pierna","Pecho inclinado mancuerna","Peso muerto a una pierna","Remo un brazo mancuerna","Hip Thrust a una pierna",
+  // Activacion (disco/mancuerna)
+  "Rotacion con disco","Buenos dias con disco","Jalon con mancuerna","Remo con disco","Peso muerto a una pierna sin peso","Sentadilla bulgara sin peso",
+  // Principales Bilateral
+  "Fuerza con impulso con barra","Sentadilla con barra","Pecho plano con barra","Peso muerto con barra","Jalon al pecho / Maquina dorsales","Hip Thrust bilateral",
+  // Principales Unilateral
+  "Fuerza con impulso a un brazo","Zancada a una pierna","Pecho inclinado con mancuerna","Peso muerto a una pierna","Remo a un brazo","Levantada de cadera a una pierna",
   // Extras comunes
-  "Curl de biceps","Extension de triceps","Elevaciones laterales","Face pull","Remo con barra","Pull over","Fondos en paralelas",
-  "Sentadilla bulgara","Estocada","Step up","Glute bridge","Good morning","Romanian deadlift",
+  "Curl de biceps","Extension de triceps","Elevaciones laterales","Face pull","Remo con barra","Pull over","Fondos en paralelas","Step up","Glute bridge","Good morning",
 ];
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }) {
@@ -2342,6 +2344,119 @@ function Dashboard({ alumnos, onSelect }) {
     </div>
   );
 }
+// ── BIOIMPEDANCIA ─────────────────────────────────────────────────────
+const BIO_CAMPOS = [
+  { key: "peso", label: "Peso (kg)" },
+  { key: "masa_muscular", label: "Masa muscular (kg)" },
+  { key: "grasa_corporal", label: "Grasa corporal (%)" },
+  { key: "grasa_visceral", label: "Grasa visceral" },
+  { key: "masa_osea", label: "Masa ósea (kg)" },
+  { key: "agua_corporal", label: "Agua corporal (%)" },
+  { key: "imc", label: "IMC" },
+];
+
+function BioimpedanciaSection({ alumnoId, showToast, readOnly = false }) {
+  const [registros, setRegistros] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const emptyForm = () => ({
+    fecha: new Date().toISOString().split("T")[0],
+    peso: "", masa_muscular: "", grasa_corporal: "",
+    grasa_visceral: "", masa_osea: "", agua_corporal: "",
+    imc: "", observaciones: ""
+  });
+
+  useEffect(() => {
+    if (!alumnoId) return;
+    cargarBioimpedancia(alumnoId).then(d => { setRegistros(d); setLoading(false); });
+  }, [alumnoId]);
+
+  const guardar = async () => {
+    if (!form) return;
+    setGuardando(true);
+    try {
+      const nuevo = await guardarBioimpedancia(alumnoId, form);
+      setRegistros(prev => [nuevo, ...prev]);
+      setForm(null);
+      showToast && showToast("Bioimpedancia guardada ✓");
+    } catch { showToast && showToast("Error al guardar"); }
+    setGuardando(false);
+  };
+
+  const eliminar = async (id) => {
+    if (!window.confirm("¿Eliminar este registro?")) return;
+    await eliminarBioimpedancia(id);
+    setRegistros(prev => prev.filter(r => r.id !== id));
+    showToast && showToast("Eliminado");
+  };
+
+  if (loading) return <div style={{ color: S.gray, padding: 16, fontSize: 13 }}>Cargando...</div>;
+
+  return (
+    <div>
+      {!readOnly && !form && (
+        <button
+          onClick={() => setForm(emptyForm())}
+          style={{ background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 16, width: "100%" }}
+        >
+          + Cargar nueva medición
+        </button>
+      )}
+      {form && (
+        <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10 }}>Nueva medición</div>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>FECHA</div>
+            <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} style={inp} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+            {BIO_CAMPOS.map(({ key, label }) => (
+              <div key={key}>
+                <div style={{ fontSize: 10, color: S.gray, marginBottom: 3 }}>{label}</div>
+                <input type="number" step="0.1" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={{ ...inp, padding: "6px 8px", fontSize: 13 }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>OBSERVACIONES</div>
+            <textarea value={form.observaciones} onChange={e => setForm(f => ({ ...f, observaciones: e.target.value }))} rows={2} style={{ ...inp, resize: "vertical" }} />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={guardar} disabled={guardando} style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "9px", fontWeight: 700, cursor: "pointer" }}>
+              {guardando ? "Guardando..." : "GUARDAR"}
+            </button>
+            <button onClick={() => setForm(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "9px 14px", cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      {registros.length === 0 ? (
+        <div style={{ color: S.lgray, fontSize: 13, textAlign: "center", padding: 20 }}>Sin mediciones registradas</div>
+      ) : (
+        registros.map((r) => (
+          <div key={r.id} style={{ ...card, padding: 12, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.fecha}</div>
+              {!readOnly && (
+                <button onClick={() => eliminar(r.id)} style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>✕</button>
+              )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {BIO_CAMPOS.filter(c => r[c.key] != null).map(({ key, label }) => (
+                <div key={key} style={{ background: S.card2, borderRadius: 6, padding: "6px 10px" }}>
+                  <div style={{ fontSize: 10, color: S.gray }}>{label}</div>
+                  <div style={{ fontSize: 14, color: S.white, fontWeight: 600 }}>{r[key]}</div>
+                </div>
+              ))}
+            </div>
+            {r.observaciones && <div style={{ marginTop: 8, fontSize: 12, color: S.gray, fontStyle: "italic" }}>{r.observaciones}</div>}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ── ADMIN PANEL ───────────────────────────────────────────────────────
 function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
   const [sec, setSec] = useState("dashboard");
@@ -2543,6 +2658,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
         {secBtn("Peso Max", "rm")}
         {secBtn("Historial", "historial")}
+        {secBtn("Bioimp.", "bioimpedancia")}
         {secBtn("+ Nuevo", "nuevo")}
       </div>{" "}
       <div style={{ padding: "0 16px" }}>
@@ -2978,6 +3094,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast }) {
           </div>
         )}{" "}
         {sec === "historial" && <HistorialAdmin alumnos={alumnos} />}{" "}
+        {sec === "bioimpedancia" && al && (
+          <div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+              Bioimpedancia — {al.nombre}
+            </div>
+            <BioimpedanciaSection alumnoId={al.id} showToast={showToast} readOnly={false} />
+          </div>
+        )}{" "}
         {sec === "nuevo" && (
           <div>
             {" "}
@@ -3874,7 +3998,7 @@ export default function App() {
               />{" "}
             </div>
           )}{" "}
-          {tab === "Bioimpedancia" && <BioScreen estudios={al.bioimpedancia} onAdd={addBio} />}{" "}
+          {tab === "Bioimpedancia" && <BioimpedanciaSection alumnoId={al.id} showToast={showToast} readOnly={true} />}{" "}
           {tab === "Peso Max" && (
             <PesoMaxAlumno
               rm={al.rm}
