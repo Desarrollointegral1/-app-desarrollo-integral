@@ -1,295 +1,317 @@
-import Image from "next/image";
+"use client";
+import { useEffect } from "react";
 
 const APP_URL = "https://app-desarrollo-integral.vercel.app";
+const LOGO = "/logos/DI-LOGO-FILL.png";
+const ICON = "/logos/DI-ICON-FILL.png";
 
 export default function Home() {
-  return (
-    <div className="bg-[#0a0a0a] text-white min-h-screen font-sans">
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("visible");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll(".fade-in").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
 
+  return (
+    <>
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.08] bg-[#0a0a0a]/95 backdrop-blur-sm px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Image src="/logos/DI-TYPEFACE.svg" alt="Desarrollo Integral" width={160} height={28} priority />
-          <div className="flex items-center gap-4 md:gap-6 text-sm text-gray-400">
-            <a href="#metodo" className="hidden md:block hover:text-white transition-colors">Método</a>
-            <a href="#plataforma" className="hidden md:block hover:text-white transition-colors">Plataforma</a>
-            <a href="#equipo" className="hidden md:block hover:text-white transition-colors">Equipo</a>
-            <a href={APP_URL} className="border border-white/60 text-white px-4 py-1.5 text-sm font-medium hover:bg-white hover:text-black transition-colors">
-              Ingresar
-            </a>
-          </div>
+      <nav>
+        <div className="nav-logo">
+          <img src={LOGO} alt="Desarrollo Integral" style={{ height: 36, filter: "invert(1)", opacity: 0.85, display: "block" }} />
+        </div>
+        <div className="nav-links">
+          <a href="#metodo">Método</a>
+          <a href="#plataforma">Plataforma</a>
+          <a href="#equipo">Equipo</a>
+          <a href={APP_URL} className="nav-cta">Ingresar</a>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <div className="flex flex-col items-center justify-center flex-1 py-32 w-full">
-          <Image src="/logos/DI-ICON-SOLO.svg" alt="Desarrollo Integral" width={80} height={80} className="mb-10 opacity-90" priority />
-          <p className="text-xs tracking-[0.35em] text-gray-600 uppercase mb-8">Wellness starts with movement</p>
-          <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] mb-8 max-w-3xl tracking-tight">
-            Fuerza, movimiento<br />y rendimiento<br className="hidden md:block" /> a largo plazo.
+      <section id="hero">
+        <div className="hero-shield">
+          <div className="shield-spin-wrap">
+            <img className="shield-spin" src={ICON} alt="" width={700} style={{ filter: "invert(1)", opacity: 0.09, display: "block" }} />
+          </div>
+        </div>
+        <div className="hero-inner">
+          <p className="hero-eyebrow">Wellness starts with movement</p>
+          <h1 className="hero-h1">
+            Fuerza,<br />
+            movimiento<br />
+            <em>y rendimiento</em><br />
+            <span className="smaller">a largo plazo.</span>
           </h1>
-          <p className="text-gray-400 text-base md:text-lg max-w-md mb-12 leading-relaxed">
-            Planes de entrenamiento personalizados, con seguimiento y registro completo de cada proceso.
-          </p>
-          <a href={APP_URL} className="bg-white text-black px-12 py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-gray-200 transition-colors">
+        </div>
+        <div className="hero-bottom">
+          <p className="hero-desc">Planes de entrenamiento personalizados, con seguimiento y registro completo de cada proceso.</p>
+          <a href={APP_URL} className="hero-cta">
             Acceder al aplicativo
+            <span className="hero-cta-line"></span>
           </a>
         </div>
-        <div className="w-full max-w-3xl mx-auto pb-20 grid grid-cols-2 md:grid-cols-4 gap-8 text-center border-t border-white/[0.08] pt-12">
-          {[
-            ["30+", "años de experiencia"],
-            ["100%", "planes individuales"],
-            ["Datos reales", "para cada ajuste"],
-            ["Proceso", "medido y registrado"],
-          ].map(([num, label]) => (
-            <div key={label}>
-              <div className="text-2xl font-bold mb-1 text-gray-100">{num}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider">{label}</div>
+      </section>
+
+      {/* STATS */}
+      <section id="stats">
+        <div className="stats-grid">
+          <div className="stat-item fade-in"><div className="stat-num">30+</div><div className="stat-label">Años de experiencia</div></div>
+          <div className="stat-item fade-in"><div className="stat-num">100%</div><div className="stat-label">Planes individuales</div></div>
+          <div className="stat-item fade-in"><div className="stat-num">Datos reales</div><div className="stat-label">Para cada ajuste</div></div>
+          <div className="stat-item fade-in"><div className="stat-num">Proceso</div><div className="stat-label">Medido y registrado</div></div>
+        </div>
+      </section>
+
+      {/* VIDEO */}
+      <section id="video">
+        <div className="video-wrap">
+          <div className="video-box">
+            <div className="video-stripes"></div>
+            <div className="video-play">
+              <div className="play-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M5 3l9 5-9 5V3z" fill="#C8A96E" />
+                </svg>
+              </div>
+              <p className="video-label">Video del espacio — próximamente</p>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
       {/* IDENTIDAD */}
-      <section className="py-32 px-6 bg-[#111111] border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-5 gap-16 items-center">
-          <div className="md:col-span-3">
-            <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-8">Qué es Desarrollo Integral</p>
-            <p className="text-2xl md:text-3xl font-light leading-relaxed text-gray-200 mb-8">
-              Un centro de entrenamiento y un método de trabajo desarrollado a partir de más de 30 años de experiencia.
-            </p>
-            <div className="border-l border-white/20 pl-6 space-y-4 text-gray-400 text-base leading-relaxed">
-              <p>No se trabaja con planes genéricos.</p>
-              <p>Cada alumno entrena con un <strong className="text-gray-100">plan de entrenamiento personalizado</strong>, diseñado según su punto de partida, sus objetivos y su evolución.</p>
-              <p>El foco está en construir un cuerpo fuerte, funcional y adaptable en el tiempo.</p>
+      <section id="identidad">
+        <div className="container">
+          <p className="identidad-eyebrow fade-in">Qué es Desarrollo Integral</p>
+          <div className="identidad-grid">
+            <div className="fade-in">
+              <p className="identidad-quote">&ldquo;Un método de trabajo construido a partir de más de 30 años de experiencia.&rdquo;</p>
+              <p className="identidad-body">No se trabaja con planes genéricos. Cada alumno entrena con un plan personalizado, diseñado según su punto de partida, sus objetivos y su evolución. El foco está en construir un cuerpo fuerte, funcional y adaptable en el tiempo.</p>
             </div>
-          </div>
-          <div className="md:col-span-2 flex items-center justify-center">
-            <Image src="/logos/DI-ICON-FILL.svg" alt="" width={200} height={200} className="opacity-[0.15]" aria-hidden="true" />
+            <ul className="identidad-list fade-in">
+              <li><span className="list-num">01.</span><span className="list-text">Planes de entrenamiento personalizados</span></li>
+              <li><span className="list-num">02.</span><span className="list-text">Actualización constante según evolución</span></li>
+              <li><span className="list-num">03.</span><span className="list-text">Seguimiento individual real</span></li>
+              <li><span className="list-num">04.</span><span className="list-text">Registro completo del proceso</span></li>
+              <li><span className="list-num">05.</span><span className="list-text">Método basado en experiencia y datos</span></li>
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* DIFERENCIAL */}
-      <section className="py-20 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-5 gap-0 border border-white/[0.08]">
-            {[
-              "Planes de entrenamiento personalizados",
-              "Actualización constante según evolución",
-              "Seguimiento individual real",
-              "Registro completo del proceso",
-              "Método basado en experiencia y datos",
-            ].map((item, i) => (
-              <div key={i} className="border-r border-white/[0.08] last:border-r-0 p-6 bg-[#111111]">
-                <div className="text-xs text-gray-600 mb-3">{String(i + 1).padStart(2, "0")}</div>
-                <p className="text-sm text-gray-300 leading-relaxed">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BLOQUE CONCEPTUAL */}
-      <section className="py-32 px-6 bg-[#111111] border-t border-white/[0.06]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-8 text-gray-100">Construir sobre bases sólidas</h2>
-          <p className="text-gray-400 text-lg leading-relaxed mb-6">
-            El desarrollo físico no es solo entrenar.<br />
-            Es fuerza, movilidad, control y adaptación.
-          </p>
-          <p className="text-gray-500 text-base">
-            Cada plan de entrenamiento responde a una lógica y se ajusta en función del progreso.
-          </p>
-        </div>
-        <div className="max-w-4xl mx-auto mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-white/[0.06]">
-          {[
-            ["Fuerza", "Base del desarrollo físico"],
-            ["Movilidad", "Control y rango de movimiento"],
-            ["Resistencia", "Capacidad de sostener esfuerzo"],
-            ["Composición corporal", "Resultado del proceso"],
-          ].map(([title, desc]) => (
-            <div key={title} className="bg-[#161616] p-8 text-center">
-              <div className="text-base font-semibold mb-2 text-gray-100">{title}</div>
-              <div className="text-xs text-gray-500 leading-relaxed">{desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* PHOTO STRIP */}
+      <div className="photo-strip">
+        <div className="photo-cell"><div className="photo-stripes"></div><span className="photo-caption">foto del espacio · pendiente</span></div>
+        <div className="photo-cell"><div className="photo-stripes"></div><span className="photo-caption">entrenamiento · pendiente</span></div>
+        <div className="photo-cell"><div className="photo-stripes"></div><span className="photo-caption">equipo · pendiente</span></div>
+      </div>
 
       {/* MÉTODO */}
-      <section id="metodo" className="py-32 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-4">Cómo se trabaja</p>
-          <h2 className="text-3xl font-bold mb-16 text-gray-100">El método</h2>
-          <div className="grid md:grid-cols-3 gap-px bg-white/[0.06]">
-            {[
-              {
-                num: "01", title: "Evaluación",
-                items: ["Composición corporal (bioimpedancia)", "Movilidad", "Nivel de fuerza", "Historial"],
-              },
-              {
-                num: "02", title: "Planificación",
-                items: ["Plan de entrenamiento personalizado", "Selección específica de ejercicios", "Progresión estructurada"],
-              },
-              {
-                num: "03", title: "Seguimiento",
-                items: ["Ajustes constantes", "Control de evolución", "Actualización del plan"],
-              },
-            ].map(({ num, title, items }) => (
-              <div key={num} className="bg-[#0f0f0f] p-10">
-                <div className="text-xs text-gray-600 mb-4 font-mono">{num}</div>
-                <h3 className="text-xl font-bold mb-6 text-gray-100">{title}</h3>
-                <ul className="space-y-3">
-                  {items.map((item) => (
-                    <li key={item} className="text-sm text-gray-400 flex items-start gap-2">
-                      <span className="text-gray-600 mt-1">—</span> {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      <section id="metodo">
+        <div className="container">
+          <div className="metodo-header fade-in">
+            <h2 className="metodo-title">El Método</h2>
+            <span className="metodo-sub">Cómo se trabaja</span>
+          </div>
+          <div className="metodo-cards">
+            <div className="metodo-card featured fade-in">
+              <div className="metodo-card-num">01</div>
+              <h3 className="metodo-card-title">Evaluación</h3>
+              <ul className="metodo-card-list">
+                <li>Composición corporal (bioimpedancia)</li>
+                <li>Movilidad</li>
+                <li>Nivel de fuerza</li>
+                <li>Historial</li>
+              </ul>
+            </div>
+            <div className="metodo-card fade-in">
+              <div className="metodo-card-num">02</div>
+              <h3 className="metodo-card-title">Planificación</h3>
+              <ul className="metodo-card-list">
+                <li>Plan de entrenamiento personalizado</li>
+                <li>Selección específica de ejercicios</li>
+                <li>Progresión estructurada</li>
+              </ul>
+            </div>
+            <div className="metodo-card fade-in">
+              <div className="metodo-card-num">03</div>
+              <h3 className="metodo-card-title">Seguimiento</h3>
+              <ul className="metodo-card-list">
+                <li>Ajustes constantes</li>
+                <li>Control de evolución</li>
+                <li>Actualización del plan</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
       {/* PLATAFORMA */}
-      <section id="plataforma" className="py-32 px-6 bg-[#111111] border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-4">Seguimiento y sistema</p>
-          <div className="grid md:grid-cols-2 gap-16 items-start">
-            <div>
-              <h2 className="text-3xl font-bold mb-6 text-gray-100">Cada alumno tiene acceso a su aplicativo de entrenamiento.</h2>
-              <p className="text-gray-400 leading-relaxed mb-8">
-                Todo el proceso queda organizado y disponible en todo momento. No depende de la memoria: depende de datos.
-              </p>
-              <a href={APP_URL} className="inline-block border border-white/60 text-white px-8 py-3 text-sm font-bold tracking-widest uppercase hover:bg-white hover:text-black transition-colors">
-                Acceder al aplicativo
-              </a>
+      <section id="plataforma">
+        <div className="container">
+          <div className="plataforma-grid">
+            <div className="fade-in">
+              <p className="plataforma-eyebrow">Seguimiento y sistema</p>
+              <h2 className="plataforma-h2">Cada alumno tiene acceso a su aplicativo de entrenamiento.</h2>
+              <p className="plataforma-desc">Todo el proceso queda organizado y disponible en todo momento. No depende de la memoria: depende de datos.</p>
+              <a href={APP_URL} className="plataforma-cta">Acceder al aplicativo</a>
+              <div className="blockquote-bar" style={{ marginTop: 40 }}>
+                <p>&ldquo;El proceso no queda en la memoria: queda registrado.&rdquo;</p>
+              </div>
             </div>
-            <div className="space-y-0 border border-white/[0.08]">
-              {[
-                "Plan de entrenamiento actualizado",
-                "Ejercicios asignados",
-                "Cargas utilizadas",
-                "Registro de cada sesión",
-                "Estudios de bioimpedancia",
-                "Evolución en el tiempo",
-              ].map((item, i) => (
-                <div key={i} className={`flex items-center gap-4 px-5 py-4 border-b border-white/[0.06] last:border-b-0 ${i % 2 === 0 ? "bg-[#161616]" : "bg-[#131313]"}`}>
-                  <span className="text-xs text-gray-600 font-mono w-4">{i + 1}</span>
-                  <span className="text-sm text-gray-300">{item}</span>
-                </div>
-              ))}
+            <div className="app-list fade-in">
+              <div className="app-item"><span className="app-num">1</span><span className="app-name">Plan de entrenamiento actualizado</span></div>
+              <div className="app-item"><span className="app-num">2</span><span className="app-name">Ejercicios asignados</span></div>
+              <div className="app-item"><span className="app-num">3</span><span className="app-name">Cargas utilizadas</span></div>
+              <div className="app-item"><span className="app-num">4</span><span className="app-name">Registro de cada sesión</span></div>
+              <div className="app-item"><span className="app-num">5</span><span className="app-name">Estudios de bioimpedancia</span></div>
+              <div className="app-item"><span className="app-num">6</span><span className="app-name">Evolución en el tiempo</span></div>
             </div>
           </div>
-          <blockquote className="mt-16 border-l-2 border-white/30 pl-6">
-            <p className="text-xl text-gray-300 italic">
-              "El proceso no queda en la memoria: queda registrado."
-            </p>
-          </blockquote>
         </div>
       </section>
 
       {/* ÁREAS */}
-      <section className="py-20 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-10">Áreas</p>
-          <div className="grid md:grid-cols-3 gap-px bg-white/[0.06]">
-            {[
-              ["Entrenamiento físico", "Fuerza, movilidad y recomposición corporal"],
-              ["Deportes de combate", "Brazilian Jiu-Jitsu y preparación específica"],
-              ["Salud y movimiento", "Kinesiología, osteopatía y prevención"],
-            ].map(([title, desc]) => (
-              <div key={title} className="bg-[#111111] p-8">
-                <h3 className="font-bold mb-2 text-base text-gray-100">{title}</h3>
-                <p className="text-sm text-gray-500">{desc}</p>
-              </div>
-            ))}
+      <section id="areas">
+        <div className="container">
+          <p className="areas-eyebrow fade-in">Áreas</p>
+          <div className="areas-grid fade-in">
+            <div className="area-item">
+              <h3 className="area-title">Entrenamiento físico</h3>
+              <p className="area-desc">Fuerza, movilidad y recomposición corporal</p>
+            </div>
+            <div className="area-item">
+              <h3 className="area-title">Deportes de combate</h3>
+              <p className="area-desc">Brazilian Jiu-Jitsu y preparación específica</p>
+            </div>
+            <div className="area-item">
+              <h3 className="area-title">Salud y movimiento</h3>
+              <p className="area-desc">Kinesiología, osteopatía y prevención</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIOS */}
+      <section id="testimonios">
+        <div className="container">
+          <p className="testimonios-eyebrow fade-in">Lo que dicen los alumnos</p>
+          <div className="testimonios-grid">
+            <div className="testimonio-card fade-in">
+              <div className="testimonio-stars">★★★★★</div>
+              <p className="testimonio-q">&ldquo;El seguimiento es completamente diferente a cualquier otro lugar. Cada ajuste tiene sentido.&rdquo;</p>
+              <p className="testimonio-name">Alumno — 2 años</p>
+            </div>
+            <div className="testimonio-card fade-in">
+              <div className="testimonio-stars">★★★★★</div>
+              <p className="testimonio-q">&ldquo;Nunca había tenido un plan tan específico para mí. Se nota la diferencia en cada sesión.&rdquo;</p>
+              <p className="testimonio-name">Alumno — 8 meses</p>
+            </div>
+            <div className="testimonio-card fade-in">
+              <div className="testimonio-stars">★★★★★</div>
+              <p className="testimonio-q">&ldquo;El registro de cada sesión me permite ver mi progreso real. Eso cambia todo.&rdquo;</p>
+              <p className="testimonio-name">Alumno — 1 año</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* EQUIPO */}
-      <section id="equipo" className="py-32 px-6 bg-[#111111] border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-10">Equipo</p>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-[#161616] border border-white/[0.08] p-8">
-              <div className="mb-6">
-                <Image src="/logos/DI-ICON-FILL.svg" alt="DI" width={44} height={44} className="opacity-60" />
+      <section id="equipo">
+        <div className="container">
+          <p className="equipo-eyebrow fade-in">Equipo</p>
+          <div className="equipo-grid fade-in">
+            <div className="equipo-card">
+              <div className="equipo-icon">
+                <img src={ICON} alt="" width={44} height={44} style={{ filter: "invert(1)", opacity: 0.55, display: "block" }} />
               </div>
-              <h3 className="text-xl font-bold mb-1 text-gray-100">Ariel Rebesberger</h3>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Head Coach — Método y rendimiento</p>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Más de 30 años de experiencia en entrenamiento.<br />
-                Creador del método Desarrollo Integral.
-              </p>
+              <div>
+                <h3 className="equipo-name">Ariel Rebesberger</h3>
+                <p className="equipo-role">Head Coach — Método y rendimiento</p>
+                <p className="equipo-bio">Más de 30 años de experiencia en entrenamiento. Creador del método Desarrollo Integral.</p>
+              </div>
             </div>
-            <div className="bg-[#161616] border border-white/[0.08] p-8">
-              <div className="mb-6">
-                <Image src="/logos/DI-ICON-FILL.svg" alt="DI" width={44} height={44} className="opacity-60" />
+            <div className="equipo-card">
+              <div className="equipo-icon">
+                <img src={ICON} alt="" width={44} height={44} style={{ filter: "invert(1)", opacity: 0.55, display: "block" }} />
               </div>
-              <h3 className="text-xl font-bold mb-1 text-gray-100">Griselda Politino</h3>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Movimiento y salud</p>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                Enfoque en rehabilitación, prevención y control del movimiento.
-              </p>
+              <div>
+                <h3 className="equipo-name">Griselda Politino</h3>
+                <p className="equipo-role">Movimiento y salud</p>
+                <p className="equipo-bio">Enfoque en rehabilitación, prevención y control del movimiento.</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ENTORNO + UBICACIÓN */}
-      <section className="py-20 px-6 border-t border-white/[0.06]">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16">
-          <div>
-            <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-6">El espacio</p>
-            <p className="text-lg text-gray-300 mb-6">Un espacio diseñado para entrenar con foco.</p>
-            <ul className="space-y-2">
-              {["Equipamiento orientado a rendimiento", "Espacios para fuerza y movilidad", "Ambiente sin distracciones"].map(item => (
-                <li key={item} className="text-sm text-gray-500 flex gap-2"><span className="text-gray-600">—</span>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-xs tracking-[0.3em] text-gray-500 uppercase mb-6">Ubicación</p>
-            <p className="text-3xl font-bold mb-2 text-gray-100">Cabildo 450</p>
-            <p className="text-gray-500">3er piso · Buenos Aires</p>
+      {/* ESPACIO + UBICACIÓN */}
+      <section id="espacio">
+        <div className="container">
+          <div className="espacio-grid">
+            <div className="fade-in">
+              <p className="espacio-eyebrow">El espacio</p>
+              <p className="espacio-title">Un espacio diseñado para entrenar con foco.</p>
+              <ul className="espacio-list">
+                <li>Equipamiento orientado a rendimiento</li>
+                <li>Espacios para fuerza y movilidad</li>
+                <li>Ambiente sin distracciones</li>
+              </ul>
+            </div>
+            <div className="fade-in">
+              <p className="espacio-eyebrow">Ubicación</p>
+              <p className="ubicacion-address">Cabildo 450</p>
+              <p className="ubicacion-detail">3er piso · Buenos Aires</p>
+              <div className="map-placeholder">
+                <div className="map-stripes"></div>
+                <div className="map-pin">
+                  <div className="map-pin-dot"></div>
+                  <p>Cabildo 450, 3er piso · Buenos Aires</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CIERRE */}
-      <section className="relative py-32 px-6 bg-[#111111] border-t border-white/[0.06] text-center overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
-          <Image src="/logos/DI-LOGO-OUTLINE.svg" alt="" width={900} height={600} className="opacity-[0.07]" />
+      {/* CIERRE CTA */}
+      <section id="cierre">
+        <div className="cierre-shield">
+          <div className="shield-spin-wrap">
+            <img className="shield-spin" src={ICON} alt="" width={900} style={{ filter: "invert(1)", opacity: 0.07, display: "block" }} />
+          </div>
         </div>
-        <div className="relative z-10 max-w-2xl mx-auto">
-          <Image src="/logos/DI-ICON-OUTLINE.svg" alt="DI" width={64} height={64} className="mx-auto mb-10 opacity-40" />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-snug text-gray-100">
+        <div className="cierre-inner fade-in">
+          <svg className="cierre-icon" width="52" height="52" viewBox="0 0 1500 1500" style={{ opacity: 0.45 }}>
+            <path fill="#fff" d="M1056.805,427.706l-306.805-109.938-306.822,109.938c-18.505,6.647-30.945,24.314-30.945,43.965v325.811c0,26.25,5.308,51.758,15.763,75.782,18.425,42.352,60.003,122.361,131.412,182.331,100.16,84.107,182.895,122.958,190.285,126.636,0,0,95.4-46.434,190.899-126.636,71.441-59.97,113.003-139.979,131.411-182.331,10.455-24.023,15.763-49.515,15.763-75.765v-325.827c0-19.652-12.439-37.318-30.961-43.965ZM750.001,474.705c31.235,0,56.565,25.33,56.565,56.566s-25.33,56.566-56.565,56.566-56.567-25.315-56.567-56.566,25.331-56.566,56.567-56.566ZM625.122,779.864c-53.565-107.163-131.896-185.042-133.235-186.365,1.807,1.049,116.956,68.731,165.761,166.826,37.866,76.072,42.917,221.537,42.917,221.537,0,0-21.394-93.917-75.443-201.998ZM875.071,779.864c-54.033,108.082-75.442,201.998-75.442,201.998,0,0,5.05-145.465,42.917-221.537,48.806-98.095,163.954-165.777,165.761-166.826-1.339,1.323-79.67,79.202-133.235,186.365ZM907.694,621.686c-35.608,27.686-65.908,61.729-87.769,101.177-14.505,26.153-27.848,57.453-36.657,93.787-25.798,106.452-32.107,223.715-33.381,254.579-.048,1.339-.097,2.501-.129,3.501-.048-1-.097-2.162-.145-3.501-1.275-30.864-7.599-148.127-33.398-254.579-9.471-39.093-24.201-72.377-39.98-99.676-21.345-36.931-50.129-69.005-83.817-95.191-73.297-56.953-126.603-130.105-127.943-131.977,2.469,2.194,161.389,143.658,285.476,143.738h.097c124.086-.081,282.991-141.544,285.476-143.738-1.339,1.872-54.597,74.943-127.83,131.88Z" />
+          </svg>
+          <h2 className="cierre-h2">
             Entrenamiento estructurado.<br />
-            Seguimiento real.<br />
+            <em>Seguimiento real.</em><br />
             Progreso medible.
           </h2>
-          <p className="text-gray-500 mt-8 mb-10 text-base">
-            Cada alumno tiene un plan de entrenamiento propio y todo su proceso está medido y registrado.
-          </p>
-          <a href={APP_URL} className="inline-block bg-white text-black px-12 py-4 text-sm font-bold tracking-widest uppercase hover:bg-gray-200 transition-colors">
-            Acceder al aplicativo
-          </a>
+          <p className="cierre-desc">Cada alumno tiene un plan propio y todo su proceso está medido y registrado.</p>
+          <a href={APP_URL} className="cierre-btn">Acceder al aplicativo</a>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-white/[0.06] px-6 py-8 bg-[#0a0a0a]">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <Image src="/logos/DI-TYPEFACE.svg" alt="Desarrollo Integral" width={120} height={20} className="opacity-30" />
-          <p className="text-xs text-gray-700">© 2026 Desarrollo Integral · Cabildo 450, 3er piso</p>
+      <footer>
+        <div className="footer-logo">
+          <img src={LOGO} alt="Desarrollo Integral" style={{ height: 20, filter: "invert(1)", opacity: 0.22, display: "block" }} />
         </div>
+        <p className="footer-copy">© 2026 Desarrollo Integral · Cabildo 450, 3er piso · Buenos Aires</p>
       </footer>
-
-    </div>
+    </>
   );
 }
