@@ -592,8 +592,6 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
         descripcion: ej.desc        || "",
         video:       ej.video       || "",
         orden:       j,
-        series:      null,
-        reps:        null,
       });
       if (ejErr) ERR("_savePlanDias", `Error insertando "${ej.nombre}"`, ejErr);
     }
@@ -704,6 +702,20 @@ export async function getHistorialPesos(alumno_id) {
 
   LOG("getHistorialPesos", `✅ ${data?.length ?? 0} registros.`);
   return data || [];
+}
+
+export async function cambiarPINAlumno(alumno_id, nuevoPIN) {
+  LOG("cambiarPINAlumno", `⏳ Cambiando PIN de ${alumno_id}...`);
+  try {
+    const pin_hash = await hashearPIN(nuevoPIN);
+    const { error } = await supabase.from("alumnos").update({ pin_hash }).eq("id", alumno_id);
+    if (error) { ERR("cambiarPINAlumno", "No se pudo cambiar el PIN", error); return false; }
+    LOG("cambiarPINAlumno", `✅ PIN actualizado.`);
+    return true;
+  } catch (e) {
+    ERR("cambiarPINAlumno", "Error al hashear PIN", e);
+    return false;
+  }
 }
 
 export async function deleteAlumno(alumno_id) {
@@ -822,7 +834,7 @@ export async function loginAdmin(codigo, pin) {
   }
 }
 
-export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso) {
+export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fechaNacimiento, tipo) {
   LOG("crearAlumnoConPIN", `⏳ Creando alumno ${codigo}...`);
 
   try {
@@ -831,7 +843,9 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso) {
       codigo: codigo.toUpperCase(),
       altura: parseInt(altura) || 0,
       peso: parseFloat(peso) || 0,
+      tipo: tipo || "entrenamiento",
     };
+    if (fechaNacimiento) nuevoAlumno.fecha_nacimiento = fechaNacimiento;
 
     try {
       const pinHash = await hashearPIN(pin);
@@ -978,4 +992,84 @@ export async function eliminarBioimpedancia(id, archivo_url) {
   }
   const { error } = await supabase.from("bioimpedancia").delete().eq("id", id);
   if (error) { ERR("eliminarBioimpedancia", error.message, error); throw error; }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// BIBLIOTECA DE EJERCICIOS
+// ──────────────────────────────────────────────────────────────────────
+
+export async function cargarBiblioteca() {
+  const { data, error } = await supabase
+    .from("biblioteca_ejercicios")
+    .select("*")
+    .order("usos", { ascending: false });
+  if (error) { ERR("cargarBiblioteca", error.message, error); return []; }
+  return data || [];
+}
+
+export async function guardarEjercicioBiblioteca(ej) {
+  // Si ya existe por nombre exacto (case-insensitive), actualiza. Si no, inserta.
+  const nombreNorm = ej.nombre.trim();
+  const { data: existente } = await supabase
+    .from("biblioteca_ejercicios")
+    .select("id, usos")
+    .ilike("nombre", nombreNorm)
+    .maybeSingle();
+
+  if (existente) {
+    const update = {};
+    if (ej.desc) update.descripcion = ej.desc;
+    if (ej.video) update.video = ej.video;
+    update.usos = (existente.usos || 0) + 1;
+    update.actualizado_en = new Date().toISOString();
+    const { error } = await supabase.from("biblioteca_ejercicios").update(update).eq("id", existente.id);
+    if (error) ERR("guardarEjercicioBiblioteca:update", error.message, error);
+  } else {
+    const { error } = await supabase.from("biblioteca_ejercicios").insert([{
+      nombre: nombreNorm,
+      descripcion: ej.desc || "",
+      video: ej.video || "",
+      usos: 1,
+    }]);
+    if (error) ERR("guardarEjercicioBiblioteca:insert", error.message, error);
+  }
+}
+
+export async function eliminarEjercicioBiblioteca(id) {
+  const { error } = await supabase.from("biblioteca_ejercicios").delete().eq("id", id);
+  if (error) { ERR("eliminarEjercicioBiblioteca", error.message, error); throw error; }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// NOVEDADES
+// ──────────────────────────────────────────────────────────────────────
+
+export async function cargarNovedades() {
+  const { data, error } = await supabase
+    .from("novedades")
+    .select("*")
+    .eq("activo", true)
+    .order("fecha", { ascending: false });
+  if (error) { ERR("cargarNovedades", error.message, error); return []; }
+  return data || [];
+}
+
+export async function crearNovedad(novedad) {
+  const { data, error } = await supabase
+    .from("novedades")
+    .insert([{ ...novedad, fecha: new Date().toISOString(), activo: true }])
+    .select()
+    .single();
+  if (error) { ERR("crearNovedad", error.message, error); throw error; }
+  return data;
+}
+
+export async function toggleNovedad(id, activo) {
+  const { error } = await supabase.from("novedades").update({ activo }).eq("id", id);
+  if (error) { ERR("toggleNovedad", error.message, error); throw error; }
+}
+
+export async function eliminarNovedad(id) {
+  const { error } = await supabase.from("novedades").delete().eq("id", id);
+  if (error) { ERR("eliminarNovedad", error.message, error); throw error; }
 }
