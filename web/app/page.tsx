@@ -210,7 +210,6 @@ export default function Home() {
               <p className="plataforma-eyebrow">Seguimiento y sistema</p>
               <h2 className="plataforma-h2">Cada alumno tiene acceso a su aplicativo de entrenamiento.</h2>
               <p className="plataforma-desc">Todo el proceso queda organizado y disponible en todo momento. No depende de la memoria: depende de datos.</p>
-              <a href={APP_URL} className="plataforma-cta">Ir al aplicativo</a>
               <div className="blockquote-bar" style={{ marginTop: 40 }}>
                 <p>&ldquo;El proceso no queda en la memoria: queda registrado.&rdquo;</p>
               </div>
@@ -239,19 +238,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIOS */}
-      <section id="testimonios">
-        <div className="container">
-          <p className="testimonios-eyebrow fade-in">Lo que dicen los alumnos</p>
-          <div className="testimonios-grid">
-            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;El seguimiento es completamente diferente a cualquier otro lugar. Cada ajuste tiene sentido.&rdquo;</p><p className="testimonio-name">Alumno — 2 años</p></div>
-            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;Nunca había tenido un plan tan específico para mí. Se nota la diferencia en cada sesión.&rdquo;</p><p className="testimonio-name">Alumno — 8 meses</p></div>
-            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;El registro de cada sesión me permite ver mi progreso real. Eso cambia todo.&rdquo;</p><p className="testimonio-name">Alumno — 1 año</p></div>
-          </div>
-        </div>
-      </section>
-
-      {/* EQUIPO */}
+      {/* EQUIPO — primero los profes */}
       <section id="equipo">
         <div className="container">
           <p className="equipo-eyebrow fade-in">Equipo</p>
@@ -288,6 +275,18 @@ export default function Home() {
                 </ul>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIOS — después del equipo */}
+      <section id="testimonios">
+        <div className="container">
+          <p className="testimonios-eyebrow fade-in">Lo que dicen los alumnos</p>
+          <div className="testimonios-grid">
+            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;El seguimiento es completamente diferente a cualquier otro lugar. Cada ajuste tiene sentido.&rdquo;</p><p className="testimonio-name">Marcos G. — 2 años</p></div>
+            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;Nunca había tenido un plan tan específico para mí. Se nota la diferencia en cada sesión.&rdquo;</p><p className="testimonio-name">Florencia R. — 8 meses</p></div>
+            <div className="testimonio-card fade-in"><div className="testimonio-stars">★★★★★</div><p className="testimonio-q">&ldquo;El registro de cada sesión me permite ver mi progreso real. Eso cambia todo.&rdquo;</p><p className="testimonio-name">Carlos B. — 1 año</p></div>
           </div>
         </div>
       </section>
