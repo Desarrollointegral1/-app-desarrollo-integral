@@ -1336,24 +1336,13 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
         </div>
       )}{" "}
       {al && !q && (
-        <div
-          style={{
-            background: S.card2,
-            border: "1px solid #2a2a2a",
-            borderRadius: 8,
-            padding: "8px 14px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          {" "}
-          <FotoAlumno foto={al.foto} size={32} />{" "}
+        <div style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <FotoAlumno foto={al.foto} size={32} />
           <div style={{ flex: 1 }}>
             <span style={{ color: S.white, fontWeight: 700 }}>{al.nombre}</span>
             <span style={{ color: S.gray, fontSize: 11, marginLeft: 8 }}>{al.username || al.codigo}</span>
-          </div>{" "}
-          <div style={{ color: S.gray, fontSize: 11 }}>seleccionado</div>{" "}
+          </div>
+          <div style={{ color: S.green, fontSize: 11 }}>✓</div>
         </div>
       )}{" "}
     </div>
@@ -2238,32 +2227,25 @@ function TablaPer({ data, semanaActual }) {
   );
 }
 // ── HISTORIAL ADMIN ───────────────────────────────────────────────────
-function HistorialAdmin({ alumnos }) {
-  const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
+function HistorialAdmin({ al }) {
   const [selEj, setSelEj] = useState(null);
   const [histData, setHistData] = useState({});
-  const al = alumnos.find((a) => a.id === selId) || alumnos[0];
   useEffect(() => {
-    if (!selId) return;
-    cargarPesos(selId, null).then((data) => {
+    if (!al?.id) return;
+    setSelEj(null);
+    setHistData({});
+    cargarPesos(al.id, null).then((data) => {
       if (data && data.historiales) setHistData(data.historiales);
       else setHistData({});
     });
-  }, [selId]);
-  const ejercicios = al ? al.plan.dias.flatMap((d) => d.ejercicios) : [];
+  }, [al?.id]);
+  const ejercicios = al ? (al.plan?.dias || []).flatMap((d) => d.ejercicios) : [];
+  if (!al) return <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>;
   return (
     <div>
       {" "}
-      <AlumnoBuscador
-        alumnos={alumnos}
-        selId={selId}
-        onSelect={(id) => {
-          setSelId(id);
-          setSelEj(null);
-        }}
-      />{" "}
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-        Historial — {al && al.nombre}
+        Historial — {al.nombre}
       </div>{" "}
       {ejercicios.map((ej) => {
         const hist = histData[ej.id] || [];
@@ -2345,7 +2327,7 @@ function HistorialAdmin({ alumnos }) {
   );
 }
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
-function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo }) {
+function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) {
   const lunesStr = (() => {
     const d = new Date();
     const l = new Date(d);
@@ -2354,19 +2336,18 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo }) {
   })();
 
   return (
-    <div>
-      {/* Buscador + botón nuevo */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
-        <div style={{ flex: 1 }}>
-          <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={onSelect} />
-        </div>
-        <button
-          onClick={onNuevo}
-          style={{ background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "9px 14px", fontWeight: 900, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
-        >
-          + Nuevo
-        </button>
+    <div onClick={onDeselect}>
+      {/* Buscador */}
+      <div style={{ marginBottom: 8 }}>
+        <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { onSelect(id); }} />
       </div>
+      {/* + Nuevo ancho completo */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onNuevo(); }}
+        style={{ width: "100%", background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "9px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", marginBottom: 14 }}
+      >
+        + Nuevo alumno
+      </button>
 
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
         Todos los alumnos ({alumnos.length})
@@ -2381,13 +2362,14 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo }) {
         return (
           <div
             key={al.id}
-            style={{ ...card, marginBottom: 10, padding: "14px 16px", border: "1px solid " + (isSelected ? S.white : S.border) }}
+            onClick={(e) => { e.stopPropagation(); onSelect(al.id); }}
+            style={{ ...card, marginBottom: 10, padding: "14px 16px", border: "1px solid " + (isSelected ? S.white : S.border), cursor: "pointer" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div onClick={() => onSelect(al.id)} style={{ cursor: "pointer" }}>
+              <div>
                 <FotoAlumno foto={al.foto} size={44} />
               </div>
-              <div onClick={() => onSelect(al.id)} style={{ flex: 1, cursor: "pointer" }}>
+              <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 15 }}>{al.nombre}</div>
                   <div style={{ background: entrenoHoy ? "#0d1f0d" : S.card2, border: "1px solid " + (entrenoHoy ? S.green : S.border), borderRadius: 20, padding: "3px 10px", fontSize: 10, color: entrenoHoy ? S.green : S.lgray, fontWeight: 700 }}>
@@ -2858,13 +2840,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       </div>{" "}
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 8 }}>
         {secBtn("Dashboard", "dashboard")}
-        {secBtn("Alumnos", "alumnos")}
+        {secBtn("Alumno", "alumnos")}
       </div>{" "}
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
         {secBtn("Plan", "plan")}
         {secBtn("Peso Max", "rm")}
         {secBtn("Historial", "historial")}
-        {secBtn("Diario", "diario")}
         {secBtn("Bioimp.", "bioimpedancia")}
       </div>{" "}
       <div style={{ padding: "0 16px" }}>
@@ -2889,6 +2870,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 showToast && showToast(`${nombre} eliminado.`);
               }}
               onNuevo={() => setShowCrearAlumno((v) => !v)}
+              onDeselect={() => setSelId(null)}
             />
 
             {/* Formulario nuevo alumno inline en dashboard */}
@@ -3139,8 +3121,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     { label: "Avanzada", key: "avanzada", defaultDur: "15 min" },
                   ].map(({ label, key, defaultDur }) => {
                     const mv = al.plan.movilidad_videos?.[key] || {};
+                    const ytId = mv.url ? getYTId(mv.url) : null;
                     return (
-                      <div key={key} style={{ marginBottom: 12 }}>
+                      <div key={key} style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>{label}</div>
                         <input
                           placeholder={`URL del video (${label.toLowerCase()})`}
@@ -3158,8 +3141,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                             ...al.plan.movilidad_videos,
                             [key]: { ...mv, duracion: e.target.value }
                           })}
-                          style={{ ...inp }}
+                          style={{ ...inp, marginBottom: ytId ? 8 : 0 }}
                         />
+                        {ytId && (
+                          <div style={{ borderRadius: 8, overflow: "hidden", aspectRatio: "16/9" }}>
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytId}`}
+                              style={{ width: "100%", height: "100%", border: "none" }}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
+                        {mv.url && !ytId && (
+                          <video controls style={{ width: "100%", borderRadius: 8, marginTop: 4, maxHeight: 200 }}>
+                            <source src={mv.url} />
+                          </video>
+                        )}
                       </div>
                     );
                   })}
@@ -3239,19 +3237,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "rm" && (
           <div>
             {" "}
-            <AlumnoBuscador
-              alumnos={alumnos}
-              selId={selId}
-              onSelect={(id) => {
-                setSelId(id);
-                setRm((r) => ({ ...r, [id]: { ...(alumnos.find((a) => a.id === id) || {}).rm } }));
-              }}
-            />{" "}
-            <div
-              style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}
-            >
-              Peso maximo — {al && al.nombre}
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+              Peso maximo — {al ? al.nombre : "—"}
             </div>{" "}
+            {!al && <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>}{" "}
             {al &&
               RM_EJS.map((ej) => (
                 <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
@@ -3337,7 +3326,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             </button>{" "}
           </div>
         )}{" "}
-        {sec === "historial" && <HistorialAdmin alumnos={alumnos} />}{" "}
+        {sec === "historial" && <HistorialAdmin al={al} />}{" "}
         {sec === "diario" && <DiarioAdmin alumnos={alumnos} />}{" "}
         {sec === "bioimpedancia" && al && (
           <div>
@@ -3800,8 +3789,9 @@ export default function App() {
       localStorage.setItem("di_theme", next ? "dark" : "light");
     } catch (e) {}
   };
-  applyTheme(darkMode);
-  ICON = darkMode ? ICON_WHITE : ICON_BLACK;
+  const isRehabMode = alumno && alumno.tipo === "rehabilitacion";
+  applyTheme(isRehabMode ? false : darkMode);
+  ICON = (isRehabMode ? false : darkMode) ? ICON_WHITE : ICON_BLACK;
   // Arranque: carga desde Supabase. Fallback [] = nunca usa datos locales.
   useEffect(() => {
     console.log("%c[APP] Iniciando → cargarDatos desde Supabase...", "color:#6ee7b7;font-weight:bold");
