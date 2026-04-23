@@ -132,10 +132,10 @@ section { position: relative; }
 #areas { border-top: 1px solid var(--border); padding: 80px 0; }
 .areas-eyebrow { font-size: 11px; letter-spacing: 0.4em; color: var(--t3); text-transform: uppercase; margin-bottom: 40px; }
 .areas-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; border: 1px solid var(--border); }
-.area-item { padding: 40px 36px; border-right: 1px solid var(--border); }
+.area-item { padding: 48px 40px; border-right: 1px solid var(--border); }
 .area-item:last-child { border-right: none; }
-.area-title { font-family: var(--serif); font-weight: 700; font-size: 20px; margin-bottom: 10px; color: rgba(255,255,255,0.88); }
-.area-desc { font-size: 14px; color: var(--t3); line-height: 1.6; }
+.area-title { font-family: var(--serif); font-weight: 700; font-size: 26px; margin-bottom: 12px; color: rgba(255,255,255,0.96); }
+.area-desc { font-size: 15px; color: rgba(255,255,255,0.55); line-height: 1.6; }
 
 #testimonios { background: var(--bg2); border-top: 1px solid var(--border); padding: 100px 0; }
 .testimonios-eyebrow { font-size: 11px; letter-spacing: 0.4em; color: var(--t3); text-transform: uppercase; margin-bottom: 56px; }
