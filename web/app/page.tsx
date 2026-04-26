@@ -326,6 +326,31 @@ export default function Home() {
         </div>
       </section>
 
+      {/* GRISELDA CROSS-LINK */}
+      <section id="griselda" style={{ borderTop: "1px solid var(--border)", background: "var(--bg2)", padding: "80px 0" }}>
+        <div className="container">
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 40, alignItems: "center" }}>
+            <div style={{ width: 96, height: 96, borderRadius: "50%", overflow: "hidden", border: "1px solid var(--gold-border)", flexShrink: 0 }}>
+              <img src="/Griselda/head-sonriendo.jpeg" alt="Griselda Politino" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 10, letterSpacing: "0.42em", color: "var(--t3)", textTransform: "uppercase", fontFamily: "var(--sans)", marginBottom: 12 }}>Kinesiología · Osteopatía · Belgrano</p>
+              <h2 style={{ fontFamily: "var(--serif)", fontWeight: 700, fontSize: "clamp(22px, 3vw, 32px)", color: "rgba(255,255,255,0.9)", marginBottom: 12, lineHeight: 1.3 }}>
+                Griselda Politino — Kinesióloga &amp; Osteópata
+              </h2>
+              <p style={{ fontSize: 14, color: "var(--t2)", lineHeight: 1.8, maxWidth: 560, marginBottom: 24 }}>
+                Kinesióloga (UBA · Mat. 9741), especializada en osteopatía estructural y visceral (EOM, Instituto Barral) y RPG. Trabajamos de manera integrada: entrenamiento y salud como un mismo proceso.
+              </p>
+              <a href="https://osteopatia.desarrollointegral.vercel.app" style={{ display: "inline-block", border: "1px solid var(--gold-border)", color: "var(--gold)", padding: "12px 32px", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", textDecoration: "none", fontFamily: "var(--sans)", transition: "background .2s, color .2s" }}
+                onMouseEnter={e => { (e.target as HTMLElement).style.background = "var(--gold)"; (e.target as HTMLElement).style.color = "#000"; }}
+                onMouseLeave={e => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "var(--gold)"; }}>
+                Ver consultorio de Griselda →
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CIERRE */}
       <section id="cierre">
         <div className="cierre-shield">
