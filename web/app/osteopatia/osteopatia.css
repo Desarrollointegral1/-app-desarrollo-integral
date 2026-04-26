@@ -1,23 +1,23 @@
 /* ──────────────────────────────────────────────
-   PÁGINA GRISELDA POLITINO — Tema claro/crema
+   GRISELDA POLITINO — Dark / grey-black theme
    ────────────────────────────────────────────── */
 
 .osteo-page {
-  --sage: #6b8a6e;
-  --sage-pale: rgba(107,138,110,0.08);
-  --sage-border: rgba(107,138,110,0.28);
-  --cream: #f5f0eb;
-  --cream2: #ede8e1;
-  --cream3: #e6dfd6;
-  --border-o: rgba(0,0,0,0.08);
-  --text: #1a1a1a;
-  --text2: rgba(0,0,0,0.52);
-  --text3: rgba(0,0,0,0.28);
+  --sage: #7eb882;
+  --sage-pale: rgba(126,184,130,0.07);
+  --sage-border: rgba(126,184,130,0.25);
+  --bg:   #0c0c0c;
+  --bg2:  #141414;
+  --bg3:  #101010;
+  --border-o: rgba(255,255,255,0.06);
+  --text:  rgba(255,255,255,0.92);
+  --text2: rgba(255,255,255,0.48);
+  --text3: rgba(255,255,255,0.22);
   --serif: 'Playfair Display', Georgia, serif;
-  --cond: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --sans: 'DM Sans', system-ui, sans-serif;
+  --cond:  'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
 
-  background: var(--cream);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-weight: 300;
@@ -26,32 +26,46 @@
   overflow-x: hidden;
 }
 
+/* ── Spin ─────────────────────────────────────── */
+@keyframes osteoSpin {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
+.osteo-page .o-spin-wrap { perspective: 1200px; perspective-origin: center; }
+.osteo-page .o-spin-img {
+  animation: osteoSpin 20s linear infinite;
+  transform-origin: center;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
 /* ── Nav ──────────────────────────────────────── */
 .osteo-page .o-nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   padding: 14px 64px;
   display: flex; align-items: center; justify-content: space-between;
   border-bottom: 1px solid var(--border-o);
-  background: rgba(245,240,235,0.94);
+  background: rgba(12,12,12,0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 .osteo-page .o-nav-brand { display: flex; flex-direction: column; gap: 2px; text-decoration: none; }
 .osteo-page .o-nav-name { font-family: var(--serif); font-weight: 700; font-size: 15px; color: var(--text); letter-spacing: 0.01em; line-height: 1; }
-.osteo-page .o-nav-sub { font-size: 9px; letter-spacing: 0.32em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); }
+.osteo-page .o-nav-sub  { font-size: 9px; letter-spacing: 0.32em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); }
 .osteo-page .o-nav-links { display: flex; align-items: center; gap: 36px; }
 .osteo-page .o-nav-links a { font-size: 12px; color: var(--text2); text-decoration: none; transition: color .2s; letter-spacing: 0.04em; }
 .osteo-page .o-nav-links a:hover { color: var(--text); }
 .osteo-page .o-nav-wa {
-  display: flex; align-items: center; gap: 8px;
-  background: #25d366; color: #fff;
-  padding: 8px 20px; border-radius: 0;
-  font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
-  text-decoration: none; font-family: var(--sans);
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  background: rgba(37,211,102,0.12);
+  border: 1px solid rgba(37,211,102,0.3);
+  border-radius: 50%;
+  color: #25d366;
+  text-decoration: none;
   transition: background .2s;
 }
-.osteo-page .o-nav-wa:hover { background: #1ab958; }
-.osteo-page .o-nav-wa svg { flex-shrink: 0; }
+.osteo-page .o-nav-wa:hover { background: rgba(37,211,102,0.22); }
 
 /* ── Hero ─────────────────────────────────────── */
 .osteo-page .o-hero {
@@ -59,16 +73,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding-top: 72px;
+  position: relative;
+  overflow: hidden;
 }
 .osteo-page .o-hero-left {
-  display: flex; flex-direction: column; justify-content: flex-end;
+  display: flex; flex-direction: column; justify-content: center;
   padding: 80px 64px;
-  background: var(--cream);
-  border-right: 1px solid var(--border-o);
+  position: relative; z-index: 2;
 }
 .osteo-page .o-hero-eyebrow {
   font-size: 10px; letter-spacing: 0.45em; color: var(--sage); text-transform: uppercase;
-  font-family: var(--sans); margin-bottom: 40px;
+  font-family: var(--sans); margin-bottom: 36px;
 }
 .osteo-page .o-hero-eyebrow::before {
   content: ''; display: inline-block; width: 32px; height: 1px;
@@ -78,78 +93,83 @@
   font-family: var(--serif); font-weight: 900;
   font-size: clamp(52px, 6vw, 88px);
   line-height: 1.0; letter-spacing: -0.02em;
-  color: var(--text); margin-bottom: 40px;
+  color: var(--text); margin-bottom: 36px;
 }
 .osteo-page .o-hero-h1 em { font-style: italic; font-weight: 700; color: var(--sage); }
-.osteo-page .o-hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; }
+.osteo-page .o-hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
 .osteo-page .o-hero-tag {
-  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--text2); border: 1px solid var(--border-o);
   padding: 6px 14px; font-family: var(--sans);
-  background: var(--cream2);
+  background: rgba(255,255,255,0.03);
 }
 .osteo-page .o-hero-location {
   font-size: 13px; color: var(--text3); font-family: var(--sans);
   display: flex; align-items: center; gap: 8px;
 }
-.osteo-page .o-hero-location::before { content: '📍'; font-size: 12px; }
 .osteo-page .o-hero-right {
   position: relative; overflow: hidden;
-  background: var(--cream2);
+  background: var(--bg2);
+  border-left: 1px solid var(--border-o);
 }
 .osteo-page .o-hero-photo {
   width: 100%; height: 100%;
-  object-fit: cover; object-position: center top;
+  object-fit: cover; object-position: center 15%;
   display: block;
 }
-.osteo-page .o-hero-brand-badge {
-  position: absolute; bottom: 32px; left: 32px;
-  background: rgba(245,240,235,0.92);
-  border: 1px solid var(--border-o);
-  backdrop-filter: blur(8px);
-  padding: 16px 20px;
-  display: flex; align-items: center; gap: 12px;
-  max-width: 280px;
-}
-.osteo-page .o-hero-brand-text { font-family: var(--serif); font-size: 12px; color: var(--text); line-height: 1.4; font-style: italic; }
-.osteo-page .o-hero-brand-sub { font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text3); font-family: var(--sans); margin-top: 3px; }
 
 /* ── Container ───────────────────────────────── */
 .osteo-page .o-container { max-width: 1200px; margin: 0 auto; padding: 0 64px; }
 
-/* ── Servicios ───────────────────────────────── */
+/* ── Sections ────────────────────────────────── */
 .osteo-page .o-section { padding: 96px 0; border-top: 1px solid var(--border-o); }
-.osteo-page .o-section-alt { background: var(--cream2); }
+.osteo-page .o-section-alt { background: var(--bg2); }
 .osteo-page .o-eyebrow {
   font-size: 10px; letter-spacing: 0.42em; color: var(--text3); text-transform: uppercase;
-  font-family: var(--sans); margin-bottom: 48px;
+  font-family: var(--sans); margin-bottom: 52px;
 }
 .osteo-page .o-section-h2 {
-  font-family: var(--serif); font-weight: 700; font-size: 42px; line-height: 1.2;
+  font-family: var(--cond); font-weight: 900; font-size: 80px;
+  text-transform: uppercase; letter-spacing: -0.01em; line-height: 1;
   color: var(--text); margin-bottom: 52px;
 }
 
-.osteo-page .o-servicios-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+/* ── Servicios ───────────────────────────────── */
+.osteo-page .o-servicios-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; border: 1px solid var(--border-o); }
 .osteo-page .o-servicio-card {
-  border: 1px solid var(--border-o); padding: 44px 36px;
-  background: var(--cream);
-  transition: border-color .2s, background .2s;
+  padding: 44px 36px;
+  border-right: 1px solid var(--border-o);
+  cursor: pointer;
+  transition: background .2s;
+  position: relative; overflow: hidden;
 }
-.osteo-page .o-servicio-card:hover { border-color: var(--sage-border); background: var(--sage-pale); }
+.osteo-page .o-servicio-card:last-child { border-right: none; }
+.osteo-page .o-servicio-card:hover { background: rgba(255,255,255,0.02); }
+.osteo-page .o-servicio-card.is-open { background: var(--sage-pale); border-color: var(--sage-border); }
 .osteo-page .o-servicio-num {
   font-family: var(--cond); font-weight: 900; font-size: 80px;
-  color: rgba(0,0,0,0.04); line-height: 1; margin-bottom: 20px;
+  color: rgba(255,255,255,0.04); line-height: 1; margin-bottom: 16px;
 }
+.osteo-page .o-servicio-card.is-open .o-servicio-num { color: rgba(126,184,130,0.15); }
 .osteo-page .o-servicio-title {
-  font-family: var(--serif); font-weight: 700; font-size: 22px;
-  color: var(--text); margin-bottom: 14px;
+  font-family: var(--cond); font-weight: 900; font-size: 26px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.88); margin-bottom: 14px;
 }
-.osteo-page .o-servicio-desc {
-  font-size: 14px; color: var(--text2); line-height: 1.85;
+.osteo-page .o-servicio-desc { font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
+.osteo-page .o-expand-hint {
+  display: flex; align-items: center; gap: 6px; margin-top: 16px;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage);
+  font-family: var(--sans); user-select: none;
 }
-.osteo-page .o-servicio-items { list-style: none; margin-top: 20px; }
+.osteo-page .o-expand-arrow { transition: transform .25s; }
+.osteo-page .o-expand-arrow.open { transform: rotate(180deg); }
+.osteo-page .o-servicio-detail {
+  margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-o);
+}
+.osteo-page .o-servicio-items { list-style: none; }
 .osteo-page .o-servicio-items li {
-  font-size: 13px; color: var(--text2); padding: 7px 0;
+  font-size: 13px; color: var(--text2); padding: 8px 0;
   border-bottom: 1px solid var(--border-o);
   display: flex; align-items: center; gap: 10px;
 }
@@ -158,112 +178,105 @@
 /* ── Sobre mí ────────────────────────────────── */
 .osteo-page .o-sobre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
 .osteo-page .o-sobre-photo-wrap {
-  position: relative; aspect-ratio: 3/4; overflow: hidden;
+  position: relative; overflow: hidden;
   border: 1px solid var(--border-o);
+  aspect-ratio: 3/4;
 }
 .osteo-page .o-sobre-photo {
-  width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block;
 }
 .osteo-page .o-sobre-badge {
-  position: absolute; bottom: 24px; right: 24px;
+  position: absolute; bottom: 0; left: 0; right: 0;
   background: var(--sage); color: #fff;
-  padding: 12px 20px; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
-  font-family: var(--sans);
+  padding: 14px 20px; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+  font-family: var(--sans); text-align: center;
 }
 .osteo-page .o-sobre-quote {
-  font-family: var(--serif); font-style: italic; font-size: 26px; font-weight: 700;
-  line-height: 1.45; color: var(--text); margin-bottom: 32px;
+  font-family: var(--serif); font-style: italic; font-size: 28px; font-weight: 700;
+  line-height: 1.45; color: var(--text); margin-bottom: 28px;
 }
-.osteo-page .o-sobre-body { font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 36px; }
+.osteo-page .o-sobre-body { font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 24px; }
 .osteo-page .o-cv-list { list-style: none; }
 .osteo-page .o-cv-list li {
   display: flex; align-items: flex-start; gap: 16px;
-  padding: 16px 0; border-bottom: 1px solid var(--border-o);
-  font-size: 14px; color: var(--text2);
+  padding: 14px 0; border-bottom: 1px solid var(--border-o);
+  font-size: 14px; color: var(--text2); line-height: 1.5;
 }
 .osteo-page .o-cv-list li:first-child { border-top: 1px solid var(--border-o); }
 .osteo-page .o-cv-list li::before { content: '·'; color: var(--sage); font-size: 20px; line-height: 1.2; flex-shrink: 0; }
 .osteo-page .o-matricula {
-  display: inline-block; margin-top: 28px;
+  display: inline-block; margin-top: 24px;
   font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text3);
   font-family: var(--sans); border-left: 2px solid var(--sage); padding-left: 16px;
 }
 
-/* ── BJJ / 360 ───────────────────────────────── */
+/* ── BJJ ─────────────────────────────────────── */
 .osteo-page .o-bjj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
-.osteo-page .o-bjj-belt {
-  display: inline-flex; align-items: center; gap: 10px;
-  margin-bottom: 24px;
-}
-.osteo-page .o-bjj-belt-bar {
-  width: 32px; height: 8px; background: #1a1a1a; border-radius: 2px;
-}
-.osteo-page .o-bjj-belt-text {
-  font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase;
-  color: var(--text3); font-family: var(--sans);
-}
-.osteo-page .o-bjj-h2 {
-  font-family: var(--serif); font-weight: 900; font-size: 48px; line-height: 1.15;
-  color: var(--text); margin-bottom: 20px;
-}
-.osteo-page .o-bjj-desc { font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 32px; }
-.osteo-page .o-bjj-photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.osteo-page .o-bjj-belt { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.osteo-page .o-bjj-belt-bar { width: 32px; height: 8px; background: #f5f5f5; border-radius: 2px; }
+.osteo-page .o-bjj-belt-text { font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text3); font-family: var(--sans); }
+.osteo-page .o-bjj-h2 { font-family: var(--serif); font-weight: 900; font-size: 52px; line-height: 1.1; color: var(--text); margin-bottom: 20px; }
+.osteo-page .o-bjj-desc { font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 0; }
 .osteo-page .o-bjj-photo {
-  aspect-ratio: 1; overflow: hidden;
+  aspect-ratio: 2/3; overflow: hidden;
   border: 1px solid var(--border-o);
 }
-.osteo-page .o-bjj-photo img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  transition: transform .4s;
-}
-.osteo-page .o-bjj-photo:hover img { transform: scale(1.04); }
-.osteo-page .o-bjj-photo.tall { aspect-ratio: 2/3; }
+.osteo-page .o-bjj-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; transition: transform .4s; }
+.osteo-page .o-bjj-photo:hover img { transform: scale(1.03); }
 
-/* ── Cross-link Ariel ────────────────────────── */
+/* ── Cross-link ──────────────────────────────── */
 .osteo-page .o-crosslink {
-  background: #1a1a1a; color: #fff;
+  border-top: 1px solid var(--border-o);
+  background: var(--bg3);
   padding: 80px 64px;
   display: grid; grid-template-columns: 1fr auto;
   align-items: center; gap: 64px;
-  border-top: none;
 }
-.osteo-page .o-crosslink-eyebrow { font-size: 10px; letter-spacing: 0.42em; color: rgba(255,255,255,0.35); text-transform: uppercase; font-family: var(--sans); margin-bottom: 16px; }
-.osteo-page .o-crosslink-h2 { font-family: var(--serif); font-weight: 700; font-size: 36px; line-height: 1.3; color: #fff; }
-.osteo-page .o-crosslink-desc { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.8; margin-top: 16px; }
+.osteo-page .o-crosslink-eyebrow { font-size: 10px; letter-spacing: 0.42em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); margin-bottom: 12px; }
+.osteo-page .o-crosslink-h2 { font-family: var(--serif); font-weight: 700; font-size: 32px; line-height: 1.3; color: var(--text); }
+.osteo-page .o-crosslink-desc { font-size: 14px; color: var(--text2); line-height: 1.8; margin-top: 12px; }
 .osteo-page .o-crosslink-btn {
   flex-shrink: 0;
-  display: inline-block; border: 1px solid rgba(255,255,255,0.3);
-  color: #fff; padding: 16px 40px;
-  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  display: inline-block; border: 1px solid rgba(255,255,255,0.25);
+  color: var(--text); padding: 16px 36px;
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
   text-decoration: none; font-family: var(--sans);
   transition: background .2s, color .2s; white-space: nowrap;
 }
 .osteo-page .o-crosslink-btn:hover { background: #fff; color: #000; }
 
 /* ── Contacto ────────────────────────────────── */
-.osteo-page .o-contacto { padding: 100px 64px; text-align: center; background: var(--cream2); border-top: 1px solid var(--border-o); }
-.osteo-page .o-contacto-eyebrow { font-size: 10px; letter-spacing: 0.42em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); margin-bottom: 24px; }
-.osteo-page .o-contacto-h2 { font-family: var(--serif); font-weight: 900; font-size: 52px; line-height: 1.1; color: var(--text); margin-bottom: 16px; }
-.osteo-page .o-contacto-sub { font-size: 16px; color: var(--text2); margin-bottom: 48px; font-weight: 300; }
+.osteo-page .o-contacto {
+  padding: 120px 64px; text-align: center;
+  border-top: 1px solid var(--border-o);
+  position: relative; overflow: hidden;
+}
+.osteo-page .o-contacto-shield {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  pointer-events: none; z-index: 0;
+}
+.osteo-page .o-contacto-inner { position: relative; z-index: 1; }
+.osteo-page .o-contacto-eyebrow { font-size: 10px; letter-spacing: 0.42em; color: var(--text3); text-transform: uppercase; font-family: var(--sans); margin-bottom: 20px; }
+.osteo-page .o-contacto-h2 { font-family: var(--serif); font-weight: 900; font-size: 64px; line-height: 1.05; color: var(--text); margin-bottom: 48px; }
+.osteo-page .o-contacto-h2 em { font-style: italic; color: var(--text2); }
 .osteo-page .o-wa-btn {
   display: inline-flex; align-items: center; gap: 12px;
   background: #25d366; color: #fff;
-  padding: 20px 52px;
-  font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 18px 48px;
+  font-size: 13px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
   text-decoration: none; font-family: var(--sans);
   transition: background .2s;
 }
 .osteo-page .o-wa-btn:hover { background: #1ab958; }
-.osteo-page .o-contacto-note { font-size: 12px; color: var(--text3); margin-top: 24px; font-family: var(--sans); }
 
 /* ── Footer ──────────────────────────────────── */
 .osteo-page .o-footer {
   border-top: 1px solid var(--border-o);
   padding: 28px 64px;
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--cream);
+  background: var(--bg);
 }
-.osteo-page .o-footer-brand { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--text2); text-decoration: none; }
+.osteo-page .o-footer-brand { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--text2); }
 .osteo-page .o-footer-di a { font-size: 11px; color: var(--text3); text-decoration: none; letter-spacing: 0.15em; font-family: var(--sans); transition: color .2s; }
 .osteo-page .o-footer-di a:hover { color: var(--text); }
 .osteo-page .o-footer-copy { font-size: 11px; color: var(--text3); font-family: var(--sans); }
@@ -272,18 +285,22 @@
 .osteo-page .o-fade { opacity: 0; transform: translateY(20px); transition: opacity .65s ease, transform .65s ease; }
 .osteo-page .o-fade.visible { opacity: 1; transform: none; }
 
-/* ── Responsive ──────────────────────────────── */
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════ */
 @media (max-width: 1024px) {
   .osteo-page .o-nav { padding: 14px 32px; }
   .osteo-page .o-hero { grid-template-columns: 1fr; }
-  .osteo-page .o-hero-left { padding: 64px 32px; min-height: 60vh; }
-  .osteo-page .o-hero-right { height: 55vw; min-height: 320px; }
+  .osteo-page .o-hero-left { padding: 64px 32px; min-height: 60vh; justify-content: flex-end; }
+  .osteo-page .o-hero-right { height: 55vw; min-height: 320px; border-left: none; border-top: 1px solid var(--border-o); }
   .osteo-page .o-container { padding: 0 32px; }
-  .osteo-page .o-servicios-grid { grid-template-columns: 1fr; gap: 16px; }
+  .osteo-page .o-servicios-grid { grid-template-columns: 1fr; border: none; gap: 12px; }
+  .osteo-page .o-servicio-card { border-right: 1px solid var(--border-o); border-bottom: 1px solid var(--border-o); }
   .osteo-page .o-sobre-grid { grid-template-columns: 1fr; gap: 40px; }
-  .osteo-page .o-sobre-photo-wrap { aspect-ratio: 4/3; }
+  .osteo-page .o-sobre-photo-wrap { aspect-ratio: 4/3; max-height: 420px; }
   .osteo-page .o-bjj-grid { grid-template-columns: 1fr; gap: 40px; }
-  .osteo-page .o-crosslink { grid-template-columns: 1fr; gap: 32px; padding: 64px 32px; }
+  .osteo-page .o-bjj-photo { aspect-ratio: 4/3; }
+  .osteo-page .o-crosslink { grid-template-columns: 1fr; gap: 28px; padding: 64px 32px; }
   .osteo-page .o-contacto { padding: 80px 32px; }
   .osteo-page .o-footer { padding: 24px 32px; flex-direction: column; gap: 12px; align-items: flex-start; }
 }
@@ -291,18 +308,19 @@
 @media (max-width: 640px) {
   .osteo-page .o-nav { padding: 12px 20px; }
   .osteo-page .o-nav-links a:not(.o-nav-wa) { display: none; }
-  .osteo-page .o-hero-left { padding: 48px 20px; }
+  .osteo-page .o-hero-left { padding: 40px 20px; }
   .osteo-page .o-hero-h1 { font-size: clamp(42px, 12vw, 66px); }
-  .osteo-page .o-hero-right { height: 80vw; }
+  .osteo-page .o-hero-right { height: 85vw; }
   .osteo-page .o-container { padding: 0 20px; }
   .osteo-page .o-section { padding: 64px 0; }
-  .osteo-page .o-section-h2 { font-size: 30px; }
-  .osteo-page .o-sobre-quote { font-size: 20px; }
-  .osteo-page .o-bjj-h2 { font-size: 34px; }
-  .osteo-page .o-bjj-photo-grid { grid-template-columns: 1fr; }
-  .osteo-page .o-contacto { padding: 64px 20px; }
-  .osteo-page .o-contacto-h2 { font-size: 34px; }
+  .osteo-page .o-section-h2 { font-size: 52px; }
+  .osteo-page .o-sobre-quote { font-size: 22px; }
+  .osteo-page .o-sobre-body { font-size: 14px; }
+  .osteo-page .o-sobre-photo-wrap { aspect-ratio: 3/4; max-height: none; }
+  .osteo-page .o-bjj-h2 { font-size: 38px; }
+  .osteo-page .o-contacto { padding: 80px 20px; }
+  .osteo-page .o-contacto-h2 { font-size: 40px; }
   .osteo-page .o-crosslink { padding: 56px 20px; }
-  .osteo-page .o-crosslink-h2 { font-size: 26px; }
+  .osteo-page .o-crosslink-h2 { font-size: 24px; }
   .osteo-page .o-footer { padding: 20px; }
 }
