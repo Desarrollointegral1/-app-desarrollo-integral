@@ -714,3 +714,5 @@ export default function App() {
     </>
   );
 }
+
+// Rebuild trigger - force Vercel redeploy 2026-05-23
