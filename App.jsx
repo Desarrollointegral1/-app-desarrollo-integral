@@ -26,6 +26,14 @@ import {
   crearNovedad,
   toggleNovedad,
   eliminarNovedad,
+  // NUEVAS FUNCIONES - REDISEÑO v2
+  assignPlanToStudent,
+  saveDailyWeight,
+  saveDailyAttendance,
+  saveBioimpedanciaCompleta,
+  cargarBioimpedanciaCompleta,
+  cargarPesosPorDia,
+  getMonthlyReport,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -2617,6 +2625,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [planTab, setPlanTab] = useState("entrenamiento");
   const [selectedDia, setSelectedDia] = useState(null);
   const [form, setForm] = useState(null);
+  const [selectedMes, setSelectedMes] = useState(new Date().toISOString().slice(0, 7));
+  const [reporteData, setReporteData] = useState(null);
   const [rm, setRm] = useState(() => {
     const r = {};
     alumnos.forEach((a) => {
@@ -2675,6 +2685,21 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     onUpdate(alumnos.map((a) => ({ ...a, rm: rm[a.id] || a.rm })));
     showToast && showToast("Guardado ✓");
   };
+
+  // NUEVA: Cargar reporte mensual cuando se selecciona la sección de reportes
+  useEffect(() => {
+    if (sec === "reportes" && al && selectedMes) {
+      getMonthlyReport(al.id, selectedMes)
+        .then(data => {
+          setReporteData(data);
+        })
+        .catch(err => {
+          console.error("Error cargando reporte:", err);
+          showToast && showToast("Error al cargar reporte");
+        });
+    }
+  }, [sec, al?.id, selectedMes]);
+
   const crearAlumno = async () => {
     if (!nn || !nc || !npin) {
       showToast && showToast("Completa todos los campos requeridos");
@@ -2845,6 +2870,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
         {secBtn("Plan", "plan")}
         {secBtn("Peso Max", "rm")}
+        {secBtn("Reportes", "reportes")}
         {secBtn("Historial", "historial")}
         {secBtn("Bioimp.", "bioimpedancia")}
       </div>{" "}
@@ -3042,6 +3068,43 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         <span style={{ color: S.white }}>{h.dia}</span> · {h.hora}
                       </span>
                     ))}
+                  </div>
+
+                  {/* NUEVO: PLAN ASSIGNMENT */}
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid " + S.border }}>
+                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>
+                      🎯 Plan: {al.plan_type || "bilateral"}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {[["Bilateral", "bilateral"], ["Unilateral", "unilateral"]].map(([label, type]) => (
+                        <button
+                          key={type}
+                          onClick={async () => {
+                            const updated = await assignPlanToStudent(al.id, type);
+                            if (updated) {
+                              onUpdate(alumnos.map(a => a.id === al.id ? { ...a, plan_type: type } : a));
+                              showToast && showToast(`Plan ${label} asignado ✓`);
+                            } else {
+                              showToast && showToast("Error al asignar plan");
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            background: (al.plan_type || "bilateral") === type ? S.white : S.card,
+                            color: (al.plan_type || "bilateral") === type ? S.bg : S.gray,
+                            border: "1px solid " + ((al.plan_type || "bilateral") === type ? S.white : S.border),
+                            borderRadius: 8,
+                            padding: "10px 4px",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -3334,6 +3397,98 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               Bioimpedancia — {al.nombre}
             </div>
             <BioimpedanciaSection alumnoId={al.id} showToast={showToast} readOnly={false} />
+          </div>
+        )}{" "}
+        {sec === "reportes" && al && (
+          <div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "center" }}>
+              <button
+                onClick={() => setSec("dashboard")}
+                style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}
+              >← Volver</button>
+              <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{al.nombre}</div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>Mes</div>
+              <input
+                type="month"
+                value={selectedMes}
+                onChange={(e) => setSelectedMes(e.target.value)}
+                style={{ ...inp, width: "100%" }}
+              />
+            </div>
+
+            {reporteData ? (
+              <div>
+                {/* Asistencias */}
+                <div style={{ ...card, padding: "14px 16px", marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Asistencias</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ background: S.card2, borderRadius: 8, padding: "12px", textAlign: "center" }}>
+                      <div style={{ color: S.green, fontWeight: 700, fontSize: 18 }}>{reporteData.asistencias}</div>
+                      <div style={{ color: S.gray, fontSize: 10, marginTop: 4 }}>Presentes</div>
+                    </div>
+                    <div style={{ background: S.card2, borderRadius: 8, padding: "12px", textAlign: "center" }}>
+                      <div style={{ color: S.white, fontWeight: 700, fontSize: 18 }}>{reporteData.porcentajeAsistencia}%</div>
+                      <div style={{ color: S.gray, fontSize: 10, marginTop: 4 }}>Porcentaje</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bioimpedancia */}
+                {reporteData.ultimaBioimpedancia && (
+                  <div style={{ ...card, padding: "14px 16px", marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Última Bioimpedancia</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {[
+                        ["Peso", reporteData.ultimaBioimpedancia.peso, "kg"],
+                        ["Grasa", reporteData.ultimaBioimpedancia.grasa_corporal, "%"],
+                        ["Músculo", reporteData.ultimaBioimpedancia.masa_muscular, "%"],
+                        ["Visceral", reporteData.ultimaBioimpedancia.grasa_visceral, ""]
+                      ].map(([label, val, unit]) => (
+                        <div key={label} style={{ background: S.card2, borderRadius: 8, padding: "10px", textAlign: "center" }}>
+                          <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{val || "—"}{unit}</div>
+                          <div style={{ color: S.gray, fontSize: 9, marginTop: 4 }}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pesos Máximos */}
+                {Object.keys(reporteData.pesosPromedio).length > 0 && (
+                  <div style={{ ...card, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Pesos Máximos</div>
+                    {Object.entries(reporteData.pesosPromedio).map(([ejercicio, data]) => (
+                      <div key={ejercicio} style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 4, textTransform: "capitalize" }}>
+                          {ejercicio}
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
+                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.maximo}</div>
+                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Máx</div>
+                          </div>
+                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
+                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.promedio}</div>
+                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Prom</div>
+                          </div>
+                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
+                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.registros}</div>
+                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Reg</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
+                <div style={{ color: S.gray, fontSize: 12 }}>Cargando reporte...</div>
+              </div>
+            )}
           </div>
         )}{" "}
         {sec === "config" && (
@@ -3920,11 +4075,11 @@ export default function App() {
   const GROUPS = {
     entrenamiento: {
       label: "Entrenamiento",
-      tabs: ["Movilidad", "Act. Banda", "Entrada Calor", "Entrenamiento", "Periodiz.", "Asistencia", "Peso Max"],
+      tabs: ["Ejercicios", "Asistencia", "Bioimpedancia", "Pesos"],
     },
     seguimiento: {
       label: "Seguimiento",
-      tabs: ["Novedades", "Evolución", "Resumen", "Diario", "Bioimpedancia"],
+      tabs: ["Novedades", "Evolución", "Resumen", "Diario"],
     },
   };
   const switchGroup = (g) => {
@@ -4387,7 +4542,85 @@ export default function App() {
               <TablaPer data={planValido ? plan.periodizacion : []} semanaActual={semanaActual} />
             </div>
           )}{" "}
-          {tab === "Asistencia" && <Asistencia asistencia={al.asistencia || []} onMarcar={marcarAsistencia} />}{" "}
+          {tab === "Asistencia" && (
+            <div>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
+                ✓ Asistencia — {hoy()}
+              </div>
+              <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
+                <div
+                  style={{
+                    fontSize: 48,
+                    marginBottom: 16,
+                    opacity: al.asistencia?.some(a => a === hoy()) ? 1 : 0.5,
+                  }}
+                >
+                  {al.asistencia?.some(a => a === hoy()) ? "✅" : "⭕"}
+                </div>
+                <button
+                  onClick={() => {
+                    if (al.asistencia?.some(a => a === hoy())) {
+                      // Remover asistencia
+                      const u = alumnos.map(a =>
+                        a.id === al.id
+                          ? { ...a, asistencia: (a.asistencia || []).filter(fecha => fecha !== hoy()) }
+                          : a
+                      );
+                      setAlumnos(u);
+                      setAlumno(u.find(a => a.id === al.id));
+                      showToast && showToast("Asistencia removida");
+                    } else {
+                      // Agregar asistencia
+                      saveDailyAttendance(al.id, hoy(), true).then(() => {
+                        marcarAsistencia(hoy());
+                        showToast && showToast("¡Asistencia marcada! ✓");
+                      });
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    background: al.asistencia?.some(a => a === hoy()) ? S.green : S.white,
+                    color: al.asistencia?.some(a => a === hoy()) ? S.white : S.bg,
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "16px 24px",
+                    fontSize: 16,
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {al.asistencia?.some(a => a === hoy()) ? "Presente" : "Marcar Presente"}
+                </button>
+              </div>
+              {al.asistencia && al.asistencia.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                    Últimas asistencias
+                  </div>
+                  {al.asistencia.slice().reverse().slice(0, 10).map((fecha, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        background: S.card2,
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        marginBottom: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <span style={{ color: S.green, marginRight: 8 }}>✓</span>
+                      <span style={{ color: S.white, fontWeight: 600 }}>{fecha}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}{" "}
           {tab === "Novedades" && (
             <div>
               {novedades.filter(n => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento"))).length === 0 ? (
@@ -4447,7 +4680,147 @@ export default function App() {
               />{" "}
             </div>
           )}{" "}
-          {tab === "Bioimpedancia" && <BioimpedanciaSection alumnoId={al.id} showToast={showToast} readOnly={true} />}{" "}
+          {tab === "Bioimpedancia" && (
+            <div>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>
+                🩺 Medición de hoy
+              </div>
+
+              {/* FORMULARIO */}
+              <div style={{ ...card, padding: "14px 16px", marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12, letterSpacing: 1 }}>
+                  Datos personales
+                </div>
+                {[
+                  ["Peso (kg)", "peso", al.peso],
+                  ["% Grasa Corporal", "grasa_corporal", ""],
+                  ["% Masa Muscular", "masa_muscular", ""],
+                  ["Grasa Visceral", "grasa_visceral", ""],
+                  ["IMC", "imc", ""],
+                ].map(([label, field, placeholder]) => (
+                  <div key={field} style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      {label}
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder={placeholder}
+                      defaultValue={al[field] || ""}
+                      id={`bio_${field}`}
+                      step="0.1"
+                      style={inp}
+                    />
+                  </div>
+                ))}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Hora
+                    </div>
+                    <input
+                      type="time"
+                      defaultValue={new Date().toTimeString().slice(0, 5)}
+                      id="bio_hora"
+                      style={inp}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Edad (años)
+                    </div>
+                    <input
+                      type="number"
+                      placeholder={al.edad}
+                      id="bio_edad"
+                      min="0"
+                      max="120"
+                      style={inp}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const datos = {
+                      fecha: hoy(),
+                      hora: document.getElementById("bio_hora")?.value,
+                      peso: Number(document.getElementById("bio_peso")?.value) || al.peso,
+                      grasa_corporal: Number(document.getElementById("bio_grasa_corporal")?.value),
+                      masa_muscular: Number(document.getElementById("bio_masa_muscular")?.value),
+                      grasa_visceral: Number(document.getElementById("bio_grasa_visceral")?.value),
+                      imc: Number(document.getElementById("bio_imc")?.value),
+                      edad: Number(document.getElementById("bio_edad")?.value),
+                    };
+
+                    saveBioimpedanciaCompleta(al.id, datos)
+                      .then(() => {
+                        showToast && showToast("Medición guardada ✓");
+                        // Limpiar formulario
+                        document.querySelectorAll("[id^='bio_']").forEach(el => el.value = "");
+                        document.getElementById("bio_hora").value = new Date().toTimeString().slice(0, 5);
+                      })
+                      .catch(err => {
+                        console.error("Error guardando bioimpedancia:", err);
+                        showToast && showToast("Error al guardar");
+                      });
+                  }}
+                  style={{
+                    width: "100%",
+                    background: S.white,
+                    color: S.bg,
+                    border: "none",
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    marginTop: 12,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  GUARDAR MEDICIÓN
+                </button>
+              </div>
+
+              {/* HISTÓRICO */}
+              <div>
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                  📊 Últimas mediciones
+                </div>
+                {al.bioimpedancia && al.bioimpedancia.length > 0 ? (
+                  al.bioimpedancia.slice().reverse().slice(0, 5).map((bio, i) => (
+                    <div key={i} style={{ ...card, padding: "12px 14px", marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>
+                        📅 {bio.fecha} {bio.hora ? `· ${bio.hora}` : ""}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        {[
+                          ["Peso", bio.peso, "kg"],
+                          ["Grasa", bio.grasa_corporal, "%"],
+                          ["Músculo", bio.masa_muscular, "%"],
+                          ["Visceral", bio.grasa_visceral, ""],
+                        ].map(([label, val, unit]) => (
+                          <div key={label} style={{ textAlign: "center", background: S.card2, borderRadius: 6, padding: "6px" }}>
+                            <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>
+                              {val || "—"}{unit}
+                            </div>
+                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+                    <div style={{ color: S.gray, fontSize: 12 }}>Sin mediciones registradas aún</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}{" "}
           {tab === "Peso Max" && (
             <PesoMaxAlumno
               rm={al.rm}
@@ -4459,6 +4832,101 @@ export default function App() {
             />
           )}{" "}
           {tab === "Diario" && <Diario entradas={al.diario || []} onAdd={addDiario} />}{" "}
+
+          {/* NUEVO: TAB EJERCICIOS CON PESO */}
+          {tab === "Ejercicios" && (
+            <div>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                💪 Peso del día — {hoy()}
+              </div>
+              {dia && Array.isArray(dia.ejercicios) && dia.ejercicios.length > 0 ? (
+                <div>
+                  {dia.ejercicios.map((ej, i) => (
+                    <div key={i} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{ej.nombre || ej.id}</div>
+                          {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>{ej.desc}</div>}
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        placeholder="Peso (kg)"
+                        value={pesos[ej.id] || ""}
+                        onChange={(e) => {
+                          const newPesos = { ...pesos, [ej.id]: e.target.value };
+                          setPesos(newPesos);
+                        }}
+                        onBlur={() => {
+                          if (pesos[ej.id]) {
+                            saveDailyWeight(al.id, hoy(), ej.id, Number(pesos[ej.id])).then(() => {
+                              showToast && showToast(`${ej.nombre}: ${pesos[ej.id]}kg ✓`);
+                            });
+                          }
+                        }}
+                        style={{ ...inp, marginBottom: 8 }}
+                      />
+                      {historiales[ej.id] && historiales[ej.id].length > 0 && (
+                        <div style={{ fontSize: 10, color: S.gray }}>
+                          Última vez: {historiales[ej.id][historiales[ej.id].length - 1].peso}kg · {historiales[ej.id][historiales[ej.id].length - 1].fecha}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📋</div>
+                  <div style={{ color: S.gray, fontSize: 12 }}>No hay ejercicios para hoy</div>
+                </div>
+              )}
+            </div>
+          )}{" "}
+
+          {/* NUEVO: TAB PESOS - HISTÓRICO */}
+          {tab === "Pesos" && (
+            <div>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                📊 Histórico de pesos
+              </div>
+              {Object.keys(historiales).length > 0 ? (
+                <div>
+                  {Object.entries(historiales)
+                    .sort()
+                    .map(([ejercicio, registros]) => (
+                      <div key={ejercicio} style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 8, textTransform: "capitalize" }}>
+                          {ejercicio}
+                        </div>
+                        {registros.slice().reverse().slice(0, 10).map((reg, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              background: S.card2,
+                              borderRadius: 6,
+                              padding: "8px 10px",
+                              marginBottom: 4,
+                              fontSize: 12,
+                            }}
+                          >
+                            <div style={{ color: S.white, fontWeight: 600 }}>{reg.peso} kg</div>
+                            <div style={{ color: S.gray, fontSize: 10 }}>{reg.fecha}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+                  <div style={{ color: S.gray, fontSize: 12 }}>Sin histórico aún. ¡Carga tu primer peso en Ejercicios!</div>
+                </div>
+              )}
+            </div>
+          )}{" "}
         </div>{" "}
       </div>{" "}
     </>

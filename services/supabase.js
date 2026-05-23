@@ -1073,3 +1073,308 @@ export async function eliminarNovedad(id) {
   const { error } = await supabase.from("novedades").delete().eq("id", id);
   if (error) { ERR("eliminarNovedad", error.message, error); throw error; }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// NUEVAS FUNCIONES - REDISEÑO v2
+// ══════════════════════════════════════════════════════════════════════════
+
+// ────────────────────────────────────────────────────────────────────────
+// PLANES: Asignar plan (bilateral/unilateral) a alumno
+// ────────────────────────────────────────────────────────────────────────
+
+export async function assignPlanToStudent(alumno_id, plan_type) {
+  if (!['bilateral', 'unilateral'].includes(plan_type)) {
+    ERR("assignPlanToStudent", `Tipo de plan inválido: ${plan_type}`);
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("alumnos")
+    .update({ plan_type, fecha_asignacion_plan: new Date().toISOString() })
+    .eq("id", alumno_id)
+    .select()
+    .single();
+
+  if (error) {
+    ERR("assignPlanToStudent", `Error asignando plan a ${alumno_id}`, error);
+    return null;
+  }
+
+  LOG("assignPlanToStudent", `✅ Plan '${plan_type}' asignado a ${alumno_id}`);
+  return data;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// REGISTROS DIARIOS: Guardar peso para un día específico
+// ────────────────────────────────────────────────────────────────────────
+
+export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso) {
+  if (!peso || Number(peso) <= 0) {
+    LOG("saveDailyWeight", `⏭️ Ignorado (peso 0): ${ejercicio_id}`);
+    return;
+  }
+
+  // Primero obtener el registro del día
+  const { data: existing, error: fetchError } = await supabase
+    .from("registros_diarios")
+    .select("id, pesos")
+    .eq("alumno_id", alumno_id)
+    .eq("fecha", fecha)
+    .maybeSingle();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    ERR("saveDailyWeight", "Error al obtener registro", fetchError);
+    return;
+  }
+
+  const pesos = existing?.pesos || {};
+  pesos[ejercicio_id] = Number(peso);
+
+  let result;
+  if (existing) {
+    // Actualizar registro existente
+    const { data, error } = await supabase
+      .from("registros_diarios")
+      .update({ pesos, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      ERR("saveDailyWeight", "Error actualizando pesos", error);
+      return;
+    }
+    result = data;
+  } else {
+    // Crear nuevo registro
+    const { data, error } = await supabase
+      .from("registros_diarios")
+      .insert([{
+        alumno_id,
+        fecha,
+        pesos,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      ERR("saveDailyWeight", "Error creando registro", error);
+      return;
+    }
+    result = data;
+  }
+
+  LOG("saveDailyWeight", `✅ Peso ${peso}kg → ${ejercicio_id} en ${fecha}`, result);
+  return result;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// REGISTROS DIARIOS: Marcar asistencia
+// ────────────────────────────────────────────────────────────────────────
+
+export async function saveDailyAttendance(alumno_id, fecha, presente) {
+  const { data: existing, error: fetchError } = await supabase
+    .from("registros_diarios")
+    .select("id")
+    .eq("alumno_id", alumno_id)
+    .eq("fecha", fecha)
+    .maybeSingle();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    ERR("saveDailyAttendance", "Error al obtener registro", fetchError);
+    return;
+  }
+
+  let result;
+  if (existing) {
+    const { data, error } = await supabase
+      .from("registros_diarios")
+      .update({ presente, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      ERR("saveDailyAttendance", "Error actualizando asistencia", error);
+      return;
+    }
+    result = data;
+  } else {
+    const { data, error } = await supabase
+      .from("registros_diarios")
+      .insert([{
+        alumno_id,
+        fecha,
+        presente,
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      ERR("saveDailyAttendance", "Error creando registro", error);
+      return;
+    }
+    result = data;
+  }
+
+  LOG("saveDailyAttendance", `✅ Asistencia (${presente ? '✅' : '❌'}) marcada para ${fecha}`);
+  return result;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// BIOIMPEDANCIA: Guardar medición completa
+// ────────────────────────────────────────────────────────────────────────
+
+export async function saveBioimpedanciaCompleta(alumno_id, datos) {
+  // datos: { fecha, hora, peso, grasa_corporal, masa_muscular, grasa_visceral, imc, altura, edad }
+
+  const payload = limpiarPayload({
+    alumno_id,
+    fecha: datos.fecha || new Date().toISOString().split("T")[0],
+    hora: datos.hora,
+    peso: datos.peso ? Number(datos.peso) : null,
+    grasa_corporal: datos.grasa_corporal ? Number(datos.grasa_corporal) : null,
+    masa_muscular: datos.masa_muscular ? Number(datos.masa_muscular) : null,
+    grasa_visceral: datos.grasa_visceral ? Number(datos.grasa_visceral) : null,
+    imc: datos.imc ? Number(datos.imc) : null,
+    altura: datos.altura ? Number(datos.altura) : null,
+    edad: datos.edad ? Number(datos.edad) : null,
+  });
+
+  LOG("saveBioimpedanciaCompleta", `⏳ Guardando bioimpedancia para ${alumno_id}...`, payload);
+
+  const { data, error } = await supabase
+    .from("bioimpedancia")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    ERR("saveBioimpedanciaCompleta", "Error guardando bioimpedancia", error);
+    throw error;
+  }
+
+  LOG("saveBioimpedanciaCompleta", `✅ Bioimpedancia guardada`, data);
+  return data;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// BIOIMPEDANCIA: Cargar historial completo
+// ────────────────────────────────────────────────────────────────────────
+
+export async function cargarBioimpedanciaCompleta(alumno_id, limit = 50) {
+  const { data, error } = await supabase
+    .from("bioimpedancia")
+    .select("*")
+    .eq("alumno_id", alumno_id)
+    .order("fecha", { ascending: false })
+    .order("hora", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    ERR("cargarBioimpedanciaCompleta", "Error cargando bioimpedancia", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// REGISTROS DIARIOS: Cargar pesos por día
+// ────────────────────────────────────────────────────────────────────────
+
+export async function cargarPesosPorDia(alumno_id, limit = 30) {
+  const { data, error } = await supabase
+    .from("registros_diarios")
+    .select("fecha, pesos")
+    .eq("alumno_id", alumno_id)
+    .order("fecha", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    ERR("cargarPesosPorDia", "Error cargando pesos diarios", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// REPORTE MENSUAL: Obtener datos del mes para admin
+// ────────────────────────────────────────────────────────────────────────
+
+export async function getMonthlyReport(alumno_id, mes_yyyy_mm) {
+  // mes_yyyy_mm: "2026-05"
+  const mesStart = `${mes_yyyy_mm}-01`;
+  const mesEnd = new Date(mes_yyyy_mm + "-01");
+  mesEnd.setMonth(mesEnd.getMonth() + 1);
+  const mesEndStr = mesEnd.toISOString().split("T")[0];
+
+  try {
+    // Obtener registros del mes
+    const { data: registros, error: regError } = await supabase
+      .from("registros_diarios")
+      .select("*")
+      .eq("alumno_id", alumno_id)
+      .gte("fecha", mesStart)
+      .lt("fecha", mesEndStr)
+      .order("fecha", { ascending: true });
+
+    if (regError) throw regError;
+
+    // Obtener bioimpedancia del mes
+    const { data: bioData, error: bioError } = await supabase
+      .from("bioimpedancia")
+      .select("*")
+      .eq("alumno_id", alumno_id)
+      .gte("fecha", mesStart)
+      .lt("fecha", mesEndStr)
+      .order("fecha", { ascending: false });
+
+    if (bioError) throw bioError;
+
+    // Procesar datos
+    const asistencias = registros?.filter(r => r.presente).length || 0;
+    const totalDias = registros?.length || 0;
+
+    // Calcular pesos promedio
+    const pesosPromedio = {};
+    registros?.forEach(reg => {
+      if (reg.pesos) {
+        Object.entries(reg.pesos).forEach(([ejercicio, peso]) => {
+          if (!pesosPromedio[ejercicio]) pesosPromedio[ejercicio] = [];
+          pesosPromedio[ejercicio].push(Number(peso));
+        });
+      }
+    });
+
+    Object.keys(pesosPromedio).forEach(ejercicio => {
+      const pesos = pesosPromedio[ejercicio];
+      pesosPromedio[ejercicio] = {
+        promedio: (pesos.reduce((a, b) => a + b) / pesos.length).toFixed(2),
+        maximo: Math.max(...pesos),
+        minimo: Math.min(...pesos),
+        registros: pesos.length,
+      };
+    });
+
+    const ultimaBio = bioData?.[0] || null;
+
+    LOG("getMonthlyReport", `✅ Reporte generado para ${alumno_id} - ${mes_yyyy_mm}`);
+
+    return {
+      mes: mes_yyyy_mm,
+      asistencias,
+      totalDias,
+      porcentajeAsistencia: totalDias > 0 ? ((asistencias / totalDias) * 100).toFixed(1) : 0,
+      pesosPromedio,
+      ultimaBioimpedancia: ultimaBio,
+      totalBioimpedancias: bioData?.length || 0,
+      registrosPorDia: registros || [],
+      bioimpedancias: bioData || [],
+    };
+  } catch (error) {
+    ERR("getMonthlyReport", "Error generando reporte", error);
+    throw error;
+  }
+}
