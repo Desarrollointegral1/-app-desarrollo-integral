@@ -51,16 +51,26 @@ CREATE TABLE IF NOT EXISTS bioimpedancia (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   fecha DATE NOT NULL,
+  hora TIME,
+  peso NUMERIC(6,2), -- kg
   grasa_corporal NUMERIC(5,2), -- %
   masa_muscular NUMERIC(5,2), -- %
-  peso NUMERIC(6,2), -- kg
   agua NUMERIC(5,2), -- %
+  grasa_visceral NUMERIC(5,2), -- unidades
+  imc NUMERIC(5,2), -- índice de masa corporal
+  altura INT, -- cm
+  edad INT, -- años
   nota TEXT,
   archivo_url TEXT, -- URL del archivo subido (si aplica)
+  nombre_archivo TEXT,
+  metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(alumno_id, fecha)
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Crear índice para búsquedas rápidas (permite múltiples registros por día si hay diferentes horas)
+CREATE INDEX IF NOT EXISTS idx_bioimpedancia_alumno_fecha_hora
+ON bioimpedancia(alumno_id, fecha DESC, hora);
 
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_bioimpedancia_alumno_id ON bioimpedancia(alumno_id);
@@ -75,7 +85,40 @@ CREATE INDEX IF NOT EXISTS idx_bioimpedancia_fecha ON bioimpedancia(fecha);
 -- - espalda (Espalda)
 -- - gluteos (Glúteos)
 
--- 6. Actualizar tabla ALUMNOS si es necesario
+-- 5.5. Agregar columnas a tabla ALUMNOS
+-- Para almacenar el tipo de plan asignado globalmente al alumno
+ALTER TABLE IF EXISTS alumnos
+ADD COLUMN IF NOT EXISTS plan_type TEXT DEFAULT 'bilateral' CHECK (plan_type IN ('bilateral', 'unilateral')),
+ADD COLUMN IF NOT EXISTS fecha_asignacion_plan TIMESTAMPTZ DEFAULT NOW();
+
+-- 6. Tabla REPORTE_MENSUAL (opcional - para caché de reportes)
+-- Vista materializada para reportes mensuales rápidos
+CREATE TABLE IF NOT EXISTS reporte_mensual_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  mes DATE NOT NULL, -- Primer día del mes (YYYY-MM-01)
+  total_asistencias INT DEFAULT 0,
+  total_dias_entrenamiento INT DEFAULT 0,
+  pesos_promedio JSONB DEFAULT '{}', -- {ejercicio: promedio_peso, ...}
+  ultima_bioimpedancia JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(alumno_id, mes)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reporte_mensual_alumno_mes
+ON reporte_mensual_cache(alumno_id, mes DESC);
+
+-- 7. EJERCICIOS FIJOS (Constante - estos son los 6 principales)
+-- No necesitan tabla, son hardcodeados en la app:
+-- - hombro (Hombro)
+-- - dom_rodilla (Dominante de Rodilla)
+-- - pecho (Pecho)
+-- - dom_cadera (Dominante de Cadera)
+-- - espalda (Espalda)
+-- - gluteos (Glúteos)
+
+-- 8. Actualizar tabla ALUMNOS si es necesario
 -- Eliminar campos innecesarios (plan_movilidad, plan_calor, etc)
 -- Opcionalmente: ALTER TABLE alumnos DROP COLUMN plan_movilidad CASCADE;
 -- Pero es mejor dejarlo así para compatibilidad
