@@ -1,0 +1,9 @@
+{
+  "project_id": "tlxkghpytznkxgqslqzj",
+  "api": {
+    "port": 54321,
+    "schemas": ["public", "graphql_public"],
+    "default_schema": "public",
+    "max_rows": 1000
+  }
+}
