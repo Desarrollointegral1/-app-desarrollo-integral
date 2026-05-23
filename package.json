@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "setup-migrations": "node setup-migrations.js",
     "deploy": "git add App.jsx services/supabase.js src/ web/ public/ package.json && git diff --cached --quiet || git commit -m \"deploy: update $(date +%Y-%m-%d)\" && git push origin main && npx vercel --prod"
   },
   "dependencies": {
