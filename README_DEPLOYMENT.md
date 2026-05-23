@@ -12,20 +12,47 @@
 
 ## 📋 PASO 1: EJECUTAR MIGRACIONES SQL (CRÍTICO)
 
-### ¿Qué necesitas hacer?
+### ⚡ OPCIÓN 1: AUTOMÁTICO (Recomendado)
 
-El SQL para crear las nuevas tablas **YA ESTÁ COPIADO AL PORTAPAPELES**.
+Si tienes Node.js instalado, ejecuta esto en terminal:
 
-1. **Abre Supabase** (debería estar abierto):
+```bash
+npm run setup-migrations
+```
+
+Te pedirá la **contraseña de la base de datos de Supabase** (la del usuario `postgres`).
+
+Para obtener la contraseña:
+1. Ve a: https://supabase.com/dashboard/project/tlxkghpytznkxgqslqzj
+2. Click en: **Project Settings** → **Database**
+3. Busca: "Password" o "DB Password"
+4. Copia y pégala en el script
+
+El script hará TODO automáticamente:
+- Conectar a Supabase
+- Ejecutar todas las migraciones
+- Verificar que se crearon las tablas
+- Mostrarte un resumen
+
+---
+
+### 🔧 OPCIÓN 2: MANUAL (Si el script no funciona)
+
+El SQL para crear las nuevas tablas está en el archivo `migrations.sql`.
+
+1. **Abre Supabase SQL Editor**:
    - https://supabase.com/dashboard/project/tlxkghpytznkxgqslqzj/sql
 
 2. **Haz click en**: `Create a new query` (arriba a la derecha)
 
-3. **Pega el SQL** (Ctrl+V) en el editor
+3. **Abre el archivo** `migrations.sql` en tu editor
+   - Copia TODO el contenido
 
-4. **Haz click en**: Botón `Run` (verde, arriba a la derecha)
+4. **Pega en Supabase** (Ctrl+V)
 
-5. **Espera** a que termine (verás mensajes `CREATE TABLE`, `CREATE INDEX`, `ALTER TABLE`)
+5. **Haz click en**: Botón `Run` (verde, arriba a la derecha)
+
+6. **Espera** a que termine (verás mensajes sin errores)
 
 ### ¿Qué se crea?
 
