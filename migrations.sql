@@ -12,7 +12,7 @@
 -- Estructura de días de entrenamiento por alumno
 CREATE TABLE IF NOT EXISTS entrenamientos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  alumno_id UUID NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   numero_dia INT NOT NULL, -- 1, 2, 3, etc
   tipo_plan TEXT NOT NULL CHECK (tipo_plan IN ('bilateral', 'unilateral')),
   ejercicios JSONB NOT NULL DEFAULT '[]', -- [{id: 'hombro', nombre: 'Hombro', personalizado: false}, ...]
@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_entrenamientos_numero_dia ON entrenamientos(numer
 -- Registro diario: presencia, pesos, comentario
 CREATE TABLE IF NOT EXISTS registros_diarios (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  alumno_id UUID NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   fecha DATE NOT NULL,
   numero_dia_entrenamiento INT, -- Qué día de entrenamiento fue (1, 2, 3, etc)
   presente BOOLEAN DEFAULT false,
@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_registros_diarios_alumno_fecha ON registros_diari
 -- Registros de análisis corporal por alumno
 CREATE TABLE IF NOT EXISTS bioimpedancia (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  alumno_id UUID NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   fecha DATE NOT NULL,
   hora TIME,
   peso NUMERIC(6,2), -- kg
@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS bioimpedancia (
 
 -- Agregar columnas que podrían faltar si la tabla ya existe
 ALTER TABLE IF EXISTS bioimpedancia
+ADD COLUMN IF NOT EXISTS alumno_id UUID,
 ADD COLUMN IF NOT EXISTS hora TIME,
 ADD COLUMN IF NOT EXISTS peso NUMERIC(6,2),
 ADD COLUMN IF NOT EXISTS grasa_corporal NUMERIC(5,2),
@@ -111,7 +112,7 @@ ADD COLUMN IF NOT EXISTS fecha_asignacion_plan TIMESTAMPTZ DEFAULT NOW();
 -- Vista materializada para reportes mensuales rápidos
 CREATE TABLE IF NOT EXISTS reporte_mensual_cache (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alumno_id TEXT NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
+  alumno_id UUID NOT NULL REFERENCES alumnos(id) ON DELETE CASCADE,
   mes DATE NOT NULL, -- Primer día del mes (YYYY-MM-01)
   total_asistencias INT DEFAULT 0,
   total_dias_entrenamiento INT DEFAULT 0,
