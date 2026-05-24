@@ -68,9 +68,25 @@ CREATE TABLE IF NOT EXISTS bioimpedancia (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Agregar columnas que podrían faltar si la tabla ya existe
+ALTER TABLE IF EXISTS bioimpedancia
+ADD COLUMN IF NOT EXISTS hora TIME,
+ADD COLUMN IF NOT EXISTS peso NUMERIC(6,2),
+ADD COLUMN IF NOT EXISTS grasa_corporal NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS masa_muscular NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS agua NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS grasa_visceral NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS imc NUMERIC(5,2),
+ADD COLUMN IF NOT EXISTS altura INT,
+ADD COLUMN IF NOT EXISTS edad INT,
+ADD COLUMN IF NOT EXISTS nota TEXT,
+ADD COLUMN IF NOT EXISTS archivo_url TEXT,
+ADD COLUMN IF NOT EXISTS nombre_archivo TEXT,
+ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
 -- Crear índice para búsquedas rápidas (permite múltiples registros por día si hay diferentes horas)
 CREATE INDEX IF NOT EXISTS idx_bioimpedancia_alumno_fecha_hora
-ON bioimpedancia(alumno_id, fecha DESC, hora);
+ON bioimpedancia(alumno_id, fecha DESC, hora DESC);
 
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_bioimpedancia_alumno_id ON bioimpedancia(alumno_id);
