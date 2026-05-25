@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import RippleButton from "./RippleButton";
 
 interface CTAFormProps {
   onSubmit?: (data: FormData) => void;
@@ -116,9 +117,12 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             placeholder="Tu nombre"
             className={`form-input ${errors.name ? "error" : ""}`}
             disabled={isSubmitting}
+            aria-required="true"
+            aria-invalid={!!errors.name}
+            aria-describedby={errors.name ? "name-error" : undefined}
           />
           {errors.name && (
-            <span className="form-error" role="alert">
+            <span id="name-error" className="form-error" role="alert">
               {errors.name}
             </span>
           )}
@@ -138,9 +142,13 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             placeholder="tu@email.com"
             className={`form-input ${errors.email ? "error" : ""}`}
             disabled={isSubmitting}
+            aria-required="true"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            autoComplete="email"
           />
           {errors.email && (
-            <span className="form-error" role="alert">
+            <span id="email-error" className="form-error" role="alert">
               {errors.email}
             </span>
           )}
@@ -160,6 +168,7 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             placeholder="+54 11 2000-0000"
             className="form-input"
             disabled={isSubmitting}
+            autoComplete="tel"
           />
         </div>
 
@@ -181,25 +190,28 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
         </div>
 
         {/* Submit Button */}
-        <button
+        <RippleButton
           type="submit"
           className="form-submit"
           disabled={isSubmitting || submitStatus === "success"}
+          aria-live="polite"
         >
           {isSubmitting && (
             <motion.span
               animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+              style={{ display: "inline-block" }}
+              aria-hidden="true"
             >
-              ⟳
+              ↻
             </motion.span>
           )}
           {submitStatus === "success"
-            ? "✓ Mensaje enviado"
+            ? "✓ Enviado correctamente"
             : isSubmitting
-              ? "Enviando..."
+              ? "Enviando…"
               : "Solicitar Evaluación"}
-        </button>
+        </RippleButton>
 
         {/* Status Messages */}
         {submitStatus === "success" && (

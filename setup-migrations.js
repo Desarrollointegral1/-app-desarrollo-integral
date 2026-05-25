@@ -10,10 +10,14 @@
  * O:   npm run setup-migrations
  */
 
-const { Client } = require('pg');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
+import { Client } from 'pg';
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const rl = readline.createInterface({
   input: process.stdin,
