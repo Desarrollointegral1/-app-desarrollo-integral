@@ -1,127 +1,80 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRef, useEffect } from "react";
 import gsap from "gsap";
-import { SHIELD_W, LOGO_WHITE, APP_URL } from "../data";
-import RippleButton from "./RippleButton";
+import { APP_URL } from "../data";
 
 export function HeroSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
-    // GSAP Timeline for hero entrance
-    const tl = gsap.timeline();
+    const tl = gsap.timeline({ delay: 0.2 });
 
-    tl.from(".hero-eyebrow", {
-      opacity: 0,
-      y: -20,
-      duration: 0.6,
-      ease: "power3.out",
-    })
-      .from(
-        ".hero-h1",
-        {
-          opacity: 0,
-          y: 40,
-          duration: 1.2,
-          stagger: 0.08,
-          ease: "power3.out",
-        },
-        "-=0.3"
-      )
-      .from(
-        ".hero-desc",
-        {
-          opacity: 0,
-          filter: "blur(10px)",
-          duration: 0.8,
-          ease: "power3.out",
-        },
-        "-=0.6"
-      )
-      .from(
-        ".hero-cta",
-        {
-          opacity: 0,
-          scale: 0.95,
-          duration: 0.6,
-          ease: "back.out(1.7)",
-        },
-        "-=0.4"
-      );
-
-    // Shield infinite rotation
-    gsap.to(".shield-spin", {
-      rotation: 360,
-      duration: 6,
-      repeat: -1,
-      ease: "none",
-    });
-
-    // Shield glow pulsing effect - using opacity for simplicity
-    gsap.to(".shield-glow", {
-      opacity: [0.3, 0.8, 0.3],
-      duration: 4,
-      repeat: -1,
-      ease: "sine.inOut",
-    } as any);
+    tl.from(".hero-eyebrow", { opacity: 0, y: 16, duration: 0.7, ease: "power3.out" })
+      .from(".hero-line", { opacity: 0, y: 60, duration: 1.0, stagger: 0.12, ease: "power3.out" }, "-=0.3")
+      .from(".hero-desc", { opacity: 0, y: 20, duration: 0.7, ease: "power3.out" }, "-=0.5")
+      .from(".hero-cta", { opacity: 0, y: 16, duration: 0.5, ease: "power3.out" }, "-=0.4")
+      .from(".hero-scroll-hint", { opacity: 0, duration: 0.6, ease: "power2.out" }, "-=0.2");
   }, []);
 
   return (
-    <section id="hero">
-      {/* Shield Background */}
-      <div className="hero-shield">
-        <div className="shield-spin-wrap">
-          <img
-            className="shield-spin shield-glow"
-            src={SHIELD_W}
-            alt=""
-            width={700}
-            style={{ opacity: 0.4 }}
-          />
+    <section id="hero" ref={sectionRef}>
+      {/* Video Background */}
+      <div className="hero-video-wrap" aria-hidden="true">
+        <video
+          className="hero-video"
+          poster="/espacio/gym.jpg"
+          autoPlay
+          muted
+          playsInline
+          loop
+          preload="none"
+        >
+          <source src="/espacio/video.webm" type="video/webm" />
+          <source src="/espacio/video.mp4" type="video/mp4" />
+        </video>
+        <div className="hero-video-overlay" />
+      </div>
+
+      {/* Content */}
+      <div className="hero-inner">
+        {/* Top row: eyebrow */}
+        <div className="hero-top">
+          <p className="hero-eyebrow">Belgrano · Buenos Aires</p>
+        </div>
+
+        {/* Main heading */}
+        <h1 className="hero-h1" aria-label="El bienestar empieza con el movimiento">
+          <span className="hero-line">El bienestar</span>
+          <span className="hero-line hero-line-em">empieza con</span>
+          <span className="hero-line">el movimiento.</span>
+        </h1>
+
+        {/* Bottom row: desc + CTA */}
+        <div className="hero-bottom">
+          <p className="hero-desc">
+            Entrenamiento personalizado basado en datos.<br />
+            Más de 30 años de experiencia. Sin suposiciones.
+          </p>
+          <div className="hero-cta-group">
+            <a href={APP_URL} className="hero-cta hero-cta-primary" target="_blank" rel="noopener noreferrer">
+              <span className="hero-cta-label">Ir al aplicativo</span>
+              <span className="hero-cta-arrow" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 16L16 4M16 4H6M16 4V14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            </a>
+            <a href="#identidad" className="hero-cta hero-cta-secondary">
+              <span>Saber más</span>
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Hero Content */}
-      <div className="hero-inner">
-        {/* Logo */}
-        <div className="hero-logo-wrapper" style={{ marginBottom: 48 }}>
-          <img
-            src={LOGO_WHITE}
-            alt="Desarrollo Integral"
-            height={60}
-            width="auto"
-            style={{ display: "block" }}
-          />
-        </div>
-
-        {/* Eyebrow */}
-        <p className="hero-eyebrow">Wellness starts with movement</p>
-
-        {/* Main Heading */}
-        <h1 className="hero-h1">
-          Fuerza, <span>movimiento</span>
-          <span className="smaller">y rendimiento</span>
-        </h1>
-
-        {/* Description + CTA */}
-        <div className="hero-bottom">
-          <p className="hero-desc">
-            Entrenamiento personalizado basado en datos. Cada plan se adapta a
-            tu punto de partida y tus objetivos. Sin suposiciones. Sin
-            generalismos. Solo resultados verificables.
-          </p>
-          <RippleButton as="a" href={APP_URL} className="hero-cta" target="_blank" rel="noopener">
-            <span>Ir a Aplicativo</span>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <path
-                d="M6 26L26 6M26 6H9M26 6V23"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </RippleButton>
-        </div>
+      {/* Scroll hint */}
+      <div className="hero-scroll-hint" aria-hidden="true">
+        <span className="hero-scroll-line" />
       </div>
     </section>
   );
