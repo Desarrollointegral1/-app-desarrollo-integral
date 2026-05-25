@@ -98,6 +98,25 @@
 
 html { scroll-behavior: smooth; font-size: 16px; }
 
+/* Skip link (WCAG 2.4.1) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  background: var(--gold);
+  color: #000;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 4px 4px;
+  transition: top 150ms ease;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 /* Visible focus ring for keyboard users (WCAG 2.4.7) */
 :focus-visible {
   outline: 2px solid var(--gold);

@@ -69,8 +69,11 @@ export default function OsteopatiaPage() {
   return (
     <div className="osteo-page">
 
+      {/* ── SKIP LINK ── */}
+      <a href="#main-osteo" className="skip-link">Saltar al contenido</a>
+
       {/* ── NAV ── */}
-      <nav className="o-nav">
+      <nav className="o-nav" role="navigation" aria-label="Navegación de Griselda Politino">
         <a href="#hero" className="o-nav-brand">
           <span className="o-nav-name">Griselda Politino</span>
           <span className="o-nav-sub">Kinesiología · Osteopatía · Belgrano</span>
@@ -79,11 +82,13 @@ export default function OsteopatiaPage() {
           <a href="#servicios">Servicios</a>
           <a href="#sobre-mi">Sobre mí</a>
           <a href="#bjj">BJJ</a>
-          <a href="#contacto" className="o-nav-wa" aria-label="WhatsApp">
+          <a href="#contacto" className="o-nav-wa" aria-label="Contacto por WhatsApp">
             {WA_ICON}
           </a>
         </div>
       </nav>
+
+      <main id="main-osteo">
 
       {/* ── HERO ── */}
       <section id="hero" className="o-hero">
@@ -116,23 +121,37 @@ export default function OsteopatiaPage() {
           <div className="o-servicios-grid">
             {SERVICIOS.map(({ num, title, desc, items }) => {
               const isOpen = openCard === num;
+              const headerId = `o-svc-hdr-${num}`;
+              const panelId  = `o-svc-panel-${num}`;
               return (
                 <div
                   key={num}
                   className={`o-servicio-card o-fade${isOpen ? " is-open" : ""}`}
-                  onClick={() => toggle(num)}
                 >
-                  <div className="o-servicio-num">{num}</div>
-                  <h3 className="o-servicio-title">{title}</h3>
-                  <p className="o-servicio-desc">{desc}</p>
-                  <div className="o-expand-hint">
-                    <span>{isOpen ? "Cerrar" : "Ver más"}</span>
-                    <svg className={`o-expand-arrow${isOpen ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 12">
-                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                    </svg>
-                  </div>
+                  <button
+                    id={headerId}
+                    className="o-servicio-header-btn"
+                    onClick={() => toggle(num)}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                  >
+                    <div className="o-servicio-num" aria-hidden="true">{num}</div>
+                    <h3 className="o-servicio-title">{title}</h3>
+                    <p className="o-servicio-desc">{desc}</p>
+                    <div className="o-expand-hint" aria-hidden="true">
+                      <span>{isOpen ? "Cerrar" : "Ver más"}</span>
+                      <svg className={`o-expand-arrow${isOpen ? " open" : ""}`} width="12" height="12" viewBox="0 0 12 12">
+                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  </button>
                   {isOpen && (
-                    <div className="o-servicio-detail">
+                    <div
+                      id={panelId}
+                      className="o-servicio-detail"
+                      role="region"
+                      aria-labelledby={headerId}
+                    >
                       <ul className="o-servicio-items">
                         {items.map(item => <li key={item}>{item}</li>)}
                       </ul>
@@ -227,6 +246,8 @@ export default function OsteopatiaPage() {
           </a>
         </div>
       </section>
+
+      </main>
 
       {/* ── FOOTER ── */}
       <footer className="o-footer">

@@ -11,11 +11,12 @@
   --bg3:  #101010;
   --border-o: rgba(255,255,255,0.06);
   --text:  rgba(255,255,255,0.92);
-  --text2: rgba(255,255,255,0.48);
-  --text3: rgba(255,255,255,0.22);
-  --serif: 'Playfair Display', Georgia, serif;
-  --cond:  'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --sans:  'DM Sans', system-ui, sans-serif;
+  --text2: rgba(255,255,255,0.55);
+  --text3: rgba(255,255,255,0.38);  /* raised from 0.22 for WCAG AA */
+  /* PP Formula — shared brand typeface */
+  --serif: 'PP Formula', Georgia, serif;
+  --cond:  'PP Formula', 'Arial Narrow', sans-serif;
+  --sans:  'PP Formula', system-ui, sans-serif;
 
   background: var(--bg);
   color: var(--text);
@@ -24,6 +25,7 @@
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  scroll-padding-top: 80px;
 }
 
 /* ── Spin ─────────────────────────────────────── */
@@ -137,15 +139,23 @@
 /* ── Servicios ───────────────────────────────── */
 .osteo-page .o-servicios-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; border: 1px solid var(--border-o); }
 .osteo-page .o-servicio-card {
-  padding: 44px 36px;
+  padding: 0;
   border-right: 1px solid var(--border-o);
-  cursor: pointer;
   transition: background .2s;
   position: relative; overflow: hidden;
 }
 .osteo-page .o-servicio-card:last-child { border-right: none; }
 .osteo-page .o-servicio-card:hover { background: rgba(255,255,255,0.02); }
 .osteo-page .o-servicio-card.is-open { background: var(--sage-pale); border-color: var(--sage-border); }
+/* Semantic button reset — keeps the card look intact */
+.osteo-page .o-servicio-header-btn {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; padding: 44px 36px 0;
+  cursor: pointer; color: inherit; font: inherit;
+}
+.osteo-page .o-servicio-header-btn:focus-visible {
+  outline: 2px solid var(--sage); outline-offset: -2px;
+}
 .osteo-page .o-servicio-num {
   font-family: var(--cond); font-weight: 900; font-size: 80px;
   color: rgba(255,255,255,0.04); line-height: 1; margin-bottom: 16px;
@@ -158,14 +168,14 @@
 }
 .osteo-page .o-servicio-desc { font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
 .osteo-page .o-expand-hint {
-  display: flex; align-items: center; gap: 6px; margin-top: 16px;
+  display: flex; align-items: center; gap: 6px; margin-top: 16px; padding-bottom: 28px;
   font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage);
   font-family: var(--sans); user-select: none;
 }
 .osteo-page .o-expand-arrow { transition: transform .25s; }
 .osteo-page .o-expand-arrow.open { transform: rotate(180deg); }
 .osteo-page .o-servicio-detail {
-  margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-o);
+  margin-top: 20px; padding: 20px 36px 36px; border-top: 1px solid var(--border-o);
 }
 .osteo-page .o-servicio-items { list-style: none; }
 .osteo-page .o-servicio-items li {

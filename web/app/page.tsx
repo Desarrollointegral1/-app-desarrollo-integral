@@ -59,8 +59,11 @@ export default function Home() {
 
   return (
     <>
+      {/* Skip to main (WCAG 2.4.1) */}
+      <a href="#main-content" className="skip-link">Saltar al contenido</a>
+
       {/* NAV */}
-      <nav>
+      <nav role="navigation" aria-label="Navegación principal">
         <div className="nav-logo">
           <a href="#hero" className="nav-logo-link">
             <LogoMark h={56} opacity={0.9} />
@@ -75,6 +78,9 @@ export default function Home() {
           </a>
         </div>
       </nav>
+
+      {/* MAIN */}
+      <main id="main-content">
 
       {/* HERO */}
       <HeroSection />
@@ -111,6 +117,8 @@ export default function Home() {
 
       {/* FOOTER */}
       <Footer />
+
+      </main>
     </>
   );
 }

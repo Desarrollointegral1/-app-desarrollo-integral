@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import gsap from "gsap";
 import { SHIELD_W, LOGO_WHITE, APP_URL } from "../data";
+import RippleButton from "./RippleButton";
 
 export function HeroSection() {
   useEffect(() => {
@@ -108,9 +109,9 @@ export function HeroSection() {
             tu punto de partida y tus objetivos. Sin suposiciones. Sin
             generalismos. Solo resultados verificables.
           </p>
-          <a href={APP_URL} className="hero-cta" target="_blank" rel="noopener">
+          <RippleButton as="a" href={APP_URL} className="hero-cta" target="_blank" rel="noopener">
             <span>Ir a Aplicativo</span>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <path
                 d="M6 26L26 6M26 6H9M26 6V23"
                 stroke="currentColor"
@@ -119,7 +120,7 @@ export function HeroSection() {
                 strokeLinejoin="round"
               />
             </svg>
-          </a>
+          </RippleButton>
         </div>
       </div>
     </section>
