@@ -1,5 +1,5 @@
 # 📋 LUCAS — Block de Notas Operacional
-**Última actualización:** 2026-05-27  
+**Última actualización:** 2026-05-27
 **Este archivo se actualiza solo cada vez que se hace un cambio.**
 
 ---
