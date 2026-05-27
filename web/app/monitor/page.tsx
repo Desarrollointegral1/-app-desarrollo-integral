@@ -111,6 +111,14 @@ export default function MonitorPage() {
 
   useEffect(() => { fetchReport(days); }, [days, fetchReport]);
 
+  // Auto-refresh cada 60 segundos — el monitor se actualiza solo
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!loading) fetchReport(days);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [days, loading, fetchReport]);
+
   const statusStyle = report ? STATUS_COLOR[report.systemStatus] : STATUS_COLOR.healthy;
 
   return (

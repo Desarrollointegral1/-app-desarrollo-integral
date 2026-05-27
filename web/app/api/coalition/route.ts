@@ -15,6 +15,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { runParallelCoalition, formatCoalitionResult, type AgentResult } from '@/lib/parallel-agents';
 import { detectExternalToolRequests, generateCharlesInstructions } from '@/lib/external-tools';
+import fs   from 'fs';
+import path from 'path';
+
+// ─── Log de coalición en docs/DESARROLLO-INTEGRAL.md ─────────────────────────
+function logCoalitionRun(task: string, score: number, agentCount: number, ms: number) {
+  try {
+    const docsPath = path.join(process.cwd(), 'docs', 'DESARROLLO-INTEGRAL.md');
+    if (!fs.existsSync(docsPath)) return;
+
+    let content = fs.readFileSync(docsPath, 'utf-8');
+    const today  = new Date().toISOString().slice(0, 10);
+    const entry  = `| ${today} | ${score}/100 | ${agentCount} agentes | ${Math.round(ms / 1000)}s | ${task.slice(0, 70)}${task.length > 70 ? '...' : ''} |`;
+    const section = '## Historial de Coaliciones (auto-generado)';
+    const header  = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Tarea |\n|---|---|---|---|---|\n`;
+
+    if (content.includes(section)) {
+      // Insertar nueva fila justo después del header de tabla
+      content = content.replace(
+        /(\| Fecha \| Score \| Agentes \| Tiempo \| Tarea \|\n\|[-|]+\|\n)/,
+        `$1${entry}\n`
+      );
+    } else {
+      content += `\n\n${header}${entry}\n`;
+    }
+
+    // Actualizar timestamp
+    content = content.replace(
+      /\*\*Última actualización:\*\* .+/,
+      `**Última actualización:** ${today}`
+    );
+
+    fs.writeFileSync(docsPath, content, 'utf-8');
+  } catch {
+    // No interrumpir el flujo si el log falla
+  }
+}
 
 // ─── Síntesis final ───────────────────────────────────────────────────────────
 // Un Claude call extra que integra todos los outputs en un plan coherente.
@@ -163,7 +199,11 @@ export async function POST(request: NextRequest) {
       maxAgents: options?.maxAgents ?? 6,
     });
 
-    console.log(`[Coalition] Completado en ${Date.now() - startTime}ms — Score: ${result.collectiveScore}/100`);
+    const totalMs = Date.now() - startTime;
+    console.log(`[Coalition] Completado en ${totalMs}ms — Score: ${result.collectiveScore}/100`);
+
+    // Log automático en docs/DESARROLLO-INTEGRAL.md
+    logCoalitionRun(task.trim(), result.collectiveScore, result.selectedAgents.length, totalMs);
 
     // Síntesis final (call extra a Claude — paralela al formateo)
     const synthesis = await synthesizeResults(
