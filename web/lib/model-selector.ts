@@ -56,6 +56,14 @@ const ALWAYS_HAIKU = new Set([
   'agent-content-specialist',  // Copy y texto de marca
   'agent-research-specialist', // Research y benchmarks
   'agent-media-specialist',    // Specs de assets multimedia
+  'agent-fitness-specialist',  // Validación de dominio fitness — texto especializado
+]);
+
+// ─── SEO usa Sonnet en tareas complejas (auditoría técnica) ──────────────────
+// SEO técnico (schema, sitemap, Core Web Vitals) requiere razonamiento preciso
+
+const SONNET_ON_COMPLEX_EXTRA = new Set([
+  'agent-seo-specialist',     // Auditoría técnica SEO + implementación schema.org
 ]);
 
 // ─── Detección de complejidad de tarea ───────────────────────────────────────
@@ -104,7 +112,7 @@ export function selectModels(
     } else if (ALWAYS_HAIKU.has(agentId)) {
       model     = MODELS.HAIKU;
       reasoning = 'Siempre Haiku — genera texto, suficiente velocidad y calidad';
-    } else if (SONNET_ON_COMPLEX.has(agentId)) {
+    } else if (SONNET_ON_COMPLEX.has(agentId) || SONNET_ON_COMPLEX_EXTRA.has(agentId)) {
       model     = complex ? MODELS.SONNET : MODELS.HAIKU;
       reasoning = complex
         ? 'Sonnet — tarea compleja detectada, necesita razonamiento profundo'

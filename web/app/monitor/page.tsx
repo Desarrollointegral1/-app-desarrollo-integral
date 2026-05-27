@@ -111,11 +111,11 @@ export default function MonitorPage() {
 
   useEffect(() => { fetchReport(days); }, [days, fetchReport]);
 
-  // Auto-refresh cada 60 segundos — el monitor se actualiza solo
+  // Auto-refresh cada 10 minutos — el monitor cambia solo cuando corren coaliciones
   useEffect(() => {
     const id = setInterval(() => {
       if (!loading) fetchReport(days);
-    }, 60_000);
+    }, 10 * 60_000);
     return () => clearInterval(id);
   }, [days, loading, fetchReport]);
 
