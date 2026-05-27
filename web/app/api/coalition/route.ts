@@ -18,37 +18,52 @@ import { detectExternalToolRequests, generateCharlesInstructions } from '@/lib/e
 import fs   from 'fs';
 import path from 'path';
 
-// ─── Log de coalición en docs/DESARROLLO-INTEGRAL.md ─────────────────────────
+// ─── Log de coalición en docs/ ───────────────────────────────────────────────
+// Actualiza DESARROLLO-INTEGRAL.md y LUCAS.md con cada corrida
 function logCoalitionRun(task: string, score: number, agentCount: number, ms: number) {
-  try {
-    const docsPath = path.join(process.cwd(), 'docs', 'DESARROLLO-INTEGRAL.md');
-    if (!fs.existsSync(docsPath)) return;
+  const today   = new Date().toISOString().slice(0, 10);
+  const entry   = `| ${today} | ${score}/100 | ${agentCount} agentes | ${Math.round(ms / 1000)}s | ${task.slice(0, 65)}${task.length > 65 ? '...' : ''} |`;
+  const section = '## 📊 HISTORIAL DE COALICIONES (auto-generado)';
+  const header  = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Tarea |\n|---|---|---|---|---|\n`;
 
-    let content = fs.readFileSync(docsPath, 'utf-8');
-    const today  = new Date().toISOString().slice(0, 10);
-    const entry  = `| ${today} | ${score}/100 | ${agentCount} agentes | ${Math.round(ms / 1000)}s | ${task.slice(0, 70)}${task.length > 70 ? '...' : ''} |`;
-    const section = '## Historial de Coaliciones (auto-generado)';
-    const header  = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Tarea |\n|---|---|---|---|---|\n`;
+  const docFiles = [
+    path.join(process.cwd(), 'docs', 'DESARROLLO-INTEGRAL.md'),
+    path.join(process.cwd(), 'docs', 'LUCAS.md'),
+  ];
 
-    if (content.includes(section)) {
-      // Insertar nueva fila justo después del header de tabla
+  for (const docsPath of docFiles) {
+    try {
+      if (!fs.existsSync(docsPath)) continue;
+      let content = fs.readFileSync(docsPath, 'utf-8');
+
+      if (content.includes(section)) {
+        content = content.replace(
+          /(\| Fecha \| Score \| Agentes \| Tiempo \| Tarea \|\n\|[-|]+\|\n)/,
+          `$1${entry}\n`
+        );
+      } else {
+        // Reemplazar sección legacy si existe
+        const legacySection = '## Historial de Coaliciones (auto-generado)';
+        if (content.includes(legacySection)) {
+          content = content.replace(
+            /## Historial de Coaliciones \(auto-generado\)[\s\S]*?(?=\n---|\n## |$)/,
+            `${header}${entry}\n\n`
+          );
+        } else {
+          content += `\n\n${header}${entry}\n`;
+        }
+      }
+
+      // Actualizar timestamp
       content = content.replace(
-        /(\| Fecha \| Score \| Agentes \| Tiempo \| Tarea \|\n\|[-|]+\|\n)/,
-        `$1${entry}\n`
+        /\*\*Última actualización:\*\* .+/,
+        `**Última actualización:** ${today}`
       );
-    } else {
-      content += `\n\n${header}${entry}\n`;
+
+      fs.writeFileSync(docsPath, content, 'utf-8');
+    } catch {
+      // No interrumpir el flujo si el log falla
     }
-
-    // Actualizar timestamp
-    content = content.replace(
-      /\*\*Última actualización:\*\* .+/,
-      `**Última actualización:** ${today}`
-    );
-
-    fs.writeFileSync(docsPath, content, 'utf-8');
-  } catch {
-    // No interrumpir el flujo si el log falla
   }
 }
 

@@ -20,6 +20,7 @@ const path = require('path');
 const ROOT      = path.resolve(__dirname, '..');
 const CEREBRO   = path.join(ROOT, 'docs', 'CEREBRO.md');
 const DESINT    = path.join(ROOT, 'docs', 'DESARROLLO-INTEGRAL.md');
+const LUCAS     = path.join(ROOT, 'docs', 'LUCAS.md');
 const COALITION_LOG = path.join(ROOT, 'docs', '.coalition-log.json');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,21 +59,25 @@ function appendCoalitionLog(entry) {
   if (log.length > 50) log = log.slice(0, 50); // máx 50 entradas
   fs.writeFileSync(COALITION_LOG, JSON.stringify(log, null, 2), 'utf-8');
 
-  // Actualizar sección "Historial de Coaliciones" en DESARROLLO-INTEGRAL.md
-  if (fs.existsSync(DESINT)) {
-    let content = fs.readFileSync(DESINT, 'utf-8');
-    const section = '## Historial de Coaliciones (auto-generado)';
-    const rows = log.slice(0, 10).map(e =>
-      `| ${e.date} | ${e.score}/100 | ${e.agents} agentes | ${e.task.slice(0, 60)}... |`
+  // Actualizar sección "Historial de Coaliciones" en DESARROLLO-INTEGRAL.md y LUCAS.md
+  const files = [DESINT, LUCAS].filter(f => fs.existsSync(f));
+  for (const filePath of files) {
+    let content = fs.readFileSync(filePath, 'utf-8');
+    const section = '## 📊 HISTORIAL DE COALICIONES (auto-generado)';
+    const legacySection = '## Historial de Coaliciones (auto-generado)';
+    const rows = log.slice(0, 15).map(e =>
+      `| ${e.date} | ${e.score}/100 | ${e.agents} agentes | ${Math.round((e.time||0)/1000)}s | ${e.task.slice(0, 65)}${e.task.length > 65 ? '...' : ''} |`
     ).join('\n');
-    const table = `${section}\n\n| Fecha | Score | Agentes | Tarea |\n|---|---|---|---|\n${rows}`;
+    const table = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Tarea |\n|---|---|---|---|---|\n${rows}`;
 
     if (content.includes(section)) {
-      content = content.replace(new RegExp(`${section}[\\s\\S]*?(?=\n---|\n## |$)`), table + '\n\n');
+      content = content.replace(new RegExp(`${section.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}[\\s\\S]*?(?=\n---|\n## |$)`), table + '\n\n');
+    } else if (content.includes(legacySection)) {
+      content = content.replace(new RegExp(`${legacySection.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}[\\s\\S]*?(?=\n---|\n## |$)`), table + '\n\n');
     } else {
       content += `\n\n${table}\n`;
     }
-    fs.writeFileSync(DESINT, content, 'utf-8');
+    fs.writeFileSync(filePath, content, 'utf-8');
   }
 }
 
@@ -103,6 +108,7 @@ if (args.includes('--coalition') && !process.stdin.isTTY) {
 // Actualizar timestamps
 updateTimestamp(CEREBRO);
 updateTimestamp(DESINT);
+updateTimestamp(LUCAS);
 
 // Si hay un mensaje de log manual
 if (args.includes('--log')) {
