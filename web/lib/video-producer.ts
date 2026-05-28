@@ -59,6 +59,7 @@ export interface ProduceRequest {
   musicPath?:         string;       // Ruta local a archivo de música
   musicUrl?:          string;       // URL para descargar música
   musicVolume?:       number;       // 0.0-1.0 (default: 0.7)
+  speedFactor?:       number;       // Velocidad del video: 0.5=mitad, 0.8=lento, 1.0=normal, 1.5=rápido
   outputPath?:        string;
   instructions?:      string;       // Instrucción extra para la IA
 }
@@ -76,27 +77,88 @@ export interface ProduceResult {
   formatted?:     string;
 }
 
-// ─── Música por estilo (royalty-free, sin atribución requerida) ───────────────
+// ─── Música por estilo (royalty-free, CDN directo, sin registro) ─────────────
+//
+// Fuentes usadas (en orden de confiabilidad):
+//   1. SoundHelix.com   — tracks generados, siempre disponibles, descarga libre
+//   2. FreePD.com       — Kevin MacLeod + colaboradores CC0, descarga directa
+//   3. Archive.org      — colecciones CC-licensed, descarga sin auth
+//
+// Si todas fallan → generateAmbientMusic() genera la pista con FFmpeg (100% confiable)
 
 const MUSIC_BY_STYLE: Record<ProductionStyle, string[]> = {
+  // Real estate: piano suave, melancólico, elegante
   'real-estate': [
-    'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3',
-    'https://www.bensound.com/bensound-music/bensound-memories.mp3',
-    'https://www.bensound.com/bensound-music/bensound-inspire.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
+    'https://freepd.com/music/Wholesome.mp3',
+    'https://freepd.com/music/Acoustic%20Breeze.mp3',
+    'https://archive.org/download/cinematic_piano_cc0/cinematic_piano.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
   ],
+  // Gym: energético, electrónico, motivacional
   'gym': [
-    'https://www.bensound.com/bensound-music/bensound-extremeaction.mp3',
-    'https://www.bensound.com/bensound-music/bensound-energy.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    'https://freepd.com/music/Rock%20Motive.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    'https://freepd.com/music/Ultra%20High.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
   ],
+  // Corporate: profesional, limpio, instrumental neutro
   'corporate': [
-    'https://www.bensound.com/bensound-music/bensound-creativeminds.mp3',
-    'https://www.bensound.com/bensound-music/bensound-ukulele.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3',
+    'https://freepd.com/music/Corporate%20Inspiration.mp3',
+    'https://freepd.com/music/Upbeat.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
   ],
+  // Social: vibrante, pop, enganche rápido
   'social': [
-    'https://www.bensound.com/bensound-music/bensound-anewbeginning.mp3',
-    'https://www.bensound.com/bensound-music/bensound-happiness.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+    'https://freepd.com/music/Happy%20Background.mp3',
+    'https://freepd.com/music/Bright%20Morning.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
   ],
 };
+
+// ─── Generador de música ambient con FFmpeg (fallback 100% confiable) ────────
+//
+// Si no se pudo descargar ninguna URL, generamos una pista ambient con FFmpeg:
+//   - Real estate: acorde C mayor suave, notas con decay lento (bells)
+//   - Gym:         frecuencias altas, pulso rítmico
+//   - Corporate:   pad neutro, sin emoción exagerada
+//   - Social:      acorde mayor brillante, energy media
+//
+// Técnica: aevalsrc con sum de frecuencias armónicas + envelope de decay
+
+const AMBIENT_GEN: Record<ProductionStyle, { freqs: number[]; decay: number; vol: number }> = {
+  'real-estate': { freqs: [130.81, 196.00, 261.63, 329.63], decay: 6, vol: 0.18 }, // C3-G3-C4-E4
+  'gym':         { freqs: [82.41,  164.81, 246.94, 329.63], decay: 1, vol: 0.22 }, // E2-E3-B3-E4 (power chord)
+  'corporate':   { freqs: [146.83, 220.00, 293.66, 369.99], decay: 5, vol: 0.16 }, // D3-A3-D4-F#4
+  'social':      { freqs: [164.81, 246.94, 329.63, 415.30], decay: 3, vol: 0.20 }, // E3-B3-E4-G#4
+};
+
+function generateAmbientMusic(style: ProductionStyle, outputPath: string, durationSec: number): Promise<void> {
+  const { freqs, decay, vol } = AMBIENT_GEN[style];
+  // Construir suma de senos con envelope de decay basado en mod(t, period)
+  const period = decay * 2;
+  const sinTerms = freqs
+    .map((f) => `${vol / freqs.length}*sin(2*PI*${f}*t)*max(0,1-mod(t,${period})/${decay})`)
+    .join('+');
+
+  const expr = `aevalsrc=${sinTerms}:s=44100`;
+
+  return new Promise((resolve, reject) => {
+    ffmpeg()
+      .input(expr)
+      .inputFormat('lavfi')
+      .audioCodec('libmp3lame')
+      .audioBitrate('128k')
+      .duration(durationSec)
+      .output(outputPath)
+      .on('end', () => resolve())
+      .on('error', (err: Error) => reject(err))
+      .run();
+  });
+}
 
 // ─── Color grade por estilo ───────────────────────────────────────────────────
 
@@ -148,51 +210,87 @@ function downloadFile(url: string, destPath: string): Promise<void> {
 }
 
 async function getMusicTrack(
-  style:      ProductionStyle,
-  musicPath?: string,
-  musicUrl?:  string
-): Promise<string | null> {
-  // 1. Si ya hay un archivo local → usarlo directamente
+  style:       ProductionStyle,
+  durationSec: number,
+  musicPath?:  string,
+  musicUrl?:   string
+): Promise<string> {
+  // 1. Archivo local provisto por el usuario
   if (musicPath && fs.existsSync(musicPath)) {
     return musicPath;
   }
 
   const tmpMusicPath = path.join(os.tmpdir(), `music_${style}_${Date.now()}.mp3`);
 
-  // 2. Si hay una URL específica → descargar
+  // 2. URL específica del usuario
   if (musicUrl) {
     try {
       await downloadFile(musicUrl, tmpMusicPath);
-      if (fs.existsSync(tmpMusicPath) && fs.statSync(tmpMusicPath).size > 10000) {
+      if (fs.existsSync(tmpMusicPath) && fs.statSync(tmpMusicPath).size > 30000) {
         return tmpMusicPath;
       }
     } catch { /* fall through */ }
   }
 
-  // 3. Intentar descargar por estilo
+  // 3. Waterfall de URLs por estilo (SoundHelix > FreePD > Archive.org)
   const urls = MUSIC_BY_STYLE[style] ?? MUSIC_BY_STYLE['corporate'];
   for (const url of urls) {
     try {
-      await downloadFile(url, tmpMusicPath);
-      const size = fs.existsSync(tmpMusicPath) ? fs.statSync(tmpMusicPath).size : 0;
-      if (size > 10000) return tmpMusicPath;
-    } catch { /* try next */ }
+      const candidate = path.join(os.tmpdir(), `music_dl_${Date.now()}.mp3`);
+      await downloadFile(url, candidate);
+      const size = fs.existsSync(candidate) ? fs.statSync(candidate).size : 0;
+      if (size > 30000) {
+        return candidate;
+      }
+      try { fs.unlinkSync(candidate); } catch { /* noop */ }
+    } catch { /* try next URL */ }
   }
 
-  return null; // No se pudo obtener música — continuar sin ella
+  // 4. Fallback 100% confiable: generar pista ambient con FFmpeg
+  //    Produce un acorde harmónico con decay suave — apropiado como fondo
+  try {
+    await generateAmbientMusic(style, tmpMusicPath, Math.min(durationSec + 10, 120));
+    if (fs.existsSync(tmpMusicPath) && fs.statSync(tmpMusicPath).size > 1000) {
+      return tmpMusicPath;
+    }
+  } catch { /* noop */ }
+
+  // 5. Silencio total como último recurso (no debería llegar aquí)
+  return new Promise((resolve, reject) => {
+    ffmpeg()
+      .input('anullsrc=r=44100:cl=stereo')
+      .inputFormat('lavfi')
+      .audioCodec('libmp3lame')
+      .duration(durationSec)
+      .output(tmpMusicPath)
+      .on('end', () => resolve(tmpMusicPath))
+      .on('error', (e: Error) => reject(e))
+      .run();
+  });
 }
 
-// ─── Color grade un clip ──────────────────────────────────────────────────────
+// ─── Color grade un clip (con speed opcional) ────────────────────────────────
 
 function applyColorGrade(
-  inputPath:  string,
-  outputPath: string,
-  grade:      ColorGrade
+  inputPath:   string,
+  outputPath:  string,
+  grade:       ColorGrade,
+  speedFactor: number = 1.0
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const filter = COLOR_FILTERS[grade];
+    const colorFilter = COLOR_FILTERS[grade];
+    // setpts=1/speed*PTS hace el video más lento (> 1) o más rápido (< 1)
+    const speedFilter = speedFactor !== 1.0
+      ? `setpts=${(1 / speedFactor).toFixed(4)}*PTS`
+      : null;
+
+    // Encadenar filtros: primero speed, luego color (el orden importa)
+    const videoFilter = speedFilter
+      ? `${speedFilter},${colorFilter}`
+      : colorFilter;
+
     ffmpeg(inputPath)
-      .videoFilter(filter)
+      .videoFilter(videoFilter)
       .audioCodec('copy')
       .output(outputPath)
       .on('end', () => resolve())
@@ -412,6 +510,11 @@ export async function produceVideo(
     const transitionDur    = request.transitionDuration ?? 0.8;
     const muteOriginal     = request.muteOriginal ?? true;
     const musicVolume      = request.musicVolume ?? 0.72;
+    const speedFactor      = request.speedFactor ?? 1.0;
+
+    if (speedFactor !== 1.0) {
+      pipeline.push(`🐢 Velocidad: ${speedFactor}x (${speedFactor < 1 ? 'ralentizado' : 'acelerado'})`);
+    }
 
     // ── Paso 1: Planificación IA ───────────────────────────────────────────────
     pipeline.push('🧠 IA analizando video...');
@@ -452,7 +555,7 @@ export async function produceVideo(
       const gradedClip = path.join(os.tmpdir(), `graded_${i}_${Date.now()}${ext}`);
       tmpFiles.push(gradedClip);
 
-      await applyColorGrade(rawClip, gradedClip, colorGrade);
+      await applyColorGrade(rawClip, gradedClip, colorGrade, speedFactor);
       gradedClips.push(gradedClip);
     }
 
@@ -482,22 +585,28 @@ export async function produceVideo(
     finalPath = request.outputPath ?? outputPaths.local;
 
     if (muteOriginal) {
-      pipeline.push('🔇 Silenciando audio original...');
+      pipeline.push('🎵 Obteniendo música de fondo...');
 
-      // Intentar obtener música
-      const musicTrack = await getMusicTrack(
-        request.style, request.musicPath, request.musicUrl
-      );
+      const mergedDuration = await getVideoDuration(mergedPath);
 
-      if (musicTrack) {
-        pipeline.push(`🎵 Música "${request.style}" descargada, mezclando...`);
-        const mergedDuration = await getVideoDuration(mergedPath);
+      try {
+        // getMusicTrack siempre retorna un track (descargado o generado con FFmpeg)
+        const musicTrack = await getMusicTrack(
+          request.style, mergedDuration, request.musicPath, request.musicUrl
+        );
+
+        const isGenerated = !request.musicPath && !request.musicUrl;
+        pipeline.push(isGenerated
+          ? `🎹 Música generada (${request.style}), mezclando...`
+          : `🎵 Música "${request.style}" lista, mezclando...`
+        );
+
         await addMusicTrack(mergedPath, musicTrack, finalPath, musicVolume, mergedDuration);
         pipeline.push('✅ Música agregada con fade-out');
         try { fs.unlinkSync(musicTrack); } catch { /* noop */ }
-      } else {
-        // Sin música — exportar sin audio
-        pipeline.push('⚠️ Música no disponible — exportando sin audio');
+      } catch {
+        // Fallback extremo: video sin audio
+        pipeline.push('⚠️ Error al generar música — exportando sin audio');
         await new Promise<void>((res, rej) => {
           ffmpeg(mergedPath)
             .outputOptions(['-c:v copy', '-an'])
