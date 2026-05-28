@@ -147,8 +147,8 @@ Luego abrir http://localhost:3000
 | `learning_patterns` | Qué patrones funcionaron → el sistema aprende de esto |
 | `agent_events` | Log de todo: errores, warnings, feedback |
 | `files_written` | Qué archivos modificó el Code Specialist y cuándo |
-| `video_cuts` | Historial de cada corte de video: timestamps, estilo, rating ← NUEVO |
-| `video_style_profile` | Perfil aprendido: cómo te gustan los cortes (ratio, tags, estilo) ← NUEVO |
+| `video_cuts` | Historial de cada corte de video: timestamps, estilo, rating ✅ |
+| `video_style_profile` | Perfil aprendido: cómo te gustan los cortes (ratio, tags, estilo) ✅ |
 
 **Búsqueda inteligente:** La DB tiene un sistema de vectores (pgvector) que permite buscar tareas similares. Si ya hiciste algo parecido antes, el sistema lo recuerda y lo usa.
 
@@ -251,7 +251,9 @@ npm run dev
 - [x] Más robots: SEO Specialist + Fitness Specialist → ✅ Implementados
 - [x] Creative Media Agent (imágenes + videos vía FAL.ai) → ✅ Implementado — falta FAL_API_KEY
 - [x] Editor de video con FFmpeg (cortar, highlights automáticos) → ✅ Implementado
-- [ ] Conseguir key de FAL.ai y agregarla al .env.local (https://fal.ai → gratis)
+- [x] FAL.ai key configurada → ✅ Activa
+- [x] Tablas Supabase (video_cuts + video_style_profile) → ✅ Ejecutadas
+- [x] Carpetas de media creadas → Videos\DI-Media + OneDrive\DI-Media ✅
 
 ### Negocio
 - [ ] Definir tablas para datos de clientes en Supabase
