@@ -64,6 +64,9 @@ Es una "granja" de 8 robots especializados (agentes de IA) que trabajan juntos e
 | ✍️ **Content Specialist** | Copy, textos, propuesta de valor |
 | 🔍 **Research Specialist** | Benchmarks, competencia, datos de industria |
 | 🎥 **Media Specialist** | Video, imágenes, assets multimedia |
+| 🔎 **SEO Specialist** | Posicionamiento Google, keywords locales Belgrano, schema.org |
+| 🏋️ **Fitness Specialist** | Validación de dominio: metodología, servicios, copy fitness |
+| 🎬 **Creative Media Agent** | Genera imágenes (Flux) y videos (Kling) vía API FAL.ai ← NUEVO |
 
 **Modelo por robot:**
 - Code + Security → **Claude Sonnet** (el más capaz, genera código que va directo al proyecto)
@@ -153,13 +156,14 @@ Luego abrir http://localhost:3000
 
 ### El sistema de agentes
 ```
-web/lib/parallel-agents.ts      ← El motor central
+web/lib/parallel-agents.ts      ← El motor central (ahora: 11 agentes)
 web/lib/agent-tools.ts          ← Las herramientas que usa Code Specialist
 web/lib/model-selector.ts       ← Qué modelo (Sonnet/Haiku) usa cada robot
 web/lib/context-collector.ts    ← Lee el proyecto antes de trabajar
 web/lib/coalition-monitor.ts    ← Monitorea la salud del sistema
 web/lib/external-tools.ts       ← Detecta si necesita Adobe o BrightData
 web/lib/supabase-agents.ts      ← Guarda todo en la base de datos
+web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai ← NUEVO
 ```
 
 ### Las rutas de la API
@@ -169,6 +173,7 @@ web/app/api/coalition/stream/route.ts   ← Versión en tiempo real
 web/app/api/coalition/apply/route.ts    ← Escribe los archivos al disco
 web/app/api/coalition/feedback/route.ts ← Feedback humano 👍/👎
 web/app/api/coalition/monitor/route.ts  ← Estado de salud
+web/app/api/creative/route.ts           ← Genera imágenes y videos ← NUEVO
 ```
 
 ### Los documentos (todos en GitHub)
@@ -235,9 +240,11 @@ npm run dev
 - [ ] Video mobile: reemplazar por imagen en pantallas chicas
 
 ### Sistema de agentes
-- [ ] Embeddings reales (OpenAI) para búsqueda semántica más precisa
+- [x] Embeddings reales (Voyage AI) para búsqueda semántica → ✅ Implementado
 - [ ] Pantalla visual para ver las coaliciones corriendo
-- [ ] Más robots: uno para SEO, uno especializado en fitness/wellness
+- [x] Más robots: SEO Specialist + Fitness Specialist → ✅ Implementados
+- [x] Creative Media Agent (imágenes + videos vía FAL.ai) → ✅ Implementado — falta FAL_API_KEY
+- [ ] Conseguir key de FAL.ai y agregarla al .env.local (https://fal.ai → gratis)
 
 ### Negocio
 - [ ] Definir tablas para datos de clientes en Supabase
