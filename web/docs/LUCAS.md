@@ -163,7 +163,8 @@ web/lib/context-collector.ts    ← Lee el proyecto antes de trabajar
 web/lib/coalition-monitor.ts    ← Monitorea la salud del sistema
 web/lib/external-tools.ts       ← Detecta si necesita Adobe o BrightData
 web/lib/supabase-agents.ts      ← Guarda todo en la base de datos
-web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai ← NUEVO
+web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai
+web/lib/video-editor.ts         ← Corte y edición de videos con FFmpeg + IA ← NUEVO
 ```
 
 ### Las rutas de la API
@@ -173,7 +174,8 @@ web/app/api/coalition/stream/route.ts   ← Versión en tiempo real
 web/app/api/coalition/apply/route.ts    ← Escribe los archivos al disco
 web/app/api/coalition/feedback/route.ts ← Feedback humano 👍/👎
 web/app/api/coalition/monitor/route.ts  ← Estado de salud
-web/app/api/creative/route.ts           ← Genera imágenes y videos ← NUEVO
+web/app/api/creative/route.ts           ← Genera imágenes y videos con IA
+web/app/api/video/route.ts              ← Corta y edita videos con FFmpeg ← NUEVO
 ```
 
 ### Los documentos (todos en GitHub)
@@ -244,6 +246,7 @@ npm run dev
 - [ ] Pantalla visual para ver las coaliciones corriendo
 - [x] Más robots: SEO Specialist + Fitness Specialist → ✅ Implementados
 - [x] Creative Media Agent (imágenes + videos vía FAL.ai) → ✅ Implementado — falta FAL_API_KEY
+- [x] Editor de video con FFmpeg (cortar, highlights automáticos) → ✅ Implementado
 - [ ] Conseguir key de FAL.ai y agregarla al .env.local (https://fal.ai → gratis)
 
 ### Negocio
