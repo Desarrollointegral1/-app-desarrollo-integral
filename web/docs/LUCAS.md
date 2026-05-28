@@ -253,7 +253,8 @@ npm run dev
 - [x] Editor de video con FFmpeg (cortar, highlights automáticos) → ✅ Implementado
 - [x] FAL.ai key configurada → ✅ Activa
 - [x] Tablas Supabase (video_cuts + video_style_profile) → ✅ Ejecutadas
-- [x] Carpetas de media creadas → Videos\DI-Media + OneDrive\DI-Media ✅
+- [x] Carpetas de media creadas → C:\Users\lucas\Videos\DI-Media + G:\Mi unidad\DI-Media ✅
+- [x] Google Drive montado en G:\ → VIDEO_GDRIVE_PATH=G:\Mi unidad\DI-Media ✅
 
 ### Negocio
 - [ ] Definir tablas para datos de clientes en Supabase
