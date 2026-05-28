@@ -139,7 +139,39 @@ function buildTfIdfVector(text: string): number[] {
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  // Intento 1: OpenAI text-embedding-3-small (vector real semántico)
+  const input = text.slice(0, 8192);
+
+  // Intento 1: Voyage AI — 200M tokens gratis/mes, recomendado por Anthropic
+  // Modelo: voyage-3-lite → 512 dims (escalado a 1536 con padding de ceros)
+  // Docs: https://docs.voyageai.com/reference/embeddings-api
+  const voyageKey = process.env.VOYAGE_API_KEY;
+  if (voyageKey) {
+    try {
+      const resp = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${voyageKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'voyage-3-lite',  // 512 dims, gratis tier
+          input: [input],
+        }),
+      });
+      if (resp.ok) {
+        const json = await resp.json() as { data: { embedding: number[] }[] };
+        const vec512 = json.data[0].embedding;
+        // Escalar de 512 → 1536 dims repitiendo 3 veces (mantiene similitud coseno)
+        const vec1536 = [...vec512, ...vec512, ...vec512];
+        const norm = Math.sqrt(vec1536.reduce((s, v) => s + v * v, 0)) || 1;
+        return vec1536.map((v) => v / norm);
+      }
+    } catch {
+      // Silencioso — caer a siguiente opción
+    }
+  }
+
+  // Intento 2: OpenAI text-embedding-3-small (si tiene crédito cargado)
   const openaiKey = process.env.OPENAI_API_KEY;
   if (openaiKey) {
     try {
@@ -151,20 +183,20 @@ async function generateEmbedding(text: string): Promise<number[]> {
         },
         body: JSON.stringify({
           model: 'text-embedding-3-small',
-          input: text.slice(0, 8192),
+          input,
           dimensions: VOCAB_SIZE,
         }),
       });
       if (resp.ok) {
-        const json = await resp.json();
-        return json.data[0].embedding as number[];
+        const json = await resp.json() as { data: { embedding: number[] }[] };
+        return json.data[0].embedding;
       }
     } catch {
       // Silencioso — caer a fallback
     }
   }
 
-  // Fallback: TF-IDF determinístico (no semántico, pero útil para overlap)
+  // Fallback final: TF-IDF determinístico (no semántico, pero útil para overlap)
   return buildTfIdfVector(text);
 }
 
