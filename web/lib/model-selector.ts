@@ -57,6 +57,8 @@ const ALWAYS_HAIKU = new Set([
   'agent-research-specialist', // Research y benchmarks
   'agent-media-specialist',    // Specs de assets multimedia
   'agent-fitness-specialist',  // Validación de dominio fitness — texto especializado
+  'agent-creative-media',      // Refinamiento de prompts + coordinación con FAL.ai
+  'agent-video-producer',      // Producción completa de video — planificación y pipeline
 ]);
 
 // ─── SEO usa Sonnet en tareas complejas (auditoría técnica) ──────────────────

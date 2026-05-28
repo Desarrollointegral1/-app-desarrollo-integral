@@ -66,7 +66,8 @@ Es una "granja" de 8 robots especializados (agentes de IA) que trabajan juntos e
 | 🎥 **Media Specialist** | Video, imágenes, assets multimedia |
 | 🔎 **SEO Specialist** | Posicionamiento Google, keywords locales Belgrano, schema.org |
 | 🏋️ **Fitness Specialist** | Validación de dominio: metodología, servicios, copy fitness |
-| 🎬 **Creative Media Agent** | Genera imágenes (Flux) y videos (Kling) vía API FAL.ai ← NUEVO |
+| 🎬 **Creative Media Agent** | Genera imágenes (Flux) y videos (Kling) vía API FAL.ai |
+| 🎞️ **Video Producer** | Producción profesional: IA elige cortes + color grading + transiciones + música ← NUEVO |
 
 **Modelo por robot:**
 - Code + Security → **Claude Sonnet** (el más capaz, genera código que va directo al proyecto)
@@ -158,7 +159,7 @@ Luego abrir http://localhost:3000
 
 ### El sistema de agentes
 ```
-web/lib/parallel-agents.ts      ← El motor central (ahora: 11 agentes)
+web/lib/parallel-agents.ts      ← El motor central (ahora: 12 agentes)
 web/lib/agent-tools.ts          ← Las herramientas que usa Code Specialist
 web/lib/model-selector.ts       ← Qué modelo (Sonnet/Haiku) usa cada robot
 web/lib/context-collector.ts    ← Lee el proyecto antes de trabajar
@@ -167,7 +168,8 @@ web/lib/external-tools.ts       ← Detecta si necesita Adobe o BrightData
 web/lib/supabase-agents.ts      ← Guarda todo en la base de datos
 web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai
 web/lib/video-editor.ts         ← Corte y edición de videos con FFmpeg + IA
-web/lib/video-learning.ts       ← Aprende tu estilo de corte, gestiona carpetas ← NUEVO
+web/lib/video-learning.ts       ← Aprende tu estilo de corte, gestiona carpetas
+web/lib/video-producer.ts       ← Pipeline completo: color grade + transiciones + música ← NUEVO
 ```
 
 ### Las rutas de la API
@@ -179,7 +181,8 @@ web/app/api/coalition/feedback/route.ts ← Feedback humano 👍/👎
 web/app/api/coalition/monitor/route.ts  ← Estado de salud
 web/app/api/creative/route.ts           ← Genera imágenes y videos con IA
 web/app/api/video/route.ts              ← Corta y edita videos con FFmpeg
-web/app/api/video/rate/route.ts         ← Dar feedback para que aprenda tu estilo ← NUEVO
+web/app/api/video/rate/route.ts         ← Dar feedback para que aprenda tu estilo
+web/app/api/video/produce/route.ts      ← Producción profesional completa ← NUEVO
 ```
 
 ### Los documentos (todos en GitHub)
@@ -255,6 +258,11 @@ npm run dev
 - [x] Tablas Supabase (video_cuts + video_style_profile) → ✅ Ejecutadas
 - [x] Carpetas de media creadas → C:\Users\lucas\Videos\DI-Media + G:\Mi unidad\DI-Media ✅
 - [x] Google Drive montado en G:\ → VIDEO_GDRIVE_PATH=G:\Mi unidad\DI-Media ✅
+- [x] agent-video-producer (agente #12) → Pipeline profesional completo ✅
+- [x] /api/video/produce → endpoint funcional ✅
+- [x] FFmpeg 6.1.1 via ffmpeg-static → soporte xfade, vignette, colorbalance ✅
+- [x] Primer video real producido → departamento inmobiliaria, 68s, local + Drive ✅
+- [ ] Música de fondo → bensound bloquea descarga automática (ver nota abajo)
 
 ### Negocio
 - [ ] Definir tablas para datos de clientes en Supabase
