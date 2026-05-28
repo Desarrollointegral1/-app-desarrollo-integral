@@ -59,7 +59,7 @@ function isAllowedPath(filePath: string): boolean {
 // ─── POST — producción completa ───────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  let body: Partial<ProduceRequest>;
+  let body: Partial<ProduceRequest> & { speedFactor?: number };
 
   try {
     body = await req.json();
@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       musicPath:           body.musicPath,
       musicUrl:            body.musicUrl,
       musicVolume:         body.musicVolume ?? 0.7,
+      speedFactor:         body.speedFactor,
       outputPath:          body.outputPath,
       instructions:        body.instructions,
     },
@@ -170,6 +171,7 @@ export async function GET() {
       musicPath:          'string — ruta a MP3 local (opcional)',
       musicUrl:           'string — URL para descargar música (opcional)',
       musicVolume:        'number 0.0-1.0 — volumen de la música, default 0.7 (opcional)',
+      speedFactor:        'number — velocidad: 0.5=mitad, 0.8=lento, 1.0=normal, 1.5=rápido (opcional)',
       outputPath:         'string — ruta de salida personalizada (opcional)',
       instructions:       'string — instrucción libre para la IA (opcional)',
     },
