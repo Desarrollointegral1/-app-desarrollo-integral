@@ -147,6 +147,8 @@ Luego abrir http://localhost:3000
 | `learning_patterns` | Qué patrones funcionaron → el sistema aprende de esto |
 | `agent_events` | Log de todo: errores, warnings, feedback |
 | `files_written` | Qué archivos modificó el Code Specialist y cuándo |
+| `video_cuts` | Historial de cada corte de video: timestamps, estilo, rating ← NUEVO |
+| `video_style_profile` | Perfil aprendido: cómo te gustan los cortes (ratio, tags, estilo) ← NUEVO |
 
 **Búsqueda inteligente:** La DB tiene un sistema de vectores (pgvector) que permite buscar tareas similares. Si ya hiciste algo parecido antes, el sistema lo recuerda y lo usa.
 
@@ -164,7 +166,8 @@ web/lib/coalition-monitor.ts    ← Monitorea la salud del sistema
 web/lib/external-tools.ts       ← Detecta si necesita Adobe o BrightData
 web/lib/supabase-agents.ts      ← Guarda todo en la base de datos
 web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai
-web/lib/video-editor.ts         ← Corte y edición de videos con FFmpeg + IA ← NUEVO
+web/lib/video-editor.ts         ← Corte y edición de videos con FFmpeg + IA
+web/lib/video-learning.ts       ← Aprende tu estilo de corte, gestiona carpetas ← NUEVO
 ```
 
 ### Las rutas de la API
@@ -175,7 +178,8 @@ web/app/api/coalition/apply/route.ts    ← Escribe los archivos al disco
 web/app/api/coalition/feedback/route.ts ← Feedback humano 👍/👎
 web/app/api/coalition/monitor/route.ts  ← Estado de salud
 web/app/api/creative/route.ts           ← Genera imágenes y videos con IA
-web/app/api/video/route.ts              ← Corta y edita videos con FFmpeg ← NUEVO
+web/app/api/video/route.ts              ← Corta y edita videos con FFmpeg
+web/app/api/video/rate/route.ts         ← Dar feedback para que aprenda tu estilo ← NUEVO
 ```
 
 ### Los documentos (todos en GitHub)
