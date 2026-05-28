@@ -64,17 +64,36 @@ export interface ProduceRequest {
   instructions?:      string;       // Instrucción extra para la IA
 }
 
+export interface VideoFicha {
+  fecha:           string;
+  archivoFuente:   string;
+  duracionOriginal: string;
+  duracionFinal:   string;
+  estilo:          string;
+  colorGrade:      string;
+  velocidad:       string;
+  transiciones:    string;
+  musica:          string;
+  audioOriginal:   string;
+  segmentos:       { n: number; label: string; desde: string; hasta: string; duracion: string }[];
+  formato:         string;
+  tamanoMB:        number;
+  archivosOutput:  { local: string; drive?: string };
+  resumenParaCliente: string;  // Texto listo para copiar y enviar
+}
+
 export interface ProduceResult {
   success:        boolean;
   outputPath?:    string;
   gdrivePath?:    string;
-  pipeline:       string[];         // Pasos ejecutados
+  pipeline:       string[];
   segments:       { start: string; end: string; label: string }[];
   cutPlan?:       string;
   processingMs:   number;
   finalDurationSec?: number;
   error?:         string;
   formatted?:     string;
+  ficha?:         VideoFicha;     // Resumen completo de la producción
 }
 
 // ─── Música por estilo (royalty-free, CDN directo, sin registro) ─────────────
@@ -271,6 +290,24 @@ async function getMusicTrack(
 
 // ─── Color grade un clip (con speed opcional) ────────────────────────────────
 
+// ─── Parámetros de encoding WhatsApp/Instagram ───────────────────────────────
+//
+// Problemas comunes que impiden reproducción:
+//   - Sin -pix_fmt yuv420p  → falla en iPhone/Android/WhatsApp (usan yuv444p)
+//   - Sin -movflags +faststart → el moov atom queda al final del archivo,
+//     el video no puede streamearse ni previsualizar sin descargarse completo
+//   - Sin -profile:v main → algunas apps rechazan High profile
+//
+const H264_OUTPUT_FLAGS = [
+  '-c:v libx264',
+  '-pix_fmt yuv420p',        // ← CLAVE: compatibilidad universal iOS/Android/WhatsApp
+  '-profile:v main',         // main profile: max compatibilidad sin sacrificar calidad
+  '-level 4.0',              // soporta hasta 1080p@30fps
+  '-crf 22',                 // calidad alta (18=max, 28=min, 22=sweet spot)
+  '-preset fast',            // velocidad vs compresión
+  '-movflags +faststart',    // ← CLAVE: moov atom al inicio → preview instantáneo
+];
+
 function applyColorGrade(
   inputPath:   string,
   outputPath:  string,
@@ -279,19 +316,22 @@ function applyColorGrade(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const colorFilter = COLOR_FILTERS[grade];
-    // setpts=1/speed*PTS hace el video más lento (> 1) o más rápido (< 1)
+    // setpts=1/speed*PTS → < 1.0 = más lento, > 1.0 = más rápido
     const speedFilter = speedFactor !== 1.0
       ? `setpts=${(1 / speedFactor).toFixed(4)}*PTS`
       : null;
 
-    // Encadenar filtros: primero speed, luego color (el orden importa)
+    // Orden: primero speed (cambia timestamps), luego color grade
     const videoFilter = speedFilter
       ? `${speedFilter},${colorFilter}`
       : colorFilter;
 
     ffmpeg(inputPath)
       .videoFilter(videoFilter)
-      .audioCodec('copy')
+      .outputOptions([
+        ...H264_OUTPUT_FLAGS,
+        '-an',  // Audio se agrega en el paso final con la música
+      ])
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err: Error) => reject(err))
@@ -310,8 +350,15 @@ async function concatWithTransitions(
   if (clipPaths.length === 0) throw new Error('No hay clips para concatenar');
 
   if (clipPaths.length === 1) {
-    fs.copyFileSync(clipPaths[0], outputPath);
-    return;
+    // Re-encodear el único clip para asegurar el formato correcto
+    return new Promise((resolve, reject) => {
+      ffmpeg(clipPaths[0])
+        .outputOptions([...H264_OUTPUT_FLAGS, '-an', '-movflags +faststart'])
+        .output(outputPath)
+        .on('end', () => resolve())
+        .on('error', (e: Error) => reject(e))
+        .run();
+    });
   }
 
   // Obtener duración de cada clip
@@ -347,10 +394,8 @@ async function concatWithTransitions(
       .complexFilter(filters)
       .outputOptions([
         '-map [vfinal]',
-        '-c:v libx264',
-        '-crf 20',
-        '-preset fast',
-        '-an',         // Sin audio (se agrega después)
+        ...H264_OUTPUT_FLAGS,
+        '-an',         // Audio se agrega en el paso final con la música
       ])
       .output(outputPath)
       .on('end', () => resolve())
@@ -378,11 +423,14 @@ function addMusicTrack(
       .outputOptions([
         '-map 0:v',                           // Video del clip editado
         '-map 1:a',                           // Audio de la música
-        '-c:v copy',                          // Sin re-encodear video
+        '-c:v copy',                          // Video ya está en H.264 yuv420p
         '-c:a aac',
         '-b:a 192k',
+        '-ar 44100',                          // 44.1kHz (estándar WhatsApp/IG)
+        '-ac 2',                              // Estéreo
         `-af volume=${volume},afade=t=out:st=${fadeStart.toFixed(1)}:d=${fadeDuration.toFixed(1)}`,
-        '-shortest',                           // Cortar cuando termine el video
+        '-shortest',                          // Cortar cuando termine el video
+        '-movflags +faststart',               // Preview instantáneo en móvil
       ])
       .output(outputPath)
       .on('end', () => resolve())
@@ -605,11 +653,11 @@ export async function produceVideo(
         pipeline.push('✅ Música agregada con fade-out');
         try { fs.unlinkSync(musicTrack); } catch { /* noop */ }
       } catch {
-        // Fallback extremo: video sin audio
+        // Fallback extremo: video sin audio pero bien formateado
         pipeline.push('⚠️ Error al generar música — exportando sin audio');
         await new Promise<void>((res, rej) => {
           ffmpeg(mergedPath)
-            .outputOptions(['-c:v copy', '-an'])
+            .outputOptions(['-c:v copy', '-an', '-movflags +faststart'])
             .output(finalPath)
             .on('end', () => res())
             .on('error', (e: Error) => rej(e))
@@ -659,8 +707,32 @@ export async function produceVideo(
       },
     }).catch(() => { /* noop — no interrumpir si falla */ });
 
-    const totalMs = Date.now() - startMs;
+    const totalMs    = Date.now() - startMs;
     pipeline.push(`⏱️ Completado en ${(totalMs / 1000).toFixed(1)}s`);
+
+    // ── Ficha de producción ────────────────────────────────────────────────────
+    const fileSizeMB  = fs.existsSync(finalPath)
+      ? Math.round(fs.statSync(finalPath).size / 1024 / 1024 * 10) / 10
+      : 0;
+    const musicSource = request.musicPath   ? 'archivo local'
+                      : request.musicUrl    ? 'URL provista'
+                      : 'generada automáticamente';
+    const ficha = buildFicha({
+      inputPath:     request.videoPath,
+      inputDuration: totalDuration,
+      outputPath:    finalPath,
+      gdrivePath,
+      finalDuration,
+      fileSizeMB,
+      style:         request.style,
+      colorGrade,
+      speedFactor,
+      transition,
+      transitionDur,
+      musicSource,
+      muteOriginal,
+      plan,
+    });
 
     return {
       success:          true,
@@ -672,6 +744,7 @@ export async function produceVideo(
       processingMs:     totalMs,
       finalDurationSec: finalDuration,
       formatted:        formatProduceResult(finalPath, gdrivePath, pipeline, plan, finalDuration, totalMs),
+      ficha,
     };
 
   } catch (err) {
@@ -684,6 +757,108 @@ export async function produceVideo(
       error:        err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+// ─── Ficha de producción ──────────────────────────────────────────────────────
+
+interface BuildFichaOpts {
+  inputPath:     string;
+  inputDuration: number;
+  outputPath:    string;
+  gdrivePath?:   string;
+  finalDuration: number;
+  fileSizeMB:    number;
+  style:         ProductionStyle;
+  colorGrade:    ColorGrade;
+  speedFactor:   number;
+  transition:    TransitionType;
+  transitionDur: number;
+  musicSource:   string;
+  muteOriginal:  boolean;
+  plan:          ProductionPlan;
+}
+
+const COLOR_GRADE_NAMES: Record<ColorGrade, string> = {
+  warm:      'Cálido — +20% saturación, leve tono dorado, contraste +6%',
+  cool:      'Frío — tonos azulados, crisp, tecnológico',
+  neutral:   'Neutro — corrección natural, +10% saturación suave',
+  vibrant:   'Vibrante — +40% saturación, muy energético',
+  cinematic: 'Cinemático — alto contraste, vignette, mood de película',
+};
+
+const STYLE_NAMES: Record<ProductionStyle, string> = {
+  'real-estate': 'Inmobiliaria — ritmo tranquilo, elegante',
+  'gym':         'Gym / Fitness — dinámico, motivacional',
+  'corporate':   'Corporativo — profesional, limpio',
+  'social':      'Redes sociales — rápido, enganche inmediato',
+};
+
+function buildFicha(opts: BuildFichaOpts): VideoFicha {
+  const fecha    = new Date().toISOString().slice(0, 10);
+  const speedPct = opts.speedFactor === 1.0 ? 'Normal (1x)'
+                 : opts.speedFactor < 1.0   ? `Ralentizado ${opts.speedFactor}x (${Math.round((1 - opts.speedFactor) * 100)}% más lento)`
+                 :                            `Acelerado ${opts.speedFactor}x (${Math.round((opts.speedFactor - 1) * 100)}% más rápido)`;
+
+  const segmentos = opts.plan.segments.map((s, i) => {
+    const durSec = timeToSeconds(s.end) - timeToSeconds(s.start);
+    const durAjustada = opts.speedFactor !== 1.0
+      ? Math.round(durSec / opts.speedFactor)
+      : Math.round(durSec);
+    return {
+      n:        i + 1,
+      label:    s.label,
+      desde:    s.start,
+      hasta:    s.end,
+      duracion: `${durAjustada}s en el video final`,
+    };
+  });
+
+  // Texto para enviar al cliente (WhatsApp / email)
+  const lineaSegmentos = opts.plan.segments
+    .map((s, i) => `  ${i + 1}. ${s.label} (${s.start} → ${s.end})`)
+    .join('\n');
+
+  const resumenParaCliente = [
+    `✅ VIDEO LISTO — ${fecha}`,
+    '',
+    `📱 Formato: MP4 H.264 — compatible con WhatsApp e Instagram`,
+    `⏱️  Duración: ${secondsToTime(opts.finalDuration)} (reducido de ${secondsToTime(opts.inputDuration)})`,
+    `📦 Tamaño: ${opts.fileSizeMB} MB`,
+    '',
+    `🎬 EDICIÓN REALIZADA:`,
+    `• Estilo: ${STYLE_NAMES[opts.style]}`,
+    `• Color grading: ${COLOR_GRADE_NAMES[opts.colorGrade]}`,
+    `• Velocidad: ${speedPct}`,
+    `• Transiciones: crossfade ${opts.transitionDur}s entre clips`,
+    `• Música: ${opts.musicSource}`,
+    `• Audio original: ${opts.muteOriginal ? 'silenciado' : 'conservado'}`,
+    '',
+    `✂️ ESCENAS INCLUIDAS (${opts.plan.segments.length}):`,
+    lineaSegmentos,
+    '',
+    `💡 Criterio de selección: ${opts.plan.reasoning}`,
+    '',
+    `📁 Archivo: ${path.basename(opts.outputPath)}`,
+    opts.gdrivePath ? `☁️  Drive: ${opts.gdrivePath}` : '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    fecha,
+    archivoFuente:    path.basename(opts.inputPath),
+    duracionOriginal: secondsToTime(opts.inputDuration),
+    duracionFinal:    secondsToTime(opts.finalDuration),
+    estilo:           STYLE_NAMES[opts.style],
+    colorGrade:       COLOR_GRADE_NAMES[opts.colorGrade],
+    velocidad:        speedPct,
+    transiciones:     `${opts.transition} — ${opts.transitionDur}s entre clips`,
+    musica:           opts.musicSource,
+    audioOriginal:    opts.muteOriginal ? 'Silenciado' : 'Conservado',
+    segmentos,
+    formato:          'MP4 H.264 yuv420p — WhatsApp / Instagram / iOS / Android',
+    tamanoMB:         opts.fileSizeMB,
+    archivosOutput:   { local: opts.outputPath, drive: opts.gdrivePath },
+    resumenParaCliente,
+  };
 }
 
 // ─── Formatter ────────────────────────────────────────────────────────────────

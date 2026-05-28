@@ -144,6 +144,7 @@ export async function POST(req: NextRequest) {
     finalDurationSec: result.finalDurationSec,
     processingMs:     totalMs,
     formatted:        result.formatted,
+    ficha:            result.ficha,      // Ficha completa para enviar al cliente
     learningProfile: {
       totalCuts:    prefs.totalCutsDone,
       avgRating:    prefs.avgRating,
