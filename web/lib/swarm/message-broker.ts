@@ -98,7 +98,10 @@ export class SupabaseMessageBroker implements MessageBroker {
 
       if (!Array.isArray(messages)) return [];
 
-      return messages.filter((msg) => !(msg as any).processed);
+      return messages.filter((msg) => {
+        const msgWithProcessed = msg as SwarmMessage & { processed?: boolean };
+        return !msgWithProcessed.processed;
+      });
     } catch (error) {
       console.warn(`Failed to get pending messages for ${channel}:`, error);
       return [];
@@ -146,7 +149,7 @@ export class SupabaseMessageBroker implements MessageBroker {
  * Falls back to Supabase if Redis is not available
  */
 export class RedisMessageBroker implements MessageBroker {
-  private client: any; // redis.Redis
+  private client: unknown = null; // redis.Redis (optional)
   private subscriptions: Map<string, (msg: SwarmMessage) => void> = new Map();
   private subscriptionId = 0;
 
@@ -164,7 +167,8 @@ export class RedisMessageBroker implements MessageBroker {
     }
 
     try {
-      await this.client.publish(channel, JSON.stringify(message));
+      const client = this.client as { publish: (ch: string, msg: string) => Promise<void> };
+      await client.publish(channel, JSON.stringify(message));
     } catch (error) {
       console.error(`Failed to publish message to ${channel}:`, error);
       throw error;
@@ -183,7 +187,8 @@ export class RedisMessageBroker implements MessageBroker {
     this.subscriptions.set(subId, callback);
 
     try {
-      await this.client.subscribe(channel, (message: string) => {
+      const client = this.client as { subscribe: (ch: string, cb: (msg: string) => void) => Promise<void> };
+      await client.subscribe(channel, (message: string) => {
         try {
           const parsed = JSON.parse(message);
           callback(parsed);
@@ -207,7 +212,8 @@ export class RedisMessageBroker implements MessageBroker {
     }
 
     try {
-      await this.client.unsubscribe();
+      const client = this.client as { unsubscribe: () => Promise<void> };
+      await client.unsubscribe();
     } catch (error) {
       console.warn('Failed to unsubscribe from Redis:', error);
     }
@@ -227,7 +233,8 @@ export class RedisMessageBroker implements MessageBroker {
   async close(): Promise<void> {
     if (this.client) {
       try {
-        await this.client.quit();
+        const client = this.client as { quit: () => Promise<void> };
+        await client.quit();
       } catch (error) {
         console.warn('Failed to close Redis connection:', error);
       }

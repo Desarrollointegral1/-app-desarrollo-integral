@@ -13,9 +13,12 @@
  * Llamado automáticamente por el Stop hook de Claude Code.
  */
 
-const { execSync } = require('child_process');
-const fs   = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ROOT      = path.resolve(__dirname, '..');
 const CEREBRO   = path.join(ROOT, 'docs', 'CEREBRO.md');

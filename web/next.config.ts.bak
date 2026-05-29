@@ -1,0 +1,52 @@
+/**
+ * next.config.ts
+ *
+ * FIX TURBOPACK: Cuando hay dos package-lock.json (raíz + web/), Turbopack
+ * puede tomar el directorio padre como raíz del workspace y no cargar el
+ * .env.local correcto. Solucionamos cargando las variables manualmente
+ * desde el .env.local que está junto a ESTE archivo, antes de que Next.js
+ * arranque cualquier handler.
+ */
+
+import type { NextConfig } from 'next';
+import fs from 'fs';
+import path from 'path';
+
+// ─── Cargar .env.local desde la carpeta de este archivo ──────────────────────
+// __dirname apunta siempre a donde está next.config.ts, sin importar cuál
+// directorio crea que es la raíz Turbopack.
+
+function loadEnvLocal() {
+  const envPath = path.join(__dirname, '.env.local');
+  if (!fs.existsSync(envPath)) return;
+
+  const content = fs.readFileSync(envPath, 'utf-8');
+  for (const raw of content.split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+
+    const eqIdx = line.indexOf('=');
+    if (eqIdx < 0) continue;
+
+    const key = line.slice(0, eqIdx).trim();
+    const value = line.slice(eqIdx + 1).trim();
+
+    // No sobreescribir variables ya inyectadas (ej: via $env:ANTHROPIC_API_KEY)
+    if (key && !(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvLocal();
+
+// ─── Config ────────────────────────────────────────────────────────────────────
+
+const nextConfig: NextConfig = {
+  // Raíz explícita para Turbopack
+  turbopack: {
+    root: __dirname,
+  },
+};
+
+export default nextConfig;
