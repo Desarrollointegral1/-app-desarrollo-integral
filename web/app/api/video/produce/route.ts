@@ -10,7 +10,7 @@
  * Body:
  * {
  *   videoPath: string,             ← ruta al video fuente
- *   style: 'real-estate' | 'gym' | 'corporate' | 'social',
+ *   style: 'gym' | 'corporate' | 'social',
  *   targetDurationSec?: number,    ← duración objetivo en segundos
  *   transition?: TransitionType,
  *   transitionDuration?: number,   ← segundos por transición (default: 0.8)
@@ -24,8 +24,8 @@
  * }
  *
  * Ejemplo desde /charles:
- *   "producí un video de inmobiliaria con el archivo WhatsApp Video..."
  *   "hacé un reel de gym con transiciones rápidas y música energética"
+ *   "producí un video corporativo con el archivo de la sesión del lunes"
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -74,9 +74,9 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  if (!body.style || !['real-estate', 'gym', 'corporate', 'social'].includes(body.style)) {
+  if (!body.style || !['gym', 'corporate', 'social'].includes(body.style)) {
     return NextResponse.json(
-      { success: false, error: 'style requerido: real-estate | gym | corporate | social' },
+      { success: false, error: 'style requerido: gym | corporate | social' },
       { status: 400 }
     );
   }
@@ -163,7 +163,7 @@ export async function GET() {
     description: 'Pipeline completo de producción de video: corte IA + color grading + transiciones + música',
     body: {
       videoPath:          'string — ruta completa al video fuente (requerido)',
-      style:              'real-estate | gym | corporate | social (requerido)',
+      style:              'gym | corporate | social (requerido)',
       targetDurationSec:  'number — duración objetivo del resultado (opcional)',
       transition:         'fade | dissolve | slideright | slideleft | wipeleft | wiperight | smoothleft (opcional)',
       transitionDuration: 'number — segundos por transición, default 0.8 (opcional)',
@@ -178,19 +178,19 @@ export async function GET() {
     },
     allowedBaseDirs: ALLOWED_BASE_DIRS,
     examples: {
-      realEstate: {
-        videoPath:        'C:\\Users\\lucas\\Videos\\WhatsApp Video 2026-05-28 at 14.10.20.mp4',
-        style:            'real-estate',
-        targetDurationSec: 60,
-        muteOriginal:     true,
-        instructions:     'Mostrar los mejores ángulos del departamento, ritmo suave y elegante',
-      },
       gymReel: {
         videoPath:        'C:\\Users\\lucas\\Videos\\gym-session.mp4',
         style:            'gym',
         targetDurationSec: 30,
         transition:       'dissolve',
         instructions:     'Highlights de entrenamiento, énfasis en la intensidad y la forma',
+      },
+      corporateVideo: {
+        videoPath:        'C:\\Users\\lucas\\Videos\\sesion-lunes.mp4',
+        style:            'corporate',
+        targetDurationSec: 60,
+        muteOriginal:     true,
+        instructions:     'Mostrar el ambiente del centro, los equipos y el trabajo en equipo',
       },
     },
     learningProfile: {
