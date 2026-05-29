@@ -38,6 +38,14 @@ import { collectProjectContext, formatContextForPrompt } from '@/lib/context-col
 import { selectModels, formatModelAssignments } from '@/lib/model-selector';
 import { runCodeSpecialistWithTools, type FileWrite } from '@/lib/agent-tools';
 import { getSupabaseAgents } from '@/lib/supabase-agents';
+import {
+  getLearningBoosts,
+  recordCoalitionLearning,
+  evaluateAgentPeers,
+  publishAgentSpec,
+  subscribeToAgentSpecs,
+  formatImprovementsSummary,
+} from '@/lib/coalition-improvements';
 
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
@@ -179,14 +187,26 @@ export async function POST(request: NextRequest) {
     .split(/\s+|[,;.!?]/)
     .filter((w) => w.length > 3);
 
+  // ── MEJORA 3: Consultar patrones aprendidos ANTES de seleccionar ──────────
+  let learningApplied = '';
+  const learningBoosts = await getLearningBoosts(taskKeywords, AGENT_REGISTRY.map((a) => a.id));
+
   let bids: AgentBid[] = AGENT_REGISTRY.map((agent) => {
-    const confidence = calculateConfidence(agent, taskKeywords);
+    let confidence = calculateConfidence(agent, taskKeywords);
+
+    // Aplicar boost de aprendizaje si existe
+    const boost = learningBoosts.get(agent.id);
+    if (boost) {
+      confidence = Math.min(1, Math.max(0, confidence + boost.confidenceBoost));
+      if (!learningApplied) learningApplied = boost.learningSource;
+    }
+
     return {
       agentId:      agent.id,
       agentName:    agent.name,
       confidence,
       canDo:        agent.domains.slice(0, 3),
-      reasoning:    `Confidence ${(confidence * 100).toFixed(0)}%`,
+      reasoning:    `Confidence ${(confidence * 100).toFixed(0)}%${boost ? ` (boost: ${boost.confidenceBoost > 0 ? '+' : ''}${(boost.confidenceBoost * 100).toFixed(0)}%)` : ''}`,
       willingToLead: confidence >= 0.80,
     };
   });
@@ -316,7 +336,7 @@ ${contextPrompt ? `\n${contextPrompt}` : ''}`;
             const rateBonus   = Math.floor(agentConfig.successRate * 3);
             const score       = Math.min(18 + detail + rateBonus, 25);
 
-            return {
+            const result = {
               agentId:     bid.agentId,
               agentName:   bid.agentName,
               emoji:       agentConfig.emoji,
@@ -327,6 +347,15 @@ ${contextPrompt ? `\n${contextPrompt}` : ''}`;
               success:     true,
               score,
             };
+
+            // ── MEJORA 2: Publicar specs en MessageBroker (los otros agentes pueden leer) ──
+            try {
+              await publishAgentSpec(bid.agentId, bid.agentName, outputText.slice(0, 1000));
+            } catch {
+              // MessageBroker no crítico
+            }
+
+            return result;
           })();
 
           return withAgentTimeout(agentPromise, bid.agentName);
@@ -336,6 +365,7 @@ ${contextPrompt ? `\n${contextPrompt}` : ''}`;
         let allResults:         AgentResult[]                          = [];
         let allFilesWritten:    FileWrite[]                            = [];
         let conflictResolution: ConflictResolution | null = null;
+        let peerEvaluations:    Map<string, any>                       = new Map();
 
         if (useTwoRounds) {
           // Ronda 1: análisis en paralelo, emitir cada uno al terminar
@@ -354,6 +384,45 @@ ${contextPrompt ? `\n${contextPrompt}` : ''}`;
           const round1Results = await Promise.all(round1Promises);
           allResults.push(...round1Results);
 
+          // ── MEJORA 4: Peer Evaluation ANTES de resolver conflictos ────────
+          emit('phase_update', {
+            phase:   'peer_evaluation',
+            message: '🔍 Evaluación mutua entre agentes…',
+          });
+
+          const peerEvaluations = await evaluateAgentPeers(client, task, round1Results);
+          let improvementsSummary = formatImprovementsSummary(learningApplied, null, peerEvaluations);
+
+          // Auto-iteración: si score < 50% (13/25), re-ejecutar ese agente
+          const agentsToRetry = Array.from(peerEvaluations.entries())
+            .filter(([_, evalResult]) => evalResult.shouldRetry)
+            .map(([agentId, _]) => round1Results.find((r) => r.agentId === agentId)!);
+
+          if (agentsToRetry.length > 0) {
+            emit('phase_update', {
+              phase:   'retry',
+              message: `⚠️ ${agentsToRetry.length} agente(s) necesitan mejora — re-ejecutando…`,
+            });
+
+            const retryPromises = agentsToRetry.map(async (failedResult) => {
+              const failedBid = analysisOnly.find((b) => b.agentId === failedResult.agentId)!;
+              const retryResult = await runAgent(failedBid);
+              emit('agent_result', {
+                ...retryResult,
+                model: modelAssignments[failedBid.agentId]?.model,
+                isRetry: true,
+              });
+
+              // Reemplazar resultado anterior
+              const idx = allResults.findIndex((r) => r.agentId === failedResult.agentId);
+              if (idx >= 0) allResults[idx] = retryResult;
+
+              return retryResult;
+            });
+
+            await Promise.allSettled(retryPromises);
+          }
+
           // Ronda 1.5: Resolución de conflictos inter-agente
           emit('phase_update', {
             phase:   'conflicts',
@@ -363,7 +432,7 @@ ${contextPrompt ? `\n${contextPrompt}` : ''}`;
           conflictResolution = await resolveInterAgentConflicts(
             client,
             task,
-            round1Results,
+            allResults.filter((r) => r.agentId !== 'agent-code-specialist'),
             modelAssignments['agent-design-specialist']?.model ?? defaultModel,
           );
 
@@ -561,6 +630,20 @@ Produce una síntesis integrada: un plan de acción unificado que combine todas 
           }
         }
 
+        // ── FASE 5.5: Registrar aprendizaje (MEJORA 3) ──────────────────────
+        if (collectiveScore >= 75) {
+          try {
+            await recordCoalitionLearning(
+              taskKeywords,
+              selected.map((b) => b.agentId),
+              allResults,
+              collectiveScore
+            );
+          } catch {
+            // Aprendizaje no crítico
+          }
+        }
+
         // ── FASE 6: Persistir en Supabase ───────────────────────────────────
         try {
           const db = getSupabaseAgents();
@@ -577,8 +660,8 @@ Produce una síntesis integrada: un plan de acción unificado que combine todas 
             event_type:   'coalition_stream_completed',
             level:        4,
             coalition_id: coalitionId,
-            description:  `SSE coalición: ${selected.length} agentes | score: ${collectiveScore} | rondas: ${roundCount}`,
-            metadata:     { contextFiles: contextMeta.files, filesWritten: allFilesWritten.length },
+            description:  `SSE coalición: ${selected.length} agentes | score: ${collectiveScore} | rondas: ${roundCount} | learning: ${learningApplied ? 'applied' : 'no_history'}`,
+            metadata:     { contextFiles: contextMeta.files, filesWritten: allFilesWritten.length, peerEvaluations: peerEvaluations?.size ?? 0 },
           });
           await Promise.allSettled(
             allResults.map((r) => db.updateAgentSuccessRate(r.agentId, r.success))
@@ -601,6 +684,11 @@ Produce una síntesis integrada: un plan de acción unificado que combine todas 
             description: f.description,
             sizeChars:   f.content.length,
           })),
+          improvements: {
+            learningApplied,
+            peerEvaluationsCount: peerEvaluations.size,
+            improvementsSummary: formatImprovementsSummary(learningApplied, null, peerEvaluations),
+          },
         });
 
       } catch (err) {
