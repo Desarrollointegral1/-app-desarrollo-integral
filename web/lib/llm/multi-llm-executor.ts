@@ -254,7 +254,7 @@ export function getMultiLLMExecutor(): MultiLLMExecutor {
     const config: MultiLLMConfig = {
       claude: {
         apiKey: process.env.CLAUDE_API_KEY || '',
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-6',
       },
       gpt: {
         apiKey: process.env.OPENAI_API_KEY || '',

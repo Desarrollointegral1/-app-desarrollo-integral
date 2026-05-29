@@ -88,7 +88,7 @@ export class UnifiedLLMAdapter {
    */
   private async executeAnthropicWithFallback(request: UnifiedLLMRequest): Promise<UnifiedLLMResponse> {
     const response = await this.anthropic.messages.create({
-      model: 'claude-opus-4-1',
+      model: 'claude-opus-4-7',
       max_tokens: request.maxTokens || 2048,
       temperature: request.temperature || 1,
       system: request.systemPrompt,
