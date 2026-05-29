@@ -34,6 +34,7 @@ export abstract class CentralMemory {
   // Grabación de datos
   abstract recordExecution(exec: ExecutionRecord): Promise<void>;
   abstract recordDecision(decision: Decision): Promise<void>;
+  abstract recordPattern(keywords: string[], skillsUsed: string[], successRate: number): Promise<void>;
 
   // Análisis
   abstract analyzePatternsFor(keywords: string[]): Promise<PatternAnalysis>;
@@ -45,6 +46,11 @@ export abstract class CentralMemory {
     provider: 'claude' | 'gpt' | 'gemini',
     tokensUsed: number
   ): Promise<void>;
+
+  // Learning & Suggestions
+  abstract getSuggestedAgents(keywords: string[]): Promise<any[]>;
+  abstract detectConflictPatterns(agentIds: string[]): Promise<any[]>;
+  abstract getLearningFeedback(goal: string, executionId: string): Promise<any>;
 
   // Cache utilities
   protected getCached<T>(key: string): T | null {
