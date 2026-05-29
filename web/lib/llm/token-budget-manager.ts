@@ -38,7 +38,6 @@ export class TokenBudgetManager {
       await this.centralMemory.setContext(usageKey, usageList);
 
       // Update budget tracking
-      const budget = await this.getCentralMemory().getTokenBudget(provider);
       await this.centralMemory.updateTokenSpent(provider, tokensUsed);
 
       // Check if should alert
@@ -113,7 +112,7 @@ export class TokenBudgetManager {
 
   async getAllBudgetInfo(): Promise<Record<LLMProvider, TokenBudgetInfo>> {
     const providers: LLMProvider[] = ['claude', 'gpt', 'gemini'];
-    const budgets: Record<LLMProvider, TokenBudgetInfo> = {} as any;
+    const budgets: Record<LLMProvider, TokenBudgetInfo> = {} as Record<LLMProvider, TokenBudgetInfo>;
 
     for (const provider of providers) {
       budgets[provider] = await this.getBudgetInfo(provider);

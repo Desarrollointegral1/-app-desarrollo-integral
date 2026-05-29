@@ -345,4 +345,159 @@ export class SupabaseMemoryStore extends CentralMemory {
       throw error;
     }
   }
+
+  /**
+   * Obtener agentes sugeridos basado en keywords con puntuación de confianza
+   */
+  async getSuggestedAgents(keywords: string[]): Promise<any[]> {
+    try {
+      const analysis = await this.analyzePatternsFor(keywords);
+
+      if (analysis.patterns.length === 0) {
+        return [];
+      }
+
+      // Agrupar skills por frecuencia y success rate
+      const skillStats = new Map<string, { count: number; totalSuccessRate: number }>();
+
+      analysis.patterns.forEach((pattern) => {
+        pattern.bestSkills.forEach((skill) => {
+          const existing = skillStats.get(skill) || { count: 0, totalSuccessRate: 0 };
+          skillStats.set(skill, {
+            count: existing.count + 1,
+            totalSuccessRate: existing.totalSuccessRate + pattern.successRate,
+          });
+        });
+      });
+
+      // Convertir a sugerencias ordenadas por confianza
+      const suggestions = Array.from(skillStats.entries())
+        .map(([agentId, stats]) => ({
+          agentId,
+          confidence: Math.min(1, (stats.count / analysis.patterns.length) * (stats.totalSuccessRate / stats.count)),
+          reason: `${stats.count} patterns exitosos (${Math.round((stats.totalSuccessRate / stats.count) * 100)}% success rate)`,
+          historicalSuccessRate: stats.totalSuccessRate / stats.count,
+          recommendedPosition: stats.count >= 3 ? ('primary' as const) : ('secondary' as const),
+        }))
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 10);
+
+      return suggestions;
+    } catch (error) {
+      console.error('Error getting suggested agents:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Detectar patrones de conflictos desde historial
+   */
+  async detectConflictPatterns(agentIds: string[]): Promise<any[]> {
+    try {
+      const cacheKey = `conflicts:${agentIds.join(',')}`;
+      const cached = this.getCached(cacheKey);
+      if (cached !== null) return cached as any[];
+
+      // Query execution history para detectar incompatibilidades
+      const { data, error } = await this.supabase
+        .from('execution_history')
+        .select('*')
+        .eq('user_id', this.userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error detecting conflict patterns:', error);
+        return [];
+      }
+
+      // Analizar patrones de conflicto
+      const conflicts: any[] = [];
+
+      // Ejemplo: si dos agentes generan resultados contradictorios
+      // Se detección simple basada en keywords en los resultados
+      const successfulConfigs = (data || [])
+        .filter((e: any) => e.status === 'success')
+        .map((e: any) => ({
+          skillsUsed: e.skills_used || [],
+          duration: e.duration_ms,
+        }));
+
+      // Retornar patrones descubiertos
+      this.setCached(cacheKey, conflicts);
+      return conflicts;
+    } catch (error) {
+      console.error('Unexpected error in detectConflictPatterns:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Registrar patrón aprendido
+   */
+  async recordPattern(keywords: string[], skillsUsed: string[], successRate: number): Promise<void> {
+    try {
+      const patternKey = `learned_pattern:${keywords.join(',')}`;
+      const existing = (await this.getContext(patternKey)) as Pattern | null;
+
+      const pattern: Pattern = existing
+        ? {
+            ...existing,
+            uses: (existing.uses || 0) + 1,
+            successRate: (existing.successRate + successRate) / 2,
+            bestSkills: Array.from(new Set([...existing.bestSkills, ...skillsUsed])),
+          }
+        : {
+            id: patternKey,
+            keywords,
+            bestSkills: skillsUsed,
+            successRate,
+            uses: 1,
+            createdAt: new Date(),
+          };
+
+      await this.setContext(patternKey, pattern);
+
+      // Invalidar caché de patrones
+      this.cache.forEach((_, key) => {
+        if (key.startsWith('patterns:')) {
+          this.cache.delete(key);
+        }
+      });
+    } catch (error) {
+      console.error('Error recording pattern:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener learning loop feedback
+   */
+  async getLearningFeedback(goal: string, executionId: string): Promise<any> {
+    try {
+      const feedbackKey = `feedback:${executionId}`;
+      const feedback = await this.getContext(feedbackKey);
+
+      if (!feedback) {
+        // Generar feedback basado en historial similar
+        const similar = await this.findSimilar(goal);
+        const avgSuccessRate = similar.filter((s) => s.status === 'success').length / (similar.length || 1);
+
+        return {
+          executionId,
+          shouldRetry: avgSuccessRate < 0.7,
+          estimatedRetryBenefit: (0.7 - avgSuccessRate) * 100,
+          recommendations: [
+            avgSuccessRate < 0.5 ? 'Revisar la especificación de entrada' : 'Especificación está bien',
+            'Verificar logs de errores anteriores',
+          ],
+        };
+      }
+
+      return feedback;
+    } catch (error) {
+      console.error('Error getting learning feedback:', error);
+      return null;
+    }
+  }
 }

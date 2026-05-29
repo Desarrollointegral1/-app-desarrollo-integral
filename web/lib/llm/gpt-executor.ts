@@ -24,8 +24,11 @@ export class GPTExecutor {
           model: this.model,
           max_tokens: input.maxTokens || 4096,
           temperature: input.temperature || 1,
-          system: systemPrompt,
           messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
             {
               role: 'user',
               content: userPrompt,

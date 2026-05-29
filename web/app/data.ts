@@ -107,33 +107,33 @@ export type Feature = {
 
 export const PLATFORM_FEATURES: Feature[] = [
   {
-    icon: "📊",
-    title: "Bioimp: Bioimpedancia integrada",
+    icon: "",
+    title: "Bioimpedancia integrada",
     desc: "Registro automático de composición corporal en cada evaluación",
   },
   {
-    icon: "💪",
-    title: "Entrenamiento: Registro de cargas y progresión",
+    icon: "",
+    title: "Registro de cargas y progresión",
     desc: "Base de datos de ejercicios con periodización automática",
   },
   {
-    icon: "📈",
-    title: "Análisis: Gráficos de evolución",
+    icon: "",
+    title: "Gráficos de evolución",
     desc: "Visualización de progreso a lo largo del tiempo",
   },
   {
-    icon: "👥",
-    title: "Comunicación: Coach ↔ Alumno",
+    icon: "",
+    title: "Canal coach · alumno",
     desc: "Mensajería integrada para ajustes y consultas",
   },
   {
-    icon: "🎯",
-    title: "Planes: Generador de periodización",
+    icon: "",
+    title: "Generador de periodización",
     desc: "Estructura automática según objetivos y disponibilidad",
   },
   {
-    icon: "📱",
-    title: "Acceso: Web y mobile",
+    icon: "",
+    title: "Web y mobile",
     desc: "Disponible desde cualquier dispositivo, sin fricción",
   },
 ];
@@ -266,8 +266,8 @@ export type Location = {
 };
 
 export const LOCATION: Location = {
-  address: "Cabildo 450",
+  address: "Sucre 2538",
   floor: "3er piso",
-  city: "Buenos Aires",
-  mapUrl: "https://maps.google.com/maps?q=Cabildo+450,+Buenos+Aires,+Argentina&output=embed&z=16",
+  city: "Belgrano · Buenos Aires",
+  mapUrl: "https://maps.google.com/maps?q=Sucre+2538,+Belgrano,+Buenos+Aires,+Argentina&output=embed&z=16",
 };

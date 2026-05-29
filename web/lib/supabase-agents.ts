@@ -16,7 +16,6 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

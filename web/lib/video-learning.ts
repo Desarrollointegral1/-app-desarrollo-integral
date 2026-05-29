@@ -321,9 +321,7 @@ export interface SimilarCut {
   userRating:   number | null;
 }
 
-export async function getLearnedPreferences(
-  currentInstructions?: string
-): Promise<LearnedPreferences> {
+export async function getLearnedPreferences(): Promise<LearnedPreferences> {
   const supabase = getSupabase();
 
   const defaults: LearnedPreferences = {
@@ -370,7 +368,7 @@ export async function getLearnedPreferences(
   }));
 
   // Generar resumen de estilo legible
-  const styleSummary = buildStyleSummary(profile, recentExamples);
+  const styleSummary = buildStyleSummary(profile);
 
   return {
     preferredRatioAvg:  profile?.preferred_ratio_avg  ?? 0.35,
@@ -385,8 +383,7 @@ export async function getLearnedPreferences(
 }
 
 function buildStyleSummary(
-  profile: Record<string, unknown> | null,
-  recent:  SimilarCut[]
+  profile: Record<string, unknown> | null
 ): string {
   if (!profile || (profile.total_cuts_done as number) === 0) {
     return 'Sin historial aún — aprendiendo de tus primeros cortes.';
@@ -418,7 +415,7 @@ function buildStyleSummary(
 export async function buildLearningContextPrompt(
   instructions: string
 ): Promise<string> {
-  const prefs = await getLearnedPreferences(instructions);
+  const prefs = await getLearnedPreferences();
 
   if (prefs.totalCutsDone === 0) {
     return '(Sin historial de cortes previos — este es el primer corte del sistema)';

@@ -126,14 +126,14 @@ export function initializeCentralMemory(config: CentralMemoryConfig): CentralMem
   // Import and instantiate the Supabase implementation
   const { SupabaseMemoryStore } = require('./supabase-store');
   instance = new SupabaseMemoryStore(config);
-  return instance;
+  return instance as CentralMemory;
 }
 
 export function getCentralMemory(): CentralMemory {
   if (!instance) {
     throw new Error('CentralMemory not initialized. Call initializeCentralMemory first.');
   }
-  return instance;
+  return instance as CentralMemory;
 }
 
 export * from './types';

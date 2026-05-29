@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Devolver perfil de aprendizaje actualizado
-  const prefs = await getLearnedPreferences(body.instructions);
+  const prefs = await getLearnedPreferences();
 
   return NextResponse.json({
     success:          true,

@@ -41,6 +41,29 @@ ffmpeg.setFfprobePath(ffprobeInstaller.path);
 import { getVideoDuration, secondsToTime, timeToSeconds } from './video-editor';
 import { generateOutputPath, copyToGoogleDrive, saveCutToHistory } from './video-learning';
 
+// ─── Security Functions ────────────────────────────────────────────────────────
+
+function sanitizeFFmpegParam(param: string | number): string {
+  const str = String(param);
+  if (/[;&|`$\\<>\n\r]/.test(str)) {
+    throw new Error(`Unsafe FFmpeg parameter detected: "${str}". Contains shell metacharacters.`);
+  }
+  return str;
+}
+
+function validateMusicUrl(url: string): void {
+  try {
+    const parsed = new URL(url);
+    const allowedHosts = ['soundhelix.com', 'freepd.com', 'example.com'];
+    const isAllowed = allowedHosts.some(host => parsed.hostname?.includes(host));
+    if (!isAllowed && !url.startsWith('file://')) {
+      throw new Error(`URL host not in allowlist: ${parsed.hostname}`);
+    }
+  } catch (error) {
+    throw new Error(`Invalid music URL: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type ProductionStyle = 'gym' | 'corporate' | 'social';
@@ -233,11 +256,15 @@ async function getMusicTrack(
   // 2. URL específica del usuario
   if (musicUrl) {
     try {
+      validateMusicUrl(musicUrl);
       await downloadFile(musicUrl, tmpMusicPath);
       if (fs.existsSync(tmpMusicPath) && fs.statSync(tmpMusicPath).size > 30000) {
         return tmpMusicPath;
       }
-    } catch { /* fall through */ }
+    } catch (error) {
+      console.warn(`Music URL validation/download failed: ${error instanceof Error ? error.message : String(error)}`);
+      /* fall through */
+    }
   }
 
   // 3. Waterfall de URLs por estilo (SoundHelix > FreePD > Archive.org)
@@ -306,8 +333,9 @@ function applyColorGrade(
   return new Promise((resolve, reject) => {
     const colorFilter = COLOR_FILTERS[grade];
     // setpts=1/speed*PTS → < 1.0 = más lento, > 1.0 = más rápido
-    const speedFilter = speedFactor !== 1.0
-      ? `setpts=${(1 / speedFactor).toFixed(4)}*PTS`
+    const sanitizedSpeed = Math.max(0.5, Math.min(2.0, speedFactor));
+    const speedFilter = sanitizedSpeed !== 1.0
+      ? `setpts=${sanitizeFFmpegParam((1 / sanitizedSpeed).toFixed(4))}*PTS`
       : null;
 
     // Orden: primero speed (cambia timestamps), luego color grade
