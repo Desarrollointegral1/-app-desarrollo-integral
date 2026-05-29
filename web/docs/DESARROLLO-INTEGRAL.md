@@ -1,5 +1,5 @@
 # 🏋️ DESARROLLO INTEGRAL — Centro de Entrenamiento Premium
-**Última actualización:** 2026-05-28
+**Última actualización:** 2026-05-29
 **Ubicación:** Belgrano, Buenos Aires, Argentina
 
 ---

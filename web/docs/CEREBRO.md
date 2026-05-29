@@ -1,5 +1,5 @@
 # 🧠 CEREBRO — Sistema de Agentes Autónomos
-**Última actualización:** 2026-05-28
+**Última actualización:** 2026-05-29
 **Estado:** 🟢 Operativo | Score promedio: 81-92/100
 
 ---
