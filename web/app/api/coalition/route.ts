@@ -13,6 +13,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
+import crypto from 'crypto';
 import { runParallelCoalition, formatCoalitionResult, type AgentResult } from '@/lib/parallel-agents';
 import { detectExternalToolRequests, generateCharlesInstructions } from '@/lib/external-tools';
 import { generateCreativeMedia, detectMediaType, type CreativeRequest } from '@/lib/creative-media';
@@ -21,13 +23,37 @@ import { produceVideo, type ProduceRequest, type ProductionStyle, type Transitio
 import fs   from 'fs';
 import path from 'path';
 
+// ─── Validación de entrada con Zod ────────────────────────────────────────────
+const CoalitionRequestSchema = z.object({
+  task: z.string()
+    .min(3, 'La tarea debe tener al menos 3 caracteres')
+    .max(500, 'La tarea no puede superar 500 caracteres')
+    .refine(
+      (val) => !val.match(/[<>{}"`]/g),
+      'La tarea contiene caracteres sospechosos (prompt injection attempt)'
+    ),
+  options: z.object({
+    maxAgents: z.number().int().min(1).max(8).optional(),
+    threshold: z.number().min(0).max(1).optional(),
+  }).optional(),
+});
+
+type CoalitionRequest = z.infer<typeof CoalitionRequestSchema>;
+
+// ─── Función para hashear tareas antes de loguear ──────────────────────────────
+function hashTask(task: string): string {
+  return crypto.createHash('sha256').update(task).digest('hex').slice(0, 16);
+}
+
 // ─── Log de coalición en docs/ ───────────────────────────────────────────────
 // Actualiza DESARROLLO-INTEGRAL.md y LUCAS.md con cada corrida
+// NO loguea la tarea completa por seguridad — solo hash
 function logCoalitionRun(task: string, score: number, agentCount: number, ms: number) {
   const today   = new Date().toISOString().slice(0, 10);
-  const entry   = `| ${today} | ${score}/100 | ${agentCount} agentes | ${Math.round(ms / 1000)}s | ${task.slice(0, 65)}${task.length > 65 ? '...' : ''} |`;
+  const taskHash = hashTask(task);
+  const entry   = `| ${today} | ${score}/100 | ${agentCount} agentes | ${Math.round(ms / 1000)}s | ${taskHash} |`;
   const section = '## 📊 HISTORIAL DE COALICIONES (auto-generado)';
-  const header  = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Tarea |\n|---|---|---|---|---|\n`;
+  const header  = `${section}\n\n| Fecha | Score | Agentes | Tiempo | Task Hash |\n|---|---|---|---|---|\n`;
 
   const docFiles = [
     path.join(process.cwd(), 'docs', 'DESARROLLO-INTEGRAL.md'),
@@ -183,21 +209,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { task, options } = body;
 
-    if (!task || typeof task !== 'string' || task.trim().length === 0) {
+    // Validar con Zod
+    const validationResult = CoalitionRequestSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'El campo "task" es requerido y debe ser un string no vacío.' },
+        { error: 'Validación fallida', details: validationResult.error.errors },
         { status: 400 }
       );
     }
 
-    if (task.length > 2000) {
-      return NextResponse.json(
-        { error: 'La tarea no puede superar 2000 caracteres.' },
-        { status: 400 }
-      );
-    }
+    const { task, options } = validationResult.data;
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(

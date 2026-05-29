@@ -22,6 +22,7 @@ import { getSupabaseAgents } from './supabase-agents';
 import { collectProjectContext, formatContextForPrompt, type ProjectContext } from './context-collector';
 import { selectModels, type ModelAssignment } from './model-selector';
 import { runCodeSpecialistWithTools, type FileWrite } from './agent-tools';
+import { calculateConfidence, selectAgents } from './agent-selection';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -441,39 +442,7 @@ IMPORTANTE: Siempre terminá tu output con este bloque para ejecución automáti
   },
 ];
 
-// ─── Función de Confidence Score ──────────────────────────────────────────────
-
-function calculateConfidence(agent: AgentConfig, taskKeywords: string[]): number {
-  const taskLower = taskKeywords.map((k) => k.toLowerCase());
-
-  // Keyword matches — flexible: substring + raíz española (5 chars)
-  const agentKeywordsLower = agent.keywords.map((k) => k.toLowerCase());
-  const matches = taskLower.filter((tk) =>
-    agentKeywordsLower.some((ak) => {
-      if (ak.includes(tk) || tk.includes(ak)) return true;
-      // Raíz: primeros 5 chars para manejar variaciones de género/número
-      if (tk.length >= 5 && ak.length >= 5) {
-        return ak.startsWith(tk.slice(0, 5)) || tk.startsWith(ak.slice(0, 5));
-      }
-      return false;
-    })
-  ).length;
-  // Normalizar por el que dé mayor score
-  const byTask  = matches / Math.max(taskLower.length, 1);
-  const byAgent = matches / Math.max(agentKeywordsLower.length, 1);
-  const keywordScore = Math.min(Math.max(byTask, byAgent), 1) * 0.5;
-
-  // Domain detection
-  const domainMatch = agent.domains.some((d) =>
-    taskLower.some((tk) => tk.includes(d) || d.includes(tk))
-  );
-  const domainScore = domainMatch ? 0.35 : 0;
-
-  // Historical success rate
-  const successScore = agent.successRate * 0.15;
-
-  return keywordScore + domainScore + successScore;
-}
+// Confidence score calculation moved to lib/agent-selection.ts
 
 // ─── Función Principal: Coalición Paralela ────────────────────────────────────
 
@@ -551,7 +520,6 @@ export async function runParallelCoalition(
 
     const agentWithLiveRate = { ...agent, successRate: liveRate };
     const baseConfidence    = calculateConfidence(agentWithLiveRate, taskKeywords);
-    // Aplicar ajuste de aprendizaje — clampeado a [0, 1]
     const confidence        = Math.min(Math.max(baseConfidence + boost - penalty, 0), 1);
 
     const learningNote = boost > 0
@@ -570,30 +538,11 @@ export async function runParallelCoalition(
     };
   });
 
-  // Regla especial: code SIEMPRE participa si hay 3+ agentes de diseño/content
-  let selectedBids = bids.filter((b) => b.confidence >= confidenceThreshold);
-  const designContentCount = selectedBids.filter((b) =>
-    ['agent-design-specialist', 'agent-content-specialist', 'agent-media-specialist'].includes(b.agentId)
-  ).length;
-
-  const codeAgent = bids.find((b) => b.agentId === 'agent-code-specialist');
-  const codeAlreadyIn = selectedBids.some((b) => b.agentId === 'agent-code-specialist');
-  if (designContentCount >= 3 && !codeAlreadyIn && codeAgent) {
-    selectedBids.push({ ...codeAgent, reasoning: codeAgent.reasoning + ' (forzado por regla: 3+ agentes design)' });
-  }
-
-  // Máximo 6 agentes por coalición (ordenar por confidence)
-  selectedBids = selectedBids
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, maxAgents);
-
-  // Fallback: si nadie supera el threshold, bajar a 0.50
-  if (selectedBids.length === 0) {
-    selectedBids = bids
-      .filter((b) => b.confidence >= 0.50)
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 3);
-  }
+  // FASE 2b: Seleccionar agentes usando lógica centralizada
+  const selectedBids = selectAgents(bids, {
+    confidenceThreshold,
+    maxAgents,
+  });
 
   if (selectedBids.length === 0) {
     throw new Error('No hay agentes disponibles para esta tarea. Verifica los keywords.');

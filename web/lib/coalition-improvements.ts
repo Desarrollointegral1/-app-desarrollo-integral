@@ -20,9 +20,16 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { getCentralMemory } from './central-memory';
 import { getMessageBroker } from './swarm/message-broker';
 import { AgentResult } from './parallel-agents';
+
+// Schema para parsear feedback de evaluación
+const PeerEvaluationResponseSchema = z.object({
+  score: z.number().min(0).max(25).default(13),
+  feedback: z.string().max(500).default('No disponible'),
+});
 
 // ─── MEJORA 2: Agent Communication Channel ────────────────────────────────
 
@@ -299,8 +306,26 @@ Evalúa. Dale score 0-25. Una justificación brevísima.`,
 
           const feedbackBlock = response.content[0];
           const feedback = feedbackBlock && 'text' in feedbackBlock ? feedbackBlock.text : '';
-          const scoreMatch = feedback.match(/(\d{1,2})/);
-          const score = scoreMatch ? Math.min(25, parseInt(scoreMatch[1])) : 13;
+
+          // Parser robusto: busca "score: XX" o solo números, con fallback seguro
+          let score = 13; // default
+          const scorePatterns = [
+            /score\s*[:=]\s*(\d{1,2})/i,  // "score: 18" o "score=18"
+            /(\d{1,2})[\/\-]\s*25/,        // "18/25" o "18-25"
+            /^(\d{1,2})$/m,                // línea con solo número
+            /(\d{1,2})/                    // cualquier número
+          ];
+
+          for (const pattern of scorePatterns) {
+            const match = feedback.match(pattern);
+            if (match && match[1]) {
+              const parsed = parseInt(match[1], 10);
+              if (!isNaN(parsed)) {
+                score = Math.min(25, Math.max(0, parsed));
+                break;
+              }
+            }
+          }
 
           // Acumular evaluación
           if (!evaluations.has(targetId)) {
