@@ -1,5 +1,5 @@
 # 📋 LUCAS — Block de Notas Operacional
-**Última actualización:** 2026-05-29
+**Última actualización:** 2026-05-28
 **Este archivo se actualiza solo cada vez que se hace un cambio.**
 
 ---
@@ -67,7 +67,7 @@ Es una "granja" de 8 robots especializados (agentes de IA) que trabajan juntos e
 | 🔎 **SEO Specialist** | Posicionamiento Google, keywords locales Belgrano, schema.org |
 | 🏋️ **Fitness Specialist** | Validación de dominio: metodología, servicios, copy fitness |
 | 🎬 **Creative Media Agent** | Genera imágenes (Flux) y videos (Kling) vía API FAL.ai |
-| 🎞️ **Video Producer** | Producción profesional: IA elige cortes + color grading + transiciones + música ← NUEVO |
+| 🎞️ **Video Producer** | Producción profesional: IA elige cortes + color grading + transiciones + música. Estilos: gym / corporate / social |
 
 **Modelo por robot:**
 - Code + Security → **Claude Sonnet** (el más capaz, genera código que va directo al proyecto)
@@ -148,7 +148,7 @@ Luego abrir http://localhost:3000
 | `learning_patterns` | Qué patrones funcionaron → el sistema aprende de esto |
 | `agent_events` | Log de todo: errores, warnings, feedback |
 | `files_written` | Qué archivos modificó el Code Specialist y cuándo |
-| `video_cuts` | Historial de cada corte de video: timestamps, estilo, rating ✅ |
+| `video_cuts` | Historial de cada producción de video: timestamps, estilo, rating ✅ |
 | `video_style_profile` | Perfil aprendido: cómo te gustan los cortes (ratio, tags, estilo) ✅ |
 
 **Búsqueda inteligente:** La DB tiene un sistema de vectores (pgvector) que permite buscar tareas similares. Si ya hiciste algo parecido antes, el sistema lo recuerda y lo usa.
@@ -169,7 +169,7 @@ web/lib/supabase-agents.ts      ← Guarda todo en la base de datos
 web/lib/creative-media.ts       ← Generación de imágenes y videos vía FAL.ai
 web/lib/video-editor.ts         ← Corte y edición de videos con FFmpeg + IA
 web/lib/video-learning.ts       ← Aprende tu estilo de corte, gestiona carpetas
-web/lib/video-producer.ts       ← Pipeline completo: color grade + transiciones + música ← NUEVO
+web/lib/video-producer.ts       ← Pipeline completo: color grade + transiciones + música
 ```
 
 ### Las rutas de la API
@@ -182,7 +182,7 @@ web/app/api/coalition/monitor/route.ts  ← Estado de salud
 web/app/api/creative/route.ts           ← Genera imágenes y videos con IA
 web/app/api/video/route.ts              ← Corta y edita videos con FFmpeg
 web/app/api/video/rate/route.ts         ← Dar feedback para que aprenda tu estilo
-web/app/api/video/produce/route.ts      ← Producción profesional completa ← NUEVO
+web/app/api/video/produce/route.ts      ← Producción profesional completa
 ```
 
 ### Los documentos (todos en GitHub)
@@ -261,8 +261,9 @@ npm run dev
 - [x] agent-video-producer (agente #12) → Pipeline profesional completo ✅
 - [x] /api/video/produce → endpoint funcional ✅
 - [x] FFmpeg 6.1.1 via ffmpeg-static → soporte xfade, vignette, colorbalance ✅
-- [x] Primer video real producido → departamento inmobiliaria, 68s, local + Drive ✅
-- [ ] Música de fondo → bensound bloquea descarga automática (ver nota abajo)
+- [x] Primer video real producido → 68s, local + Drive ✅
+- [x] Música automática: SoundHelix → FreePD → FFmpeg ambient (100% confiable) ✅
+- [x] Estilos: gym / corporate / social (real-estate eliminado) ✅
 
 ### Negocio
 - [ ] Definir tablas para datos de clientes en Supabase

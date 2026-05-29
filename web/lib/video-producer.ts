@@ -15,7 +15,6 @@
  *     7. Export final a Drive
  *
  * Estilos disponibles:
- *   'real-estate' → cálido, elegante, piano suave
  *   'gym'         → energético, dinámico, beats
  *   'corporate'   → limpio, profesional, minimalista
  *   'social'      → rápido, vibrante, redes sociales
@@ -44,7 +43,7 @@ import { generateOutputPath, copyToGoogleDrive, saveCutToHistory } from './video
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type ProductionStyle = 'real-estate' | 'gym' | 'corporate' | 'social';
+export type ProductionStyle = 'gym' | 'corporate' | 'social';
 export type TransitionType  = 'fade' | 'dissolve' | 'slideright' | 'slideleft' | 'wipeleft' | 'wiperight' | 'smoothleft';
 export type ColorGrade      = 'warm' | 'cool' | 'neutral' | 'vibrant' | 'cinematic';
 
@@ -106,14 +105,6 @@ export interface ProduceResult {
 // Si todas fallan → generateAmbientMusic() genera la pista con FFmpeg (100% confiable)
 
 const MUSIC_BY_STYLE: Record<ProductionStyle, string[]> = {
-  // Real estate: piano suave, melancólico, elegante
-  'real-estate': [
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
-    'https://freepd.com/music/Wholesome.mp3',
-    'https://freepd.com/music/Acoustic%20Breeze.mp3',
-    'https://archive.org/download/cinematic_piano_cc0/cinematic_piano.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
-  ],
   // Gym: energético, electrónico, motivacional
   'gym': [
     'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
@@ -149,7 +140,6 @@ const MUSIC_BY_STYLE: Record<ProductionStyle, string[]> = {
 // Técnica: aevalsrc con sum de frecuencias armónicas + envelope de decay
 
 const AMBIENT_GEN: Record<ProductionStyle, { freqs: number[]; decay: number; vol: number }> = {
-  'real-estate': { freqs: [130.81, 196.00, 261.63, 329.63], decay: 6, vol: 0.18 }, // C3-G3-C4-E4
   'gym':         { freqs: [82.41,  164.81, 246.94, 329.63], decay: 1, vol: 0.22 }, // E2-E3-B3-E4 (power chord)
   'corporate':   { freqs: [146.83, 220.00, 293.66, 369.99], decay: 5, vol: 0.16 }, // D3-A3-D4-F#4
   'social':      { freqs: [164.81, 246.94, 329.63, 415.30], decay: 3, vol: 0.20 }, // E3-B3-E4-G#4
@@ -190,10 +180,9 @@ const COLOR_FILTERS: Record<ColorGrade, string> = {
 };
 
 const STYLE_TO_GRADE: Record<ProductionStyle, ColorGrade> = {
-  'real-estate': 'warm',
-  'gym':         'vibrant',
-  'corporate':   'neutral',
-  'social':      'vibrant',
+  'gym':       'vibrant',
+  'corporate': 'neutral',
+  'social':    'vibrant',
 };
 
 // ─── Descarga de música ───────────────────────────────────────────────────────
@@ -457,15 +446,6 @@ async function planProduction(
 ): Promise<ProductionPlan> {
 
   const styleGuide: Record<ProductionStyle, string> = {
-    'real-estate': `
-Video inmobiliario profesional. CRITERIOS DE SELECCIÓN:
-- MANTENER: tomas estáticas o lentas de habitaciones completas (muestran el espacio)
-- MANTENER: panorámicas suaves que muestren amplitud
-- MANTENER: tomas de detalles premium (ventanas, cocina, baño)
-- ELIMINAR: movimientos bruscos de cámara o sacudidas
-- ELIMINAR: tomas muy oscuras o borrosas
-- ELIMINAR: silencios donde no se ve nada interesante
-DURACIÓN IDEAL: 45-90 segundos. Ritmo tranquilo, elegante.`,
     'gym': `
 Video de gym/fitness. CRITERIOS:
 - MANTENER: momentos de acción, esfuerzo, movimiento
@@ -484,13 +464,13 @@ Video para redes sociales. CRITERIOS:
 DURACIÓN IDEAL: 15-30 segundos.`,
   };
 
-  const system = `Eres un editor de video profesional especializado en producción ${style === 'real-estate' ? 'inmobiliaria' : style}.
+  const system = `Eres un editor de video profesional especializado en producción ${style}.
 ${styleGuide[style]}
 
 Respondé SOLO con JSON válido (sin markdown):
 {
   "segments": [
-    {"start": "00:00:05", "end": "00:00:25", "label": "living", "reason": "toma estática amplia del living"}
+    {"start": "00:00:05", "end": "00:00:25", "label": "entrenamiento", "reason": "momento de máxima acción"}
   ],
   "reasoning": "explicación breve de la selección",
   "style": "descripción del ritmo y look elegido"
@@ -501,7 +481,7 @@ DURACIÓN TOTAL: ${secondsToTime(duration)} (${Math.round(duration)}s)
 DURACIÓN OBJETIVO: ${targetSec ? `${targetSec}s` : 'editorial libre'}
 INSTRUCCIÓN EXTRA: ${instructions ?? 'ninguna'}
 
-Planificá la selección de segmentos para un video ${style === 'real-estate' ? 'inmobiliario' : style} profesional.`;
+Planificá la selección de segmentos para un video ${style} profesional.`;
 
   const response = await anthropic.messages.create({
     model:      'claude-haiku-4-5',
@@ -787,10 +767,9 @@ const COLOR_GRADE_NAMES: Record<ColorGrade, string> = {
 };
 
 const STYLE_NAMES: Record<ProductionStyle, string> = {
-  'real-estate': 'Inmobiliaria — ritmo tranquilo, elegante',
-  'gym':         'Gym / Fitness — dinámico, motivacional',
-  'corporate':   'Corporativo — profesional, limpio',
-  'social':      'Redes sociales — rápido, enganche inmediato',
+  'gym':       'Gym / Fitness — dinámico, motivacional',
+  'corporate': 'Corporativo — profesional, limpio',
+  'social':    'Redes sociales — rápido, enganche inmediato',
 };
 
 function buildFicha(opts: BuildFichaOpts): VideoFicha {
