@@ -459,7 +459,7 @@ export async function runParallelCoalition(
   const startTime = Date.now();
   const {
     apiKey = process.env.ANTHROPIC_API_KEY || '',
-    model = process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022',
+    model = process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001',
     maxTokensPerAgent = 2048,
     confidenceThreshold = 0.55,
     maxAgents = 6,
@@ -1037,7 +1037,7 @@ async function runPeerEvaluation(
       const target    = results.find((r) => r.agentId === targetId)!;
 
       // Usar el modelo activo del entorno (mismo que el sistema usa globalmente)
-      const evalModel = process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022';
+      const evalModel = process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001';
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any = await (client.messages.create as any)({

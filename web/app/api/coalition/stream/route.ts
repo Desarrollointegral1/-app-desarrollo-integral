@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
   const confidenceThreshold = options?.threshold  ?? 0.50;
   const maxAgents           = options?.maxAgents  ?? 6;
-  const defaultModel        = process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022';
+  const defaultModel        = process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001';
   const maxTokensPerAgent   = parseInt(process.env.COALITION_MAX_TOKENS || '1024');
 
   // ── Selección de agentes ──────────────────────────────────────────────────

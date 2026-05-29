@@ -21,7 +21,7 @@
 // Los modelos se leen del entorno para que coincidan con COALITION_MODEL
 // Si no hay env var se usa el fallback. La lógica SONNET/HAIKU sigue aplicando.
 const ENV_MODEL    = process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001';
-const ENV_SONNET   = process.env.COALITION_MODEL_SONNET || 'claude-sonnet-4-5';
+const ENV_SONNET   = process.env.COALITION_MODEL_SONNET || 'claude-sonnet-4-6';
 
 // Detectar si el env model es Haiku o Sonnet para asignar correctamente
 const IS_ENV_HAIKU = ENV_MODEL.toLowerCase().includes('haiku');

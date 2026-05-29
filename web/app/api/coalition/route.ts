@@ -115,7 +115,7 @@ async function synthesizeResults(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (client.messages.create as any)({
-      model:      process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022',
+      model:      process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: [{
         type: 'text',
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     const result = await runParallelCoalition(task.trim(), {
       apiKey: process.env.ANTHROPIC_API_KEY,
-      model: process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022',
+      model: process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001',
       maxTokensPerAgent: parseInt(process.env.COALITION_MAX_TOKENS || '1024'),
       confidenceThreshold: options?.threshold ?? 0.50,
       maxAgents: options?.maxAgents ?? 6,
@@ -493,6 +493,6 @@ export async function GET() {
       'agent-video-producer 🎞️',
     ],
     parallelism: 'Real — Promise.all() + múltiples llamadas Anthropic simultáneas',
-    model: process.env.COALITION_MODEL || 'claude-3-5-haiku-20241022',
+    model: process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001',
   });
 }

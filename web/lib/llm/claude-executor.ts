@@ -6,7 +6,7 @@ export class ClaudeExecutor {
   private model: string;
   private timeout: number;
 
-  constructor(apiKey: string, model: string = 'claude-3-5-sonnet-20241022', timeout: number = 300000) {
+  constructor(apiKey: string, model: string = 'claude-sonnet-4-6', timeout: number = 300000) {
     this.client = new Anthropic({ apiKey });
     this.model = model;
     this.timeout = timeout;
