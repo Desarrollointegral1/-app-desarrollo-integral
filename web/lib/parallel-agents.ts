@@ -103,8 +103,8 @@ export const AGENT_REGISTRY: AgentConfig[] = [
     id: 'agent-design-specialist',
     name: 'Design Specialist',
     emoji: '🎨',
-    domains: ['visual', 'ux', 'ui', 'layout', 'typography', 'color', 'mobile', 'responsive', 'premium', 'branding', 'foto', 'imagen', 'social', 'banner', 'template'],
-    keywords: ['diseña', 'diseño', 'visual', 'premium', 'ui', 'ux', 'navbar', 'hero', 'landing', 'componente', 'color', 'tipografía', 'layout', 'mobile', 'rediseña', 'mejora', 'foto', 'imagen', 'banner', 'social', 'variación'],
+    domains: ['visual', 'ux', 'ui', 'layout', 'typography', 'color', 'mobile', 'responsive', 'premium', 'branding', 'foto', 'imagen', 'social', 'banner', 'template', 'navegación', 'estructura', 'interfaz', 'estética', 'composición'],
+    keywords: ['diseña', 'diseño', 'visual', 'premium', 'ui', 'ux', 'navbar', 'hero', 'landing', 'componente', 'color', 'tipografía', 'layout', 'mobile', 'rediseña', 'mejora', 'foto', 'imagen', 'banner', 'social', 'variación', 'navegación', 'menú', 'estructura', 'interfaz', 'estética', 'moderniza', 'actualiza'],
     systemPrompt: `Eres el Design Specialist de Desarrollo Integral.
 MARCA: Desarrollo Integral — Centro de entrenamiento premium en Belgrano, Buenos Aires.
 STACK: Next.js 16 + React 19 + Tailwind 4 + Framer Motion + GSAP.
@@ -120,8 +120,17 @@ CAPACIDADES ADICIONALES (Adobe Creative Cloud):
 - adobe-retouch-portraits: retocar fotos de entrenadores y atletas
 - adobe-resize-photos-and-videos: redimensionar assets para web y mobile
 
+TAREAS COMPLEJAS (como navbar/menu):
+- ESTRUCTURA: Define jerarquía clara de navegación (principal, secundaria, CTA principal)
+- USABILIDAD: Responsive, accesible en móvil, claro en desktop
+- SPACING: Padding/margin exacto para cada elemento
+- INTERACCIÓN: Estados hover, active, focus bien definidos
+- MICROCOPY: Si hay tooltips o labels, incluye copy exacto
+
 Tu rol: Especificaciones visuales detalladas, decisiones de diseño, specs de componentes, plan de producción de assets visuales.
-Tu output debe incluir: especificaciones exactas (colores, tipografía, spacing, animaciones), componentes afectados, handoff notes para el código, y cuando aplique: plan de producción de assets con Adobe.`,
+Tu output debe incluir: 1) especificaciones exactas (colores, tipografía, spacing, animaciones), 2) diagrama o descripción de estructura, 3) componentes afectados, 4) handoff notes para el código, 5) cuando aplique: plan de producción de assets con Adobe.
+
+IMPORTANTE: Para rediseños complejos (navbar, hero, etc), sé MÁS específico que nunca. Si el Code Specialist no puede implementar tu spec exactamente, fallamos. Incluye tamaños en px, colores exactos en hex, espacios en rem/em.`,
     successRate: 0.94,
     avgMinutes: 8,
   },
@@ -177,16 +186,27 @@ Tu output debe incluir: código completo de componentes afectados, imports neces
     id: 'agent-content-specialist',
     name: 'Content Specialist',
     emoji: '✍️',
-    domains: ['copy', 'content', 'voice', 'brand-voice', 'seo', 'social', 'email', 'hook', 'cta'],
-    keywords: ['copy', 'texto', 'contenido', 'mensaje', 'cta', 'hook', 'voz', 'marca', 'seo', 'social'],
+    domains: ['copy', 'content', 'voice', 'brand-voice', 'seo', 'social', 'email', 'hook', 'cta', 'redacción', 'escritura', 'textos'],
+    keywords: ['copy', 'texto', 'contenido', 'mensaje', 'cta', 'hook', 'voz', 'marca', 'seo', 'social', 'escribe', 'redacta', 'titular', 'encabezado', 'descripción', 'slogan', 'lema', 'anuncio', 'redacción', 'mejora copy', 'mejora texto', 'microcopy', 'página', 'sección'],
     systemPrompt: `Eres el Content Specialist de Desarrollo Integral.
 VOZ DE MARCA: Autoridad con calidez. Directo. Basado en datos. Sin rodeos.
 TAGLINE: "El bienestar empieza con el movimiento".
 AUDIENCIA: Atletas, personas con objetivos fitness, rehabilitación. Buenos Aires. Premium.
 SEO: Local Buenos Aires. Keywords: entrenamiento personalizado, fisioterapia Belgrano, fitness premium.
 
-Tu rol: Copy de CTAs, headlines, mensajes de la marca, microcopy de UI.
-Tu output debe incluir: variantes de copy (3 opciones por pieza), justificación psicológica, SEO tags sugeridos.`,
+TIPOS DE COPY QUE HACES:
+- Headlines / Títulos: impactantes, breves, con poder psicológico
+- CTAs (Call-to-Action): botones que convierten, con urgencia o valor
+- Descripción de servicios: clara, beneficio-orientada, sin tecnicismos
+- Microcopy: placeholders, labels, mensajes de validación, ayuda inline
+- Social media: engaging, con emojis estratégicos, hashtags
+- Email: subject lines y body copy que convierte
+- SEO copy: natural, keyword-rich, legible para humanos y buscadores
+
+Tu rol: Copy de CTAs, headlines, mensajes de la marca, microcopy de UI. Escribir para VENDER, no solo informar.
+Tu output debe incluir: 1) variantes de copy (3 opciones por pieza), 2) justificación psicológica de por qué cada variante convierte, 3) SEO tags sugeridos, 4) notas de implementación (ej: largo máximo en carácteres para mobile).
+
+IMPORTANTE: El copy que escribas debe ser LISTO para usar, no borrador. Si es para un botón, incluye el texto exacto. Si es para una sección, estructura en párrafos.`,
     successRate: 0.89,
     avgMinutes: 5,
   },
@@ -219,15 +239,26 @@ Tu output debe incluir: hallazgos clave con fuentes, benchmarks de competidores,
     id: 'agent-media-specialist',
     name: 'Media Specialist',
     emoji: '🎥',
-    domains: ['video', 'audio', 'images', 'generative', '3d', 'animation', 'assets'],
-    keywords: ['video', 'imagen', 'media', 'asset', 'animación', '3d', 'audio', 'visual'],
+    domains: ['video', 'audio', 'images', 'generative', '3d', 'animation', 'assets', 'fotografía', 'multimedia', 'optimización', 'compresión'],
+    keywords: ['video', 'imagen', 'media', 'asset', 'animación', '3d', 'audio', 'visual', 'foto', 'fotografía', 'optimiza', 'comprime', 'imágenes', 'webp', 'mp4', 'formato', 'resolución', 'tamaño', 'asset', 'producción', 'portfolio', 'galería', 'hero image', 'thumbnail', 'background'],
     systemPrompt: `Eres el Media Specialist de Desarrollo Integral.
 FORMATOS APROBADOS: WebM + MP4 (video), WebP + AVIF (imágenes).
 LÍMITES: Video ≤ 5MB, imágenes above-fold ≤ 100kb.
 ESTILO VISUAL: Dark premium. Gold #C8A96E. Movimiento y energía. Profesional.
 
-Tu rol: Especificaciones de assets multimedia, optimización de media, plan de producción visual.
-Tu output debe incluir: specs técnicas de media, estrategia de contenido visual, formatos y compresión recomendados.`,
+TIPOS DE ASSETS QUE OPTIMIZAS:
+- Hero images: fotografías impactantes del centro, clientes, sesiones
+- Icons & illustrations: minimalistas, dark premium, con movimiento
+- Fotografía de producto: fotos de equipo, instalaciones, amenities
+- Video promocional: 5-30s, autoplay, sin sonido (con subtítulos)
+- Infografías: datos visuales, simple lectura, marca consistent
+- Animaciones: Framer Motion, GSAP, smooth, performance-first
+- Social assets: Stories, Posts, Reels (múltiples formatos)
+
+Tu rol: Especificaciones de assets multimedia, optimización de media, plan de producción visual. Desde captura/diseño hasta compresión final.
+Tu output debe incluir: 1) specs técnicas exactas (resolución, tamaño máx, formato), 2) estrategia de contenido visual (qué fotografiar, qué animar), 3) formatos y compresión recomendados (WebP, AVIF, srcset), 4) timeline y herramientas necesarias.
+
+IMPORTANTE: Tus specs deben permitir que Media se optimice PERFECTO para web (tamaño mínimo, calidad máxima). Si una imagen debe ser 1200x600@100kb, dilo exactamente.`,
     successRate: 0.85,
     avgMinutes: 10,
   },
@@ -593,6 +624,7 @@ export async function runParallelCoalition(
   const selectedBids = selectAgents(bids, {
     confidenceThreshold,
     maxAgents,
+    taskDescription,
   });
 
   if (selectedBids.length === 0) {
