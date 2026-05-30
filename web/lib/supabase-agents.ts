@@ -199,6 +199,25 @@ async function generateEmbedding(text: string): Promise<number[]> {
   return buildTfIdfVector(text);
 }
 
+// ─── Timeout Helper ───────────────────────────────────────────────────────────
+// Envuelve promesas con timeout para evitar cuelgues si Supabase no responde
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 5000
+): Promise<T> {
+  let timeoutHandle: NodeJS.Timeout;
+
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        reject(new Error(`Query timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]).finally(() => clearTimeout(timeoutHandle));
+}
+
 // ─── Cliente principal ────────────────────────────────────────────────────────
 
 export class SupabaseAgentsClient {
@@ -241,34 +260,52 @@ export class SupabaseAgentsClient {
   }
 
   async updateAgentSuccessRate(agentId: string, wasSuccessful: boolean): Promise<void> {
-    const { error } = await this.client.rpc('update_agent_success_rate', {
-      p_agent_id: agentId,
-      p_was_successful: wasSuccessful,
-    });
-    if (error) throw new Error(`Error actualizando success_rate: ${error.message}`);
+    try {
+      const { error } = await withTimeout(
+        (async () => this.client.rpc('update_agent_success_rate', {
+          p_agent_id: agentId,
+          p_was_successful: wasSuccessful,
+        }))(),
+        5000
+      );
+      if (error) throw new Error(`Error actualizando success_rate: ${error.message}`);
+    } catch (error) {
+      // Timeout o error → log pero no bloquear
+      console.warn(`[DB] updateAgentSuccessRate: error actualizando rate para ${agentId}:`, error instanceof Error ? error.message : error);
+    }
   }
 
   /**
    * Carga los success_rates actuales de Supabase para los agentes dados.
    * Retorna un mapa agentId → successRate (0-1).
    * Si un agente no existe en la DB, retorna el valor default.
+   * Con timeout de 5 segundos para evitar cuelgues.
    */
   async getAgentSuccessRates(
     agentIds: string[],
     defaults: Record<string, number>
   ): Promise<Record<string, number>> {
-    const { data, error } = await this.client
-      .from('agent_registry')
-      .select('id, success_rate')
-      .in('id', agentIds);
+    try {
+      const { data, error } = await withTimeout(
+        (async () => this.client
+          .from('agent_registry')
+          .select('id, success_rate')
+          .in('id', agentIds))(),
+        5000
+      );
 
-    if (error) throw new Error(`Error leyendo success_rates: ${error.message}`);
+      if (error) throw new Error(`Error leyendo success_rates: ${error.message}`);
 
-    const result: Record<string, number> = { ...defaults };
-    for (const row of (data ?? [])) {
-      result[row.id] = row.success_rate ?? defaults[row.id] ?? 0.85;
+      const result: Record<string, number> = { ...defaults };
+      for (const row of (data ?? [])) {
+        result[row.id] = row.success_rate ?? defaults[row.id] ?? 0.85;
+      }
+      return result;
+    } catch (error) {
+      // Timeout o error → usar defaults
+      console.warn(`[DB] getAgentSuccessRates: timeout o error, usando defaults:`, error instanceof Error ? error.message : error);
+      return defaults;
     }
-    return result;
   }
 
   // ── Learning Patterns ───────────────────────────────────────────────────────
@@ -289,6 +326,7 @@ export class SupabaseAgentsClient {
    *
    * Usado por el loop de aprendizaje: estos datos ajustan los confidence
    * scores antes de seleccionar la coalición.
+   * Con timeout de 5 segundos para evitar cuelgues.
    */
   async getLearningAdjustments(
     keywords: string[],
@@ -299,46 +337,55 @@ export class SupabaseAgentsClient {
     penalties: Record<string, number>;   // agentId → cuánto restar al confidence
     source:    string;                   // descripción del patrón encontrado
   }> {
-    // Buscar patrones con cualquier keyword en común
-    const { data, error } = await this.client
-      .from('learning_patterns')
-      .select('agents_used, score, task_type, keywords, learning')
-      .overlaps('keywords', keywords)
-      .order('score', { ascending: false })
-      .limit(10);
+    try {
+      // Buscar patrones con cualquier keyword en común
+      const { data, error } = await withTimeout(
+        (async () => this.client
+          .from('learning_patterns')
+          .select('agents_used, score, task_type, keywords, learning')
+          .overlaps('keywords', keywords)
+          .order('score', { ascending: false })
+          .limit(10))(),
+        5000
+      );
 
-    if (error || !data || data.length === 0) {
-      return { boosts: {}, penalties: {}, source: 'sin historial previo' };
-    }
+      if (error || !data || data.length === 0) {
+        return { boosts: {}, penalties: {}, source: 'sin historial previo' };
+      }
 
-    const boosts:    Record<string, number> = {};
-    const penalties: Record<string, number> = {};
+      const boosts:    Record<string, number> = {};
+      const penalties: Record<string, number> = {};
 
-    for (const pattern of data) {
-      const agents = (pattern.agents_used as string[]) ?? [];
-      const score  = (pattern.score as number) ?? 0;
+      for (const pattern of data) {
+        const agents = (pattern.agents_used as string[]) ?? [];
+        const score  = (pattern.score as number) ?? 0;
 
-      if (score >= minScore) {
-        // Agentes que funcionaron bien → boost proporcional al score
-        const boost = score >= 90 ? 0.08 : score >= 80 ? 0.05 : 0.03;
-        for (const agentId of agents) {
-          boosts[agentId] = Math.max(boosts[agentId] ?? 0, boost);
-        }
-      } else if (score < penaltyBelow) {
-        // Agentes que funcionaron mal → pequeña penalización
-        const penalty = 0.03;
-        for (const agentId of agents) {
-          if (!(agentId in boosts)) { // no penalizar si en otro patrón fue bueno
-            penalties[agentId] = Math.max(penalties[agentId] ?? 0, penalty);
+        if (score >= minScore) {
+          // Agentes que funcionaron bien → boost proporcional al score
+          const boost = score >= 90 ? 0.08 : score >= 80 ? 0.05 : 0.03;
+          for (const agentId of agents) {
+            boosts[agentId] = Math.max(boosts[agentId] ?? 0, boost);
+          }
+        } else if (score < penaltyBelow) {
+          // Agentes que funcionaron mal → pequeña penalización
+          const penalty = 0.03;
+          for (const agentId of agents) {
+            if (!(agentId in boosts)) { // no penalizar si en otro patrón fue bueno
+              penalties[agentId] = Math.max(penalties[agentId] ?? 0, penalty);
+            }
           }
         }
       }
+
+      const bestPattern = data[0];
+      const source = `patrón previo "${bestPattern.task_type}" (score: ${bestPattern.score}, ${data.length} patrones similares)`;
+
+      return { boosts, penalties, source };
+    } catch (error) {
+      // Timeout o error → sin ajustes
+      console.warn(`[DB] getLearningAdjustments: timeout o error:`, error instanceof Error ? error.message : error);
+      return { boosts: {}, penalties: {}, source: 'error en consulta' };
     }
-
-    const bestPattern = data[0];
-    const source = `patrón previo "${bestPattern.task_type}" (score: ${bestPattern.score}, ${data.length} patrones similares)`;
-
-    return { boosts, penalties, source };
   }
 
   async savePattern(pattern: LearningPatternRow): Promise<string> {
@@ -355,17 +402,76 @@ export class SupabaseAgentsClient {
       // Embedding opcional — no bloquear si falla
     }
 
-    const { data, error } = await this.client
-      .from('learning_patterns')
-      .insert({
-        ...pattern,
-        ...(embedding ? { task_embedding: JSON.stringify(embedding) } : {}),
-      })
-      .select('id')
-      .single();
+    try {
+      const { data, error } = await withTimeout(
+        (async () => this.client
+          .from('learning_patterns')
+          .insert({
+            ...pattern,
+            ...(embedding ? { task_embedding: JSON.stringify(embedding) } : {}),
+          })
+          .select('id')
+          .single())(),
+        5000
+      );
 
-    if (error) throw new Error(`Error guardando patrón: ${error.message}`);
-    return data.id;
+      if (error) throw new Error(`Error guardando patrón: ${error.message}`);
+      return data.id;
+    } catch (error) {
+      // Timeout o error → log y lanzar
+      console.warn(`[DB] savePattern: error guardando patrón:`, error instanceof Error ? error.message : error);
+      throw error;
+    }
+  }
+
+  /**
+   * Guarda un patrón de aprendizaje si el score es suficientemente bueno (> 50).
+   * Esto permite que el sistema aprenda de ejecuciones exitosas para futuras coaliciones.
+   */
+  async saveLearningPattern(pattern: {
+    agentIds: string[];
+    keywords: string[];
+    score: number;
+    description: string;
+    context: Record<string, unknown>;
+  }): Promise<void> {
+    // Quality gate: solo guardar si el score es suficientemente bueno
+    if (pattern.score < 50) {
+      return;
+    }
+
+    try {
+      const patternRow: LearningPatternRow = {
+        task_type: pattern.description.split(' ').slice(0, 5).join(' '),
+        keywords: pattern.keywords,
+        agents_used: pattern.agentIds,
+        score: pattern.score,
+        learning: `Coalition successful: ${pattern.description}`,
+        gap_detected: pattern.score < 75 ? 'low_score' : undefined,
+      };
+
+      await withTimeout(this.savePattern(patternRow), 5000);
+
+      // Log success
+      await this.logEvent({
+        event_type: 'learning_pattern_saved',
+        agent: 'system',
+        description: `Patrón guardado: ${pattern.description}`,
+        metadata: {
+          agentIds: pattern.agentIds,
+          score: pattern.score,
+          keywords: pattern.keywords,
+        },
+      });
+    } catch (error) {
+      // Log error pero no fallar
+      await this.logEvent({
+        event_type: 'learning_pattern_error',
+        agent: 'system',
+        description: `Error guardando patrón: ${error instanceof Error ? error.message : 'Unknown'}`,
+        metadata: { pattern },
+      });
+    }
   }
 
   // Búsqueda semántica por vector (requiere pgvector)
@@ -484,8 +590,16 @@ export class SupabaseAgentsClient {
   // ── System Events ───────────────────────────────────────────────────────────
 
   async logEvent(event: SystemEventRow): Promise<void> {
-    const { error } = await this.client.from('system_events').insert(event);
-    if (error) console.error(`Error logging event: ${error.message}`); // No-throw: logs son opcionales
+    try {
+      const { error } = await withTimeout(
+        (async () => this.client.from('system_events').insert(event))(),
+        5000
+      );
+      if (error) console.error(`Error logging event: ${error.message}`); // No-throw: logs son opcionales
+    } catch (error) {
+      // Timeout en logging — silencioso, no bloquear
+      console.error(`[DB] logEvent timeout:`, error instanceof Error ? error.message : error);
+    }
   }
 
   // ── Health Check ────────────────────────────────────────────────────────────

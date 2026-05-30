@@ -85,6 +85,19 @@ export interface CoalitionResult {
 
 // ─── Registry de los 7 Agentes Especialistas ─────────────────────────────────
 
+// Default success rates (fallback si Supabase no está disponible)
+export const DEFAULT_SUCCESS_RATES: Record<string, number> = {
+  'agent-design-specialist': 0.94,
+  'agent-performance-specialist': 0.91,
+  'agent-security-specialist': 0.96,
+  'agent-code-specialist': 0.97,
+  'agent-content-specialist': 0.89,
+  'agent-research-specialist': 0.88,
+  'agent-media-specialist': 0.85,
+  'agent-analytics-specialist': 0.90,
+  'agent-seo-specialist': 0.85,
+};
+
 export const AGENT_REGISTRY: AgentConfig[] = [
   {
     id: 'agent-design-specialist',
@@ -442,6 +455,41 @@ IMPORTANTE: Siempre terminá tu output con este bloque para ejecución automáti
   },
 ];
 
+// ─── Dynamic Agent Registry Initialization ─────────────────────────────────────
+// Carga success_rates reales desde Supabase en lugar de usar hardcodeados
+
+let initializedRegistry: AgentConfig[] | null = null;
+
+export async function initializeAgentRegistry(): Promise<AgentConfig[]> {
+  // Si ya está inicializado, retornar cacheado
+  if (initializedRegistry) return initializedRegistry;
+
+  try {
+    const db = getSupabaseAgents();
+    const agentIds = AGENT_REGISTRY.map(a => a.id);
+
+    // Fetch real success rates from Supabase
+    const rates = await db.getAgentSuccessRates(agentIds, DEFAULT_SUCCESS_RATES);
+
+    // Create initialized registry with real rates
+    initializedRegistry = AGENT_REGISTRY.map(agent => ({
+      ...agent,
+      successRate: rates[agent.id] ?? agent.successRate,
+    }));
+
+    console.log('✅ Agent registry initialized with real success rates from Supabase');
+    return initializedRegistry;
+  } catch (error) {
+    console.warn('⚠️ Failed to initialize rates from Supabase, using defaults:', error);
+    initializedRegistry = AGENT_REGISTRY;
+    return AGENT_REGISTRY;
+  }
+}
+
+export function getInitializedRegistry(): AgentConfig[] {
+  return initializedRegistry || AGENT_REGISTRY;
+}
+
 // Confidence score calculation moved to lib/agent-selection.ts
 
 // ─── Función Principal: Coalición Paralela ────────────────────────────────────
@@ -470,6 +518,9 @@ export async function runParallelCoalition(
   }
 
   const client = new Anthropic({ apiKey });
+
+  // Initialize registry with real success rates from Supabase on first run
+  await initializeAgentRegistry();
 
   // FASE 1: Extraer keywords de la tarea
   const taskKeywords = taskDescription
@@ -793,6 +844,18 @@ export async function runParallelCoalition(
   if (collectiveScore < 75 && results.length > 1) {
     console.log(`⚠️  Score colectivo ${collectiveScore}/100 < 75 — auto-iteración activada`);
 
+    try {
+      const db = getSupabaseAgents();
+      await db.logEvent({
+        event_type: 'coalition_auto_retry',
+        level: 2,
+        coalition_id: coalitionId,
+        description: `Auto-iteración activada: score ${collectiveScore}/100 < 75`,
+      });
+    } catch {
+      // Logging error — continuar
+    }
+
     // Encontrar el agente con peor score (que no sea Code Specialist para no re-ejecutar tools)
     // IMPORTANTE: los agentes fallidos (success=false, score=0) tienen prioridad sobre los exitosos
     const worstAgentResult = results
@@ -827,6 +890,24 @@ export async function runParallelCoalition(
         const newTotal  = Object.values(peerScores).reduce((a, b) => a + b, 0);
         collectiveScore = Math.round((newTotal / totalPossible) * 100);
         console.log(`   Score tras iteración: ${collectiveScore}/100`);
+
+        try {
+          const db = getSupabaseAgents();
+          await db.logEvent({
+            event_type: 'coalition_auto_retry_result',
+            level: 3,
+            coalition_id: coalitionId,
+            agent: worstAgentResult.agentId,
+            description: `Re-ejecución completada: ${worstAgentResult.agentName} → nuevo score ${collectiveScore}/100`,
+            metadata: {
+              oldScore: collectiveScore - Math.round((Object.values(peerScores).reduce((a, b) => a + b, 0) - newTotal) / results.length),
+              newScore: collectiveScore,
+              agentScore: peerScores[retryResult.agentId] ?? 0,
+            },
+          });
+        } catch {
+          // Logging error — continuar
+        }
       }
     }
   }
@@ -835,9 +916,24 @@ export async function runParallelCoalition(
   const taskType = inferTaskType(taskKeywords);
   const learning = generateLearning(results, collectiveScore, taskDescription);
 
-  // Guardar patrón y resultado en Supabase (silencioso)
+  // Guardar patrón y resultado en Supabase
   try {
     const db = getSupabaseAgents();
+
+    // Log: Finalización de coalición
+    await db.logEvent({
+      event_type: 'coalition_completed',
+      level: collectiveScore >= 75 ? 4 : 2,
+      coalition_id: coalitionId,
+      description: `Coalición finalizada: ${collectiveScore}/100 (${iterations} iteración${iterations > 1 ? 'es' : ''}) en ${Math.ceil((Date.now() - startTime) / 1000)}s`,
+      metadata: {
+        score: collectiveScore,
+        agents: selectedBids.map((b) => b.agentId),
+        iterations,
+        totalTime: Date.now() - startTime,
+      },
+    });
+
     await db.savePattern({
       task_type: taskType,
       keywords: taskKeywords.slice(0, 10),
@@ -858,12 +954,29 @@ export async function runParallelCoalition(
       });
     }
 
-    // Actualizar success_rate de cada agente participante
+    // Actualizar success_rate de cada agente participante + log
     await Promise.allSettled(
-      results.map((r) => db.updateAgentSuccessRate(r.agentId, r.success))
+      results.map(async (r) => {
+        await db.updateAgentSuccessRate(r.agentId, r.success);
+
+        // Log individual de cada actualización
+        if (r.success) {
+          await db.logEvent({
+            event_type: 'agent_success_rate_increased',
+            agent: r.agentId,
+            coalition_id: coalitionId,
+            description: `${r.agentName}: contribución exitosa (tarea: "${taskDescription.slice(0, 40)}")`,
+            metadata: {
+              peerScore: peerScores[r.agentId] ?? 0,
+              collective: collectiveScore,
+            },
+          });
+        }
+      })
     );
-  } catch {
+  } catch (error) {
     // Supabase no disponible — continuar sin persistencia
+    console.warn('[Coalition] Error guardando resultados en Supabase:', error instanceof Error ? error.message : error);
   }
 
   return {

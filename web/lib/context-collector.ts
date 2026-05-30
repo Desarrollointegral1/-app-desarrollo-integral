@@ -49,8 +49,8 @@ const PROJECT_ROOT = path.join(
   'Projects', 'App Desarrollo integral', 'web'
 );
 
-const MAX_FILE_CHARS  = 8_000;   // Máx chars por archivo
-const MAX_TOTAL_CHARS = 40_000;  // Máx chars totales del contexto
+const MAX_FILE_CHARS  = 15_000;  // Máx chars por archivo (expandido de 8k a 15k)
+const MAX_TOTAL_CHARS = 120_000; // Máx chars totales del contexto (expandido de 40k a 120k)
 const MIN_KEYWORD_LEN = 4;       // Keywords de al menos 4 chars para matchear
 
 // Archivos que SIEMPRE se incluyen (contexto base del proyecto)
@@ -189,6 +189,46 @@ function findFilesByKeyword(keyword: string, discovered: DiscoveredFile[]): stri
   return matches;
 }
 
+/**
+ * Prioriza archivos por: 1) keywords exactos, 2) recencia, 3) tamaño.
+ * Los archivos más relevantes se incluyen primero con más contexto.
+ */
+function prioritizeFiles(
+  candidates: string[],
+  taskKeywords: string[]
+): { path: string; priority: number }[] {
+  return candidates
+    .map((filePath) => {
+      let priority = 0;
+
+      // Bonus por keywords exactos en ruta
+      for (const kw of taskKeywords) {
+        if (filePath.toLowerCase().includes(kw)) {
+          priority += 2; // Bonus alto por match exacto
+          break;
+        }
+      }
+
+      // Bonus por ser en /app vs /lib (usuários-facing antes de internals)
+      if (filePath.startsWith('app/')) priority += 1;
+
+      // Bonus por ser página vs componente (páginas más importantes)
+      if (filePath.endsWith('page.tsx')) priority += 3;
+
+      // Penalidad por ser archivo de configuración (incluir pero después)
+      if (
+        filePath.includes('config') ||
+        filePath.includes('next.') ||
+        filePath.endsWith('globals.css')
+      ) {
+        priority -= 1;
+      }
+
+      return { path: filePath, priority };
+    })
+    .sort((a, b) => b.priority - a.priority);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function readFileSafe(relativePath: string, maxChars: number): FileSnapshot | null {
@@ -280,21 +320,34 @@ export async function collectProjectContext(
   }
 
   // 2. Descubrimiento dinámico: keywords → archivos reales en disco
+  // Recolectar todos los candidatos primero
+  const dynamicCandidates: string[] = [];
   for (const keyword of taskKeywords) {
-    if (totalChars >= MAX_TOTAL_CHARS) break;
-    const dynamicMatches = findFilesByKeyword(keyword, discovered);
-    for (const filePath of dynamicMatches) {
+    const matches = findFilesByKeyword(keyword, discovered);
+    dynamicCandidates.push(...matches);
+  }
+
+  // Priorizar y agregar en orden de relevancia
+  if (dynamicCandidates.length > 0) {
+    const prioritized = prioritizeFiles([...new Set(dynamicCandidates)], taskKeywords);
+    for (const { path } of prioritized) {
       if (totalChars >= MAX_TOTAL_CHARS) break;
-      addFile(filePath);
+      addFile(path);
     }
   }
 
   // 3. Mapeo semántico (solo para keywords que no matchean nombres de archivo)
+  const semanticCandidates: string[] = [];
   for (const [keyword, files] of Object.entries(SEMANTIC_MAP)) {
     if (!taskLower.includes(keyword)) continue;
-    for (const filePath of files) {
+    semanticCandidates.push(...files);
+  }
+
+  if (semanticCandidates.length > 0) {
+    const prioritized = prioritizeFiles([...new Set(semanticCandidates)], taskKeywords);
+    for (const { path } of prioritized) {
       if (totalChars >= MAX_TOTAL_CHARS) break;
-      addFile(filePath);
+      addFile(path);
     }
   }
 
@@ -349,10 +402,14 @@ function buildContextSummary(
   routes: string[],
   totalChars: number
 ): string {
+  const utilization = ((totalChars / MAX_TOTAL_CHARS) * 100).toFixed(1);
+  const remaining = MAX_TOTAL_CHARS - totalChars;
+
   return [
-    `📁 Contexto recolectado: ${files.length} archivos (${(totalChars / 1000).toFixed(1)}k chars)`,
-    `   Archivos: ${files.map((f) => f.relativePath).join(', ')}`,
-    `   Componentes en disco: ${components.length} (${components.slice(0, 6).join(', ')}${components.length > 6 ? '...' : ''})`,
-    `   Rutas: ${routes.join(', ')}`,
+    `📁 Contexto recolectado: ${files.length} archivos (${(totalChars / 1000).toFixed(1)}k / ${(MAX_TOTAL_CHARS / 1000).toFixed(0)}k = ${utilization}%)`,
+    `   Espacio disponible: ${(remaining / 1000).toFixed(1)}k chars restantes`,
+    `   Archivos incluidos: ${files.map((f) => f.relativePath).join(', ')}`,
+    `   Componentes en disco: ${components.length} total`,
+    `   Rutas: ${routes.join(', ') || '/'}`,
   ].join('\n');
 }

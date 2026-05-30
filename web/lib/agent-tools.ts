@@ -308,6 +308,39 @@ export function executeTool(
   }
 }
 
+// ─── Merge inteligente de código cuando múltiples tools escriben al mismo archivo ────
+
+function mergeCodeFixes(writtenFiles: FileWrite[]): FileWrite[] {
+  const fileMap = new Map<string, FileWrite[]>();
+
+  // Agrupar por path
+  for (const file of writtenFiles) {
+    if (!fileMap.has(file.path)) {
+      fileMap.set(file.path, []);
+    }
+    fileMap.get(file.path)!.push(file);
+  }
+
+  const merged: FileWrite[] = [];
+
+  // Procesar cada archivo
+  for (const [path, versions] of fileMap.entries()) {
+    if (versions.length === 1) {
+      // Sin conflicto — usar la versión única
+      merged.push(versions[0]);
+    } else {
+      // Múltiples writes al mismo archivo — usar heurística
+      // Estrategia: usar la versión más larga (asumiendo que es la más completa)
+      const best = versions.reduce((prev, curr) => {
+        return curr.content.length > prev.content.length ? curr : prev;
+      });
+      merged.push(best);
+    }
+  }
+
+  return merged;
+}
+
 // ─── QA automático post-ejecución ────────────────────────────────────────────
 //
 // Se ejecuta después de que Code Specialist termina su loop agéntico.
@@ -493,25 +526,38 @@ export async function runCodeSpecialistWithTools(
       // Agregar respuesta del asistente al historial
       messages.push({ role: 'assistant', content: response.content });
 
-      // Ejecutar cada herramienta y agregar resultados
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      // Ejecutar todas las herramientas en PARALELO (no secuencial)
+      const toolResultsWithMetadata = await Promise.all(
+        toolUseBlocks.map(async (toolUse) => {
+          const result = executeTool(
+            toolUse.name,
+            toolUse.input as Record<string, string>
+          );
+          return {
+            tool_use_id: toolUse.id,
+            toolName: toolUse.name,
+            content: result.content,
+            writtenFiles: result.writtenFiles || [],
+          };
+        })
+      );
 
-      for (const toolUse of toolUseBlocks) {
-        const result = executeTool(
-          toolUse.name,
-          toolUse.input as Record<string, string>
-        );
-
-        if (result.writtenFiles) {
-          allWrittenFiles.push(...result.writtenFiles);
-        }
-
-        toolResults.push({
-          type:        'tool_result',
-          tool_use_id: toolUse.id,
-          content:     result.content,
-        });
+      // Agregar todos los archivos escritos (después de la paralelización)
+      const writtenThisRound = toolResultsWithMetadata.flatMap((item) => item.writtenFiles);
+      if (writtenThisRound.length > 0) {
+        // Merge inteligente en caso de múltiples writes al mismo archivo
+        const merged = mergeCodeFixes(writtenThisRound);
+        allWrittenFiles.push(...merged);
       }
+
+      // Formatear resultados para API
+      const toolResults: Anthropic.ToolResultBlockParam[] = toolResultsWithMetadata.map(
+        (item) => ({
+          type: 'tool_result',
+          tool_use_id: item.tool_use_id,
+          content: item.content,
+        })
+      );
 
       messages.push({ role: 'user', content: toolResults });
       continue;
