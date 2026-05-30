@@ -12,14 +12,53 @@
 
 import type { AgentConfig, AgentBid } from './parallel-agents';
 
+// ─── Pesos dinámicos de confidence ────────────────────────────────────────────
+
+interface ConfidenceWeights {
+  keyword: number;
+  domain: number;
+  successRate: number;
+}
+
+// Pesos INICIALES — cuando no hay suficientes datos reales
+const INITIAL_WEIGHTS: ConfidenceWeights = {
+  keyword: 0.50,
+  domain: 0.35,
+  successRate: 0.15,
+};
+
+// Pesos CON DATOS REALES — cuando agentes tienen > 100 ejecuciones cada uno
+// El success_rate se vuelve mucho más importante (0.50 vs 0.15)
+const REAL_DATA_WEIGHTS: ConfidenceWeights = {
+  keyword: 0.25,
+  domain: 0.25,
+  successRate: 0.50,
+};
+
+/**
+ * Selecciona pesos basado en si hay datos reales disponibles.
+ * Con > 100 ejecuciones por agente, el success_rate es crucial.
+ */
+function selectWeights(agent: AgentConfig): ConfidenceWeights {
+  // TODO: una vez que tengamos datos reales, cambiar a:
+  // const hasRealData = (agent.dataPoints ?? 0) > 100;
+  // return hasRealData ? REAL_DATA_WEIGHTS : INITIAL_WEIGHTS;
+
+  // POR AHORA: usar pesos iniciales (sin datos reales aún)
+  return INITIAL_WEIGHTS;
+}
+
 /**
  * Calcula confidence score para un agente basado en:
- * - Keyword matches (50%)
- * - Domain match (35%)
- * - Historical success rate (15%)
+ * - Keyword matches
+ * - Domain match
+ * - Historical success rate
+ *
+ * Pesos adaptativos: con datos reales, el success_rate importa más.
  */
 export function calculateConfidence(agent: AgentConfig, taskKeywords: string[]): number {
   const taskLower = taskKeywords.map((k) => k.toLowerCase());
+  const weights = selectWeights(agent);
 
   // Keyword matches — flexible: substring + raíz española (5 chars)
   const agentKeywordsLower = agent.keywords.map((k) => k.toLowerCase());
@@ -37,16 +76,16 @@ export function calculateConfidence(agent: AgentConfig, taskKeywords: string[]):
   // Normalizar por el que dé mayor score
   const byTask  = matches / Math.max(taskLower.length, 1);
   const byAgent = matches / Math.max(agentKeywordsLower.length, 1);
-  const keywordScore = Math.min(Math.max(byTask, byAgent), 1) * 0.5;
+  const keywordScore = Math.min(Math.max(byTask, byAgent), 1) * weights.keyword;
 
   // Domain detection
   const domainMatch = agent.domains.some((d) =>
     taskLower.some((tk) => tk.includes(d) || d.includes(tk))
   );
-  const domainScore = domainMatch ? 0.35 : 0;
+  const domainScore = domainMatch ? weights.domain : 0;
 
-  // Historical success rate
-  const successScore = agent.successRate * 0.15;
+  // Historical success rate (dinámico según pesos)
+  const successScore = agent.successRate * weights.successRate;
 
   return keywordScore + domainScore + successScore;
 }
