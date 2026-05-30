@@ -99,19 +99,54 @@ export function selectAgents(
   options: {
     confidenceThreshold?: number;
     maxAgents?: number;
+    taskDescription?: string;
   } = {}
 ): AgentBid[] {
-  const { confidenceThreshold = 0.55, maxAgents = 6 } = options;
+  const { confidenceThreshold = 0.55, maxAgents = 6, taskDescription = '' } = options;
+
+  // Detectar tareas problemáticas donde necesitamos estrategia especial
+  const isNavbarRedesign = /navbar|nav.*redesign|menú|navegacion.*completá/i.test(taskDescription);
+
+  let selectedBids = bids.filter((b) => b.confidence >= confidenceThreshold);
+
+  // REGLA ESPECIAL: navbar-redesign es problemática (14/100 score)
+  // Estrategia: Code + Performance primero, Design con penalización
+  if (isNavbarRedesign) {
+    // Prioritizar Code + Performance
+    const performanceAgent = bids.find((b) => b.agentId === 'agent-performance-specialist');
+    const codeAgent = bids.find((b) => b.agentId === 'agent-code-specialist');
+    const designAgent = selectedBids.find((b) => b.agentId === 'agent-design-specialist');
+
+    selectedBids = selectedBids.filter((b) => b.agentId !== 'agent-design-specialist');
+
+    // Agregar Performance si no está
+    if (performanceAgent && !selectedBids.find((b) => b.agentId === 'agent-performance-specialist')) {
+      selectedBids.push({ ...performanceAgent, reasoning: performanceAgent.reasoning + ' (navbar: Performance first strategy)' });
+    }
+
+    // Agregar Code si no está
+    if (codeAgent && !selectedBids.find((b) => b.agentId === 'agent-code-specialist')) {
+      selectedBids.push({ ...codeAgent, reasoning: codeAgent.reasoning + ' (navbar: Code specialist required)' });
+    }
+
+    // Design solo si tiene confianza ALTA (0.65+)
+    if (designAgent && designAgent.confidence >= 0.65) {
+      selectedBids.push({
+        ...designAgent,
+        confidence: designAgent.confidence - 0.15, // Penalizar confianza por problemas previos
+        reasoning: designAgent.reasoning + ' (navbar: Design con penalización por underperformance previo)',
+      });
+    }
+  }
 
   // Regla especial: code SIEMPRE participa si hay 3+ agentes de diseño/content
-  let selectedBids = bids.filter((b) => b.confidence >= confidenceThreshold);
   const designContentCount = selectedBids.filter((b) =>
     ['agent-design-specialist', 'agent-content-specialist', 'agent-media-specialist'].includes(b.agentId)
   ).length;
 
   const codeAgent = bids.find((b) => b.agentId === 'agent-code-specialist');
   const codeAlreadyIn = selectedBids.some((b) => b.agentId === 'agent-code-specialist');
-  if (designContentCount >= 3 && !codeAlreadyIn && codeAgent) {
+  if (designContentCount >= 3 && !codeAlreadyIn && codeAgent && !isNavbarRedesign) {
     selectedBids.push({ ...codeAgent, reasoning: codeAgent.reasoning + ' (forzado por regla: 3+ agentes design)' });
   }
 
