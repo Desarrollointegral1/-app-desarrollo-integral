@@ -124,7 +124,7 @@ export class GitHubSync {
   /**
    * Configura sincronización automática cada N horas
    */
-  static async setupAutoSync(intervalHours: number = 6): Promise<NodeJS.Timer> {
+  static async setupAutoSync(intervalHours: number = 6): Promise<NodeJS.Timeout> {
     console.log(`⏰ Configurando auto-sync de GitHub cada ${intervalHours} horas...`);
 
     // Sincronizar inmediatamente
@@ -151,7 +151,7 @@ export class GitHubSync {
 }
 
 // Auto-sync en el servidor (opcional - se ejecuta una sola vez)
-let syncTimer: NodeJS.Timer | null = null;
+let syncTimer: NodeJS.Timeout | null = null;
 
 export async function initializeGitHubSync(): Promise<void> {
   if (syncTimer) return; // Ya inicializado

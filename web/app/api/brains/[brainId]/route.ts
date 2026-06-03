@@ -6,11 +6,12 @@ import { getBrainFactory } from '@/lib/brain-factory';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { brainId: string } }
+  { params }: { params: Promise<{ brainId: string }> }
 ) {
   try {
     const factory = getBrainFactory();
-    const brain = await factory.getBrain(params.brainId);
+    const resolvedParams = await params;
+    const brain = await factory.getBrain(resolvedParams.brainId);
 
     if (!brain) {
       return NextResponse.json(
@@ -20,7 +21,7 @@ export async function GET(
     }
 
     // Obtener métricas
-    const metrics = await factory.getBrainMetrics(params.brainId);
+    const metrics = await factory.getBrainMetrics(resolvedParams.brainId);
 
     return NextResponse.json({
       status: 'success',
@@ -46,7 +47,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { brainId: string } }
+  { params }: { params: Promise<{ brainId: string }> }
 ) {
   try {
     const body = await request.json();
@@ -60,9 +61,10 @@ export async function POST(
     }
 
     const factory = getBrainFactory();
+    const resolvedParams = await params;
 
     // Validar que el brain existe
-    const brain = await factory.getBrain(params.brainId);
+    const brain = await factory.getBrain(resolvedParams.brainId);
     if (!brain) {
       return NextResponse.json(
         { status: 'error', message: 'Brain not found' },
@@ -72,7 +74,7 @@ export async function POST(
 
     // Agregar documento
     const document = await factory.addDocument(
-      params.brainId,
+      resolvedParams.brainId,
       title,
       content,
       source,
