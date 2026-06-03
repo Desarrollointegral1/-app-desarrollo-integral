@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
+import { initializeBrainFactory } from "@/lib/brain-factory";
 import "./globals.css";
+
+// Inicializar Brain Factory (solo en servidor)
+if (process.env.NODE_ENV === "development") {
+  initializeBrainFactory().catch(console.error);
+}
 
 export const metadata: Metadata = {
   title: "Desarrollo Integral — Centro de Entrenamiento",
