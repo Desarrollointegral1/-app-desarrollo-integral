@@ -1,6 +1,7 @@
 # 🧠 CEREBRO — Sistema de Agentes Autónomos
-**Última actualización:** 2026-05-29
+**Última actualización:** 2026-06-03
 **Estado:** 🟢 Operativo | Score promedio: 81-92/100
+**Configuración de modelos:** 🎯 **Todos usan Sonnet (máxima calidad)**
 
 ---
 
@@ -16,19 +17,22 @@ El sistema aprende con cada ejecución: guarda patrones en Supabase, construye e
 
 | Agente | Emoji | Modelo | Especialidad |
 |---|---|---|---|
-| `agent-code-specialist` | 💻 | Sonnet (siempre) | Escribe archivos reales al disco, QA automático |
-| `agent-security-specialist` | 🔒 | Sonnet (siempre) | Auditoría crítica, vulnerabilidades, headers |
-| `agent-design-specialist` | 🎨 | Sonnet si complejo | UI/UX, jerarquía visual, conversion |
-| `agent-performance-specialist` | ⚡ | Sonnet si complejo | FCP, LCP, bundle, fonts, video |
-| `agent-analytics-specialist` | 📊 | Sonnet si complejo | Funnel, tracking, métricas, bounce |
-| `agent-content-specialist` | ✍️ | Haiku (siempre) | Copy, micro-copy, CTA, propuesta de valor |
-| `agent-research-specialist` | 🔍 | Haiku (siempre) | Benchmarks, competencia, datos de industria |
-| `agent-media-specialist` | 🎥 | Haiku (siempre) | Video, imágenes, assets multimedia |
+| `agent-code-specialist` | 💻 | **Sonnet** | Escribe archivos reales al disco, QA automático |
+| `agent-security-specialist` | 🔒 | **Sonnet** | Auditoría crítica, vulnerabilidades, headers |
+| `agent-design-specialist` | 🎨 | **Sonnet** | UI/UX, jerarquía visual, conversion |
+| `agent-performance-specialist` | ⚡ | **Sonnet** | FCP, LCP, bundle, fonts, video |
+| `agent-analytics-specialist` | 📊 | **Sonnet** | Funnel, tracking, métricas, bounce |
+| `agent-content-specialist` | ✍️ | **Sonnet** | Copy, micro-copy, CTA, propuesta de valor |
+| `agent-research-specialist` | 🔍 | **Sonnet** | Benchmarks, competencia, datos de industria |
+| `agent-media-specialist` | 🎥 | **Sonnet** | Video, imágenes, assets multimedia |
 
-**Regla de modelos:**
-- Code + Security → siempre Sonnet (generan código que se implementa directo)
-- Design + Performance + Analytics → Sonnet en tareas complejas, Haiku en simples
-- Content + Research + Media → siempre Haiku (texto de calidad, sin razonamiento profundo)
+**Regla de modelos (actualizada 2026-06-03):**
+- ✅ **Todos los agentes usan Sonnet siempre**
+- Rationale: Máxima calidad en todos los outputs
+- Parallelismo (Promise.all) hace que la velocidad individual no sea crítica
+- Sonnet tiene razonamiento superior para todas las tareas
+- Auto-iteración y self-correction funcionan mejor con Sonnet
+- Consistencia de calidad en todos los resultados
 
 ---
 
@@ -38,7 +42,7 @@ El sistema aprende con cada ejecución: guarda patrones en Supabase, construye e
 FASE 1 — Routing (instantáneo)
   ↓ Recibe tarea → score de confidence por agente
   ↓ Selecciona agentes con confidence > 50%
-  ↓ Asigna modelos por rol + complejidad
+  ↓ Asigna Sonnet a todos los agentes (máxima calidad)
 
 FASE 2 — Ronda 1: Agentes de análisis en paralelo (Promise.all)
   ↓ Design + Security + Analytics + Performance + Research + Media + Content
