@@ -213,8 +213,7 @@ export class BrainFactory {
       const aiResponse = await notebookLM.generateResponse(
         question,
         brain.domain,
-        relevantDocs,
-        brain.systemPrompt
+        relevantDocs
       );
       const responseTime = Date.now() - startTime;
 

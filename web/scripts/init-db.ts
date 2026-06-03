@@ -46,7 +46,7 @@ async function initDB() {
     for (const stmt of statements) {
       try {
         // Usar RPC si es disponible, sino usar el admin client directo
-        const { error } = await supabase.rpc('exec_sql', { statement: stmt }).throwOnError().catch(() => ({ error: null }));
+        await supabase.rpc('exec_sql', { statement: stmt });
         successCount++;
       } catch (e) {
         // Continuar - los statements pueden fallar si ya existen

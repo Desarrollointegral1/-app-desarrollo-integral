@@ -7,7 +7,7 @@ import { getBrainFactory } from '@/lib/brain-factory';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { brainId: string } }
+  { params }: { params: Promise<{ brainId: string }> }
 ) {
   try {
     const body = await request.json();
@@ -21,9 +21,10 @@ export async function POST(
     }
 
     const factory = getBrainFactory();
+    const resolvedParams = await params;
 
     // Validar que el brain existe
-    const brain = await factory.getBrain(params.brainId);
+    const brain = await factory.getBrain(resolvedParams.brainId);
     if (!brain) {
       return NextResponse.json(
         { status: 'error', message: 'Brain not found' },
@@ -32,7 +33,7 @@ export async function POST(
     }
 
     // Procesar la query
-    const query = await factory.queryBrain(params.brainId, question);
+    const query = await factory.queryBrain(resolvedParams.brainId, question);
 
     return NextResponse.json({
       status: 'success',
