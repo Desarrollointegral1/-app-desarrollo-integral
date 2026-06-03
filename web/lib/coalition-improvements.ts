@@ -20,6 +20,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { getCentralMemory } from './central-memory';
 import { getMessageBroker } from './swarm/message-broker';
@@ -30,6 +31,71 @@ const PeerEvaluationResponseSchema = z.object({
   score: z.number().min(0).max(25).default(13),
   feedback: z.string().max(500).default('No disponible'),
 });
+
+// ─── MEJORA 5: Peer Evaluation Cache ──────────────────────────────────────
+// Cache en memoria con hash de outputs + 5s TTL para evitar re-evaluaciones
+
+interface CacheEntry {
+  score: number;
+  feedback: string;
+  timestamp: number;
+}
+
+const PEER_EVAL_CACHE = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5000; // 5 segundos
+
+function hashAgentOutput(output: string): string {
+  return crypto.createHash('sha256').update(output).digest('hex');
+}
+
+function getCacheKey(evaluatorId: string, outputHash: string): string {
+  return `${evaluatorId}:${outputHash}`;
+}
+
+function getCachedScore(
+  evaluatorId: string,
+  targetOutput: string
+): CacheEntry | null {
+  const hash = hashAgentOutput(targetOutput);
+  const key = getCacheKey(evaluatorId, hash);
+  const cached = PEER_EVAL_CACHE.get(key);
+
+  if (!cached) return null;
+
+  const age = Date.now() - cached.timestamp;
+  if (age > CACHE_TTL_MS) {
+    PEER_EVAL_CACHE.delete(key);
+    return null;
+  }
+
+  return cached;
+}
+
+function cacheScore(
+  evaluatorId: string,
+  targetOutput: string,
+  score: number,
+  feedback: string
+): void {
+  const hash = hashAgentOutput(targetOutput);
+  const key = getCacheKey(evaluatorId, hash);
+
+  PEER_EVAL_CACHE.set(key, {
+    score,
+    feedback,
+    timestamp: Date.now(),
+  });
+
+  // Cleanup: eliminar entradas expiradas cada 100 inserts
+  if (PEER_EVAL_CACHE.size % 100 === 0) {
+    const now = Date.now();
+    for (const [k, v] of PEER_EVAL_CACHE) {
+      if (now - v.timestamp > CACHE_TTL_MS) {
+        PEER_EVAL_CACHE.delete(k);
+      }
+    }
+  }
+}
 
 // ─── MEJORA 2: Agent Communication Channel ────────────────────────────────
 
@@ -288,43 +354,58 @@ export async function evaluateAgentPeers(
         if (!target || !target.success) continue;
 
         try {
-          // Claude Haiku evalúa (económico + rápido)
-          const response = await client.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 200,
-            system: evaluatorPrompt,
-            messages: [{
-              role: 'user',
-              content: `TAREA: "${task}"
+          // ── MEJORA 5: Check cache primero ──
+          const cached = getCachedScore(evaluatorId, target.output);
+          let score = 13;
+          let feedback = '';
+
+          if (cached) {
+            // ✅ Cache hit — usar score cacheado
+            score = cached.score;
+            feedback = cached.feedback;
+            // console.log(`[Cache] Peer eval ${evaluatorId} → ${targetId}: ${score}/25 (cached)`);
+          } else {
+            // ❌ Cache miss — llamar a Claude
+            // Claude Haiku evalúa (económico + rápido)
+            const response = await client.messages.create({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 200,
+              system: evaluatorPrompt,
+              messages: [{
+                role: 'user',
+                content: `TAREA: "${task}"
 
 TRABAJO A EVALUAR (${target.agentName}):
 ${target.output.slice(0, 800)}
 
 Evalúa. Dale score 0-25. Una justificación brevísima.`,
-            }],
-          });
+              }],
+            });
 
-          const feedbackBlock = response.content[0];
-          const feedback = feedbackBlock && 'text' in feedbackBlock ? feedbackBlock.text : '';
+            const feedbackBlock = response.content[0];
+            feedback = feedbackBlock && 'text' in feedbackBlock ? feedbackBlock.text : '';
 
-          // Parser robusto: busca "score: XX" o solo números, con fallback seguro
-          let score = 13; // default
-          const scorePatterns = [
-            /score\s*[:=]\s*(\d{1,2})/i,  // "score: 18" o "score=18"
-            /(\d{1,2})[\/\-]\s*25/,        // "18/25" o "18-25"
-            /^(\d{1,2})$/m,                // línea con solo número
-            /(\d{1,2})/                    // cualquier número
-          ];
+            // Parser robusto: busca "score: XX" o solo números, con fallback seguro
+            const scorePatterns = [
+              /score\s*[:=]\s*(\d{1,2})/i,  // "score: 18" o "score=18"
+              /(\d{1,2})[\/\-]\s*25/,        // "18/25" o "18-25"
+              /^(\d{1,2})$/m,                // línea con solo número
+              /(\d{1,2})/                    // cualquier número
+            ];
 
-          for (const pattern of scorePatterns) {
-            const match = feedback.match(pattern);
-            if (match && match[1]) {
-              const parsed = parseInt(match[1], 10);
-              if (!isNaN(parsed)) {
-                score = Math.min(25, Math.max(0, parsed));
-                break;
+            for (const pattern of scorePatterns) {
+              const match = feedback.match(pattern);
+              if (match && match[1]) {
+                const parsed = parseInt(match[1], 10);
+                if (!isNaN(parsed)) {
+                  score = Math.min(25, Math.max(0, parsed));
+                  break;
+                }
               }
             }
+
+            // ── MEJORA 5: Guardar en cache ──
+            cacheScore(evaluatorId, target.output, score, feedback);
           }
 
           // Acumular evaluación

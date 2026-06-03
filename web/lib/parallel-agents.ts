@@ -35,6 +35,7 @@ export interface AgentConfig {
   systemPrompt: string;
   successRate: number;
   avgMinutes: number;
+  dataPoints?: number; // MEJORA 9: Contar de ejecuciones reales (para adaptive weights)
 }
 
 export interface AgentBid {

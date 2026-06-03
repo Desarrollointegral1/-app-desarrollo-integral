@@ -38,13 +38,22 @@ const REAL_DATA_WEIGHTS: ConfidenceWeights = {
 /**
  * Selecciona pesos basado en si hay datos reales disponibles.
  * Con > 100 ejecuciones por agente, el success_rate es crucial.
+ *
+ * MEJORA 9: Adaptive Confidence Weights
+ * - Sin datos (<100 ejecuciones): Confiar en keywords + domain
+ * - Con datos (≥100 ejecuciones): Confiar más en success_rate histórico
  */
 function selectWeights(agent: AgentConfig): ConfidenceWeights {
-  // TODO: una vez que tengamos datos reales, cambiar a:
-  // const hasRealData = (agent.dataPoints ?? 0) > 100;
-  // return hasRealData ? REAL_DATA_WEIGHTS : INITIAL_WEIGHTS;
+  const hasRealData = (agent.dataPoints ?? 0) >= 100;
 
-  // POR AHORA: usar pesos iniciales (sin datos reales aún)
+  if (hasRealData) {
+    // ✅ Agente tiene datos reales → success_rate es CRÍTICO
+    console.log(`[Weights] ${agent.name}: REAL DATA (${agent.dataPoints} ejecuciones) → success_rate weight=0.50`);
+    return REAL_DATA_WEIGHTS;
+  }
+
+  // ⏳ Agente es nuevo o sin suficientes datos → usar keywords/domain como señales
+  console.log(`[Weights] ${agent.name}: NO DATA (${agent.dataPoints ?? 0} ejecuciones) → keyword weight=0.50`);
   return INITIAL_WEIGHTS;
 }
 
