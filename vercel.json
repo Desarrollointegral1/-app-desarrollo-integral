@@ -1,11 +1,7 @@
 {
-  "projects": [
-    {
-      "name": "desarrollo-integral",
-      "root": "web",
-      "settings": {
-        "framework": "nextjs"
-      }
-    }
-  ]
+  "root": "web",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
 }
