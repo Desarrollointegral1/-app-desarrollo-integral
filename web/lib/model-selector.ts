@@ -1,18 +1,18 @@
 /**
  * ============================================================
- * MODEL SELECTOR — Agente que decide el modelo por agente
+ * MODEL SELECTOR — Asigna el mejor modelo para cada agente
  * ============================================================
  *
- * Cada agente de la coalición recibe el modelo óptimo para su
- * tipo de trabajo. No todos necesitan el mismo.
+ * CONFIGURACIÓN: TODOS LOS AGENTES USAN SONNET SIEMPRE
  *
- * REGLA GENERAL:
- *   - Trabajo complejo (código real, diseño técnico, seguridad) → Sonnet
- *   - Trabajo rápido (copy, research, specs de media)          → Haiku
+ * Rationale:
+ *   - Sonnet: máxima calidad en todos los outputs
+ *   - Sin compromiso de velocidad (paralelo + cache)
+ *   - Razonamiento superior en todas las tareas
+ *   - Auto-corrección y auto-iteración más efectiva
  *
- * El selector también considera la complejidad de la tarea:
- * una tarea simple de contenido no necesita Sonnet aunque la
- * haga el Code Specialist.
+ * Antes: Mix Sonnet/Haiku por tipo de agente
+ * Ahora: Siempre Sonnet para máxima consistencia
  * ============================================================
  */
 
@@ -48,38 +48,27 @@ const USES_GPT = new Set([
   'agent-analytics-specialist',   // Análisis de datos: GPT-4o
 ]);
 
-// ─── Agentes que siempre usan Sonnet ─────────────────────────────────────────
-// Estos agentes generan output que se implementa directamente → necesitan precisión
+// ─── TODOS LOS AGENTES USAN SONNET SIEMPRE ───────────────────────────────────
+// Decisión: Máxima calidad sin compromisos
+// - Paralelo hace que la velocidad no sea crítica
+// - Razonamiento superior en todas las tareas
+// - Auto-iteración más efectiva
 
-const ALWAYS_SONNET = new Set([
-  'agent-security-specialist',    // Auditoría crítica — un error = vulnerabilidad
-]);
-
-// ─── Agentes que usan Sonnet en tareas complejas, Haiku en simples ────────────
-
-const SONNET_ON_COMPLEX = new Set([
-  'agent-design-specialist',      // Specs detalladas de UI/UX
-  'agent-performance-specialist', // Análisis técnico de bottlenecks
-  'agent-analytics-specialist',   // Interpretación de métricas
-]);
-
-// ─── Agentes que siempre usan Haiku ──────────────────────────────────────────
-// Generan texto de calidad sin necesitar razonamiento profundo
-
-const ALWAYS_HAIKU = new Set([
-  'agent-content-specialist',  // Copy y texto de marca
-  'agent-research-specialist', // Research y benchmarks
-  'agent-media-specialist',    // Specs de assets multimedia
-  'agent-fitness-specialist',  // Validación de dominio fitness — texto especializado
-  'agent-creative-media',      // Refinamiento de prompts + coordinación con FAL.ai
-  'agent-video-producer',      // Producción completa de video — planificación y pipeline
-]);
-
-// ─── SEO usa Sonnet en tareas complejas (auditoría técnica) ──────────────────
-// SEO técnico (schema, sitemap, Core Web Vitals) requiere razonamiento preciso
-
-const SONNET_ON_COMPLEX_EXTRA = new Set([
-  'agent-seo-specialist',     // Auditoría técnica SEO + implementación schema.org
+const ALL_AGENTS = new Set([
+  // Core agents (Charles ecosystem)
+  'agent-code-specialist',        // Implementación crítica
+  'agent-security-specialist',    // Auditoría crítica
+  'agent-design-specialist',      // Specs visuales complejas
+  'agent-performance-specialist', // Análisis técnico
+  'agent-analytics-specialist',   // Interpretación de datos
+  'agent-content-specialist',     // Copy de marca
+  'agent-research-specialist',    // Research y benchmarks
+  'agent-media-specialist',       // Specs de assets
+  // Extended agents
+  'agent-fitness-specialist',     // Dominio fitness
+  'agent-creative-media',         // Refinamiento de prompts
+  'agent-video-producer',         // Producción video
+  'agent-seo-specialist',         // Auditoría técnica SEO
 ]);
 
 // ─── Detección de complejidad de tarea ───────────────────────────────────────
@@ -116,59 +105,19 @@ export function selectModels(
   agentIds: string[],
   taskDescription: string
 ): Record<string, ModelAssignment> {
-  const complex = isComplexTask(taskDescription);
   const assignments: Record<string, ModelAssignment> = {};
-  const hasOpenAI = !!OPENAI_KEY && process.env.OPENAI_API_KEY;
 
   for (const agentId of agentIds) {
-    let model: ModelName;
-    let provider: Provider;
-    let reasoning: string;
+    // ─── TODOS LOS AGENTES USAN SONNET ───────────────────────────────────────
+    // Decisión: Máxima calidad en todos los outputs
+    // - Paralelo hace que la velocidad no sea crítica (ejecutamos en paralelo)
+    // - Sonnet tiene razonamiento superior en TODAS las tareas
+    // - Auto-iteración y self-correction funcionan mejor con Sonnet
+    // - Consistencia en calidad de outputs
 
-    // ─── Lógica La Granja: usar GPT-4o cuando está disponible y apropiado ──
-    if (hasOpenAI && USES_GPT.has(agentId) && complex) {
-      // Code Specialist en tarea pesada → GPT-4o (Codex)
-      if (agentId === 'agent-code-specialist') {
-        model     = MODELS.GPT_4O;
-        provider  = 'openai';
-        reasoning = 'GPT-4o (Codex) — refactor pesado, OpenAI disponible';
-      }
-      // Design Specialist en auditoría → GPT-4o Vision
-      else if (agentId === 'agent-design-specialist') {
-        model     = MODELS.GPT_VISION;
-        provider  = 'openai';
-        reasoning = 'GPT-4o Vision — análisis visual complejo, OpenAI disponible';
-      }
-      // Analytics en análisis de datos → GPT-4o
-      else if (agentId === 'agent-analytics-specialist') {
-        model     = MODELS.GPT_4O;
-        provider  = 'openai';
-        reasoning = 'GPT-4o — análisis de datos complejo, OpenAI disponible';
-      }
-      else {
-        model     = MODELS.SONNET;
-        provider  = 'claude';
-        reasoning = 'Sonnet — fallback, tarea compleja';
-      }
-    }
-    // ─── Fallback: Claude default ──
-    else if (ALWAYS_SONNET.has(agentId)) {
-      model     = MODELS.SONNET;
-      provider  = 'claude';
-      reasoning = 'Siempre Sonnet — genera código/auditoría crítica';
-    } else if (ALWAYS_HAIKU.has(agentId)) {
-      model     = MODELS.HAIKU;
-      provider  = 'claude';
-      reasoning = 'Siempre Haiku — texto, suficiente velocidad';
-    } else if (SONNET_ON_COMPLEX.has(agentId) || SONNET_ON_COMPLEX_EXTRA.has(agentId)) {
-      model     = complex ? MODELS.SONNET : MODELS.HAIKU;
-      provider  = 'claude';
-      reasoning = complex ? 'Sonnet — complejo' : 'Haiku — simple';
-    } else {
-      model     = MODELS.HAIKU;
-      provider  = 'claude';
-      reasoning = 'Haiku — agente de texto';
-    }
+    const model    = MODELS.SONNET;
+    const provider = 'claude';
+    const reasoning = 'Sonnet siempre — máxima calidad en todos los agentes';
 
     assignments[agentId] = { agentId, model, provider, reasoning };
   }
@@ -183,10 +132,14 @@ export function formatModelAssignments(assignments: Record<string, ModelAssignme
   const haiku  = Object.values(assignments).filter((a) => a.model === MODELS.HAIKU);
   const gpt    = Object.values(assignments).filter((a) => a.provider === 'openai');
 
+  // Con la nueva configuración, todos son Sonnet
   const parts = [
-    `Sonnet (${sonnet.length}): ${sonnet.map((a) => a.agentId.replace('agent-', '').replace('-specialist', '')).join(', ')}`,
-    `Haiku  (${haiku.length}): ${haiku.map((a) => a.agentId.replace('agent-', '').replace('-specialist', '')).join(', ')}`,
+    `🎯 Sonnet (${sonnet.length}): ${sonnet.map((a) => a.agentId.replace('agent-', '').replace('-specialist', '')).join(', ')}`,
   ];
+
+  if (haiku.length > 0) {
+    parts.push(`Legacy Haiku (${haiku.length}): ${haiku.map((a) => a.agentId.replace('agent-', '').replace('-specialist', '')).join(', ')}`);
+  }
 
   if (gpt.length > 0) {
     parts.push(`🚀 La Granja (${gpt.length}): ${gpt.map((a) => a.agentId.replace('agent-', '').replace('-specialist', '')).join(', ')}`);
