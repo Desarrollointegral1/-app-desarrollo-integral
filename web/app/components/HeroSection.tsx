@@ -16,48 +16,54 @@ export function HeroSection() {
     checkViewport();
     window.addEventListener("resize", checkViewport);
 
-    // GSAP entrance animation
-    const tl = gsap.timeline({ delay: 0.3 });
+    // GSAP entrance animation — envuelta en context para que StrictMode
+    // (doble montaje del efecto en dev) no deje los elementos en opacity 0
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ delay: 0.3 });
 
-    tl.from(".hero-trust-badge", { 
-      opacity: 0, 
-      y: -12, 
-      duration: 0.5, 
-      ease: "power2.out" 
-    })
-      .from(".hero-eyebrow", { 
-        opacity: 0, 
-        y: 16, 
-        duration: 0.6, 
-        ease: "power3.out" 
-      }, "-=0.2")
-      .from(".hero-line", { 
-        opacity: 0, 
-        y: 48, 
-        duration: 0.9, 
-        stagger: 0.1, 
-        ease: "power3.out" 
-      }, "-=0.3")
-      .from(".hero-stats-integrated", { 
-        opacity: 0, 
-        y: 20, 
-        duration: 0.7, 
-        ease: "power3.out" 
-      }, "-=0.4")
-      .from(".hero-cta-primary", { 
-        opacity: 0, 
-        y: 16, 
-        scale: 0.95,
-        duration: 0.6, 
-        ease: "back.out(1.4)" 
-      }, "-=0.3")
-      .from(".hero-trust-subtext", { 
-        opacity: 0, 
-        duration: 0.5, 
-        ease: "power2.out" 
-      }, "-=0.2");
+      tl.from(".hero-trust-badge", {
+        opacity: 0,
+        y: -12,
+        duration: 0.5,
+        ease: "power2.out"
+      })
+        .from(".hero-eyebrow", {
+          opacity: 0,
+          y: 16,
+          duration: 0.6,
+          ease: "power3.out"
+        }, "-=0.2")
+        .from(".hero-line", {
+          opacity: 0,
+          y: 48,
+          duration: 0.9,
+          stagger: 0.1,
+          ease: "power3.out"
+        }, "-=0.3")
+        .from(".hero-stats-integrated", {
+          opacity: 0,
+          y: 20,
+          duration: 0.7,
+          ease: "power3.out"
+        }, "-=0.4")
+        .from(".hero-cta-primary", {
+          opacity: 0,
+          y: 16,
+          scale: 0.95,
+          duration: 0.6,
+          ease: "back.out(1.4)"
+        }, "-=0.3")
+        .from(".hero-trust-subtext", {
+          opacity: 0,
+          duration: 0.5,
+          ease: "power2.out"
+        }, "-=0.2");
+    }, sectionRef);
 
-    return () => window.removeEventListener("resize", checkViewport);
+    return () => {
+      window.removeEventListener("resize", checkViewport);
+      ctx.revert();
+    };
   }, []);
 
   return (

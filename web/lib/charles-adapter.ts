@@ -156,7 +156,7 @@ export class CharlesAdapter {
       velocidad: ['performance-optimizer', 'performance-analyzer'],
       seguridad: ['security-audit', 'security-manager'],
       código: ['code-review', 'code-simplifier'],
-      video: ['media-specialist', 'video-producer'],
+      video: ['media-specialist'],
       contenido: ['content-specialist', 'ux-copy'],
       testing: ['test-gaps', 'verification-quality-assurance'],
     };

@@ -11,7 +11,8 @@ import type {
 export class BrainFactory {
   private supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_KEY || ''
+    // .env.local define la clave como SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   );
 
   /**
