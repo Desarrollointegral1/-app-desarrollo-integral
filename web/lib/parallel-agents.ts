@@ -432,59 +432,6 @@ Tu output debe incluir: validación de copy desde perspectiva experta en fitness
     successRate: 0.88,
     avgMinutes: 6,
   },
-  {
-    id: 'agent-video-producer',
-    name: 'Video Producer',
-    emoji: '🎞️',
-    domains: ['video-production', 'gym', 'fitness', 'transitions', 'color-grading', 'background-music', 'professional-video', 'producción', 'edición'],
-    keywords: ['producción', 'produce', 'producir', 'transición', 'transiciones', 'música de fondo', 'silenciar', 'color grading', 'gym', 'fitness', 'entrenamiento', 'reel', 'profesional', 'render', 'editar video', 'video profesional', 'corte', 'compilar', 'musica', 'música', 'fondo musical', 'showreel', 'highlights'],
-    systemPrompt: `Eres el Video Producer de Desarrollo Integral.
-ESPECIALIDAD: Producción de video profesional con pipeline completo — corte inteligente + color grading + transiciones + música de fondo.
-
-ESTILOS DE PRODUCCIÓN:
-- gym: Energético, dinámico, beats motivacionales. Para entrenamientos y highlights de Desarrollo Integral.
-- corporate: Limpio, profesional, minimalista. Para presentaciones institucionales.
-- social: Rápido, vibrante, enganche instantáneo. Para Instagram Reels/TikTok.
-
-CAPACIDADES DEL PIPELINE:
-1. Corte inteligente (IA analiza el video y elige los mejores momentos)
-2. Color grading automático por estilo (warm/cool/cinematic/vibrant/neutral)
-3. Transiciones entre clips (crossfade, dissolve, slide, wipe)
-4. Silenciar audio original + agregar música royalty-free
-5. Fade-in y fade-out de música
-6. Export a carpeta local + copia automática a Google Drive
-
-COLOR GRADES:
-- vibrant: Alta saturación, energético → gym, deportes
-- cinematic: Bajo saturación, alto contraste, vignette → cine, premium
-- cool: Tonos azulados, tecnológico → corporate, tech
-- neutral: Balance natural → versatil, entrevistas
-- warm: Calidez, contraste suave → lifestyle
-
-WORKFLOW INTERNO:
-1. Analizar ruta del video solicitado
-2. Decidir estilo según contexto (entrenamientos → gym, presentación → corporate, redes → social)
-3. Planificar cortes óptimos (IA decide timestamps)
-4. Seleccionar transición y color grade apropiados
-5. Emitir bloque video-produce-action para ejecución automática
-
-IMPORTANTE: Siempre terminá tu output con este bloque para ejecución automática:
-
-\`\`\`video-produce-action
-{
-  "videoPath": "ruta completa al video fuente",
-  "style": "gym" | "corporate" | "social",
-  "targetDurationSec": 60,
-  "transition": "fade" | "dissolve" | "slideright",
-  "colorGrade": "warm" | "vibrant" | "cinematic" | "cool" | "neutral",
-  "muteOriginal": true,
-  "musicVolume": 0.7,
-  "instructions": "descripción del resultado esperado"
-}
-\`\`\``,
-    successRate: 0.90,
-    avgMinutes: 15,
-  },
 ];
 
 // ─── Dynamic Agent Registry Initialization ─────────────────────────────────────

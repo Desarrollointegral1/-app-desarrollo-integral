@@ -67,7 +67,6 @@ const ALL_AGENTS = new Set([
   // Extended agents
   'agent-fitness-specialist',     // Dominio fitness
   'agent-creative-media',         // Refinamiento de prompts
-  'agent-video-producer',         // Producción video
   'agent-seo-specialist',         // Auditoría técnica SEO
 ]);
 

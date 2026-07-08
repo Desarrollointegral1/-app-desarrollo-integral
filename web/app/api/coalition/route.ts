@@ -18,8 +18,6 @@ import crypto from 'crypto';
 import { runParallelCoalition, formatCoalitionResult, type AgentResult } from '@/lib/parallel-agents';
 import { detectExternalToolRequests, generateCharlesInstructions } from '@/lib/external-tools';
 import { generateCreativeMedia, detectMediaType, type CreativeRequest } from '@/lib/creative-media';
-import { editVideo, formatVideoEditResult, type ManualCutRequest, type SmartCutRequest } from '@/lib/video-editor';
-import { produceVideo, type ProduceRequest, type ProductionStyle, type TransitionType, type ColorGrade } from '@/lib/video-producer';
 import fs   from 'fs';
 import path from 'path';
 
@@ -254,15 +252,10 @@ export async function POST(request: NextRequest) {
 
     // ── Detectar y ejecutar acciones creativas automáticamente ─────────────
     // Si el Creative Media Agent generó un bloque ```creative-action, ejecutarlo
-    // Si el Video Producer generó un bloque ```video-produce-action, ejecutarlo
+    // Edición/producción de video (ffmpeg) fue removida en 2026-06 por el build de Vercel
     let creativeResult = null;
-    let videoEditResult = null;
-    let videoProduceResult = null;
     const creativeAgentOutput = result.results.find(
       (r) => r.agentId === 'agent-creative-media' && r.success
-    );
-    const videoProducerOutput = result.results.find(
-      (r) => r.agentId === 'agent-video-producer' && r.success
     );
     if (creativeAgentOutput) {
       const creativeMatch = creativeAgentOutput.output.match(
@@ -274,22 +267,7 @@ export async function POST(request: NextRequest) {
           const anthropicForAction = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
           if (params.action === 'edit') {
-            // Modo edición de video existente
-            const editReq = params.mode === 'manual'
-              ? {
-                  mode:        'manual' as const,
-                  videoPath:   String(params.videoPath ?? ''),
-                  cuts:        (params.cuts as ManualCutRequest['cuts']) ?? [],
-                  concatenate: true,
-                } satisfies ManualCutRequest
-              : {
-                  mode:              'smart' as const,
-                  videoPath:         String(params.videoPath ?? ''),
-                  instructions:      String(params.instructions ?? task.trim()),
-                  targetDurationSec: params.targetDurationSec as number | undefined,
-                } satisfies SmartCutRequest;
-
-            videoEditResult = await editVideo(editReq, anthropicForAction);
+            console.warn('[Coalition] creative-action "edit" ignorada: el pipeline de video (ffmpeg) fue removido');
           } else {
             // Modo generación (generate o default)
             const creativeParams = params as Partial<CreativeRequest>;
@@ -305,39 +283,6 @@ export async function POST(request: NextRequest) {
           }
         } catch (err) {
           console.error('[Coalition] Error ejecutando creative action:', err);
-        }
-      }
-    }
-
-    // ── Video Producer: detectar y ejecutar video-produce-action ──────────
-    if (videoProducerOutput) {
-      const produceMatch = videoProducerOutput.output.match(
-        /```video-produce-action\s*([\s\S]*?)\s*```/
-      );
-      if (produceMatch) {
-        try {
-          const params = JSON.parse(produceMatch[1]) as Partial<ProduceRequest>;
-          const anthropicForProduce = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
-          videoProduceResult = await produceVideo(
-            {
-              videoPath:           String(params.videoPath ?? ''),
-              style:               (params.style as ProductionStyle) ?? 'corporate',
-              targetDurationSec:   params.targetDurationSec,
-              transition:          params.transition as TransitionType | undefined,
-              transitionDuration:  params.transitionDuration,
-              colorGrade:          params.colorGrade as ColorGrade | undefined,
-              muteOriginal:        params.muteOriginal ?? true,
-              musicPath:           params.musicPath,
-              musicUrl:            params.musicUrl,
-              musicVolume:         params.musicVolume ?? 0.7,
-              outputPath:          params.outputPath,
-              instructions:        params.instructions ?? task.trim(),
-            },
-            anthropicForProduce
-          );
-        } catch (err) {
-          console.error('[Coalition] Error ejecutando video-produce-action:', err);
         }
       }
     }
@@ -407,32 +352,6 @@ export async function POST(request: NextRequest) {
           previewHtml:   creativeResult.previewHtml,
           error:         creativeResult.error,
         } : null,
-        videoEdit: videoEditResult ? {
-          success:         videoEditResult.success,
-          mode:            videoEditResult.mode,
-          inputPath:       videoEditResult.inputPath,
-          inputDuration:   videoEditResult.inputDuration,
-          segments:        videoEditResult.segments,
-          finalOutputPath: videoEditResult.finalOutputPath,
-          transcript:      videoEditResult.transcript,
-          cutPlan:         videoEditResult.cutPlan,
-          processingMs:    videoEditResult.processingMs,
-          savedBytes:      videoEditResult.savedBytes,
-          error:           videoEditResult.error,
-          formatted:       formatVideoEditResult(videoEditResult),
-        } : null,
-        videoProduce: videoProduceResult ? {
-          success:          videoProduceResult.success,
-          outputPath:       videoProduceResult.outputPath,
-          gdrivePath:       videoProduceResult.gdrivePath,
-          pipeline:         videoProduceResult.pipeline,
-          segments:         videoProduceResult.segments,
-          cutPlan:          videoProduceResult.cutPlan,
-          finalDurationSec: videoProduceResult.finalDurationSec,
-          processingMs:     videoProduceResult.processingMs,
-          error:            videoProduceResult.error,
-          formatted:        videoProduceResult.formatted,
-        } : null,
         formatted:          formatCoalitionResult(result),
         externalTools: {
           requests:     externalRequests.map((r) => ({ tool: r.tool, requestedBy: r.requestedBy })),
@@ -490,7 +409,6 @@ export async function GET() {
       'agent-research-specialist 🔍',
       'agent-media-specialist 🎥',
       'agent-analytics-specialist 📊',
-      'agent-video-producer 🎞️',
     ],
     parallelism: 'Real — Promise.all() + múltiples llamadas Anthropic simultáneas',
     model: process.env.COALITION_MODEL || 'claude-haiku-4-5-20251001',
