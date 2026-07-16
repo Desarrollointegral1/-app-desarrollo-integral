@@ -585,14 +585,20 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
     for (let j = 0; j < (dias[i].ejercicios || []).length; j++) {
       const ej = dias[i].ejercicios[j];
       const ejId = isUuid(ej.id) ? ej.id : makeUuid();
-      const { error: ejErr } = await supabase.from("plan_ejercicios").insert({
+      const row = {
         id:          ejId,
         plan_dia_id: diaRow.id,
         nombre:      ej.nombre      || "",
         descripcion: ej.desc        || "",
         video:       ej.video       || "",
         orden:       j,
-      });
+      };
+      let { error: ejErr } = await supabase.from("plan_ejercicios").insert(row);
+      // 23505 = id duplicado (template compartido o guardado concurrente) → reintentar con id nuevo
+      if (ejErr && ejErr.code === "23505") {
+        row.id = makeUuid();
+        ({ error: ejErr } = await supabase.from("plan_ejercicios").insert(row));
+      }
       if (ejErr) ERR("_savePlanDias", `Error insertando "${ej.nombre}"`, ejErr);
     }
   }
