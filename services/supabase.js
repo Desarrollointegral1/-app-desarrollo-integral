@@ -813,23 +813,19 @@ export async function loginAdmin(codigo, pin) {
   LOG("loginAdmin", `⏳ Validando admin ${codigo}...`);
 
   try {
-    const { data: admin, error } = await supabase
-      .from("admins")
-      .select("*")
-      .eq("codigo", codigo.toUpperCase())
-      .single();
+    const pinHash = await hashearPIN(pin);
+
+    // La tabla admins ya no se lee directo (services/supabase.js no expone
+    // pin_hash al cliente ni permite select("*") anónimo) — el chequeo del
+    // PIN corre server-side en login_admin_rpc (migrations/004), que
+    // devuelve el admin sin el pin_hash.
+    const { data: admin, error } = await supabase.rpc("login_admin_rpc", {
+      p_codigo: codigo.toUpperCase(),
+      p_pin_hash: pinHash,
+    });
 
     if (error || !admin) {
-      throw new Error("Código admin inválido");
-    }
-
-    const pinHash = await hashearPIN(pin);
-    if (pinHash !== admin.pin_hash) {
-      throw new Error("PIN incorrecto");
-    }
-
-    if (admin.activo === false) {
-      throw new Error("Admin desactivado");
+      throw new Error(error?.message || "Código admin inválido");
     }
 
     LOG("loginAdmin", `✅ Login admin exitoso para ${admin.nombre}`);
