@@ -55,6 +55,7 @@ import {
   PLAN_BILATERAL,
   PLAN_UNILATERAL,
   PLAN_BASE,
+  clonarPlan,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, inp, tabBtn, smallBtn, applyTheme } from "./src/utils/theme.js";
@@ -2709,7 +2710,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       showToast && showToast("PIN debe tener 4 dígitos");
       return;
     }
-    const tpl = ntemplate === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL;
+    const tpl = clonarPlan(ntemplate === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
     try {
       const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo);
       const alumnoConPlan = {
@@ -2725,7 +2726,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       if (diasAsignados.length > 0) {
         for (const dia of diasAsignados) {
           const planTipo = ndias[dia] || "bilateral";
-          const planTemplate = planTipo === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL;
+          const planTemplate = clonarPlan(planTipo === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
           const res = await crearPlanAlumno(nuevoAl.id, dia, planTemplate);
           if (res.ok) {
             alumnoConPlan.planes.push(res.data);
@@ -2761,7 +2762,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
   const asignarPlanDia = async (tipoPlane) => {
     if (!selectedDia || !al) return;
-    const tpl = tipoPlane === "Unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL;
+    const tpl = clonarPlan(tipoPlane === "Unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
     try {
       const result = await crearPlanAlumno(al.id, selectedDia, tpl);
       if (result.ok) {
@@ -2809,7 +2810,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         background: S.bg,
         maxWidth: 480,
         margin: "0 auto",
-        fontFamily: "system-ui",
+        fontFamily: "inherit",
         paddingBottom: 60,
       }}
     >
@@ -3628,7 +3629,7 @@ function Login({ onLogin, onAdmin }) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        fontFamily: "system-ui",
+        fontFamily: "inherit",
       }}
     >
       {/* Header de marca */}
@@ -3719,7 +3720,7 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
   const sesion = sesiones[sesionIdx] || null;
 
   return (
-    <div style={{ minHeight: "100vh", background: S.bg, maxWidth: 480, margin: "0 auto", fontFamily: "system-ui", paddingBottom: 48 }}>
+    <div style={{ minHeight: "100vh", background: S.bg, maxWidth: 480, margin: "0 auto", fontFamily: "inherit", paddingBottom: 48 }}>
       {/* Header */}
       <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #1c1c1c", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -3817,7 +3818,7 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           alignItems: "center",
           justifyContent: "center",
           padding: 24,
-          fontFamily: "system-ui",
+          fontFamily: "inherit",
         }}
       >
         {" "}
@@ -4096,7 +4097,7 @@ export default function App() {
           background: S.bg,
           maxWidth: 480,
           margin: "0 auto",
-          fontFamily: "system-ui",
+          fontFamily: "inherit",
           paddingBottom: 48,
           transition: "background 0.3s",
         }}

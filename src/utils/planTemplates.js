@@ -61,3 +61,18 @@ export const PLAN_UNILATERAL={
 };
 
 export const PLAN_BASE=PLAN_BILATERAL;
+
+// Los templates son objetos compartidos con ids generados UNA vez al cargar el módulo.
+// Asignarlos directo a más de un alumno duplica las claves primarias en plan_ejercicios.
+// Siempre asignar una copia fresca con ids nuevos:
+export const clonarPlan = (plan) => ({
+  ...plan,
+  periodizacion: (plan.periodizacion || []).map(p => ({ ...p })),
+  movilidad:     (plan.movilidad     || []).map(e => ({ ...e })),
+  calor:         (plan.calor         || []).map(e => ({ ...e })),
+  activacion:    (plan.activacion    || []).map(e => ({ ...e })),
+  dias: (plan.dias || []).map(d => ({
+    ...d,
+    ejercicios: (d.ejercicios || []).map(e => ({ ...e, id: uid() })),
+  })),
+});
