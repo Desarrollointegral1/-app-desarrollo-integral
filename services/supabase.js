@@ -614,12 +614,16 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
 export async function cargarPesos(alumno_id, fallback) {
   LOG("cargarPesos", `⏳ Cargando pesos de ${alumno_id}...`);
 
+  // La fuente de verdad es registros_diarios (una fila por día, con un jsonb
+  // {ejercicio_id: peso}). La tabla historial_pesos quedó inutilizable: su
+  // FK apunta a una tabla "ejercicios" que la app no usa, así que cada insert
+  // fallaba en silencio y el historial nunca se llenó.
   try {
     const { data, error } = await supabase
-      .from("historial_pesos")
-      .select("*")
+      .from("registros_diarios")
+      .select("fecha, pesos")
       .eq("alumno_id", alumno_id)
-      .order("id", { ascending: true });
+      .order("fecha", { ascending: true });
 
     if (error) throw error;
 
@@ -632,13 +636,16 @@ export async function cargarPesos(alumno_id, fallback) {
     const historiales = {};
 
     data.forEach((row) => {
-      const eid = row.ejercicio_id;
-      pesos[eid] = row.peso;
-      if (!historiales[eid]) historiales[eid] = [];
-      historiales[eid].push({ peso: row.peso, serie: row.serie || 1, fecha: row.fecha });
+      Object.entries(row.pesos || {}).forEach(([eid, p]) => {
+        const val = Number(p);
+        if (!val) return;
+        pesos[eid] = val;
+        if (!historiales[eid]) historiales[eid] = [];
+        historiales[eid].push({ peso: val, serie: 1, fecha: row.fecha });
+      });
     });
 
-    LOG("cargarPesos", `✅ ${data.length} registro(s) en ${Object.keys(historiales).length} ejercicio(s).`, pesos);
+    LOG("cargarPesos", `✅ ${data.length} día(s) en ${Object.keys(historiales).length} ejercicio(s).`, pesos);
     return { pesos, historiales };
 
   } catch (e) {
@@ -944,6 +951,18 @@ export async function subirVideo(archivo) {
 
 const BIO_BUCKET = "bioimpedancia-archivos";
 
+// Redimensiona una imagen a máx. 900px de lado y la devuelve como data URL
+// JPEG (~100-200KB). Fallback para cuando Storage no está habilitado.
+async function _fotoADataUrl(file, maxLado = 900, calidad = 0.8) {
+  const bitmap = await createImageBitmap(file);
+  const escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * escala);
+  canvas.height = Math.round(bitmap.height * escala);
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", calidad);
+}
+
 async function _ensureBioBucket() {
   const { data: buckets } = await supabase.storage.listBuckets();
   if (buckets && buckets.find(b => b.name === BIO_BUCKET)) return;
@@ -1227,8 +1246,39 @@ export async function saveDailyAttendance(alumno_id, fecha, presente) {
 // BIOIMPEDANCIA: Guardar medición completa
 // ────────────────────────────────────────────────────────────────────────
 
-export async function saveBioimpedanciaCompleta(alumno_id, datos) {
-  // datos: { fecha, hora, peso, grasa_corporal, masa_muscular, grasa_visceral, imc, altura, edad }
+export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
+  // datos: { fecha, hora, peso, grasa_corporal, masa_muscular, grasa_visceral,
+  //          imc, altura, edad, conclusion, objetivo }
+  // foto: File opcional — se sube al bucket y queda linkeada al registro.
+  // conclusion/objetivo van en la columna jsonb `metadata` (no requieren migración).
+
+  let archivo_url = null;
+  let nombre_archivo = null;
+  if (foto) {
+    try {
+      await _ensureBioBucket();
+      const ext = (foto.name.split(".").pop() || "jpg").toLowerCase();
+      const key = `${alumno_id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from(BIO_BUCKET)
+        .upload(key, foto, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from(BIO_BUCKET).getPublicUrl(key);
+      archivo_url = urlData.publicUrl;
+      nombre_archivo = foto.name;
+    } catch (e) {
+      // Storage puede estar bloqueado por RLS (ver migrations/006). Mientras
+      // tanto la foto se guarda embebida en el registro, redimensionada para
+      // que no pese: mismo patrón que ya usa la foto de perfil del alumno.
+      LOG("saveBioimpedanciaCompleta", "⚠️ Storage bloqueado, guardando foto embebida.", e?.message);
+      archivo_url = await _fotoADataUrl(foto);
+      nombre_archivo = foto.name;
+    }
+  }
+
+  const metadata = {};
+  if (datos.conclusion) metadata.conclusion = datos.conclusion;
+  if (datos.objetivo) metadata.objetivo = datos.objetivo;
 
   const payload = limpiarPayload({
     alumno_id,
@@ -1241,6 +1291,9 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos) {
     imc: datos.imc ? Number(datos.imc) : null,
     altura: datos.altura ? Number(datos.altura) : null,
     edad: datos.edad ? Number(datos.edad) : null,
+    archivo_url,
+    nombre_archivo,
+    metadata: Object.keys(metadata).length ? metadata : undefined,
   });
 
   LOG("saveBioimpedanciaCompleta", `⏳ Guardando bioimpedancia para ${alumno_id}...`, payload);
