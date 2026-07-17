@@ -5,7 +5,6 @@ import {
   guardarDatos,
   cargarPesos,
   guardarPesos,
-  savePeso,
   insertAlumno,
   deleteAlumno,
   cambiarPINAlumno,
@@ -15,9 +14,6 @@ import {
   subirVideo,
   crearPlanAlumno,
   cargarPlanesXDia,
-  cargarBioimpedancia,
-  guardarBioimpedancia,
-  eliminarBioimpedancia,
   crearAdmin,
   cargarBiblioteca,
   guardarEjercicioBiblioteca,
@@ -55,10 +51,16 @@ import {
   PLAN_BILATERAL,
   PLAN_UNILATERAL,
   PLAN_BASE,
+  PLANTILLAS,
+  getPlantilla,
   clonarPlan,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, inp, tabBtn, smallBtn, applyTheme } from "./src/utils/theme.js";
+import MiniChart from "./src/components/MiniChart.jsx";
+import ItemCard from "./src/components/ItemCard.jsx";
+import PlanDelDia from "./src/components/PlanDelDia.jsx";
+import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 // ── LOGO ──────────────────────────────────────────────────────────────
 const ICON_WHITE =
   "data:image/svg+xml," +
@@ -132,46 +134,6 @@ function Toast({ msg }) {
 function GlobalStyles() {
   return (
     <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
-  );
-}
-function MiniChart({ data, color = "#fff" }) {
-  if (data.length < 2)
-    return <div style={{ color: S.lgray, fontSize: 12, padding: "6px 0" }}>Necesitas al menos 2 registros.</div>;
-  const W = 260,
-    H = 80,
-    pad = 12;
-  const vals = data.map((d) => d.peso);
-  const mn = Math.min(...vals),
-    mx = Math.max(...vals),
-    rng = mx - mn || 1;
-  const pts = data.map((d, i) => ({
-    x: pad + (i / (data.length - 1)) * (W - pad * 2),
-    y: H - pad - ((d.peso - mn) / rng) * (H - pad * 2),
-    d,
-  }));
-  return (
-    <svg width={W} height={H} style={{ display: "block", overflow: "visible" }}>
-      {" "}
-      <polyline
-        points={pts.map((p) => p.x + "," + p.y).join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />{" "}
-      {pts.map((p, i) => (
-        <g key={i}>
-          {" "}
-          <circle cx={p.x} cy={p.y} r={4} fill={color} />{" "}
-          <text x={p.x} y={p.y - 9} textAnchor="middle" fill={S.gray} fontSize="9">
-            {p.d.peso}kg
-          </text>{" "}
-          <text x={p.x} y={H} textAnchor="middle" fill={S.lgray} fontSize="8">
-            {p.d.fecha ? p.d.fecha.slice(5) : ""}
-          </text>{" "}
-        </g>
-      ))}{" "}
-    </svg>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -297,273 +259,6 @@ function MediaUploader({ media, onMedia }) {
         >
           ✕ Quitar
         </button>
-      )}{" "}
-    </div>
-  );
-}
-// ── ITEM CARD ─────────────────────────────────────────────────────────
-function ItemCard({
-  nombre,
-  desc,
-  video,
-  mediaLocal,
-  numero,
-  peso,
-  historial,
-  onPesoChange,
-  showPeso,
-  semana,
-  pesoSugerido,
-  intensidad,
-}) {
-  peso = peso || 0;
-  historial = historial || [];
-  showPeso = showPeso || false;
-  const [open, setOpen] = useState(false);
-  const [edit, setEdit] = useState(false);
-  const [tmp, setTmp] = useState("0");
-  const [showChart, setShowChart] = useState(false);
-  const ytId = getYTId(video);
-  const renderMedia = () => {
-    if (ytId)
-      return (
-        <div
-          style={{
-            borderRadius: 8,
-            overflow: "hidden",
-            marginBottom: 12,
-            background: "#000",
-            position: "relative",
-            paddingTop: "56.25%",
-          }}
-        >
-          <iframe
-            src={"https://www.youtube.com/embed/" + ytId}
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-            frameBorder="0"
-            allowFullScreen
-            title={nombre}
-          />
-        </div>
-      );
-    if (video && video.includes("supabase.co"))
-      return (
-        <video controls style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 300 }}>
-          <source src={video} type="video/mp4" />
-          Tu navegador no soporta videos
-        </video>
-      );
-    if (mediaLocal && mediaLocal.startsWith("data:video"))
-      return (
-        <video controls style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 220 }}>
-          <source src={mediaLocal} />
-        </video>
-      );
-    if (mediaLocal && mediaLocal.startsWith("data:image"))
-      return (
-        <img
-          src={mediaLocal}
-          alt={nombre}
-          style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 280, objectFit: "cover" }}
-        />
-      );
-    return (
-      <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center" }}>
-        <div style={{ fontSize: 22, marginBottom: 4 }}>▶</div>
-        <div style={{ color: S.lgray, fontSize: 12 }}>Video proximamente</div>
-      </div>
-    );
-  };
-  return (
-    <div style={{ ...card, marginBottom: 8, overflow: "hidden" }}>
-      {" "}
-      <div
-        onClick={() => setOpen(!open)}
-        style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-      >
-        {" "}
-        <div
-          style={{
-            minWidth: 22,
-            height: 22,
-            borderRadius: "50%",
-            background: S.card2,
-            border: "1px solid #2a2a2a",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10,
-            color: S.gray,
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          {numero}
-        </div>{" "}
-        <div style={{ flex: 1, color: S.white, fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>{" "}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {" "}
-          {showPeso && (
-            <div style={{ textAlign: "right" }}>
-              <div style={{ color: S.white, fontWeight: 900, fontSize: 14 }}>{peso > 0 ? peso + "kg" : "—"}</div>
-              <div style={{ color: S.gray, fontSize: 9 }}>PESO</div>
-            </div>
-          )}{" "}
-          <div style={{ color: S.gray }}>{open ? "▲" : "▼"}</div>{" "}
-        </div>{" "}
-      </div>{" "}
-      {open && (
-        <div style={{ borderTop: "1px solid #2a2a2a", padding: 14 }}>
-          {" "}
-          {renderMedia()}{" "}
-          {desc && (
-            <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.6, marginBottom: showPeso ? 12 : 0 }}>{desc}</div>
-          )}{" "}
-          {showPeso && (
-            <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
-              {" "}
-              {semana && (
-                <div style={{ fontSize: 10, color: S.gray, marginBottom: 6 }}>
-                  SEMANA {semana.semana} — {semana.series}x{semana.reps}
-                  {semana.intensidad ? " al " + semana.intensidad : ""}
-                </div>
-              )}{" "}
-              {pesoSugerido && (
-                <div
-                  style={{
-                    background: "#0d1f0d",
-                    border: "1px solid #1a4d1a",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    marginBottom: 10,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  {" "}
-                  <div>
-                    <div style={{ color: S.green, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
-                      PESO SUGERIDO HOY
-                    </div>
-                    <div style={{ color: S.gray, fontSize: 10 }}>
-                      {semana && semana.series}x{semana && semana.reps} al {intensidad}
-                    </div>
-                  </div>{" "}
-                  <div style={{ color: S.green, fontWeight: 900, fontSize: 24 }}>{pesoSugerido} kg</div>{" "}
-                </div>
-              )}{" "}
-              <div
-                style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}
-              >
-                Registrar peso
-              </div>{" "}
-              {edit ? (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {" "}
-                  <input
-                    type="number"
-                    value={tmp}
-                    onChange={(e) => setTmp(e.target.value)}
-                    style={{
-                      flex: 1,
-                      background: S.card,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "8px 10px",
-                      color: S.white,
-                      fontSize: 16,
-                      outline: "none",
-                    }}
-                  />{" "}
-                  <span style={{ color: S.gray }}>kg</span>{" "}
-                  <button
-                    onClick={() => {
-                      onPesoChange && onPesoChange(Number(tmp));
-                      setEdit(false);
-                    }}
-                    style={{
-                      background: S.white,
-                      color: S.bg,
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "8px 14px",
-                      fontWeight: 900,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✓
-                  </button>{" "}
-                  <button
-                    onClick={() => setEdit(false)}
-                    style={{
-                      background: "transparent",
-                      color: S.gray,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "8px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✕
-                  </button>{" "}
-                </div>
-              ) : (
-                <div
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}
-                >
-                  {" "}
-                  <span style={{ color: S.white, fontWeight: 700, fontSize: 18 }}>
-                    {peso > 0 ? peso + " kg" : "Sin registrar"}
-                  </span>{" "}
-                  <button
-                    onClick={() => {
-                      setTmp(String(peso));
-                      setEdit(true);
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: S.white,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✎ EDITAR
-                  </button>{" "}
-                </div>
-              )}{" "}
-              {historial.length > 0 && (
-                <div>
-                  {" "}
-                  <button
-                    onClick={() => setShowChart(!showChart)}
-                    style={{
-                      background: "transparent",
-                      color: S.gray,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "5px 10px",
-                      fontSize: 10,
-                      cursor: "pointer",
-                      marginTop: 8,
-                    }}
-                  >
-                    {" "}
-                    {showChart ? "▲ OCULTAR" : "📈 PROGRESO"} ({historial.length}){" "}
-                  </button>{" "}
-                  {showChart && (
-                    <div style={{ marginTop: 10 }}>
-                      <MiniChart data={historial} />
-                    </div>
-                  )}{" "}
-                </div>
-              )}{" "}
-            </div>
-          )}{" "}
-        </div>
       )}{" "}
     </div>
   );
@@ -1958,208 +1653,6 @@ function PesoMaxAlumno({ rm, onUpdate }) {
     </div>
   );
 }
-// ── BIO SCREEN ────────────────────────────────────────────────────────
-function BioScreen({ estudios, onAdd }) {
-  const [selected, setSelected] = useState(null);
-  const [adding, setAdding] = useState(false);
-  const [newFecha, setNewFecha] = useState("");
-  const [newImg, setNewImg] = useState("");
-  const fileRef = useRef();
-  const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = (ev) => setNewImg(ev.target.result);
-    r.readAsDataURL(f);
-  };
-  const guardar = () => {
-    if (!newFecha) return;
-    onAdd({ fecha: newFecha, img: newImg });
-    setAdding(false);
-    setNewFecha("");
-    setNewImg("");
-  };
-  if (selected)
-    return (
-      <div>
-        {" "}
-        <button
-          onClick={() => setSelected(null)}
-          style={{
-            background: "transparent",
-            color: S.gray,
-            border: "1px solid #2a2a2a",
-            borderRadius: 6,
-            padding: "6px 12px",
-            fontSize: 12,
-            cursor: "pointer",
-            marginBottom: 14,
-          }}
-        >
-          ← Volver
-        </button>{" "}
-        <div style={{ color: S.white, fontWeight: 700, fontSize: 16, marginBottom: 12 }}>
-          Estudio — {selected.fecha}
-        </div>{" "}
-        {selected.img ? (
-          <img src={selected.img} alt="bio" style={{ width: "100%", borderRadius: 10 }} />
-        ) : (
-          <div style={{ ...card, padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 32 }}>📋</div>
-            <div style={{ color: S.gray, fontSize: 13, marginTop: 8 }}>Sin imagen</div>
-          </div>
-        )}{" "}
-      </div>
-    );
-  return (
-    <div>
-      {" "}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        {" "}
-        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 3, textTransform: "uppercase" }}>
-          Estudios por fecha
-        </div>{" "}
-        <button
-          onClick={() => setAdding(true)}
-          style={{
-            background: S.white,
-            color: S.bg,
-            border: "none",
-            borderRadius: 6,
-            padding: "7px 14px",
-            fontSize: 12,
-            fontWeight: 900,
-            cursor: "pointer",
-          }}
-        >
-          + NUEVO
-        </button>{" "}
-      </div>{" "}
-      {adding && (
-        <div style={{ ...card, padding: 16, marginBottom: 14 }}>
-          {" "}
-          <input
-            type="date"
-            value={newFecha}
-            onChange={(e) => setNewFecha(e.target.value)}
-            style={{ ...inp, marginBottom: 12 }}
-          />{" "}
-          <div
-            onClick={() => fileRef.current.click()}
-            style={{
-              background: S.card2,
-              border: "2px dashed #2a2a2a",
-              borderRadius: 8,
-              padding: 20,
-              textAlign: "center",
-              cursor: "pointer",
-              marginBottom: 12,
-            }}
-          >
-            {" "}
-            {newImg ? (
-              <img
-                src={newImg}
-                alt=""
-                style={{ maxWidth: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 6 }}
-              />
-            ) : (
-              <div style={{ color: S.lgray, fontSize: 13 }}>📷 Adjuntar foto</div>
-            )}{" "}
-          </div>{" "}
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />{" "}
-          <div style={{ display: "flex", gap: 8 }}>
-            {" "}
-            <button
-              onClick={guardar}
-              style={{
-                flex: 1,
-                background: S.white,
-                color: S.bg,
-                border: "none",
-                borderRadius: 6,
-                padding: 10,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              GUARDAR
-            </button>{" "}
-            <button
-              onClick={() => {
-                setAdding(false);
-                setNewFecha("");
-                setNewImg("");
-              }}
-              style={{
-                background: "transparent",
-                color: S.gray,
-                border: "1px solid #2a2a2a",
-                borderRadius: 6,
-                padding: "10px 16px",
-                cursor: "pointer",
-              }}
-            >
-              Cancelar
-            </button>{" "}
-          </div>{" "}
-        </div>
-      )}{" "}
-      {estudios.length === 0 && !adding && (
-        <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32 }}>📊</div>
-          <div style={{ color: S.gray, fontSize: 13, marginTop: 8 }}>Sin estudios</div>
-        </div>
-      )}{" "}
-      {[...estudios]
-        .sort((a, b) => b.fecha.localeCompare(a.fecha))
-        .map((est, i) => (
-          <div
-            key={i}
-            onClick={() => setSelected(est)}
-            style={{
-              ...card,
-              marginBottom: 8,
-              padding: "14px 16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              cursor: "pointer",
-            }}
-          >
-            {" "}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {" "}
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 6,
-                  background: S.card2,
-                  overflow: "hidden",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {" "}
-                {est.img ? (
-                  <img src={est.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ fontSize: 18 }}>📋</div>
-                )}{" "}
-              </div>{" "}
-              <div>
-                <div style={{ color: S.white, fontWeight: 700 }}>Bioimpedancia</div>
-                <div style={{ color: S.gray, fontSize: 12 }}>{est.fecha}</div>
-              </div>{" "}
-            </div>{" "}
-            <div style={{ color: S.gray, fontSize: 16 }}>›</div>{" "}
-          </div>
-        ))}{" "}
-    </div>
-  );
-}
 // ── TABLA PERIODIZACION ───────────────────────────────────────────────
 function TablaPer({ data, semanaActual }) {
   return (
@@ -2414,115 +1907,6 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
     </div>
   );
 }
-// ── BIOIMPEDANCIA ─────────────────────────────────────────────────────
-function BioimpedanciaSection({ alumnoId, showToast, readOnly = false }) {
-  const [registros, setRegistros] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [subiendo, setSubiendo] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [fecha, setFecha] = useState(() => new Date().toISOString().split("T")[0]);
-  const [archivo, setArchivo] = useState(null);
-  const fileRef = useRef();
-
-  useEffect(() => {
-    if (!alumnoId) return;
-    cargarBioimpedancia(alumnoId).then(d => { setRegistros(d); setLoading(false); });
-  }, [alumnoId]);
-
-  const subir = async () => {
-    if (!archivo) { showToast && showToast("Seleccioná un archivo"); return; }
-    setSubiendo(true);
-    try {
-      const nuevo = await guardarBioimpedancia(alumnoId, { fecha, archivo });
-      setRegistros(prev => [nuevo, ...prev]);
-      setShowForm(false);
-      setArchivo(null);
-      showToast && showToast("Bioimpedancia guardada ✓");
-    } catch (e) { showToast && showToast("Error al subir: " + e.message); }
-    setSubiendo(false);
-  };
-
-  const eliminar = async (r) => {
-    if (!window.confirm("¿Eliminar este registro?")) return;
-    await eliminarBioimpedancia(r.id, r.archivo_url);
-    setRegistros(prev => prev.filter(x => x.id !== r.id));
-    showToast && showToast("Eliminado");
-  };
-
-  if (loading) return <div style={{ color: S.gray, padding: 16, fontSize: 13 }}>Cargando...</div>;
-
-  const isImg = (url) => url && /\.(png|jpe?g|webp|gif)$/i.test(url);
-
-  return (
-    <div>
-      {!readOnly && !showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          style={{ background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 16, width: "100%" }}
-        >
-          + Cargar estudio
-        </button>
-      )}
-      {showForm && (
-        <div style={{ ...card, padding: 14, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10 }}>Nuevo estudio</div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>FECHA DEL ESTUDIO</div>
-            <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={inp} />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>ARCHIVO (imagen o PDF)</div>
-            <div
-              onClick={() => fileRef.current && fileRef.current.click()}
-              style={{ border: "2px dashed " + S.border, borderRadius: 8, padding: "20px", textAlign: "center", cursor: "pointer", background: S.card2 }}
-            >
-              {archivo
-                ? <div style={{ color: S.green, fontSize: 13 }}>✓ {archivo.name}</div>
-                : <div style={{ color: S.gray, fontSize: 13 }}>Tocá para seleccionar archivo</div>
-              }
-            </div>
-            <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={e => setArchivo(e.target.files[0] || null)} />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={subir} disabled={subiendo} style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "9px", fontWeight: 700, cursor: "pointer" }}>
-              {subiendo ? "Subiendo..." : "GUARDAR"}
-            </button>
-            <button onClick={() => { setShowForm(false); setArchivo(null); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "9px 14px", cursor: "pointer" }}>Cancelar</button>
-          </div>
-        </div>
-      )}
-      {registros.length === 0 ? (
-        <div style={{ color: S.lgray, fontSize: 13, textAlign: "center", padding: 24 }}>Sin estudios cargados</div>
-      ) : (
-        registros.map((r) => (
-          <div key={r.id} style={{ ...card, padding: 12, marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: r.archivo_url ? 10 : 0 }}>
-              <div>
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.fecha}</div>
-                {r.nombre_archivo && <div style={{ fontSize: 11, color: S.gray, marginTop: 2 }}>{r.nombre_archivo}</div>}
-              </div>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {r.archivo_url && (
-                  <a href={r.archivo_url} target="_blank" rel="noreferrer"
-                    style={{ background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 5, padding: "4px 10px", fontSize: 11, textDecoration: "none" }}>
-                    Ver
-                  </a>
-                )}
-                {!readOnly && (
-                  <button onClick={() => eliminar(r)} style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>✕</button>
-                )}
-              </div>
-            </div>
-            {r.archivo_url && isImg(r.archivo_url) && (
-              <img src={r.archivo_url} alt="bio" style={{ width: "100%", borderRadius: 8, maxHeight: 300, objectFit: "contain", background: "#000" }} />
-            )}
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
 // ── NOVEDADES ADMIN ───────────────────────────────────────────────────
 function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
   const [titulo, setTitulo] = useState("");
@@ -2704,13 +2088,25 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const crearAlumno = async () => {
     if (!nn || !nc || !npin) {
       showToast && showToast("Completa todos los campos requeridos");
-      return;
+      return false;
     }
     if (npin.length !== 4) {
       showToast && showToast("PIN debe tener 4 dígitos");
-      return;
+      return false;
     }
-    const tpl = clonarPlan(ntemplate === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
+    const tpl = clonarPlan(getPlantilla(ntemplate).plan);
+    // El plan que se guarda en `planes` tiene que ser un objeto COMPLETO
+    // (dias, movilidad, calor, activacion, periodizacion). Si se guarda la
+    // fila cruda de alumno_planes, la vista del alumno hace .map sobre
+    // undefined y la app se va a pantalla negra.
+    const planCompleto = (row, template) => ({
+      ...row,
+      dias:          template.dias          || [],
+      movilidad:     template.movilidad     || [],
+      calor:         template.calor         || [],
+      activacion:    template.activacion    || [],
+      periodizacion: template.periodizacion || [],
+    });
     try {
       const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo);
       const alumnoConPlan = {
@@ -2725,18 +2121,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       const diasAsignados = Object.keys(ndias).filter(dia => ndias[dia]);
       if (diasAsignados.length > 0) {
         for (const dia of diasAsignados) {
-          const planTipo = ndias[dia] || "bilateral";
-          const planTemplate = clonarPlan(planTipo === "unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
+          const planTemplate = clonarPlan(getPlantilla(ndias[dia] || ntemplate).plan);
           const res = await crearPlanAlumno(nuevoAl.id, dia, planTemplate);
           if (res.ok) {
-            alumnoConPlan.planes.push(res.data);
+            alumnoConPlan.planes.push(planCompleto(res.data, planTemplate));
           }
         }
       } else {
         // Si no seleccionó días, crear plan "Fijo" por defecto
         const res = await crearPlanAlumno(nuevoAl.id, "Fijo", tpl);
         if (res.ok) {
-          alumnoConPlan.planes.push(res.data);
+          alumnoConPlan.planes.push(planCompleto(res.data, tpl));
         }
       }
 
@@ -2755,18 +2150,21 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNdias({});
       showToast && showToast("Alumno creado ✓");
       setSec("dashboard");
+      return true;
     } catch (e) {
       console.error("[crearAlumno] Excepción:", e);
       showToast && showToast("Error inesperado. Ver consola.");
+      return false;
     }
   };
-  const asignarPlanDia = async (tipoPlane) => {
+  const asignarPlanDia = async (plantillaId) => {
     if (!selectedDia || !al) return;
-    const tpl = clonarPlan(tipoPlane === "Unilateral" ? PLAN_UNILATERAL : PLAN_BILATERAL);
+    const plantilla = getPlantilla(plantillaId);
+    const tpl = clonarPlan(plantilla.plan);
     try {
-      const result = await crearPlanAlumno(al.id, selectedDia, tpl);
+      const result = await crearPlanAlumno(al.id, selectedDia, { ...tpl, nombre: plantilla.nombre });
       if (result.ok) {
-        showToast && showToast(`Plan "${tipoPlane}" asignado para ${selectedDia} ✓`);
+        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${selectedDia} ✓`);
         const alumnoActualizado = {
           ...al,
           planes: await cargarPlanesXDia(al.id, al)
@@ -2936,18 +2334,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     <button key={k} onClick={() => setNtipo(k)} style={{ flex: 1, background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                   ))}
                 </div>
-                {ntipo === "entrenamiento" && (
-                  <>
-                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Template de plan</div>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                      {[["Bilateral", "bilateral"], ["Unilateral", "unilateral"]].map(([l, k]) => (
-                        <button key={k} onClick={() => setNtemplate(k)} style={{ flex: 1, background: ntemplate === k ? S.white : S.card, color: ntemplate === k ? S.bg : S.gray, border: "1px solid " + (ntemplate === k ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{l}</button>
-                      ))}
-                    </div>
-                  </>
-                )}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Template de plan</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  {PLANTILLAS.map((p) => (
+                    <button key={p.id} onClick={() => setNtemplate(p.id)} title={p.descripcion} style={{ background: ntemplate === p.id ? S.white : S.card, color: ntemplate === p.id ? S.bg : S.gray, border: "1px solid " + (ntemplate === p.id ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre}</button>
+                  ))}
+                </div>
                 <button
-                  onClick={async () => { await crearAlumno(); setShowCrearAlumno(false); }}
+                  onClick={async () => { const ok = await crearAlumno(); if (ok) setShowCrearAlumno(false); }}
                   style={{ width: "100%", background: ntipo === "rehabilitacion" ? S.green : S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
                 >
                   CREAR ALUMNO
@@ -3265,13 +2659,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           {planActual ? planActual.nombre || "Asignado" : "Sin plan"}
                         </div>
                         {isSelected && (
-                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                            {["Bilateral", "Unilateral"].map((tipo) => (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                            {PLANTILLAS.map((p) => (
                               <button
-                                key={tipo}
-                                onClick={(e) => { e.stopPropagation(); asignarPlanDia(tipo); }}
+                                key={p.id}
+                                onClick={(e) => { e.stopPropagation(); asignarPlanDia(p.id); }}
                                 style={{
-                                  flex: 1,
                                   background: S.white,
                                   color: S.bg,
                                   border: "none",
@@ -3282,7 +2675,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                                   cursor: "pointer",
                                 }}
                               >
-                                {tipo}
+                                {p.nombre}
                               </button>
                             ))}
                           </div>
@@ -3397,7 +2790,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
               Bioimpedancia — {al.nombre}
             </div>
-            <BioimpedanciaSection alumnoId={al.id} showToast={showToast} readOnly={false} />
+            <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
           </div>
         )}{" "}
         {sec === "reportes" && al && (
@@ -3976,21 +3369,19 @@ export default function App() {
     setHistoriales(guardado ? guardado.historiales : initH(f.plan));
     setAlumno(f);
     setShowBienvenida(true);
-    setTab("Movilidad");
+    setTab("Ejercicios");
     setDiaIdx(0);
   };
-  const addBio = (est) => {
-    const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, bioimpedancia: [...a.bioimpedancia, est] } : a));
-    setAlumnos(u);
-    setAlumno(u.find((a) => a.id === alumno.id));
-  };
-  const handlePeso = (id, val) => {
+    const handlePeso = (id, val) => {
     const np = { ...pesos, [id]: val };
     const nh = { ...historiales, [id]: [...(historiales[id] || []), { fecha: hoy(), peso: val }] };
     setPesos(np);
     setHistoriales(nh);
-    // Guarda en Supabase solo ejercicios principales (plan.dias)
-    savePeso(alumno.id, id, val);
+    // Guarda en Supabase solo ejercicios principales (plan.dias).
+    // registros_diarios es la única fuente de verdad de pesos (alimenta el
+    // historial del alumno y el reporte mensual del admin). historial_pesos
+    // no se usa: su FK apunta a una tabla "ejercicios" que la app no tiene.
+    saveDailyWeight(alumno.id, hoy(), id, Number(val));
   };
   const marcarAsistencia = (fecha) => {
     const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, asistencia: [...(a.asistencia || []), fecha] } : a));
@@ -4321,227 +3712,20 @@ export default function App() {
         {/* Contenido */}{" "}
         <div key={tab} className="di-slide" style={{ padding: "0 16px" }}>
           {" "}
-          {tab === "Movilidad" && (
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: S.white,
-                  fontWeight: 700,
-                  textAlign: "center",
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  marginBottom: 16,
-                  background: S.card,
-                  border: "1px solid " + S.border,
-                  borderRadius: 8,
-                  padding: "10px 16px",
-                }}
-              >
-                Movilidad — 5 repeticiones por lado
-              </div>
-              {plan.movilidad.map((ej, i) => (
-                <ItemCard
-                  key={i}
-                  numero={i + 1}
-                  nombre={ej.nombre}
-                  desc={ej.desc}
-                  video={ej.video}
-                  mediaLocal={ej.mediaLocal}
-                />
-              ))}
-              {/* Rutina completa con el profe */}
-              <div style={{ marginTop: 24, borderTop: "1px solid #2a2a2a", paddingTop: 20 }}>
-                <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 14 }}>
-                  Rutina completa con el profe
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {[
-                    { tipo: "Corta", key: "corta", defaultDur: "8 min", url: plan.movilidad_videos?.corta?.url, dur: plan.movilidad_videos?.corta?.duracion },
-                    { tipo: "Avanzada", key: "avanzada", defaultDur: "15 min", url: plan.movilidad_videos?.avanzada?.url, dur: plan.movilidad_videos?.avanzada?.duracion },
-                  ].map(({ tipo, url, dur, defaultDur }) => (
-                    <div key={tipo} style={{ ...card, padding: "16px 12px", textAlign: "center" }}>
-                      <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{tipo}</div>
-                      <div style={{ color: S.green, fontSize: 12, marginBottom: 12, fontWeight: 600 }}>{dur || defaultDur}</div>
-                      {url ? (
-                        <video controls style={{ width: "100%", borderRadius: 6, display: "block" }}>
-                          <source src={url} type="video/mp4" />
-                        </video>
-                      ) : (
-                        <div style={{ padding: "16px 0", color: S.lgray || S.gray, fontSize: 11 }}>Video pendiente</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}{" "}
-          {tab === "Act. Banda" && (
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: S.white,
-                  fontWeight: 700,
-                  textAlign: "center",
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  marginBottom: 16,
-                  background: S.card,
-                  border: "1px solid " + S.border,
-                  borderRadius: 8,
-                  padding: "10px 16px",
-                }}
-              >
-                Banda elástica — 5 repeticiones por brazo
-              </div>
-              {plan.calor.map((ej, i) => (
-                <ItemCard
-                  key={i}
-                  numero={i + 1}
-                  nombre={ej.nombre.replace(/\s*\(banda\)/gi, "").trim()}
-                  desc={ej.desc}
-                  video={ej.video}
-                  mediaLocal={ej.mediaLocal}
-                />
-              ))}
-            </div>
-          )}{" "}
-          {tab === "Entrada Calor" && (
-            <div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: S.white,
-                  fontWeight: 700,
-                  textAlign: "center",
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  marginBottom: 16,
-                  background: S.card,
-                  border: "1px solid " + S.border,
-                  borderRadius: 8,
-                  padding: "10px 16px",
-                }}
-              >
-                Entrada en calor — 5 repeticiones
-              </div>
-              {(plan.activacion || []).length === 0 ? (
-                <div style={{ ...card, padding: 40, textAlign: "center" }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>⚡</div>
-                  <div style={{ color: S.gray, fontSize: 13 }}>Sin ejercicios de entrada en calor</div>
-                </div>
-              ) : (
-                (plan.activacion || []).map((ej, i) => (
-                  <ItemCard
-                    key={i}
-                    numero={i + 1}
-                    nombre={ej.nombre.replace(/\s*\(banda\)/gi, "").trim()}
-                    desc={ej.desc}
-                    video={ej.video}
-                    mediaLocal={ej.mediaLocal}
-                  />
-                ))
-              )}
-            </div>
-          )}{" "}
-          {tab === "Entrenamiento" && (
-            <div>
-              {" "}
-              {!planValido && (
-                <div style={{ textAlign: "center", padding: "40px 20px", color: S.gray }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-                    Todavía no tenés plan asignado
-                  </div>
-                  <div style={{ fontSize: 13 }}>
-                    Hablá con tu entrenador para que configure tu rutina.
-                  </div>
-                </div>
-              )}
-              {planValido && plan.dias.length > 1 && (
-                <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-                  {plan.dias.map((d, i) => (
-                    <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(diaIdx === i), flex: 1 }}>
-                      {d.dia}
-                    </button>
-                  ))}
-                </div>
-              )}{" "}
-              {planValido && dia && (
-                <>
-                  <div
-                    style={{
-                      color: S.white,
-                      fontWeight: 900,
-                      fontSize: 18,
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {dia.dia}
-                  </div>{" "}
-                  <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>{dia.subtitulo}</div>{" "}
-                  <div style={{ ...card, padding: "8px 14px", marginBottom: 14, display: "flex", gap: 20 }}>
-                    {" "}
-                    <div>
-                      <div style={{ color: S.white, fontWeight: 700 }}>
-                        {sem.series}x{sem.reps}
-                      </div>
-                      <div style={{ color: S.gray, fontSize: 10 }}>SEM {semanaActual}</div>
-                    </div>{" "}
-                    {sem.intensidad && (
-                      <div>
-                        <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
-                        <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
-                      </div>
-                    )}{" "}
-                    <div>
-                      <div style={{ color: S.white, fontWeight: 700 }}>{dia.ejercicios.length}</div>
-                      <div style={{ color: S.gray, fontSize: 10 }}>EJERCICIOS</div>
-                    </div>{" "}
-                  </div>{" "}
-                  {dia.ejercicios.map((ej, i) => {
-                    const rmKey = RM_EJS.find(
-                      (k) =>
-                        ej.nombre.toLowerCase().includes(k.toLowerCase().split(" ")[0]) ||
-                        k.toLowerCase().includes(ej.nombre.toLowerCase().split(" ")[0]),
-                    );
-                    const rmDato = rmKey && al.rm && al.rm[rmKey];
-                    const pct = sem.intensidad ? Number(sem.intensidad.replace("%", "")) : null;
-                    const pesoSugerido = rmDato && rmDato.peso > 0 && pct ? Math.round((rmDato.peso * pct) / 100) : null;
-                    return (
-                      <ItemCard
-                        key={ej.id}
-                        numero={i + 1}
-                        nombre={ej.nombre}
-                        desc={ej.desc}
-                        video={ej.video}
-                        mediaLocal={ej.mediaLocal}
-                        showPeso
-                        semana={sem}
-                        peso={pesos[ej.id] || 0}
-                        historial={historiales[ej.id] || []}
-                        onPesoChange={(v) => handlePeso(ej.id, v)}
-                        pesoSugerido={pesoSugerido}
-                        intensidad={sem.intensidad}
-                      />
-                    );
-                  })}
-                </>
-              )}{" "}
-            </div>
-          )}{" "}
-          {tab === "Periodiz." && (
-            <div>
-              <div
-                style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}
-              >
-                Progresion de carga
-              </div>
-              <TablaPer data={planValido ? plan.periodizacion : []} semanaActual={semanaActual} />
-            </div>
+          {tab === "Ejercicios" && (
+            <PlanDelDia
+              plan={plan}
+              planValido={planValido}
+              dia={dia}
+              diaIdx={diaIdx}
+              setDiaIdx={setDiaIdx}
+              sem={sem}
+              semanaActual={semanaActual}
+              pesos={pesos}
+              historiales={historiales}
+              onPeso={handlePeso}
+              rm={al.rm}
+            />
           )}{" "}
           {tab === "Asistencia" && (
             <div>
@@ -4682,207 +3866,9 @@ export default function App() {
             </div>
           )}{" "}
           {tab === "Bioimpedancia" && (
-            <div>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>
-                🩺 Medición de hoy
-              </div>
-
-              {/* FORMULARIO */}
-              <div style={{ ...card, padding: "14px 16px", marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12, letterSpacing: 1 }}>
-                  Datos personales
-                </div>
-                {[
-                  ["Peso (kg)", "peso", al.peso],
-                  ["% Grasa Corporal", "grasa_corporal", ""],
-                  ["% Masa Muscular", "masa_muscular", ""],
-                  ["Grasa Visceral", "grasa_visceral", ""],
-                  ["IMC", "imc", ""],
-                ].map(([label, field, placeholder]) => (
-                  <div key={field} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      {label}
-                    </div>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      placeholder={placeholder}
-                      defaultValue={al[field] || ""}
-                      id={`bio_${field}`}
-                      step="0.1"
-                      style={inp}
-                    />
-                  </div>
-                ))}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Hora
-                    </div>
-                    <input
-                      type="time"
-                      defaultValue={new Date().toTimeString().slice(0, 5)}
-                      id="bio_hora"
-                      style={inp}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Edad (años)
-                    </div>
-                    <input
-                      type="number"
-                      placeholder={al.edad}
-                      id="bio_edad"
-                      min="0"
-                      max="120"
-                      style={inp}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    const datos = {
-                      fecha: hoy(),
-                      hora: document.getElementById("bio_hora")?.value,
-                      peso: Number(document.getElementById("bio_peso")?.value) || al.peso,
-                      grasa_corporal: Number(document.getElementById("bio_grasa_corporal")?.value),
-                      masa_muscular: Number(document.getElementById("bio_masa_muscular")?.value),
-                      grasa_visceral: Number(document.getElementById("bio_grasa_visceral")?.value),
-                      imc: Number(document.getElementById("bio_imc")?.value),
-                      edad: Number(document.getElementById("bio_edad")?.value),
-                    };
-
-                    saveBioimpedanciaCompleta(al.id, datos)
-                      .then(() => {
-                        showToast && showToast("Medición guardada ✓");
-                        // Limpiar formulario
-                        document.querySelectorAll("[id^='bio_']").forEach(el => el.value = "");
-                        document.getElementById("bio_hora").value = new Date().toTimeString().slice(0, 5);
-                      })
-                      .catch(err => {
-                        console.error("Error guardando bioimpedancia:", err);
-                        showToast && showToast("Error al guardar");
-                      });
-                  }}
-                  style={{
-                    width: "100%",
-                    background: S.white,
-                    color: S.bg,
-                    border: "none",
-                    borderRadius: 8,
-                    padding: 12,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    marginTop: 12,
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  GUARDAR MEDICIÓN
-                </button>
-              </div>
-
-              {/* HISTÓRICO */}
-              <div>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                  📊 Últimas mediciones
-                </div>
-                {al.bioimpedancia && al.bioimpedancia.length > 0 ? (
-                  al.bioimpedancia.slice().reverse().slice(0, 5).map((bio, i) => (
-                    <div key={i} style={{ ...card, padding: "12px 14px", marginBottom: 8 }}>
-                      <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>
-                        📅 {bio.fecha} {bio.hora ? `· ${bio.hora}` : ""}
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        {[
-                          ["Peso", bio.peso, "kg"],
-                          ["Grasa", bio.grasa_corporal, "%"],
-                          ["Músculo", bio.masa_muscular, "%"],
-                          ["Visceral", bio.grasa_visceral, ""],
-                        ].map(([label, val, unit]) => (
-                          <div key={label} style={{ textAlign: "center", background: S.card2, borderRadius: 6, padding: "6px" }}>
-                            <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>
-                              {val || "—"}{unit}
-                            </div>
-                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>{label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
-                    <div style={{ color: S.gray, fontSize: 12 }}>Sin mediciones registradas aún</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}{" "}
-          {tab === "Peso Max" && (
-            <PesoMaxAlumno
-              rm={al.rm}
-              onUpdate={(nr) => {
-                const u = alumnos.map((a) => (a.id === al.id ? { ...a, rm: nr } : a));
-                setAlumnos(u);
-                setAlumno(u.find((a) => a.id === al.id));
-              }}
-            />
+            <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
           )}{" "}
           {tab === "Diario" && <Diario entradas={al.diario || []} onAdd={addDiario} />}{" "}
-
-          {/* NUEVO: TAB EJERCICIOS CON PESO */}
-          {tab === "Ejercicios" && (
-            <div>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                💪 Peso del día — {hoy()}
-              </div>
-              {dia && Array.isArray(dia.ejercicios) && dia.ejercicios.length > 0 ? (
-                <div>
-                  {dia.ejercicios.map((ej, i) => (
-                    <div key={i} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{ej.nombre || ej.id}</div>
-                          {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>{ej.desc}</div>}
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        placeholder="Peso (kg)"
-                        value={pesos[ej.id] || ""}
-                        onChange={(e) => {
-                          const newPesos = { ...pesos, [ej.id]: e.target.value };
-                          setPesos(newPesos);
-                        }}
-                        onBlur={() => {
-                          if (pesos[ej.id]) {
-                            saveDailyWeight(al.id, hoy(), ej.id, Number(pesos[ej.id])).then(() => {
-                              showToast && showToast(`${ej.nombre}: ${pesos[ej.id]}kg ✓`);
-                            });
-                          }
-                        }}
-                        style={{ ...inp, marginBottom: 8 }}
-                      />
-                      {historiales[ej.id] && historiales[ej.id].length > 0 && (
-                        <div style={{ fontSize: 10, color: S.gray }}>
-                          Última vez: {historiales[ej.id][historiales[ej.id].length - 1].peso}kg · {historiales[ej.id][historiales[ej.id].length - 1].fecha}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>📋</div>
-                  <div style={{ color: S.gray, fontSize: 12 }}>No hay ejercicios para hoy</div>
-                </div>
-              )}
-            </div>
-          )}{" "}
 
           {/* NUEVO: TAB PESOS - HISTÓRICO */}
           {tab === "Pesos" && (
@@ -4893,11 +3879,20 @@ export default function App() {
               {Object.keys(historiales).length > 0 ? (
                 <div>
                   {Object.entries(historiales)
-                    .sort()
-                    .map(([ejercicio, registros]) => (
-                      <div key={ejercicio} style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 8, textTransform: "capitalize" }}>
-                          {ejercicio}
+                    .map(([ejId, registros]) => {
+                      const todosEjs = [
+                        ...(al.planes || []).flatMap((p) => (p.dias || []).flatMap((d) => d.ejercicios || [])),
+                        ...((al.plan?.dias || []).flatMap((d) => d.ejercicios || [])),
+                      ];
+                      const nombre = todosEjs.find((e) => e.id === ejId)?.nombre || null;
+                      return { ejId, registros, nombre };
+                    })
+                    .filter((x) => x.nombre)
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                    .map(({ ejId, registros, nombre }) => (
+                      <div key={ejId} style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 8 }}>
+                          {nombre}
                         </div>
                         {registros.slice().reverse().slice(0, 10).map((reg, i) => (
                           <div
