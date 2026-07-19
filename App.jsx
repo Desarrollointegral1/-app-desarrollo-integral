@@ -61,6 +61,7 @@ import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
+import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 // ── LOGO ──────────────────────────────────────────────────────────────
 const ICON_WHITE =
   "data:image/svg+xml," +
@@ -853,9 +854,30 @@ function PeriodizacionEditor({ data, onChange }) {
     if (form.fecha) autoFechas(form.fecha, editIdx);
     setEditIdx(null);
   };
+  // Fecha de inicio del plan: con elegirla una vez, todas las semanas se
+  // autocompletan (cada semana arranca 7 días después de la anterior).
+  const setFechaInicio = (yyyy_mm_dd) => {
+    if (!yyyy_mm_dd) return;
+    const [, m, d] = yyyy_mm_dd.split("-");
+    const base = new Date(Number(yyyy_mm_dd.slice(0, 4)), Number(m) - 1, Number(d));
+    const arr = data.map((r, i) => {
+      const f = new Date(base.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+      return { ...r, fecha: f.getDate() + "/" + (f.getMonth() + 1) };
+    });
+    onChange(arr);
+  };
   return (
     <div>
       {" "}
+      <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+          Fecha de inicio (día 1 de la semana 1)
+        </div>
+        <input type="date" onChange={(e) => setFechaInicio(e.target.value)} style={inp} />
+        <div style={{ fontSize: 10, color: S.green, marginTop: 6 }}>
+          Elegila una vez y todas las semanas toman su fecha automáticamente (una por semana).
+        </div>
+      </div>{" "}
       {data.map((r, i) => (
         <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
           {" "}
@@ -2034,7 +2056,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
   const [alumnosTab, setAlumnosTab] = useState("perfil");
   const [editPin, setEditPin] = useState("");
-  const [nh, setNh] = useState([{ dia: "", hora: "" }]);
   const [ntemplate, setNtemplate] = useState("bilateral");
   const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
   const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
@@ -2111,7 +2132,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo);
       const alumnoConPlan = {
         ...nuevoAl,
-        horarios: nh.filter((h) => h.dia),
+        // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
+        horarios: Object.keys(ndias).filter((d) => ndias[d]).map((d) => ({ dia: d, hora: "" })),
         plan: JSON.parse(JSON.stringify(tpl)),
         planes: [],
         plantilla_id: null,
@@ -2121,15 +2143,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       const diasAsignados = Object.keys(ndias).filter(dia => ndias[dia]);
       if (diasAsignados.length > 0) {
         for (const dia of diasAsignados) {
-          const planTemplate = clonarPlan(getPlantilla(ndias[dia] || ntemplate).plan);
-          const res = await crearPlanAlumno(nuevoAl.id, dia, planTemplate);
+          const plantilla = getPlantilla(ndias[dia] || ntemplate);
+          const planTemplate = clonarPlan(plantilla.plan);
+          const res = await crearPlanAlumno(nuevoAl.id, dia, { ...planTemplate, nombre: plantilla.nombre });
           if (res.ok) {
             alumnoConPlan.planes.push(planCompleto(res.data, planTemplate));
           }
         }
       } else {
         // Si no seleccionó días, crear plan "Fijo" por defecto
-        const res = await crearPlanAlumno(nuevoAl.id, "Fijo", tpl);
+        const res = await crearPlanAlumno(nuevoAl.id, "Fijo", { ...tpl, nombre: getPlantilla(ntemplate).nombre });
         if (res.ok) {
           alumnoConPlan.planes.push(planCompleto(res.data, tpl));
         }
@@ -2145,7 +2168,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNe("");
       setNfecha("");
       setNtipo("entrenamiento");
-      setNh([{ dia: "", hora: "" }]);
       setNtemplate("bilateral");
       setNdias({});
       showToast && showToast("Alumno creado ✓");
@@ -2316,18 +2338,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <input type="date" value={nfecha} onChange={(e) => setNfecha(e.target.value)} style={inp} />
                   {nfecha && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(nfecha)} años</div>}
                 </div>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días y horarios</div>
-                {nh.map((h, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                    <select value={h.dia} onChange={(e) => setNh((hs) => hs.map((x, j) => (j === i ? { ...x, dia: e.target.value } : x)))} style={{ ...inp, flex: 1 }}>
-                      <option value="">Dia</option>
-                      {DIAS_SEM.map((d) => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                    <input type="time" value={h.hora} onChange={(e) => setNh((hs) => hs.map((x, j) => (j === i ? { ...x, hora: e.target.value } : x)))} style={{ ...inp, width: 90, flex: "none" }} />
-                    {i > 0 && <button onClick={() => setNh((hs) => hs.filter((_, j) => j !== i))} style={{ color: S.red, background: "transparent", border: "1px solid " + S.red, borderRadius: 6, padding: "8px 10px", cursor: "pointer" }}>✕</button>}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento</div>
+                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá los días que entrena — a cada día le podés poner un plan distinto.</div>
+                {DIAS_SEM.map((d) => (
+                  <div key={d} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                    <button
+                      onClick={() => setNdias((prev) => { const n = { ...prev }; if (n[d]) delete n[d]; else n[d] = ntemplate; return n; })}
+                      style={{ flex: 1, textAlign: "left", background: ndias[d] ? S.white : S.card, color: ndias[d] ? S.bg : S.gray, border: "1px solid " + (ndias[d] ? S.white : S.border), borderRadius: 6, padding: "9px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      {ndias[d] ? "✓ " : ""}{d}
+                    </button>
+                    {ndias[d] && (
+                      <select value={ndias[d]} onChange={(e) => setNdias((prev) => ({ ...prev, [d]: e.target.value }))} style={{ ...inp, width: 140, flex: "none" }}>
+                        {PLANTILLAS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                      </select>
+                    )}
                   </div>
                 ))}
-                <button onClick={() => setNh((hs) => [...hs, { dia: "", hora: "" }])} style={{ background: "transparent", color: S.gray, border: "1px dashed #2a2a2a", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", marginBottom: 14 }}>+ Agregar dia</button>
+                <div style={{ marginBottom: 14 }} />
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                   {[["🏋️ Entrenamiento", "entrenamiento"], ["🩺 Rehabilitación", "rehabilitacion"]].map(([l, k]) => (
@@ -2569,57 +2597,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   biblioteca={biblioteca}
                   onGuardarBiblioteca={onGuardarBiblioteca}
                 />
-                {/* Videos rutina completa */}
-                <div style={{ ...card, padding: "14px 16px", marginTop: 12 }}>
-                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12, letterSpacing: 1 }}>
-                    Videos — Rutina completa
-                  </div>
-                  {[
-                    { label: "Corta", key: "corta", defaultDur: "8 min" },
-                    { label: "Avanzada", key: "avanzada", defaultDur: "15 min" },
-                  ].map(({ label, key, defaultDur }) => {
-                    const mv = al.plan.movilidad_videos?.[key] || {};
-                    const ytId = mv.url ? getYTId(mv.url) : null;
-                    return (
-                      <div key={key} style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>{label}</div>
-                        <input
-                          placeholder={`URL del video (${label.toLowerCase()})`}
-                          value={mv.url || ""}
-                          onChange={(e) => updatePlan("movilidad_videos", {
-                            ...al.plan.movilidad_videos,
-                            [key]: { ...mv, url: e.target.value }
-                          })}
-                          style={{ ...inp, marginBottom: 4 }}
-                        />
-                        <input
-                          placeholder={`Duración (ej: ${defaultDur})`}
-                          value={mv.duracion || ""}
-                          onChange={(e) => updatePlan("movilidad_videos", {
-                            ...al.plan.movilidad_videos,
-                            [key]: { ...mv, duracion: e.target.value }
-                          })}
-                          style={{ ...inp, marginBottom: ytId ? 8 : 0 }}
-                        />
-                        {ytId && (
-                          <div style={{ borderRadius: 8, overflow: "hidden", aspectRatio: "16/9" }}>
-                            <iframe
-                              src={`https://www.youtube.com/embed/${ytId}`}
-                              style={{ width: "100%", height: "100%", border: "none" }}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                          </div>
-                        )}
-                        {mv.url && !ytId && (
-                          <video controls style={{ width: "100%", borderRadius: 8, marginTop: 4, maxHeight: 200 }}>
-                            <source src={mv.url} />
-                          </video>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <VideosMovilidadAdmin showToast={showToast} />
               </>
             )}{" "}
             {planTab === "calor" && al && (
@@ -3369,6 +3347,7 @@ export default function App() {
     setHistoriales(guardado ? guardado.historiales : initH(f.plan));
     setAlumno(f);
     setShowBienvenida(true);
+    setTabGroup("entrenamiento");
     setTab("Ejercicios");
     setDiaIdx(0);
   };
@@ -3465,14 +3444,8 @@ export default function App() {
       />
     );
   const GROUPS = {
-    entrenamiento: {
-      label: "Entrenamiento",
-      tabs: ["Ejercicios", "Asistencia", "Bioimpedancia", "Pesos"],
-    },
-    seguimiento: {
-      label: "Seguimiento",
-      tabs: ["Novedades", "Evolución", "Resumen", "Diario"],
-    },
+    entrenamiento: { label: "Entrenamiento", tabs: ["Ejercicios"] },
+    diario: { label: "Diario", tabs: ["Diario"] },
   };
   const switchGroup = (g) => {
     setTabGroup(g);
@@ -3626,7 +3599,7 @@ export default function App() {
                         color: S.gray,
                       }}
                     >
-                      <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span> · {h.hora}
+                      <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
                     </div>
                   ))}
                 </div>
@@ -3697,6 +3670,7 @@ export default function App() {
             ))}
           </div>
           {/* Sub-tabs del grupo activo */}
+          {GROUPS[tabGroup].tabs.length > 1 && (
           <div style={{ display: "flex", gap: 5, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none", paddingBottom: 8 }}>
             {GROUPS[tabGroup].tabs.map((t) => (
               <button
@@ -3708,54 +3682,56 @@ export default function App() {
               </button>
             ))}
           </div>
+          )}
         </div>{" "}
         {/* Contenido */}{" "}
         <div key={tab} className="di-slide" style={{ padding: "0 16px" }}>
           {" "}
           {tab === "Ejercicios" && (
-            <PlanDelDia
-              plan={plan}
-              planValido={planValido}
-              dia={dia}
-              diaIdx={diaIdx}
-              setDiaIdx={setDiaIdx}
-              sem={sem}
-              semanaActual={semanaActual}
-              pesos={pesos}
-              historiales={historiales}
-              onPeso={handlePeso}
-              rm={al.rm}
-            />
-          )}{" "}
-          {tab === "Asistencia" && (
             <div>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
-                ✓ Asistencia — {hoy()}
-              </div>
-              <div style={{ ...card, padding: "24px 16px", textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: 48,
-                    marginBottom: 16,
-                    opacity: al.asistencia?.some(a => a === hoy()) ? 1 : 0.5,
-                  }}
-                >
-                  {al.asistencia?.some(a => a === hoy()) ? "✅" : "⭕"}
+              {/* Avisos del gimnasio (los carga el admin en Novedades) */}
+              {novedades
+                .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
+                .map((n) => (
+                  <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
+                    <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
+                    {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
+                  </div>
+                ))}
+              <PlanDelDia
+                plan={plan}
+                planValido={planValido}
+                dia={dia}
+                diaIdx={diaIdx}
+                setDiaIdx={setDiaIdx}
+                sem={sem}
+                semanaActual={semanaActual}
+                pesos={pesos}
+                historiales={historiales}
+                onPeso={handlePeso}
+                rm={al.rm}
+              />
+            </div>
+          )}{" "}
+          {tab === "Diario" && (
+            <div>
+              {/* Asistencia de hoy */}
+              <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                  ✓ Asistencia — {hoy()}
                 </div>
                 <button
                   onClick={() => {
-                    if (al.asistencia?.some(a => a === hoy())) {
-                      // Remover asistencia
-                      const u = alumnos.map(a =>
+                    if (al.asistencia?.some((a) => a === hoy())) {
+                      const u = alumnos.map((a) =>
                         a.id === al.id
-                          ? { ...a, asistencia: (a.asistencia || []).filter(fecha => fecha !== hoy()) }
+                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha !== hoy()) }
                           : a
                       );
                       setAlumnos(u);
-                      setAlumno(u.find(a => a.id === al.id));
+                      setAlumno(u.find((a) => a.id === al.id));
                       showToast && showToast("Asistencia removida");
                     } else {
-                      // Agregar asistencia
                       saveDailyAttendance(al.id, hoy(), true).then(() => {
                         marcarAsistencia(hoy());
                         showToast && showToast("¡Asistencia marcada! ✓");
@@ -3764,12 +3740,12 @@ export default function App() {
                   }}
                   style={{
                     width: "100%",
-                    background: al.asistencia?.some(a => a === hoy()) ? S.green : S.white,
-                    color: al.asistencia?.some(a => a === hoy()) ? S.white : S.bg,
+                    background: al.asistencia?.some((a) => a === hoy()) ? S.green : S.white,
+                    color: al.asistencia?.some((a) => a === hoy()) ? "#fff" : S.bg,
                     border: "none",
                     borderRadius: 12,
-                    padding: "16px 24px",
-                    fontSize: 16,
+                    padding: "15px 24px",
+                    fontSize: 15,
                     fontWeight: 900,
                     cursor: "pointer",
                     letterSpacing: 1,
@@ -3777,153 +3753,15 @@ export default function App() {
                     transition: "all 0.3s",
                   }}
                 >
-                  {al.asistencia?.some(a => a === hoy()) ? "Presente" : "Marcar Presente"}
+                  {al.asistencia?.some((a) => a === hoy()) ? "✅ Presente hoy" : "Marcar presente"}
                 </button>
               </div>
-              {al.asistencia && al.asistencia.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                    Últimas asistencias
-                  </div>
-                  {al.asistencia.slice().reverse().slice(0, 10).map((fecha, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        background: S.card2,
-                        borderRadius: 8,
-                        padding: "10px 12px",
-                        marginBottom: 6,
-                        fontSize: 12,
-                      }}
-                    >
-                      <span style={{ color: S.green, marginRight: 8 }}>✓</span>
-                      <span style={{ color: S.white, fontWeight: 600 }}>{fecha}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Cómo estuvo el día */}
+              <Diario entradas={al.diario || []} onAdd={addDiario} />
             </div>
           )}{" "}
-          {tab === "Novedades" && (
-            <div>
-              {novedades.filter(n => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento"))).length === 0 ? (
-                <div style={{ ...card, padding: 40, textAlign: "center" }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>📢</div>
-                  <div style={{ color: S.gray, fontSize: 13 }}>Sin novedades por ahora</div>
-                </div>
-              ) : (
-                novedades
-                  .filter(n => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
-                  .map((n) => (
-                    <div key={n.id} style={{ ...card, padding: "16px 16px", marginBottom: 10 }}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                        <div style={{ fontSize: 22, flexShrink: 0 }}>
-                          📋
-                        </div>
-                        <div>
-                          <div style={{ color: S.white, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{n.titulo}</div>
-                          {n.contenido && <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.5, marginBottom: 6 }}>{n.contenido}</div>}
-                          <div style={{ fontSize: 10, color: S.gray, opacity: 0.6 }}>{new Date(n.fecha).toLocaleDateString("es-AR", { day: "numeric", month: "long" })}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          )}{" "}
-          {tab === "Evolución" && <EvolucionCargas historiales={historiales} plan={planValido ? plan : { dias: [], periodizacion: [] }} />}{" "}
-          {tab === "Resumen" && (
-            <div>
-              {" "}
-              <button
-                onClick={handleGenerarPDF}
-                disabled={generandoPDF}
-                style={{
-                  width: "100%",
-                  background: generandoPDF ? "#2a2a2a" : S.white,
-                  color: generandoPDF ? "#555" : S.bg,
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "13px",
-                  fontSize: 13,
-                  fontWeight: 900,
-                  cursor: generandoPDF ? "default" : "pointer",
-                  marginBottom: 14,
-                  letterSpacing: 1,
-                }}
-              >
-                {" "}
-                {generandoPDF ? "⏳ GENERANDO PDF..." : "📄 DESCARGAR HISTORIAL PDF"}{" "}
-              </button>{" "}
-              <ResumenMensual
-                asistencia={al.asistencia || []}
-                historiales={historiales}
-                plan={plan}
-                diario={al.diario || []}
-              />{" "}
-            </div>
-          )}{" "}
-          {tab === "Bioimpedancia" && (
-            <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
-          )}{" "}
-          {tab === "Diario" && <Diario entradas={al.diario || []} onAdd={addDiario} />}{" "}
 
-          {/* NUEVO: TAB PESOS - HISTÓRICO */}
-          {tab === "Pesos" && (
-            <div>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                📊 Histórico de pesos
-              </div>
-              {Object.keys(historiales).length > 0 ? (
-                <div>
-                  {Object.entries(historiales)
-                    .map(([ejId, registros]) => {
-                      const todosEjs = [
-                        ...(al.planes || []).flatMap((p) => (p.dias || []).flatMap((d) => d.ejercicios || [])),
-                        ...((al.plan?.dias || []).flatMap((d) => d.ejercicios || [])),
-                      ];
-                      const nombre = todosEjs.find((e) => e.id === ejId)?.nombre || null;
-                      return { ejId, registros, nombre };
-                    })
-                    .filter((x) => x.nombre)
-                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-                    .map(({ ejId, registros, nombre }) => (
-                      <div key={ejId} style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 8 }}>
-                          {nombre}
-                        </div>
-                        {registros.slice().reverse().slice(0, 10).map((reg, i) => (
-                          <div
-                            key={i}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              background: S.card2,
-                              borderRadius: 6,
-                              padding: "8px 10px",
-                              marginBottom: 4,
-                              fontSize: 12,
-                            }}
-                          >
-                            <div style={{ color: S.white, fontWeight: 600 }}>{reg.peso} kg</div>
-                            <div style={{ color: S.gray, fontSize: 10 }}>{reg.fecha}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
-                  <div style={{ color: S.gray, fontSize: 12 }}>Sin histórico aún. ¡Carga tu primer peso en Ejercicios!</div>
-                </div>
-              )}
-            </div>
-          )}{" "}
-        </div>{" "}
+                  </div>{" "}
       </div>{" "}
     </>
   );

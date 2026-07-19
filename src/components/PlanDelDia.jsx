@@ -1,13 +1,13 @@
+import { useState, useEffect } from "react";
 import { S, card, tabBtn } from "../utils/theme.js";
-import { RM_EJS, hoy } from "../utils/helpers.js";
+import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
+import { getAppConfig } from "../../services/supabase.js";
 import ItemCard from "./ItemCard.jsx";
 
-// Vista unificada de la sesión del alumno, con la estructura fija de los
-// planes de Desarrollo Integral:
-//   1. Movilidad
-//   2. Entrada en calor con banda
-//   2.1 Entrada en calor con peso
-//   3. Ejercicios principales (con peso anterior + peso de hoy)
+// Vista de la sesión del alumno, en DOS secciones claras:
+//   A. PREPARACIÓN — segmentada en 3: Movilidad · Con banda · Con peso
+//      (al final de Movilidad, los videos de la rutina completa: corta/larga)
+//   B. EJERCICIOS PRINCIPALES — con peso anterior + peso de hoy por ejercicio
 export default function PlanDelDia({
   plan,
   planValido,
@@ -21,22 +21,36 @@ export default function PlanDelDia({
   onPeso,
   rm,
 }) {
+  const [prep, setPrep] = useState("movilidad");
+  const [videosGlobal, setVideosGlobal] = useState(null);
+
+  // Videos de movilidad globales (Admin → Plan → Videos de movilidad).
+  useEffect(() => {
+    getAppConfig("videos_movilidad").then(setVideosGlobal);
+  }, []);
+
   const movilidad = plan?.movilidad || [];
   const calor = plan?.calor || [];
   const activacion = plan?.activacion || [];
 
-  const SeccionHeader = ({ num, titulo, detalle }) => (
+  // Último peso registrado ANTES de hoy (para comparar contra el de hoy)
+  const pesoAnteriorDe = (ejId) => {
+    const previos = (historiales[ejId] || []).filter((h) => h.fecha && h.fecha < hoy() && Number(h.peso) > 0);
+    return previos.length > 0 ? previos[previos.length - 1] : null;
+  };
+
+  const SeccionTitulo = ({ letra, titulo, detalle }) => (
     <div
       style={{
         display: "flex",
         alignItems: "baseline",
         gap: 8,
-        margin: "22px 0 10px",
+        margin: "20px 0 10px",
         paddingBottom: 8,
         borderBottom: "1px solid " + S.border,
       }}
     >
-      <span style={{ color: S.green, fontWeight: 900, fontSize: 13 }}>{num}</span>
+      <span style={{ color: S.green, fontWeight: 900, fontSize: 13 }}>{letra}</span>
       <span style={{ color: S.white, fontWeight: 700, fontSize: 13, letterSpacing: 1, textTransform: "uppercase" }}>
         {titulo}
       </span>
@@ -44,10 +58,32 @@ export default function PlanDelDia({
     </div>
   );
 
-  // Último peso registrado ANTES de hoy (para comparar contra el de hoy)
-  const pesoAnteriorDe = (ejId) => {
-    const previos = (historiales[ejId] || []).filter((h) => h.fecha && h.fecha < hoy() && Number(h.peso) > 0);
-    return previos.length > 0 ? previos[previos.length - 1] : null;
+  const VideoCard = ({ tipo, defaultDur, mv }) => {
+    const url = mv?.url || "";
+    const ytId = getYTId(url);
+    return (
+      <div style={{ ...card, padding: "14px 12px", textAlign: "center" }}>
+        <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{tipo}</div>
+        <div style={{ color: S.green, fontSize: 12, marginBottom: 10, fontWeight: 600 }}>{mv?.duracion || defaultDur}</div>
+        {ytId ? (
+          <div style={{ borderRadius: 6, overflow: "hidden", position: "relative", paddingTop: "56.25%", background: "#000" }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}`}
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={`Rutina de movilidad ${tipo}`}
+            />
+          </div>
+        ) : url ? (
+          <video controls style={{ width: "100%", borderRadius: 6, display: "block" }}>
+            <source src={url} type="video/mp4" />
+          </video>
+        ) : (
+          <div style={{ padding: "14px 0", color: S.lgray || S.gray, fontSize: 11 }}>Video pendiente</div>
+        )}
+      </div>
+    );
   };
 
   if (!planValido && movilidad.length === 0 && calor.length === 0) {
@@ -61,6 +97,19 @@ export default function PlanDelDia({
       </div>
     );
   }
+
+  // Videos: lo cargado por plan pisa lo global; lo global es lo normal.
+  const videos = {
+    corta: plan?.movilidad_videos?.corta?.url ? plan.movilidad_videos.corta : videosGlobal?.corta,
+    larga: plan?.movilidad_videos?.larga?.url ? plan.movilidad_videos.larga : (videosGlobal?.larga || videosGlobal?.avanzada),
+  };
+
+  const PREP_TABS = [
+    { id: "movilidad", label: "Movilidad", detalle: "6 rep por lado", items: movilidad },
+    { id: "banda", label: "Con banda", detalle: "5 rep por brazo", items: calor },
+    { id: "peso", label: "Con peso", detalle: "5 repeticiones", items: activacion },
+  ];
+  const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0];
 
   return (
     <div>
@@ -77,7 +126,7 @@ export default function PlanDelDia({
 
       {/* Resumen de la semana */}
       {planValido && (
-        <div style={{ ...card, padding: "10px 14px", marginBottom: 4, display: "flex", gap: 20 }}>
+        <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20 }}>
           <div>
             <div style={{ color: S.white, fontWeight: 700 }}>
               {sem.series}x{sem.reps}
@@ -99,78 +148,49 @@ export default function PlanDelDia({
         </div>
       )}
 
-      {/* 1 · Movilidad */}
-      {movilidad.length > 0 && (
-        <>
-          <SeccionHeader num="1" titulo="Movilidad" detalle="6 rep por lado" />
-          {movilidad.map((ej, i) => (
-            <ItemCard key={i} numero={i + 1} nombre={ej.nombre} desc={ej.desc} video={ej.video} mediaLocal={ej.mediaLocal} />
-          ))}
-          {/* Rutina completa con el profe (videos si están cargados) */}
-          {(plan.movilidad_videos?.corta?.url || plan.movilidad_videos?.avanzada?.url) && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-              {[
-                { tipo: "Corta", defaultDur: "8 min", mv: plan.movilidad_videos?.corta },
-                { tipo: "Avanzada", defaultDur: "15 min", mv: plan.movilidad_videos?.avanzada },
-              ].map(({ tipo, defaultDur, mv }) => (
-                <div key={tipo} style={{ ...card, padding: "16px 12px", textAlign: "center" }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{tipo}</div>
-                  <div style={{ color: S.green, fontSize: 12, marginBottom: 12, fontWeight: 600 }}>
-                    {mv?.duracion || defaultDur}
-                  </div>
-                  {mv?.url ? (
-                    <video controls style={{ width: "100%", borderRadius: 6, display: "block" }}>
-                      <source src={mv.url} type="video/mp4" />
-                    </video>
-                  ) : (
-                    <div style={{ padding: "16px 0", color: S.lgray || S.gray, fontSize: 11 }}>Video pendiente</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+      {/* ── A · PREPARACIÓN ── */}
+      <SeccionTitulo letra="A" titulo="Preparación" detalle={prepActiva.detalle} />
+      <div style={{ display: "flex", gap: 5, marginBottom: 12 }}>
+        {PREP_TABS.map((t) => (
+          <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...tabBtn(prep === t.id), flex: 1, padding: "8px 4px", fontSize: 11 }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {prepActiva.items.length === 0 ? (
+        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+          Sin ejercicios en esta parte
+        </div>
+      ) : (
+        prepActiva.items.map((ej, i) => (
+          <ItemCard
+            key={i}
+            numero={i + 1}
+            nombre={(ej.nombre || "").replace(/\s*\(banda\)/gi, "").trim()}
+            desc={ej.desc}
+            video={ej.video}
+            mediaLocal={ej.mediaLocal}
+          />
+        ))
+      )}
+      {/* Videos de la rutina completa, al final de Movilidad */}
+      {prep === "movilidad" && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
+            Rutina completa con el profe
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <VideoCard tipo="Corta" defaultDur="8 min" mv={videos.corta} />
+            <VideoCard tipo="Completa" defaultDur="15+ min" mv={videos.larga} />
+          </div>
+        </div>
       )}
 
-      {/* 2 · Entrada en calor con banda */}
-      {calor.length > 0 && (
-        <>
-          <SeccionHeader num="2" titulo="Entrada en calor — Banda" detalle="5 rep por brazo" />
-          {calor.map((ej, i) => (
-            <ItemCard
-              key={i}
-              numero={i + 1}
-              nombre={(ej.nombre || "").replace(/\s*\(banda\)/gi, "").trim()}
-              desc={ej.desc}
-              video={ej.video}
-              mediaLocal={ej.mediaLocal}
-            />
-          ))}
-        </>
-      )}
-
-      {/* 2.1 · Entrada en calor con peso */}
-      {activacion.length > 0 && (
-        <>
-          <SeccionHeader num="2.1" titulo="Entrada en calor — Con peso" detalle="5 repeticiones" />
-          {activacion.map((ej, i) => (
-            <ItemCard
-              key={i}
-              numero={i + 1}
-              nombre={(ej.nombre || "").replace(/\s*\(banda\)/gi, "").trim()}
-              desc={ej.desc}
-              video={ej.video}
-              mediaLocal={ej.mediaLocal}
-            />
-          ))}
-        </>
-      )}
-
-      {/* 3 · Ejercicios principales — con registro de peso */}
+      {/* ── B · EJERCICIOS PRINCIPALES ── */}
       {planValido && dia && (
         <>
-          <SeccionHeader
-            num="3"
+          <SeccionTitulo
+            letra="B"
             titulo="Ejercicios principales"
             detalle={`${sem.series}x${sem.reps}${sem.intensidad ? " al " + sem.intensidad : ""}`}
           />
