@@ -1,0 +1,57 @@
+// Autogenerado desde exercises-dataset (C:\Users\lucas\Cerebro-Media\exercises-dataset)
+// Media © Gym visual — https://gymvisual.com/ (redistribuida con permiso, 180x180, atribución obligatoria)
+// Regenerar con: scratchpad build_media.py · Mapa maestro: Cerebro/desarrollo-integral/rutinas/ejercicios-media-map.json
+export const MEDIA_CREDITO = "© Gym visual — gymvisual.com";
+const M = {
+  "buenos dias con disco": "/ejercicios/buenos-dias.gif",
+  "buenos dias con mancuerna": "/ejercicios/buenos-dias.gif",
+  "dominadas": "/ejercicios/dominadas.gif",
+  "farmer walk": "/ejercicios/farmer-walk.gif",
+  "fuerza con impulso a un brazo": "/ejercicios/fuerza-impulso-un-brazo.gif",
+  "fuerza con impulso con barra": "/ejercicios/fuerza-impulso-barra.gif",
+  "goblet squat": "/ejercicios/goblet-squat.gif",
+  "hip thrust bilateral": "/ejercicios/hip-thrust.gif",
+  "hip thrust con barra o mancuerna": "/ejercicios/hip-thrust.gif",
+  "jalon al pecho / maquina dorsales": "/ejercicios/jalon-al-pecho.gif",
+  "jalon brazos estirados (banda)": "/ejercicios/jalon-brazos-estirados.gif",
+  "jalon con banda desde arriba": "/ejercicios/jalon-banda-arriba.gif",
+  "jalon con mancuerna": "/ejercicios/jalon-mancuerna.gif",
+  "levantada de cadera a una pierna": "/ejercicios/levantada-cadera-una-pierna.gif",
+  "pecho inclinado con mancuerna": "/ejercicios/pecho-inclinado-mancuerna.gif",
+  "pecho plano con barra": "/ejercicios/press-pecho-barra.gif",
+  "peso muerto a 1 pierna": "/ejercicios/peso-muerto-una-pierna.gif",
+  "peso muerto a una pierna": "/ejercicios/peso-muerto-una-pierna.gif",
+  "peso muerto a una pierna sin peso": "/ejercicios/peso-muerto-una-pierna.gif",
+  "peso muerto con barra": "/ejercicios/peso-muerto-barra.gif",
+  "peso muerto con kettlebell": "/ejercicios/peso-muerto-kettlebell.gif",
+  "press arriba con disco": "/ejercicios/press-arriba.gif",
+  "press de hombros sentado con mancuernas": "/ejercicios/press-hombros-sentado.gif",
+  "press de pecho con barra en banco plano": "/ejercicios/press-pecho-barra.gif",
+  "press paloff (banda)": "/ejercicios/press-pallof.gif",
+  "puente de gluteos con peso": "/ejercicios/puente-gluteos-peso.gif",
+  "push-ups contra la pared": "/ejercicios/push-up-pared.gif",
+  "remo a un brazo": "/ejercicios/remo-un-brazo.gif",
+  "remo a un brazo (banda)": "/ejercicios/remo-un-brazo-banda.gif",
+  "remo con banda": "/ejercicios/remo-banda.gif",
+  "remo con banda o polea baja": "/ejercicios/remo-un-brazo-banda.gif",
+  "remo con disco": "/ejercicios/remo-inclinado-peso.gif",
+  "remo con mancuerna": "/ejercicios/remo-inclinado-peso.gif",
+  "remo en trx inclinado": "/ejercicios/remo-trx.gif",
+  "rotacion externa (banda)": "/ejercicios/rotacion-externa-banda.gif",
+  "rotaciones externas con banda": "/ejercicios/rotacion-externa-banda.gif",
+  "sentadilla bulgara sin peso": "/ejercicios/sentadilla-bulgara.gif",
+  "sentadilla con barra": "/ejercicios/sentadilla-barra.gif",
+  "sentarse y pararse del cajon con peso al pecho": "/ejercicios/sentarse-pararse-cajon.gif",
+  "vuelta al mundo con disco": "/ejercicios/vuelta-al-mundo.gif",
+  "zancada a una pierna": "/ejercicios/zancada.gif",
+};
+
+const norm = (s) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+// Devuelve la ruta del GIF del ejercicio (o "" si no hay match).
+export const getEjercicioGif = (nombre) => M[norm(nombre)] || "";
