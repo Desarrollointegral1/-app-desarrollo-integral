@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { S, card } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
+import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
 import MiniChart from "./MiniChart.jsx";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
@@ -71,6 +72,18 @@ export default function ItemCard({
           alt={nombre}
           style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 280, objectFit: "cover" }}
         />
+      );
+    const gif = getEjercicioGif(nombre);
+    if (gif)
+      return (
+        <div style={{ background: "#fff", borderRadius: 8, marginBottom: 12, padding: "10px 0 4px", textAlign: "center" }}>
+          <img
+            src={gif}
+            alt={nombre}
+            style={{ width: 180, height: 180, objectFit: "contain" }}
+          />
+          <div style={{ color: "#999", fontSize: 8, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
+        </div>
       );
     return (
       <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center" }}>
