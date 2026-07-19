@@ -1433,3 +1433,32 @@ export async function getMonthlyReport(alumno_id, mes_yyyy_mm) {
     throw error;
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// CONFIG GLOBAL DE LA APP (tabla app_config — migrations/007)
+//   Valores compartidos por todos los alumnos, ej. videos de movilidad.
+//   Si la tabla todavía no existe, devuelve null y la app usa el default.
+// ══════════════════════════════════════════════════════════════════════
+
+export async function getAppConfig(clave) {
+  try {
+    const { data, error } = await supabase
+      .from("app_config")
+      .select("valor")
+      .eq("clave", clave)
+      .maybeSingle();
+    if (error) { LOG("getAppConfig", `⚠️ ${error.message}`); return null; }
+    return data?.valor ?? null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function setAppConfig(clave, valor) {
+  const { error } = await supabase
+    .from("app_config")
+    .upsert({ clave, valor, actualizado_en: new Date().toISOString() }, { onConflict: "clave" });
+  if (error) { ERR("setAppConfig", `No se pudo guardar "${clave}" (¿corrió la migración 007?)`, error); return false; }
+  LOG("setAppConfig", `✅ Config "${clave}" guardada.`);
+  return true;
+}
