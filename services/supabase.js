@@ -785,10 +785,13 @@ export async function loginConCodigo(codigo, pin) {
   LOG("loginConCodigo", `⏳ Validando alumno ${codigo}...`);
 
   try {
+    // ilike compara sin distinguir mayúsculas/minúsculas — así "Juan",
+    // "juan" y "JUAN" matchean igual sin importar cómo haya quedado
+    // guardado el username en la base.
     const { data: alumno, error } = await supabase
       .from("alumnos")
       .select("*")
-      .eq("codigo", codigo.toUpperCase())
+      .ilike("codigo", codigo.trim())
       .single();
 
     if (error || !alumno) {
@@ -843,7 +846,7 @@ export async function loginAdmin(codigo, pin) {
   }
 }
 
-export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fechaNacimiento, tipo) {
+export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fechaNacimiento, tipo, email) {
   LOG("crearAlumnoConPIN", `⏳ Creando alumno ${codigo}...`);
 
   try {
@@ -855,6 +858,7 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
       tipo: tipo || "entrenamiento",
     };
     if (fechaNacimiento) nuevoAlumno.fecha_nacimiento = fechaNacimiento;
+    if (email) nuevoAlumno.email = email;
 
     try {
       const pinHash = await hashearPIN(pin);
@@ -863,10 +867,18 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
       LOG("crearAlumnoConPIN", "⚠️ pin_hash no soportado, creando sin PIN");
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("alumnos")
       .insert([nuevoAlumno])
       .select();
+
+    // Si la columna "email" todavía no existe en Supabase (falta correr la
+    // migración 008), reintenta sin ese campo para no romper el alta.
+    if (error && nuevoAlumno.email && /column .*email.* does not exist/i.test(error.message || "")) {
+      LOG("crearAlumnoConPIN", "⚠️ Columna 'email' no existe todavía (falta migración 008), creando sin email");
+      delete nuevoAlumno.email;
+      ({ data, error } = await supabase.from("alumnos").insert([nuevoAlumno]).select());
+    }
 
     if (error) {
       throw new Error(error.message || "Error al crear alumno");
