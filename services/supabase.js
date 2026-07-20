@@ -989,6 +989,18 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
   LOG("crearAlumnoConPIN", `⏳ Creando alumno ${codigo}...`);
 
   try {
+    // Un código repetido rompía el login (dos filas → .single() falla y el
+    // alumno ve "código/PIN inválido", caso Franco 2026-07-20). La base
+    // ahora tiene índice único sobre upper(codigo); acá avisamos claro.
+    const { data: yaExiste } = await supabase
+      .from("alumnos")
+      .select("id")
+      .ilike("codigo", codigo.trim())
+      .limit(1);
+    if (yaExiste && yaExiste.length > 0) {
+      throw new Error(`El código "${codigo.trim().toUpperCase()}" ya está en uso por otro alumno`);
+    }
+
     let nuevoAlumno = {
       nombre,
       codigo: codigo.toUpperCase(),
@@ -1028,6 +1040,10 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
     }
 
     if (error) {
+      // 23505 = índice único de código (doble submit o código repetido)
+      if (error.code === "23505") {
+        throw new Error(`El código "${codigo.trim().toUpperCase()}" ya está en uso por otro alumno`);
+      }
       throw new Error(error.message || "Error al crear alumno");
     }
 

@@ -2437,6 +2437,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [planesTab, setPlanesTab] = useState("periodizacion");
   const [repTab, setRepTab] = useState("asistencia");
   const [selectedDia, setSelectedDia] = useState(null);
+  // Guard de re-entrada del alta de alumno (ver crearAlumno)
+  const _creandoAlumno = useRef(false);
   // Plan a abrir al entrar a Plan → Principales (ronda 7: click en la ficha)
   const [planFoco, setPlanFoco] = useState(null);
   const [form, setForm] = useState(null);
@@ -2703,6 +2705,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
 
   const crearAlumno = async () => {
+    // Anti doble-submit: dos clicks rápidos en "Crear" insertaban el alumno
+    // DOS veces con el mismo código y el login moría con "PIN inválido"
+    // (caso Franco 2026-07-20). La base además tiene índice único de código.
+    if (_creandoAlumno.current) return false;
     if (!nn || !nc || !npin) {
       showToast && showToast("Completa todos los campos requeridos");
       return false;
@@ -2711,6 +2717,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       showToast && showToast("Clave debe tener 4 dígitos");
       return false;
     }
+    _creandoAlumno.current = true;
     const tpl = clonarPlan(getPlantilla(ntemplate).plan);
     // El plan que se guarda en `planes` tiene que ser un objeto COMPLETO
     // (dias, movilidad, calor, activacion, periodizacion). Si se guarda la
@@ -2773,8 +2780,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       return true;
     } catch (e) {
       console.error("[crearAlumno] Excepción:", e);
-      showToast && showToast("Error inesperado. Ver consola.");
+      showToast && showToast(e?.message?.includes("ya está en uso") ? e.message : "Error inesperado. Ver consola.");
       return false;
+    } finally {
+      _creandoAlumno.current = false;
     }
   };
   const asignarPlanDia = async (plantillaId) => {
