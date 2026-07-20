@@ -101,7 +101,7 @@ export default function ItemCard({
             height: 22,
             borderRadius: "50%",
             background: S.card2,
-            border: "1px solid #2a2a2a",
+            border: "1px solid " + S.border,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -116,16 +116,37 @@ export default function ItemCard({
         <div style={{ flex: 1, color: S.white, fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {showPeso && (
-            <div style={{ textAlign: "right" }}>
-              <div style={{ color: S.white, fontWeight: 900, fontSize: 14 }}>{peso > 0 ? peso + "kg" : "—"}</div>
-              <div style={{ color: S.gray, fontSize: 9 }}>HOY</div>
+            /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta */
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
+                style={{ width: 28, height: 28, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
+              >
+                −
+              </button>
+              <div style={{ textAlign: "center" }}>
+                <input
+                  type="number"
+                  value={peso || ""}
+                  placeholder="0"
+                  onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: 44, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 7, padding: "5px 2px", color: S.white, fontSize: 13, fontWeight: 900, outline: "none" }}
+                />
+                <div style={{ color: S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>KG HOY</div>
+              </div>
+              <button
+                onClick={() => onPesoChange && onPesoChange(peso + 1)}
+                style={{ width: 28, height: 28, background: S.white, color: S.bg, border: "none", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
+              >
+                +
+              </button>
             </div>
           )}
           <div style={{ color: S.gray }}>{open ? "▲" : "▼"}</div>
         </div>
       </div>
       {open && (
-        <div style={{ borderTop: "1px solid #2a2a2a", padding: 14 }}>
+        <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
           {desc && (
             <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
           )}
@@ -136,7 +157,7 @@ export default function ItemCard({
                 <div
                   style={{
                     background: S.card,
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid " + S.border,
                     borderRadius: 8,
                     padding: "8px 12px",
                     marginBottom: 10,
@@ -177,7 +198,7 @@ export default function ItemCard({
                     flexShrink: 0,
                     background: S.card,
                     color: S.white,
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid " + S.border,
                     borderRadius: 8,
                     fontSize: 18,
                     fontWeight: 700,
@@ -194,7 +215,7 @@ export default function ItemCard({
                     flex: 1,
                     textAlign: "center",
                     background: S.card,
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid " + S.border,
                     borderRadius: 8,
                     padding: "9px 10px",
                     color: S.white,
