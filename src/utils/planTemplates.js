@@ -145,40 +145,21 @@ export const PRINCIPALES_BASICO=()=>[
   mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
 ];
 
-export const PRINCIPALES_COMPLEJO=()=>[
+// Principales unificados Bilateral (ex-Complejo): barra, dominadas e hip thrust.
+export const PRINCIPALES_BILATERAL=()=>[
   mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
   mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-  mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+  mkEj("Pecho plano con barra","Baja la barra al pecho y empuja hacia arriba."),
   mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
   mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
   mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
-];
-
-export const REHAB_HOMBRO=()=>[
-  mkEj("Pendulares de hombro (Codman)","Inclinate hacia adelante, deja el brazo colgando y hace movimientos suaves en circulos o vaiven."),
-  mkEj("Elevaciones frontales con baston","Sostene un palo con ambas manos y subi el brazo afectado ayudandote con el otro, sin pasar los 90 grados."),
-  mkEj("Rotaciones externas con baston","Con codos pegados al cuerpo, usa el baston para empujar suavemente el antebrazo hacia afuera."),
-  mkEj("Isometrico deltoides contra pared","Apoya la mano en la pared y empuja suavemente (frente, costado y atras) sin mover el brazo."),
-  mkEj("Isometrico trapecio y romboides","Junta los omoplatos hacia atras y mantene 5 a 10 segundos."),
-  mkEj("Elevaciones frontales con banda","Pisa la banda con el pie y eleva el brazo al frente, hasta el nivel del hombro."),
-  mkEj("Remo con banda o polea baja","De pie, con los codos pegados al cuerpo, tira de la banda hacia tu abdomen."),
-  mkEj("Rotaciones externas con banda","Codo pegado al cuerpo, gira el antebrazo hacia afuera contra la resistencia de la banda."),
-  mkEj("Push-ups contra la pared","Apoya las manos en la pared y hace flexiones suaves, manteniendo el cuerpo recto."),
-  mkEj("Agarro la pelota","Presiona con la mano una pelota de goma blanda contra una pared o mesa durante 5 a 10 segundos."),
 ];
 
 // ── PLANES CLÁSICOS (compatibilidad) ───────────────────────────────────
 
 export const PLAN_BILATERAL={
   periodizacion:PERIODIZACION_BASE,movilidad:MOVILIDAD_BASE,calor:CALOR_BASE,activacion:ACTIVACION_BASE,
-  dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Bilateral",ejercicios:[
-    mkEj("Fuerza con impulso con barra","Empuje vertical explosivo con barra o mancuernas."),
-    mkEj("Sentadilla con barra","Rodillas hacia afuera, baja hasta paralelo o mas."),
-    mkEj("Pecho plano con barra","Baja controlado al pecho, codos a 45°."),
-    mkEj("Peso muerto con barra","Espalda neutra, desliza la barra por las piernas."),
-    mkEj("Jalon al pecho / Maquina dorsales","Codos hacia abajo, activa dorsales al tope."),
-    mkEj("Hip Thrust bilateral","Empuja con talones, gluteos contraidos al tope."),
-  ]}]
+  dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Bilateral",ejercicios:PRINCIPALES_BILATERAL()}]
 };
 
 export const PLAN_UNILATERAL={
@@ -202,26 +183,152 @@ export const PLAN_BASICO={
   dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Basico",ejercicios:PRINCIPALES_BASICO()}]
 };
 
-export const PLAN_COMPLEJO={
-  periodizacion:PERIODIZACION_BASE,movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Complejo",ejercicios:PRINCIPALES_COMPLEJO()}]
+// ── PROGRESIONES POR OBJETIVO (CEREBRO-ENTRENAMIENTO.md v2, 2026-07-19) ──
+// Cada plan por objetivo tiene su propia periodizacion de 8 semanas.
+
+const per=(esquema)=>esquema.map(([series,reps,intensidad],i)=>({semana:i+1,series,reps,intensidad}));
+
+export const PLAN_ACOND_PRINCIPIANTE={
+  periodizacion:per([[2,6,"60%"],[3,6,"60%"],[2,8,"65%"],[3,8,"65%"],[3,8,"70%"],[2,10,"70%"],[3,8,"70%"],[3,10,"75%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Principiante",ejercicios:[
+    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+    mkEj("Levantada del cajon","Sentate y parate de un cajon a la altura de la rodilla, sin usar las manos."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
+    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
+    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+  ]}]
 };
 
-export const PLAN_REHAB_HOMBRO={
-  periodizacion:PERIODIZACION_BASE,movilidad:MOVILIDAD_ARTICULACIONES,calor:[
-    mk("Elevaciones con banda elastica","Pisa la banda con el pie y eleva el brazo al frente, hasta el nivel del hombro."),
-  ],activacion:[],
-  dias:[{dia:"Sesion",subtitulo:"Rehabilitacion de hombro",ejercicios:REHAB_HOMBRO()}]
+export const PLAN_ACOND_AVANZADO={
+  periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,10,"75%"],[3,10,"75%"],[2,6,"80%"],[3,6,"82,5%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Avanzado",ejercicios:[
+    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+    mkEj("Goblet squat","Sentadilla con el peso al pecho, codos entre las rodillas."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
+    mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
+    mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+  ]}]
+};
+
+export const PLAN_PF_PRINCIPIANTE={
+  periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,4,"75%"],[3,4,"75%"],[2,8,"80%"],[3,8,"80%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Principiante",ejercicios:[
+    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
+    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
+    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+  ]}]
+};
+
+export const PLAN_PF_AVANZADO={
+  periodizacion:per([[2,6,"70%"],[3,6,"72,5%"],[2,8,"75%"],[3,8,"77,5%"],[2,4,"80%"],[3,4,"82,5%"],[3,6,"85%"],[3,8,"87,5%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Avanzado",ejercicios:[
+    mkEj("Press de hombros con barra","De pie o sentado, empuja la barra sobre la cabeza con control."),
+    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
+    mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
+    mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+  ]}]
+};
+
+export const PLAN_PPL={
+  periodizacion:per([[3,6,"70%"],[2,8,"70%"],[3,8,"75%"],[2,10,"75%"],[3,10,"80%"],[2,12,"82,5%"],[3,12,"85%"],[3,12,"87,5%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[
+    {dia:"Dia 1",subtitulo:"Empuje (PUSH) + Core",ejercicios:[
+      mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+      mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+      mkEj("Fondos","En paralelas, baja controlado y empuja hasta estirar los brazos."),
+      mkEj("Core (crunch)","Acostado, subi el torso despacio sin tirar del cuello."),
+    ]},
+    {dia:"Dia 2",subtitulo:"Tiron (PULL) + Core",ejercicios:[
+      mkEj("Remo con mancuernas","Torso inclinado, espalda recta, lleva los codos hacia atras."),
+      mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
+      mkEj("Biceps con mancuernas","Codos pegados al cuerpo, subi y baja controlado."),
+      mkEj("Biceps con barra","Codos fijos, sin balancear el cuerpo."),
+      mkEj("Farmer walk","Camina erguido con peso en las dos manos."),
+    ]},
+    {dia:"Dia 3",subtitulo:"Pierna (LEGS) + Cadera",ejercicios:[
+      mkEj("Zancadas","Paso largo, rodilla hacia afuera, baja controlado."),
+      mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
+      mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
+      mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+      mkEj("Core (crunch)","Acostado, subi el torso despacio sin tirar del cuello."),
+    ]},
+  ]
+};
+
+const EJ_HIPERTROFIA=()=>[
+  mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+  mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
+  mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+  mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
+  mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
+  mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+];
+
+export const PLAN_HIPERTROFIA_PRINCIPIANTE={
+  periodizacion:per([[2,8,"70%"],[3,8,"80%"],[2,10,"70%"],[3,10,"80%"],[2,12,"70%"],[3,12,"80%"],[2,12,"+"],[3,12,"+"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Hipertrofia — Principiante",ejercicios:EJ_HIPERTROFIA()}]
+};
+
+export const PLAN_HIPERTROFIA_AVANZADO={
+  periodizacion:per([[3,8,"65%"],[2,10,"70%"],[3,10,"70%"],[3,10,"75%"],[2,12,"75%"],[3,12,"80%"],[3,12,"+"],[3,12,"+"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Hipertrofia — Avanzado",ejercicios:EJ_HIPERTROFIA()}]
+};
+
+export const PLAN_FUERZA_PRINCIPIANTE={
+  periodizacion:per([[3,8,"70%"],[2,8,"72,5%"],[3,6,"75%"],[2,6,"77,5%"],[3,4,"80%"],[2,4,"82,5%"],[3,4,"85%"],[2,2,"85%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Fuerza — Principiante",ejercicios:[
+    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+    mkEj("Levantada del cajon con peso","Sentate y parate del cajon con el peso al pecho."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
+    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
+    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+  ]}]
+};
+
+export const PLAN_FUERZA_AVANZADO={
+  periodizacion:per([[5,5,"75%"],[5,5,"77,5%"],[5,4,"80%"],[5,4,"82,5%"],[5,3,"85%"],[5,3,"87,5%"],[5,2,"90%"],[5,1,"92,5%"]]),
+  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
+  dias:[{dia:"Sesion",subtitulo:"Fuerza — Avanzado",ejercicios:[
+    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
+    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
+    mkEj("Dominadas lastradas","Dominadas con peso extra, control total en la bajada."),
+    mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+  ]}]
 };
 
 // ── PLANTILLAS (lo que ve el admin al asignar un plan) ─────────────────
 
 export const PLANTILLAS=[
-  { id:"bilateral",    nombre:"Bilateral",    descripcion:"Fuerza clasica con barra, ambos lados a la vez.",        plan:PLAN_BILATERAL },
+  { id:"bilateral",    nombre:"Bilateral",    descripcion:"Fuerza clasica con barra, dominadas e hip thrust.",      plan:PLAN_BILATERAL },
   { id:"unilateral",   nombre:"Unilateral",   descripcion:"Fuerza a un brazo / una pierna, foco en equilibrio.",    plan:PLAN_UNILATERAL },
   { id:"basico",       nombre:"Basico",       descripcion:"Sesion de entrada: cajon, KB, TRX y banda.",             plan:PLAN_BASICO },
-  { id:"complejo",     nombre:"Complejo",     descripcion:"Sesion avanzada: barra, dominadas e hip thrust.",        plan:PLAN_COMPLEJO },
-  { id:"rehab-hombro", nombre:"Rehab Hombro", descripcion:"Recuperacion de hombro: isometricos, banda y baston.",   plan:PLAN_REHAB_HOMBRO },
+  { id:"acond-principiante", nombre:"Acondicionamiento Principiante", descripcion:"Base general: 2x6 a 3x10, 60-75%.",            plan:PLAN_ACOND_PRINCIPIANTE },
+  { id:"acond-avanzado",     nombre:"Acondicionamiento Avanzado",     descripcion:"General con barra y dominadas, 65-82,5%.",     plan:PLAN_ACOND_AVANZADO },
+  { id:"pf-principiante",    nombre:"Prep. Fisica Principiante",      descripcion:"Fuerza base con KB y TRX, 65-80%.",            plan:PLAN_PF_PRINCIPIANTE },
+  { id:"pf-avanzado",        nombre:"Prep. Fisica Avanzado",          descripcion:"Barra completa, 70-87,5%.",                    plan:PLAN_PF_AVANZADO },
+  { id:"ppl",                nombre:"PPL Split 3 dias",               descripcion:"Push / Pull / Legs con core y farmer walk.",   plan:PLAN_PPL },
+  { id:"hipertrofia-principiante", nombre:"Hipertrofia Principiante", descripcion:"Volumen progresivo 8-12 reps, 70/80%.",        plan:PLAN_HIPERTROFIA_PRINCIPIANTE },
+  { id:"hipertrofia-avanzado",     nombre:"Hipertrofia Avanzado",     descripcion:"Volumen alto 8-12 reps, 65-80% y ciclos +.",   plan:PLAN_HIPERTROFIA_AVANZADO },
+  { id:"fuerza-principiante",      nombre:"Fuerza Principiante",      descripcion:"3x8 a 2x2, 70-85%, variantes seguras.",        plan:PLAN_FUERZA_PRINCIPIANTE },
+  { id:"fuerza-avanzado",          nombre:"Fuerza Avanzado",          descripcion:"5x5 a 5x1, 75-92,5%, los grandes con barra.",  plan:PLAN_FUERZA_AVANZADO },
 ];
 
 export const getPlantilla=(id)=>PLANTILLAS.find(p=>p.id===id)||PLANTILLAS[0];
@@ -232,12 +339,13 @@ export const RUTINAS_MOVILIDAD=[
   { id:"piso-sentado",  nombre:"Movilidad piso y sentado",   items:MOVILIDAD_PISO_SENTADO },
   { id:"cuadrupedia",   nombre:"Movilidad cuadrupedia",      items:MOVILIDAD_CUADRUPEDIA },
   { id:"dinamica",      nombre:"Movilidad dinamica",         items:MOVILIDAD_DINAMICA },
-  { id:"articulaciones",nombre:"Movilidad articulaciones",   items:MOVILIDAD_ARTICULACIONES },
 ];
 
 export const RUTINAS_CALOR=[
   { id:"banda-base",  nombre:"Banda (base)",     items:CALOR_BASE },
   { id:"banda-full",  nombre:"Banda completa",   items:CALOR_BANDA },
+  // Ex "movilidad de articulaciones" — es un bloque aparte de la movilidad (CEREBRO-ENTRENAMIENTO 3.5)
+  { id:"superrapida", nombre:"Entrada en calor superrapida", items:MOVILIDAD_ARTICULACIONES },
 ];
 
 export const RUTINAS_ACTIVACION=[
