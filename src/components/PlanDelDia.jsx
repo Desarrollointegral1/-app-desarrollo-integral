@@ -110,21 +110,15 @@ export default function PlanDelDia({
         </div>
       )}
 
-      {/* Resumen de la semana */}
+      {/* Resumen del día (sin semana/periodización — pedido de Lucas 2026-07-20) */}
       {planValido && (
         <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20 }}>
           <div>
             <div style={{ color: S.white, fontWeight: 700 }}>
               {sem.series}x{sem.reps}
             </div>
-            <div style={{ color: S.gray, fontSize: 10 }}>SEM {semanaActual}</div>
+            <div style={{ color: S.gray, fontSize: 10 }}>SERIES X REPS</div>
           </div>
-          {sem.intensidad && (
-            <div>
-              <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
-              <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
-            </div>
-          )}
           {dia && (
             <div>
               <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
@@ -201,7 +195,6 @@ export default function PlanDelDia({
         <>
           <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
             {sem.series}x{sem.reps}
-            {sem.intensidad ? " al " + sem.intensidad : ""}
           </div>
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
