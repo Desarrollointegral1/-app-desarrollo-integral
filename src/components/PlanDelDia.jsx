@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { S, card, tabBtn } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
-import { MOVILIDAD_ARTICULACIONES } from "../utils/planTemplates.js";
+import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
 import ItemCard from "./ItemCard.jsx";
 
 // Vista de la sesión del alumno, con DOS tabs del mismo tamaño (pills):
@@ -23,6 +23,8 @@ export default function PlanDelDia({
   rm,
 }) {
   const [prep, setPrep] = useState("movilidad");
+  // Versión de movilidad elegida por el alumno: superrapida (~3') · corta (~8') · completa (15'+)
+  const [moviVersion, setMoviVersion] = useState("completa");
   const [videosGlobal, setVideosGlobal] = useState(null);
   // Dos tabs del mismo tamaño: Preparación | Principales.
   const [seccion, setSeccion] = useState("preparacion");
@@ -84,16 +86,24 @@ export default function PlanDelDia({
 
   // Videos: lo cargado por plan pisa lo global; lo global es lo normal.
   const videos = {
+    superrapida: plan?.movilidad_videos?.superrapida?.url ? plan.movilidad_videos.superrapida : videosGlobal?.superrapida,
     corta: plan?.movilidad_videos?.corta?.url ? plan.movilidad_videos.corta : videosGlobal?.corta,
     larga: plan?.movilidad_videos?.larga?.url ? plan.movilidad_videos.larga : (videosGlobal?.larga || videosGlobal?.avanzada),
   };
 
+  // Las 3 versiones de movilidad (CEREBRO-ENTRENAMIENTO 3.1 y 3.5): el alumno
+  // elige según el tiempo que tiene; cada una con sus ejercicios y su video.
+  const MOVI_VERSIONES = [
+    { id: "superrapida", label: "Superrápida", detalle: "activación express — 5 por lado", items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
+    { id: "corta", label: "Corta", detalle: "6 rep por lado — versión corta", items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
+    { id: "completa", label: "Completa", detalle: "6 rep por lado", items: movilidad, video: videos.larga, videoDur: "15+ min" },
+  ];
+  const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];
+
   const PREP_TABS = [
-    { id: "movilidad", label: "Movilidad", detalle: "6 rep por lado", items: movilidad },
+    { id: "movilidad", label: "Movilidad", detalle: moviActiva.detalle, items: moviActiva.items },
     { id: "banda", label: "Activación con elástico", detalle: "5 rep por brazo", items: calor },
     { id: "peso", label: "Activación con peso", detalle: "5 repeticiones", items: activacion },
-    // Entrada en calor superrápida: bloque fijo para días con poco tiempo (CEREBRO-ENTRENAMIENTO 3.5)
-    { id: "superrapida", label: "Superrápida", detalle: "activación express — 5 por lado", items: MOVILIDAD_ARTICULACIONES },
   ];
   const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0];
 
@@ -110,7 +120,8 @@ export default function PlanDelDia({
         </div>
       )}
 
-      {/* Resumen del día (sin semana/periodización — pedido de Lucas 2026-07-20) */}
+      {/* Resumen del día — sin "SEM N", pero CON intensidad: es la misma
+          intensidad del cerebro de planes (pedido de Lucas 2026-07-20) */}
       {planValido && (
         <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20 }}>
           <div>
@@ -119,6 +130,12 @@ export default function PlanDelDia({
             </div>
             <div style={{ color: S.gray, fontSize: 10 }}>SERIES X REPS</div>
           </div>
+          {sem.intensidad && (
+            <div>
+              <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
+              <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
+            </div>
+          )}
           {dia && (
             <div>
               <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
@@ -154,6 +171,16 @@ export default function PlanDelDia({
               </button>
             ))}
           </div>
+          {/* Selector de versión de movilidad: Superrápida / Corta / Completa */}
+          {prep === "movilidad" && (
+            <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
+              {MOVI_VERSIONES.map((v) => (
+                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={{ ...tabBtn(moviVersion === v.id), flex: 1, padding: "8px 3px", fontSize: 10 }}>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>{prepActiva.detalle}</div>
           {prepActiva.items.length === 0 ? (
             <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
@@ -171,16 +198,13 @@ export default function PlanDelDia({
               />
             ))
           )}
-          {/* Videos de la rutina completa, al final de Movilidad */}
+          {/* Video de la versión elegida, al final de Movilidad */}
           {prep === "movilidad" && (
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
-                Rutina completa con el profe
+                Rutina con el profe
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <VideoCard tipo="Corta" defaultDur="8 min" mv={videos.corta} />
-                <VideoCard tipo="Completa" defaultDur="15+ min" mv={videos.larga} />
-              </div>
+              <VideoCard tipo={moviActiva.label} defaultDur={moviActiva.videoDur} mv={moviActiva.video} />
             </div>
           )}
         </>
@@ -195,6 +219,7 @@ export default function PlanDelDia({
         <>
           <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
             {sem.series}x{sem.reps}
+            {sem.intensidad ? " al " + sem.intensidad : ""}
           </div>
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {

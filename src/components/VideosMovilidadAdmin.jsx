@@ -8,13 +8,13 @@ import { getAppConfig, setAppConfig } from "../../services/supabase.js";
 // al final de la sección Movilidad. Acepta links de YouTube (recomendado para
 // videos largos: subirlo como "oculto/no listado" y pegar el link acá).
 export default function VideosMovilidadAdmin({ showToast }) {
-  const [videos, setVideos] = useState({ corta: { url: "", duracion: "" }, larga: { url: "", duracion: "" } });
+  const [videos, setVideos] = useState({ superrapida: { url: "", duracion: "" }, corta: { url: "", duracion: "" }, larga: { url: "", duracion: "" } });
   const [guardando, setGuardando] = useState(false);
   const [cargado, setCargado] = useState(false);
 
   useEffect(() => {
     getAppConfig("videos_movilidad").then((v) => {
-      if (v) setVideos({ corta: v.corta || { url: "", duracion: "" }, larga: v.larga || v.avanzada || { url: "", duracion: "" } });
+      if (v) setVideos({ superrapida: v.superrapida || { url: "", duracion: "" }, corta: v.corta || { url: "", duracion: "" }, larga: v.larga || v.avanzada || { url: "", duracion: "" } });
       setCargado(true);
     });
   }, []);
@@ -42,6 +42,7 @@ export default function VideosMovilidadAdmin({ showToast }) {
       ) : (
         <>
           {[
+            { label: "Superrápida", key: "superrapida", defaultDur: "3 min" },
             { label: "Corta", key: "corta", defaultDur: "8 min" },
             { label: "Completa (larga)", key: "larga", defaultDur: "15+ min" },
           ].map(({ label, key, defaultDur }) => {
