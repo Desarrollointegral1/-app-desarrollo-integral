@@ -14,8 +14,12 @@ export const smallBtn = (color="#888",bg="transparent") => ({background:bg,color
 export const tabN1 = a => ({flex:1,textAlign:"center",background:a?S.white:S.card,color:a?S.bg:S.gray,border:"1.5px solid "+(a?S.white:S.border),borderRadius:12,padding:"13px 6px",fontSize:14,fontWeight:800,cursor:"pointer",letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s"});
 // Nivel 2 (Preparación | Principales): tamaño medio, el activo con borde blanco + fondo card — sin invertir.
 export const tabN2 = a => ({flex:1,textAlign:"center",background:a?S.card:"transparent",color:a?S.white:S.gray,border:"1px solid "+(a?S.white:S.border),borderRadius:10,padding:"11px 4px",fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:1,transition:"all 0.15s"});
-// Nivel 3 (Movilidad/elástico/peso · Superrápida/Corta/Completa): chips chicos y sutiles; el activo se marca con un dot (lo pinta el componente).
-export const chipN3 = a => ({flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"transparent",color:a?S.white:S.gray,border:"1px solid transparent",borderRadius:8,padding:"7px 3px",fontSize:10,fontWeight:a?700:500,cursor:"pointer",letterSpacing:0.5,transition:"all 0.15s"});
+// Nivel 3 (Movilidad/elástico/peso · Superrápida/Corta/Completa) — ronda 7:
+// segmented control contenido: un track con fondo card2 + borde hairline, y el
+// segmento activo como pastilla sólida clara (texto oscuro), estilo iOS pero
+// dark premium. Claramente subordinado a N1 (invertido grande) y N2 (borde).
+export const segTrack = () => ({display:"flex",gap:3,background:S.card2,border:"1px solid "+S.border,borderRadius:10,padding:3});
+export const segChip = a => ({flex:1,textAlign:"center",background:a?S.white:"transparent",color:a?S.bg:S.gray,border:"none",borderRadius:7,padding:"7px 4px",fontSize:10,fontWeight:700,letterSpacing:0.6,textTransform:"uppercase",cursor:"pointer",transition:"all 0.25s cubic-bezier(0.32,0.72,0,1)",boxShadow:a?"0 1px 3px rgba(0,0,0,0.3)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
 
 export function applyTheme(dark) {
   const t=dark?DARK_T:LIGHT_T;

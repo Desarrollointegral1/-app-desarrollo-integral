@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { S, card, tabBtn, tabN2, chipN3 } from "../utils/theme.js";
+import { S, card, tabBtn, tabN2, segTrack, segChip } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
@@ -139,21 +139,20 @@ export default function PlanDelDia({
 
       {seccion === "preparacion" && (
         <>
-          {/* Sub-menús de Preparación — chips nivel 3, con dot en el activo */}
-          <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+          {/* Sub-menús de Preparación — nivel 3: segmented control contenido
+              en un track (ronda 7 — los chips "con dot" quedaban volando) */}
+          <div style={{ ...segTrack(), marginBottom: 8 }}>
             {PREP_TABS.map((t) => (
-              <button key={t.id} onClick={() => setPrep(t.id)} style={chipN3(prep === t.id)}>
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: prep === t.id ? S.white : "transparent", flexShrink: 0 }} />
-                {t.label}
+              <button key={t.id} onClick={() => setPrep(t.id)} style={segChip(prep === t.id)}>
+                {t.label === "Activación con elástico" ? "Elástico" : t.label === "Activación con peso" ? "Peso" : t.label}
               </button>
             ))}
           </div>
-          {/* Selector de versión de movilidad: Superrápida / Corta / Completa (chips nivel 3) */}
+          {/* Selector de versión de movilidad: mismo segmented control */}
           {prep === "movilidad" && (
-            <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
+            <div style={{ ...segTrack(), marginBottom: 8 }}>
               {MOVI_VERSIONES.map((v) => (
-                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={chipN3(moviVersion === v.id)}>
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: moviVersion === v.id ? S.white : "transparent", flexShrink: 0 }} />
+                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={segChip(moviVersion === v.id)}>
                   {v.label}
                 </button>
               ))}
