@@ -2073,7 +2073,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     });
   const saveEdit = () => {
     if (!form.nombre) return;
-    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...form } : a)));
+    // Normaliza el username a mayúsculas siempre, así el login (que compara
+    // en mayúsculas) funciona sin importar cómo lo haya tipeado el admin.
+    const formNormalizado = { ...form, codigo: (form.codigo || "").toUpperCase() };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado } : a)));
     setForm(null);
   };
   const eliminarAlumno = async () => {
@@ -2112,7 +2115,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       return false;
     }
     if (npin.length !== 4) {
-      showToast && showToast("PIN debe tener 4 dígitos");
+      showToast && showToast("Clave debe tener 4 dígitos");
       return false;
     }
     const tpl = clonarPlan(getPlantilla(ntemplate).plan);
@@ -2129,7 +2132,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       periodizacion: template.periodizacion || [],
     });
     try {
-      const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo);
+      const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo, ne || null);
       const alumnoConPlan = {
         ...nuevoAl,
         // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
@@ -2327,10 +2330,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
                   <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 16, cursor: "pointer" }}>✕</button>
                 </div>
-                {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["PIN (4 dígitos)", npin, setNpin], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
+                {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
-                    <input value={val} onChange={(e) => set(e.target.value)} style={inp} />
+                    <input type={label === "Email" ? "email" : "text"} value={val} onChange={(e) => set(e.target.value)} placeholder={label === "Email" ? "para mandarle el acceso más adelante" : undefined} style={inp} />
                   </div>
                 ))}
                 <div style={{ marginBottom: 10 }}>
@@ -2363,6 +2366,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   ))}
                 </div>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Template de plan</div>
+                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Es el plan por defecto: se le asigna automáticamente a cada día que actives arriba (podés cambiarlo por día) y es el único plan si no elegís ningún día.</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
                   {PLANTILLAS.map((p) => (
                     <button key={p.id} onClick={() => setNtemplate(p.id)} title={p.descripcion} style={{ background: ntemplate === p.id ? S.white : S.card, color: ntemplate === p.id ? S.bg : S.gray, border: "1px solid " + (ntemplate === p.id ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre}</button>
@@ -2409,7 +2413,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   ].map(([label, val, key]) => (
                     <div key={key} style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>
-                      <input value={val || ""} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} style={inp} />
+                      <input value={val || ""} onChange={(e) => setForm((f) => ({ ...f, [key]: key === "codigo" ? e.target.value.toUpperCase() : e.target.value }))} style={inp} />
                     </div>
                   ))}
                   <div style={{ marginBottom: 10 }}>
@@ -2418,9 +2422,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     {form.fecha_nacimiento && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(form.fecha_nacimiento)} años</div>}
                   </div>
 
-                  {/* Cambiar PIN */}
+                  {/* Cambiar clave */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nuevo PIN (4 dígitos — dejá vacío para no cambiar)</div>
+                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nueva clave (4 dígitos — dejá vacío para no cambiar)</div>
                     <input
                       type="password"
                       value={editPin}
@@ -2429,8 +2433,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       maxLength={4}
                       style={inp}
                     />
-                    {editPin.length > 0 && editPin.length < 4 && <div style={{ fontSize: 11, color: S.red, marginTop: 4 }}>PIN debe ser de 4 dígitos</div>}
-                    {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Nuevo PIN listo para guardar</div>}
+                    {editPin.length > 0 && editPin.length < 4 && <div style={{ fontSize: 11, color: S.red, marginTop: 4 }}>La clave debe ser de 4 dígitos</div>}
+                    {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Nueva clave lista para guardar</div>}
                   </div>
 
                   <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Dias y horarios</div>
@@ -2452,7 +2456,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         saveEdit();
                         if (editPin.length === 4) {
                           const ok = await cambiarPINAlumno(al.id, editPin);
-                          showToast && showToast(ok ? "PIN actualizado ✓" : "Error al cambiar PIN");
+                          showToast && showToast(ok ? "Clave actualizada ✓" : "Error al cambiar la clave");
                           setEditPin("");
                         }
                       }}
@@ -2895,24 +2899,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 </div>
                 {[
                   ["Nombre", admNombre, setAdmNombre],
-                  ["Usuario (código de login)", admCodigo, setAdmCodigo],
-                  ["PIN (4 dígitos)", admPin, setAdmPin],
+                  ["Username", admCodigo, setAdmCodigo],
+                  ["Clave (4 dígitos)", admPin, setAdmPin],
                 ].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 12 }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
                     <input
-                      type={label.includes("PIN") ? "password" : "text"}
+                      type={label.includes("Clave") ? "password" : "text"}
                       value={val}
                       onChange={(e) => set(e.target.value)}
                       style={inp}
-                      maxLength={label.includes("PIN") ? 4 : undefined}
+                      maxLength={label.includes("Clave") ? 4 : undefined}
                     />
                   </div>
                 ))}
                 <button
                   onClick={async () => {
                     if (!admNombre || !admCodigo || admPin.length !== 4) {
-                      showToast && showToast("Completá todos los campos (PIN 4 dígitos)");
+                      showToast && showToast("Completá todos los campos (clave de 4 dígitos)");
                       return;
                     }
                     try {
@@ -2968,7 +2972,7 @@ function Login({ onLogin, onAdmin }) {
 
   const go = async () => {
     if (!codigo.trim() || !pin.trim()) {
-      setErr("Completa código y PIN");
+      setErr("Completa username y clave");
       return;
     }
 
@@ -3012,19 +3016,19 @@ function Login({ onLogin, onAdmin }) {
 
       <div style={{ width: "100%", maxWidth: 340, background: "#111111", border: "1px solid #222", borderRadius: 14, padding: "28px 24px" }}>
         <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
-          Código
+          Username
         </div>
         <input
           value={codigo}
           onChange={(e) => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && go()}
-          placeholder="Ej: DI-001"
+          placeholder="Tu username"
           style={{ ...inp, fontSize: 15, padding: "12px 14px", background: "#181818", border: "1px solid #2a2a2a" }}
           disabled={cargando}
         />
 
         <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14 }}>
-          PIN (4 dígitos)
+          Clave (4 dígitos)
         </div>
         <input
           type="password"
@@ -3037,21 +3041,7 @@ function Login({ onLogin, onAdmin }) {
           disabled={cargando}
         />
 
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="checkbox"
-            id="adminCheck"
-            checked={esAdmin}
-            onChange={(e) => setEsAdmin(e.target.checked)}
-            style={{ cursor: "pointer", width: 16, height: 16, accentColor: S.white }}
-            disabled={cargando}
-          />
-          <label htmlFor="adminCheck" style={{ color: S.gray, fontSize: 12, cursor: "pointer", userSelect: "none", letterSpacing: 0.5 }}>
-            Acceso administrador
-          </label>
-        </div>
-
-        {err && <div style={{ color: S.red, fontSize: 12, marginTop: 10, padding: "8px 10px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
+        {err && <div style={{ color: S.red, fontSize: 12, marginTop: 14, padding: "8px 10px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
         <button
           onClick={go}
@@ -3077,8 +3067,33 @@ function Login({ onLogin, onAdmin }) {
       </div>
 
       <div style={{ marginTop: 16, fontSize: 11, color: S.lgray, textAlign: "center" }}>
-        Alumno: código + PIN · Admin: credenciales del creador
+        Alumno: username + clave · Admin: credenciales del creador
       </div>
+
+      {/* Acceso admin — discreto, al final, con estado on/off inequívoco */}
+      <button
+        onClick={() => setEsAdmin((v) => !v)}
+        disabled={cargando}
+        style={{
+          marginTop: 28,
+          display: "flex",
+          alignItems: "center",
+          gap: 7,
+          background: esAdmin ? "rgba(76,175,80,0.12)" : "transparent",
+          color: esAdmin ? S.green : S.lgray,
+          border: "1px solid " + (esAdmin ? S.green : "#242424"),
+          borderRadius: 20,
+          padding: "6px 14px",
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          cursor: cargando ? "not-allowed" : "pointer",
+        }}
+      >
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.green : "#3a3a3a", flexShrink: 0 }} />
+        {esAdmin ? "✓ Acceso administrador activado" : "Acceso administrador"}
+      </button>
     </div>
   );
 }
@@ -3104,6 +3119,20 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
         <button onClick={onSalir} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
           Salir
         </button>
+      </div>
+
+      {/* Datos del alumno — reusa calcularEdad, igual que la vista de entrenamiento */}
+      <div style={{ padding: "0 16px 12px", display: "flex", gap: 8 }}>
+        {[
+          ["PESO", al.peso],
+          ["ALTURA", al.altura],
+          ["EDAD", calcularEdad(al.fecha_nacimiento) || al.edad],
+        ].map(([l, v]) => (
+          <div key={l} style={{ flex: 1, background: S.card2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{v || "—"}</div>
+            <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>{l}</div>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -3340,6 +3369,38 @@ export default function App() {
     console.log(`%c[APP] Cambio en alumnos (${alumnos.length}) → guardarDatos...`, "color:#a5b4fc;font-weight:bold");
     guardarDatos(alumnos);
   }, [alumnos, cargado]);
+  // Persistencia de sesión: al refrescar (F5) la app tiene que mantener al
+  // usuario logueado, no mandarlo al login. Solo se cierra sesión con el
+  // botón "Salir"/"Cerrar" explícito (ver logout()).
+  const _sesionRestaurada = useRef(false);
+  useEffect(() => {
+    if (!cargado || _sesionRestaurada.current) return;
+    _sesionRestaurada.current = true;
+    let sesion = null;
+    try {
+      sesion = JSON.parse(localStorage.getItem("di_session") || "null");
+    } catch (e) {
+      sesion = null;
+    }
+    if (!sesion) return;
+    if (sesion.type === "admin") {
+      setAdminMode(true);
+    } else if (sesion.type === "alumno" && sesion.id) {
+      const f = alumnos.find((x) => x.id === sesion.id);
+      if (f) {
+        cargarPesos(f.id, null).then((guardado) => {
+          setPesos(guardado ? guardado.pesos : initPesos(f.plan));
+          setHistoriales(guardado ? guardado.historiales : initH(f.plan));
+          setAlumno(f);
+          setTabGroup("entrenamiento");
+          setTab("Ejercicios");
+          setDiaIdx(0);
+        });
+      } else {
+        try { localStorage.removeItem("di_session"); } catch (e) {}
+      }
+    }
+  }, [cargado, alumnos]);
   const login = async (a) => {
     const f = alumnos.find((x) => x.id === a.id) || a;
     const guardado = await cargarPesos(f.id, null);
@@ -3350,6 +3411,16 @@ export default function App() {
     setTabGroup("entrenamiento");
     setTab("Ejercicios");
     setDiaIdx(0);
+    try { localStorage.setItem("di_session", JSON.stringify({ type: "alumno", id: f.id })); } catch (e) {}
+  };
+  const loginAsAdmin = () => {
+    try { localStorage.setItem("di_session", JSON.stringify({ type: "admin" })); } catch (e) {}
+    setAdminMode(true);
+  };
+  const logout = () => {
+    try { localStorage.removeItem("di_session"); } catch (e) {}
+    setAlumno(null);
+    setAdminMode(false);
   };
     const handlePeso = (id, val) => {
     const np = { ...pesos, [id]: val };
@@ -3403,7 +3474,7 @@ export default function App() {
         <AdminPanel
           alumnos={alumnos}
           onUpdate={(u) => setAlumnos(u)}
-          onClose={() => setAdminMode(false)}
+          onClose={logout}
           showToast={showToast}
           biblioteca={biblioteca}
           onGuardarBiblioteca={async (ej) => { await guardarEjercicioBiblioteca(ej); cargarBiblioteca().then(setBiblioteca); }}
@@ -3413,14 +3484,14 @@ export default function App() {
         <Toast msg={toastMsg} />
       </>
     );
-  if (!alumno) return <Login onLogin={login} onAdmin={() => setAdminMode(true)} alumnos={alumnos} />;
+  if (!alumno) return <Login onLogin={login} onAdmin={loginAsAdmin} alumnos={alumnos} />;
   const al = alumnos.find((a) => a.id === alumno.id) || alumno;
   // Vista rehabilitación — interfaz simplificada para pacientes de kinesiología
   if (al.tipo === "rehabilitacion") {
     return (
       <VistaRehabilitacion
         al={al}
-        onSalir={() => setAlumno(null)}
+        onSalir={logout}
         marcarAsistencia={marcarAsistencia}
       />
     );
@@ -3552,7 +3623,7 @@ export default function App() {
               {darkMode ? "☀️" : "🌙"}
             </button>{" "}
             <button
-              onClick={() => setAlumno(null)}
+              onClick={logout}
               style={{
                 background: "transparent",
                 color: S.gray,

@@ -26,9 +26,6 @@ export default function ItemCard({
   historial = historial || [];
   showPeso = showPeso || false;
   const [open, setOpen] = useState(false);
-  const [edit, setEdit] = useState(false);
-  const [tmp, setTmp] = useState("0");
-  const [showChart, setShowChart] = useState(false);
   const ytId = getYTId(video);
   const renderMedia = () => {
     if (ytId)
@@ -129,18 +126,12 @@ export default function ItemCard({
       </div>
       {open && (
         <div style={{ borderTop: "1px solid #2a2a2a", padding: 14 }}>
-          {renderMedia()}
           {desc && (
-            <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.6, marginBottom: showPeso ? 12 : 0 }}>{desc}</div>
+            <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
           )}
+          {renderMedia()}
           {showPeso && (
             <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
-              {semana && (
-                <div style={{ fontSize: 10, color: S.gray, marginBottom: 6 }}>
-                  SEMANA {semana.semana} — {semana.series}x{semana.reps}
-                  {semana.intensidad ? " al " + semana.intensidad : ""}
-                </div>
-              )}
               {pesoAnterior && (
                 <div
                   style={{
@@ -161,134 +152,76 @@ export default function ItemCard({
                   <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} kg</div>
                 </div>
               )}
-              {pesoSugerido && (
-                <div
+              <div
+                style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}
+              >
+                Registro de peso
+              </div>
+              <div style={{ color: S.lgray, fontSize: 12, marginBottom: 10 }}>Registra tu peso de hoy</div>
+              {historial.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <MiniChart data={historial} />
+                </div>
+              )}
+              <div style={{ textAlign: "center", marginBottom: 12 }}>
+                <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>
+                  {peso > 0 ? peso + " kg" : "Sin registrar"}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
                   style={{
-                    background: "#0d1f0d",
-                    border: "1px solid #1a4d1a",
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    background: S.card,
+                    color: S.white,
+                    border: "1px solid #2a2a2a",
                     borderRadius: 8,
-                    padding: "10px 12px",
-                    marginBottom: 10,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: "pointer",
                   }}
                 >
-                  <div>
-                    <div style={{ color: S.green, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
-                      PESO SUGERIDO HOY
-                    </div>
-                    <div style={{ color: S.gray, fontSize: 10 }}>
-                      {semana && semana.series}x{semana && semana.reps} al {intensidad}
-                    </div>
-                  </div>
-                  <div style={{ color: S.green, fontWeight: 900, fontSize: 24 }}>{pesoSugerido} kg</div>
-                </div>
-              )}
-              <div
-                style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}
-              >
-                Registrar peso de hoy
-              </div>
-              {edit ? (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    type="number"
-                    value={tmp}
-                    onChange={(e) => setTmp(e.target.value)}
-                    style={{
-                      flex: 1,
-                      background: S.card,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "8px 10px",
-                      color: S.white,
-                      fontSize: 16,
-                      outline: "none",
-                    }}
-                  />
-                  <span style={{ color: S.gray }}>kg</span>
-                  <button
-                    onClick={() => {
-                      onPesoChange && onPesoChange(Number(tmp));
-                      setEdit(false);
-                    }}
-                    style={{
-                      background: S.white,
-                      color: S.bg,
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "8px 14px",
-                      fontWeight: 900,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() => setEdit(false)}
-                    style={{
-                      background: "transparent",
-                      color: S.gray,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "8px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <div
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}
+                  −
+                </button>
+                <input
+                  type="number"
+                  value={peso}
+                  onChange={(e) => onPesoChange && onPesoChange(Number(e.target.value))}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    background: S.card,
+                    border: "1px solid #2a2a2a",
+                    borderRadius: 8,
+                    padding: "9px 10px",
+                    color: S.white,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    outline: "none",
+                  }}
+                />
+                <span style={{ color: S.gray, fontSize: 13, flexShrink: 0 }}>kg</span>
+                <button
+                  onClick={() => onPesoChange && onPesoChange(peso + 1)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    background: S.white,
+                    color: S.bg,
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
                 >
-                  <span style={{ color: S.white, fontWeight: 700, fontSize: 18 }}>
-                    {peso > 0 ? peso + " kg" : "Sin registrar"}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setTmp(String(peso));
-                      setEdit(true);
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: S.white,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✎ EDITAR
-                  </button>
-                </div>
-              )}
-              {historial.length > 0 && (
-                <div>
-                  <button
-                    onClick={() => setShowChart(!showChart)}
-                    style={{
-                      background: "transparent",
-                      color: S.gray,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "5px 10px",
-                      fontSize: 10,
-                      cursor: "pointer",
-                      marginTop: 8,
-                    }}
-                  >
-                    {showChart ? "▲ OCULTAR" : "📈 PROGRESO"} ({historial.length})
-                  </button>
-                  {showChart && (
-                    <div style={{ marginTop: 10 }}>
-                      <MiniChart data={historial} />
-                    </div>
-                  )}
-                </div>
-              )}
+                  +
+                </button>
+              </div>
             </div>
           )}
         </div>

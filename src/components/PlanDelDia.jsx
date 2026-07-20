@@ -23,6 +23,9 @@ export default function PlanDelDia({
 }) {
   const [prep, setPrep] = useState("movilidad");
   const [videosGlobal, setVideosGlobal] = useState(null);
+  // Preparación y Ejercicios principales son dos menús desplegables
+  // independientes — solo uno se muestra expandido a la vez.
+  const [seccionAbierta, setSeccionAbierta] = useState("preparacion");
 
   // Videos de movilidad globales (Admin → Plan → Videos de movilidad).
   useEffect(() => {
@@ -39,8 +42,10 @@ export default function PlanDelDia({
     return previos.length > 0 ? previos[previos.length - 1] : null;
   };
 
-  const SeccionTitulo = ({ letra, titulo, detalle }) => (
+  // Header-acordeón: clickeable, muestra si esa sección está abierta o cerrada.
+  const SeccionTitulo = ({ letra, titulo, detalle, seccion, abierta, onToggle }) => (
     <div
+      onClick={onToggle}
       style={{
         display: "flex",
         alignItems: "baseline",
@@ -48,6 +53,8 @@ export default function PlanDelDia({
         margin: "20px 0 10px",
         paddingBottom: 8,
         borderBottom: "1px solid " + S.border,
+        cursor: "pointer",
+        userSelect: "none",
       }}
     >
       <span style={{ color: S.green, fontWeight: 900, fontSize: 13 }}>{letra}</span>
@@ -55,6 +62,7 @@ export default function PlanDelDia({
         {titulo}
       </span>
       {detalle && <span style={{ color: S.gray, fontSize: 11, marginLeft: "auto" }}>{detalle}</span>}
+      <span style={{ color: S.gray, fontSize: 11, marginLeft: detalle ? 8 : "auto" }}>{abierta ? "▲" : "▼"}</span>
     </div>
   );
 
@@ -148,52 +156,66 @@ export default function PlanDelDia({
         </div>
       )}
 
-      {/* ── A · PREPARACIÓN ── */}
-      <SeccionTitulo letra="A" titulo="Preparación" detalle={prepActiva.detalle} />
-      <div style={{ display: "flex", gap: 5, marginBottom: 12 }}>
-        {PREP_TABS.map((t) => (
-          <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...tabBtn(prep === t.id), flex: 1, padding: "8px 4px", fontSize: 11 }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {prepActiva.items.length === 0 ? (
-        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
-          Sin ejercicios en esta parte
-        </div>
-      ) : (
-        prepActiva.items.map((ej, i) => (
-          <ItemCard
-            key={i}
-            numero={i + 1}
-            nombre={(ej.nombre || "").replace(/\s*\(banda\)/gi, "").trim()}
-            desc={ej.desc}
-            video={ej.video}
-            mediaLocal={ej.mediaLocal}
-          />
-        ))
-      )}
-      {/* Videos de la rutina completa, al final de Movilidad */}
-      {prep === "movilidad" && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
-            Rutina completa con el profe
+      {/* ── A · PREPARACIÓN (menú desplegable independiente) ── */}
+      <SeccionTitulo
+        letra="A"
+        titulo="Preparación"
+        detalle={seccionAbierta === "preparacion" ? prepActiva.detalle : null}
+        abierta={seccionAbierta === "preparacion"}
+        onToggle={() => setSeccionAbierta((s) => (s === "preparacion" ? null : "preparacion"))}
+      />
+      {seccionAbierta === "preparacion" && (
+        <>
+          <div style={{ display: "flex", gap: 5, marginBottom: 12 }}>
+            {PREP_TABS.map((t) => (
+              <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...tabBtn(prep === t.id), flex: 1, padding: "8px 4px", fontSize: 11 }}>
+                {t.label}
+              </button>
+            ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <VideoCard tipo="Corta" defaultDur="8 min" mv={videos.corta} />
-            <VideoCard tipo="Completa" defaultDur="15+ min" mv={videos.larga} />
-          </div>
-        </div>
+          {prepActiva.items.length === 0 ? (
+            <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+              Sin ejercicios en esta parte
+            </div>
+          ) : (
+            prepActiva.items.map((ej, i) => (
+              <ItemCard
+                key={i}
+                numero={i + 1}
+                nombre={(ej.nombre || "").replace(/\s*\(banda\)/gi, "").trim()}
+                desc={ej.desc}
+                video={ej.video}
+                mediaLocal={ej.mediaLocal}
+              />
+            ))
+          )}
+          {/* Videos de la rutina completa, al final de Movilidad */}
+          {prep === "movilidad" && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
+                Rutina completa con el profe
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <VideoCard tipo="Corta" defaultDur="8 min" mv={videos.corta} />
+                <VideoCard tipo="Completa" defaultDur="15+ min" mv={videos.larga} />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* ── B · EJERCICIOS PRINCIPALES ── */}
+      {/* ── B · EJERCICIOS PRINCIPALES (menú desplegable independiente) ── */}
       {planValido && dia && (
         <>
           <SeccionTitulo
             letra="B"
             titulo="Ejercicios principales"
-            detalle={`${sem.series}x${sem.reps}${sem.intensidad ? " al " + sem.intensidad : ""}`}
+            detalle={seccionAbierta === "principales" ? `${sem.series}x${sem.reps}${sem.intensidad ? " al " + sem.intensidad : ""}` : null}
+            abierta={seccionAbierta === "principales"}
+            onToggle={() => setSeccionAbierta((s) => (s === "principales" ? null : "principales"))}
           />
+          {seccionAbierta === "principales" && (
+          <>
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
             const rmKey = RM_EJS.find(
@@ -223,6 +245,8 @@ export default function PlanDelDia({
               />
             );
           })}
+          </>
+          )}
         </>
       )}
     </div>
