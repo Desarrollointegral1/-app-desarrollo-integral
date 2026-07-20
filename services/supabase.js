@@ -507,6 +507,10 @@ export async function cargarPlanesXDia(alumno_id, row) {
         id: makeUuid(),
         dia_semana: "Fijo",
         nombre: "Plan Único",
+        // Marca que este plan NO existe como fila de alumno_planes: se arma al
+        // vuelo desde plan_dias(alumno_id). Editarlo se persiste por el camino
+        // viejo (al.plan.dias → _guardarAlumno), no por actualizarPlanAlumnoDias.
+        _sintetico: true,
         estado: "activo",
         dias,
         movilidad:     row.plan_movilidad     || [],
@@ -595,6 +599,17 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
     }
     const dias = typeof plan_template === 'string' ? [] : (plan_template.dias || []);
 
+    // REEMPLAZO, no solapamiento: si el día ya tenía plan(es), se borran antes
+    // de crear el nuevo (bug ronda 4: asignar plan a un día duplicaba planes).
+    // El FK de plan_dias/plan_ejercicios es ON DELETE CASCADE, así que se
+    // llevan sus días y ejercicios.
+    const { error: delErr } = await supabase
+      .from("alumno_planes")
+      .delete()
+      .eq("alumno_id", alumno_id)
+      .eq("dia_semana", dia_semana);
+    if (delErr) ERR("crearPlanAlumno", `No se pudo borrar el plan previo de ${dia_semana}`, delErr);
+
     const { data: nuevoAlPlan, error } = await supabase
       .from("alumno_planes")
       .insert({
@@ -621,6 +636,20 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
   } catch (e) {
     ERR("crearPlanAlumno", "Error creando plan", e);
     return { ok: false, error: e };
+  }
+}
+
+// Reescribe los días+ejercicios de un plan por día (fila real de alumno_planes).
+// Lo usa Admin → Plan → Principales para editar ejercicios puntuales de los
+// planes ya asignados a los días que el alumno entrena.
+export async function actualizarPlanAlumnoDias(alumno_plan_id, dias) {
+  LOG("actualizarPlanAlumnoDias", `⏳ Actualizando días del plan ${alumno_plan_id}`);
+  try {
+    await _savePlanDias(alumno_plan_id, dias, true);
+    return true;
+  } catch (e) {
+    ERR("actualizarPlanAlumnoDias", "Error actualizando plan", e);
+    return false;
   }
 }
 

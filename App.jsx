@@ -16,6 +16,7 @@ import {
   subirVideo,
   crearPlanAlumno,
   cargarPlanesXDia,
+  actualizarPlanAlumnoDias,
   crearAdmin,
   cargarBiblioteca,
   guardarEjercicioBiblioteca,
@@ -25,14 +26,11 @@ import {
   toggleNovedad,
   eliminarNovedad,
   // NUEVAS FUNCIONES - REDISEÑO v2
-  getAppConfig,
-  setAppConfig,
   saveDailyWeight,
   saveDailyAttendance,
   saveBioimpedanciaCompleta,
   cargarBioimpedanciaCompleta,
   cargarPesosPorDia,
-  getMonthlyReport,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -1098,12 +1096,15 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
 // ── ASISTENCIA ────────────────────────────────────────────────────────
 function Asistencia({ asistencia, onMarcar }) {
   const hoyStr = hoy();
-  const yaMarco = asistencia.includes(hoyStr);
+  // Los registros pueden ser "YYYY-MM-DD" (viejos) o "YYYY-MM-DD HH:mm"
+  // (nuevos, con hora) — comparar siempre solo la parte de fecha.
+  const tieneDia = (d) => asistencia.some((x) => x.slice(0, 10) === d);
+  const yaMarco = tieneDia(hoyStr);
   const [diaAnterior, setDiaAnterior] = useState("");
   const [showDiaAnterior, setShowDiaAnterior] = useState(false);
   const marcarDiaAnterior = () => {
     if (!diaAnterior || diaAnterior >= hoyStr) return;
-    if (asistencia.includes(diaAnterior)) {
+    if (tieneDia(diaAnterior)) {
       alert("Ya marcaste ese día.");
       return;
     }
@@ -1123,12 +1124,11 @@ function Asistencia({ asistencia, onMarcar }) {
   const pct = totalDias > 0 ? Math.round((fueDias / totalDias) * 100) : 0;
   // Racha
   let racha = 0;
-  const sorted = [...asistencia].sort((a, b) => b.localeCompare(a));
   let checkDate = new Date();
   checkDate.setHours(0, 0, 0, 0);
   for (let i = 0; i < 60; i++) {
     const ds = checkDate.toISOString().split("T")[0];
-    if (sorted.includes(ds)) {
+    if (tieneDia(ds)) {
       racha++;
     } else if (i > 0) break;
     checkDate.setDate(checkDate.getDate() - 1);
@@ -1269,7 +1269,7 @@ function Asistencia({ asistencia, onMarcar }) {
               <div key={"e" + i} />
             ))}{" "}
           {diasEnMes.map((d, i) => {
-            const fue = asistencia.includes(d);
+            const fue = tieneDia(d);
             const esHoy = d === hoyStr;
             const esFuturo = new Date(d) > new Date();
             return (
@@ -1815,6 +1815,85 @@ function HistorialAdmin({ al }) {
     </div>
   );
 }
+// ── PLAN → PRINCIPALES: días reales del alumno con su plan asignado ───
+// Muestra directamente LOS DÍAS QUE EL ALUMNO YA ENTRENA (los elegidos en el
+// alta) con el plan que cada uno tiene, para retocar ejercicios puntuales.
+// Agregar un día nuevo queda como acción secundaria (deriva a Plan Día).
+const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7, Fijo: 8 };
+function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, showToast, onIrPlanDia }) {
+  const planes = [...(al.planes || [])].sort(
+    (a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9),
+  );
+  const [selPlanId, setSelPlanId] = useState(planes[0] && planes[0].id);
+  const plan = planes.find((p) => p.id === selPlanId) || planes[0];
+
+  const guardarDias = (nuevosDias) => {
+    if (!plan) return;
+    onUpdate(alumnos.map((a) => a.id === al.id
+      ? {
+          ...a,
+          planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, dias: nuevosDias } : p)),
+          // El plan sintético "Fijo" (sin fila en alumno_planes) se persiste
+          // por el camino viejo: al.plan.dias → _guardarAlumno → plan_dias.
+          plan: plan._sintetico ? { ...a.plan, dias: nuevosDias } : a.plan,
+        }
+      : a));
+    if (!plan._sintetico) {
+      actualizarPlanAlumnoDias(plan.id, nuevosDias).then((ok) => {
+        if (!ok) showToast && showToast("Error guardando el plan — reintentá");
+      });
+    }
+  };
+
+  if (planes.length === 0)
+    return (
+      <div style={{ ...card, padding: 24, textAlign: "center" }}>
+        <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>
+          {al.nombre} no tiene días con plan asignado todavía.
+        </div>
+        <button onClick={onIrPlanDia} style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "8px 16px", fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+          Asignar plan a un día
+        </button>
+      </div>
+    );
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+        Días que entrena {al.nombre}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {planes.map((p) => {
+          const activo = plan && p.id === plan.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => setSelPlanId(p.id)}
+              style={{ background: activo ? S.white : S.card, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 8, padding: "7px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+            >
+              <div>{p.dia_semana === "Fijo" ? "Todos los días" : p.dia_semana}</div>
+              <div style={{ fontSize: 9, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
+            </button>
+          );
+        })}
+        <button onClick={onIrPlanDia} style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>
+          + Otro día
+        </button>
+      </div>
+      {plan && (
+        <div style={{ ...card, padding: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>
+              {plan.dia_semana === "Fijo" ? "Plan único" : plan.dia_semana} · {plan.nombre || "Plan"}
+            </div>
+            <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
+          </div>
+          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />
+        </div>
+      )}
+    </div>
+  );
+}
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
 function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) {
   const lunesStr = (() => {
@@ -1826,10 +1905,8 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
 
   return (
     <div onClick={onDeselect}>
-      {/* Buscador */}
-      <div style={{ marginBottom: 8 }}>
-        <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { onSelect(id); }} />
-      </div>
+      {/* El buscador de alumno vive UNA sola vez en el layout del AdminPanel
+          (arriba de los submenús) — acá adentro no se repite (ronda 4). */}
       {/* + Nuevo ancho completo */}
       <button
         onClick={(e) => { e.stopPropagation(); onNuevo(); }}
@@ -1845,7 +1922,7 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
       {alumnos.map((al) => {
         const asistSemana = (al.asistencia || []).filter((d) => d >= lunesStr).length;
         const asistMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
-        const ultimaAsist = [...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0];
+        const ultimaAsist = ([...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0] || "").slice(0, 10) || undefined;
         const entrenoHoy = ultimaAsist === hoy();
         const isSelected = al.id === selId;
         return (
@@ -2044,8 +2121,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [planTab, setPlanTab] = useState("entrenamiento");
   const [selectedDia, setSelectedDia] = useState(null);
   const [form, setForm] = useState(null);
-  const [selectedMes, setSelectedMes] = useState(new Date().toISOString().slice(0, 7));
-  const [reporteData, setReporteData] = useState(null);
   const [rm, setRm] = useState(() => {
     const r = {};
     alumnos.forEach((a) => {
@@ -2062,19 +2137,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     [nfecha, setNfecha] = useState(""),
     [nmodalidad, setNmodalidad] = useState(""),
     [ntipo, setNtipo] = useState("entrenamiento");
-  // Fecha de evaluación GLOBAL (una sola para todos) — vive en app_config
-  // (migración 007) con espejo en localStorage por si la tabla no existe.
-  const [fechaEval, setFechaEval] = useState(() => {
-    try { return localStorage.getItem("di_fecha_evaluacion") || ""; } catch (e) { return ""; }
-  });
-  useEffect(() => {
-    getAppConfig("fecha_evaluacion").then((v) => { if (v) setFechaEval(v); });
-  }, []);
-  const guardarFechaEval = async (v) => {
-    setFechaEval(v);
-    try { localStorage.setItem("di_fecha_evaluacion", v); } catch (e) {}
-    const ok = await setAppConfig("fecha_evaluacion", v);
-    showToast && showToast(ok ? "Fecha de evaluación guardada ✓" : "Guardada solo en este dispositivo (corré la migración 007)");
+  // Fecha de evaluación POR ALUMNO (ronda 4): es la fecha en que el entrenador
+  // evaluó a ESE alumno. Vive dentro del jsonb `rm` como `fecha_evaluacion` —
+  // sin migración nueva. Se guarda apenas se cambia.
+  const setFechaEvalAlumno = (v) => {
+    if (!al) return;
+    setRm((r) => ({ ...r, [al.id]: { ...r[al.id], fecha_evaluacion: v } }));
+    const rmNuevo = { ...(rm[al.id] || al.rm || {}), fecha_evaluacion: v };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
+    showToast && showToast("Fecha de evaluación guardada ✓");
   };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
@@ -2123,19 +2194,88 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     showToast && showToast("Guardado ✓");
   };
 
-  // NUEVA: Cargar reporte mensual cuando se selecciona la sección de reportes
-  useEffect(() => {
-    if (sec === "reportes" && al && selectedMes) {
-      getMonthlyReport(al.id, selectedMes)
-        .then(data => {
-          setReporteData(data);
-        })
-        .catch(err => {
-          console.error("Error cargando reporte:", err);
-          showToast && showToast("Error al cargar reporte");
-        });
+  // Exporta TODA la ficha del alumno como markdown (client-side, Blob).
+  // Lucas lo pega en Claude para generar reportes.
+  const exportarAlumno = async (alumno) => {
+    showToast && showToast("Generando exportación...");
+    try {
+      const [pesosData, bio] = await Promise.all([
+        cargarPesos(alumno.id, null),
+        cargarBioimpedanciaCompleta(alumno.id),
+      ]);
+      const historiales = (pesosData && pesosData.historiales) || {};
+      // Nombre de ejercicio por id, desde todos los planes del alumno
+      const nombreEj = {};
+      [...(alumno.planes || []), alumno.plan].forEach((p) => {
+        ((p && p.dias) || []).forEach((d) =>
+          (d.ejercicios || []).forEach((e) => { if (e.id) nombreEj[e.id] = e.nombre; })
+        );
+      });
+      const L = [];
+      L.push(`# Ficha completa — ${alumno.nombre}`);
+      L.push(`Exportado: ${new Date().toLocaleString("es-AR")}`);
+      L.push("");
+      L.push("## Datos personales");
+      L.push(`- Nombre: ${alumno.nombre}`);
+      L.push(`- Edad: ${calcularEdad(alumno.fecha_nacimiento) || alumno.edad || "—"}`);
+      L.push(`- Peso corporal: ${alumno.peso || "—"} kg`);
+      L.push(`- Altura: ${alumno.altura || "—"} cm`);
+      L.push(`- Modalidad: ${alumno.modalidad || "Sin definir"}`);
+      L.push(`- Email: ${alumno.email || "—"}`);
+      L.push(`- Tipo: ${alumno.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"}`);
+      L.push(`- Días de entrenamiento: ${(alumno.horarios || []).map((h) => h.dia).join(", ") || "—"}`);
+      L.push("");
+      L.push("## Asistencia");
+      const asis = [...(alumno.asistencia || [])].sort();
+      if (asis.length === 0) L.push("Sin registros.");
+      asis.forEach((r) => L.push(`- ${r.slice(0, 10)}${r.length > 10 ? ` · ${r.slice(11)} hs` : ""}`));
+      L.push("");
+      L.push("## Pesos máximos");
+      const rmAl = alumno.rm || {};
+      L.push(`Fecha de evaluación: ${rmAl.fecha_evaluacion || "—"}`);
+      RM_EJS.forEach((ej) => {
+        const r = rmAl[ej];
+        L.push(`- ${ej}: ${r && r.peso ? r.peso + " kg" : "—"}`);
+      });
+      L.push("");
+      L.push("## Historial de pesos por ejercicio");
+      const idsConHist = Object.keys(historiales).filter((id) => (historiales[id] || []).length > 0);
+      if (idsConHist.length === 0) L.push("Sin registros.");
+      idsConHist.forEach((id) => {
+        L.push(`### ${nombreEj[id] || "Ejercicio"}`);
+        (historiales[id] || []).forEach((h) => L.push(`- ${h.fecha}: ${h.peso} kg`));
+        L.push("");
+      });
+      L.push("## Bioimpedancia");
+      if (!bio || bio.length === 0) L.push("Sin estudios.");
+      (bio || []).forEach((b) => {
+        L.push(`- ${String(b.fecha || "").slice(0, 10)}: peso ${b.peso != null ? b.peso + " kg" : "—"} · grasa ${b.grasa_corporal != null ? b.grasa_corporal + "%" : "—"} · músculo ${b.masa_muscular != null ? b.masa_muscular + "%" : "—"} · visceral ${b.grasa_visceral != null ? b.grasa_visceral : "—"}`);
+      });
+      L.push("");
+      L.push("## Diario del alumno");
+      const diario = [...(alumno.diario || [])].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
+      if (diario.length === 0) L.push("Sin entradas.");
+      diario.forEach((d) => {
+        L.push(`### ${d.fecha}`);
+        L.push(d.texto || "");
+        if (d.respuesta) L.push(`> Respuesta del profe: ${d.respuesta}`);
+        L.push("");
+      });
+      const blob = new Blob([L.join("\n")], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${alumno.nombre.replace(/\s+/g, "-").toLowerCase()}-ficha.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast && showToast("Ficha exportada ✓");
+    } catch (e) {
+      console.error("[exportarAlumno]", e);
+      showToast && showToast("Error exportando: " + e.message);
     }
-  }, [sec, al?.id, selectedMes]);
+  };
 
   const crearAlumno = async () => {
     if (!nn || !nc || !npin) {
@@ -2215,6 +2355,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const asignarPlanDia = async (plantillaId) => {
     if (!selectedDia || !al) return;
     const plantilla = getPlantilla(plantillaId);
+    // REEMPLAZO, no solapamiento (bug ronda 4): si el día ya tiene un plan,
+    // confirmar y reemplazarlo — crearPlanAlumno borra el previo en la base.
+    const existente = (al.planes || []).find((p) => p.dia_semana === selectedDia && !p._sintetico);
+    if (existente && !window.confirm(`${selectedDia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${plantilla.nombre}"?`)) return;
     const tpl = clonarPlan(plantilla.plan);
     try {
       const result = await crearPlanAlumno(al.id, selectedDia, { ...tpl, nombre: plantilla.nombre });
@@ -2347,7 +2491,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
         {secBtn("Plan", "plan")}
         {secBtn("Peso Max", "rm")}
-        {secBtn("Reportes", "reportes")}
+        {secBtn("Asistencia", "reportes")}
         {secBtn("Historial", "historial")}
         {secBtn("Bioimp.", "bioimpedancia")}
       </div>{" "}
@@ -2674,7 +2818,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               ))}{" "}
             </div>{" "}
             {planTab === "entrenamiento" && al && (
-              <DiasEditor dias={al.plan.dias} onChange={(v) => updatePlan("dias", v)} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />
+              <PlanesPrincipales
+                key={al.id}
+                al={al}
+                alumnos={alumnos}
+                onUpdate={onUpdate}
+                biblioteca={biblioteca}
+                onGuardarBiblioteca={onGuardarBiblioteca}
+                showToast={showToast}
+                onIrPlanDia={() => setPlanTab("plan-dias")}
+              />
             )}{" "}
             {planTab === "movilidad" && al && (
               <>
@@ -2760,13 +2913,20 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "rm" && (
           <div>
             {" "}
-            {/* Fecha de evaluación GLOBAL: una sola fecha, igual para todos */}
-            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-                📅 Fecha de evaluación (para todos los alumnos)
+            {/* Fecha de evaluación POR ALUMNO: cuándo se lo evaluó a ESTE alumno */}
+            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
+              <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                  📅 Fecha de evaluación de {al.nombre}
+                </div>
+                <input
+                  type="date"
+                  value={(rm[al.id] && rm[al.id].fecha_evaluacion) || (al.rm && al.rm.fecha_evaluacion) || ""}
+                  onChange={(e) => setFechaEvalAlumno(e.target.value)}
+                  style={inp}
+                />
               </div>
-              <input type="date" value={fechaEval} onChange={(e) => guardarFechaEval(e.target.value)} style={inp} />
-            </div>
+            )}
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
               Peso maximo — {al ? al.nombre : "—"}
             </div>{" "}
@@ -2783,41 +2943,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
                   {" "}
                   <div style={{ color: S.white, fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{ej}</div>{" "}
-                  <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 8 }}>
-                    {" "}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={(rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso) || ""}
-                        onChange={(e) =>
-                          setRm((r) => {
-                            const n = { ...r };
-                            n[al.id] = { ...n[al.id] };
-                            n[al.id][ej] = { ...n[al.id][ej], peso: Number(e.target.value) };
-                            return n;
-                          })
-                        }
-                        style={inp}
-                      />
-                    </div>{" "}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>FECHA EVALUACION</div>
-                      <input
-                        type="date"
-                        value={(rm[al.id] && rm[al.id][ej] && rm[al.id][ej].fecha) || ""}
-                        onChange={(e) =>
-                          setRm((r) => {
-                            const n = { ...r };
-                            n[al.id] = { ...n[al.id] };
-                            n[al.id][ej] = { ...n[al.id][ej], fecha: e.target.value };
-                            return n;
-                          })
-                        }
-                        style={inp}
-                      />
-                    </div>{" "}
+                  {/* Solo el peso — la fecha de evaluación es UNA por alumno (arriba) */}
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={(rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso) || ""}
+                      onChange={(e) =>
+                        setRm((r) => {
+                          const n = { ...r };
+                          n[al.id] = { ...n[al.id] };
+                          n[al.id][ej] = { ...n[al.id][ej], peso: Number(e.target.value) };
+                          return n;
+                        })
+                      }
+                      style={inp}
+                    />
                   </div>{" "}
                   {rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso > 0 && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -2875,98 +3017,61 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
           </div>
         )}{" "}
-        {sec === "reportes" && al && (
-          <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "center" }}>
-              <button
-                onClick={() => setSec("dashboard")}
-                style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}
-              >← Volver</button>
-              <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{al.nombre}</div>
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>Mes</div>
-              <input
-                type="month"
-                value={selectedMes}
-                onChange={(e) => setSelectedMes(e.target.value)}
-                style={{ ...inp, width: "100%" }}
-              />
-            </div>
-
-            {reporteData ? (
-              <div>
-                {/* Asistencias */}
-                <div style={{ ...card, padding: "14px 16px", marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Asistencias</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div style={{ background: S.card2, borderRadius: 8, padding: "12px", textAlign: "center" }}>
-                      <div style={{ color: S.green, fontWeight: 700, fontSize: 18 }}>{reporteData.asistencias}</div>
-                      <div style={{ color: S.gray, fontSize: 10, marginTop: 4 }}>Presentes</div>
-                    </div>
-                    <div style={{ background: S.card2, borderRadius: 8, padding: "12px", textAlign: "center" }}>
-                      <div style={{ color: S.white, fontWeight: 700, fontSize: 18 }}>{reporteData.porcentajeAsistencia}%</div>
-                      <div style={{ color: S.gray, fontSize: 10, marginTop: 4 }}>Porcentaje</div>
-                    </div>
-                  </div>
+        {sec === "reportes" && al && (() => {
+          // ASISTENCIA (ex "Reportes"): días que el alumno entrenó, con hora si
+          // existe (los registros nuevos guardan "YYYY-MM-DD HH:mm"; los viejos
+          // son solo fecha — se leen igual).
+          const registros = [...(al.asistencia || [])].sort((a, b) => b.localeCompare(a));
+          const esteMes = registros.filter((r) => r.startsWith(mesActual().slice(0, 7))).length;
+          return (
+            <div>
+              <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+                Asistencia — {al.nombre}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: 22 }}>{registros.length}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>TOTAL</div>
                 </div>
-
-                {/* Bioimpedancia */}
-                {reporteData.ultimaBioimpedancia && (
-                  <div style={{ ...card, padding: "14px 16px", marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Última Bioimpedancia</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {[
-                        ["Peso", reporteData.ultimaBioimpedancia.peso, "kg"],
-                        ["Grasa", reporteData.ultimaBioimpedancia.grasa_corporal, "%"],
-                        ["Músculo", reporteData.ultimaBioimpedancia.masa_muscular, "%"],
-                        ["Visceral", reporteData.ultimaBioimpedancia.grasa_visceral, ""]
-                      ].map(([label, val, unit]) => (
-                        <div key={label} style={{ background: S.card2, borderRadius: 8, padding: "10px", textAlign: "center" }}>
-                          <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{val || "—"}{unit}</div>
-                          <div style={{ color: S.gray, fontSize: 9, marginTop: 4 }}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pesos Máximos */}
-                {Object.keys(reporteData.pesosPromedio).length > 0 && (
-                  <div style={{ ...card, padding: "14px 16px" }}>
-                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>Pesos Máximos</div>
-                    {Object.entries(reporteData.pesosPromedio).map(([ejercicio, data]) => (
-                      <div key={ejercicio} style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, color: S.white, fontWeight: 700, marginBottom: 4, textTransform: "capitalize" }}>
-                          {ejercicio}
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
-                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.maximo}</div>
-                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Máx</div>
-                          </div>
-                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
-                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.promedio}</div>
-                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Prom</div>
-                          </div>
-                          <div style={{ background: S.card2, borderRadius: 6, padding: "8px", textAlign: "center" }}>
-                            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{data.registros}</div>
-                            <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Reg</div>
-                          </div>
-                        </div>
+                <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
+                  <div style={{ color: S.green, fontWeight: 900, fontSize: 22 }}>{esteMes}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>ESTE MES</div>
+                </div>
+              </div>
+              {registros.length === 0 ? (
+                <div style={{ ...card, padding: 30, textAlign: "center", color: S.gray, fontSize: 13, marginBottom: 12 }}>
+                  Sin asistencias registradas
+                </div>
+              ) : (
+                <div style={{ ...card, overflow: "hidden", marginBottom: 12 }}>
+                  {registros.map((r, i) => {
+                    const fecha = r.slice(0, 10);
+                    const hora = r.length > 10 ? r.slice(11) : "";
+                    let fechaTexto = fecha;
+                    try {
+                      fechaTexto = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+                    } catch (e) {}
+                    return (
+                      <div key={r + "-" + i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: i < registros.length - 1 ? "1px solid " + S.border : "none" }}>
+                        <div style={{ color: S.white, fontSize: 13, textTransform: "capitalize" }}>{fechaTexto}</div>
+                        <div style={{ color: hora ? S.green : S.lgray, fontSize: 12, fontWeight: hora ? 700 : 400 }}>{hora ? hora + " hs" : "—"}</div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+              )}
+              <button
+                onClick={() => exportarAlumno(al)}
+                style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", letterSpacing: 1 }}
+              >
+                ⬇ EXPORTAR FICHA COMPLETA
+              </button>
+              <div style={{ fontSize: 10, color: S.lgray, marginTop: 8, textAlign: "center" }}>
+                Descarga un archivo con todos los datos de {al.nombre}: perfil, asistencia, pesos máximos, historial, bioimpedancia y diario.
               </div>
-            ) : (
-              <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-                <div style={{ color: S.gray, fontSize: 12 }}>Cargando reporte...</div>
-              </div>
-            )}
-          </div>
-        )}{" "}
+            </div>
+          );
+        })()}{" "}
         {sec === "config" && (
           <div>
             {/* Sub-tabs */}
@@ -3573,7 +3678,14 @@ export default function App() {
     saveDailyWeight(alumno.id, hoy(), id, Number(val));
   };
   const marcarAsistencia = (fecha) => {
-    const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, asistencia: [...(a.asistencia || []), fecha] } : a));
+    // De acá en adelante la asistencia de HOY se guarda con hora
+    // ("YYYY-MM-DD HH:mm"). Días anteriores quedan solo fecha (hora desconocida).
+    // La lectura sigue siendo compatible con las fechas viejas sin hora.
+    const ahora = new Date();
+    const registro = fecha === hoy()
+      ? `${fecha} ${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`
+      : fecha;
+    const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, asistencia: [...(a.asistencia || []), registro] } : a));
     setAlumnos(u);
     setAlumno(u.find((a) => a.id === alumno.id));
   };
@@ -3888,10 +4000,10 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => {
-                    if (al.asistencia?.some((a) => a === hoy())) {
+                    if (al.asistencia?.some((a) => a.slice(0, 10) === hoy())) {
                       const u = alumnos.map((a) =>
                         a.id === al.id
-                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha !== hoy()) }
+                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha.slice(0, 10) !== hoy()) }
                           : a
                       );
                       setAlumnos(u);
@@ -3906,8 +4018,8 @@ export default function App() {
                   }}
                   style={{
                     width: "100%",
-                    background: al.asistencia?.some((a) => a === hoy()) ? S.green : S.white,
-                    color: al.asistencia?.some((a) => a === hoy()) ? "#fff" : S.bg,
+                    background: al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? S.green : S.white,
+                    color: al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? "#fff" : S.bg,
                     border: "none",
                     borderRadius: 12,
                     padding: "15px 24px",
@@ -3919,7 +4031,7 @@ export default function App() {
                     transition: "all 0.3s",
                   }}
                 >
-                  {al.asistencia?.some((a) => a === hoy()) ? "✅ Presente hoy" : "Marcar presente"}
+                  {al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? "✅ Presente hoy" : "Marcar presente"}
                 </button>
               </div>
               {/* Cómo estuvo el día */}
