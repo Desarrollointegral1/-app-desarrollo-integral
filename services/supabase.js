@@ -163,8 +163,12 @@ export async function cargarDatos(fallback) {
           peso:          row.peso          || "",
           altura:        row.altura        || "",
           edad:          row.edad          || "",
-          fecha_nacimiento: row.fecha_nacimiento || "",
+          // slice(0,10) por si la base devuelve timestamp — el input date necesita YYYY-MM-DD
+          fecha_nacimiento: (row.fecha_nacimiento || "").slice(0, 10),
           email:         row.email         || "",
+          tipo:          row.tipo          || "entrenamiento",
+          plan_type:     row.plan_type     || null,
+          modalidad:     row.modalidad     || "",
           foto:          row.foto          || "",
           horarios:      row.horarios      || [],
           bioimpedancia: row.bioimpedancia || [],
@@ -211,6 +215,8 @@ export async function insertAlumno(al) {
     edad:               al.edad               || null,
     fecha_nacimiento:   al.fecha_nacimiento   || null,
     email:              al.email              || null,
+    tipo:               al.tipo, // undefined se elimina en limpiarPayload
+    modalidad:          al.modalidad, // puede no existir la columna (migración 009) — hay fallback abajo
     foto:               al.foto               || '',
     horarios:           al.horarios           || [],
     bioimpedancia:      al.bioimpedancia      || [],
@@ -226,10 +232,18 @@ export async function insertAlumno(al) {
   console.log("[DEBUG crearAlumno] Enviando a Supabase →", payload);
 
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("alumnos")
       .insert(payload)
       .select();
+
+    // Si la columna "modalidad" todavía no existe (falta migración 009),
+    // reintenta sin ese campo para no romper el alta.
+    if (error && "modalidad" in payload && /(column .*modalidad.* does not exist|find the 'modalidad' column)/i.test(error.message || "")) {
+      LOG("insertAlumno", "⚠️ Columna 'modalidad' no existe todavía (falta migración 009), insertando sin modalidad");
+      delete payload.modalidad;
+      ({ data, error } = await supabase.from("alumnos").insert(payload).select());
+    }
 
     console.log("[DEBUG crearAlumno] Respuesta Supabase →", data, error);
 
@@ -292,6 +306,8 @@ async function _guardarAlumno(al) {
     edad:               al.edad               || null,
     fecha_nacimiento:   al.fecha_nacimiento   || null,
     email:              al.email              || null,
+    tipo:               al.tipo, // undefined se elimina en limpiarPayload
+    modalidad:          al.modalidad, // puede no existir la columna (migración 009) — hay fallback abajo
     foto:               al.foto               || '',
     horarios:           al.horarios           || [],
     bioimpedancia:      al.bioimpedancia      || [],
@@ -306,10 +322,19 @@ async function _guardarAlumno(al) {
 
   LOG("_guardarAlumno", `→ UPSERT "${al.nombre}" (id: ${al.id})`, payload);
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("alumnos")
     .upsert(payload, { onConflict: "id" })
     .select("id, nombre");  // pedimos respuesta para confirmar
+
+  // Fallback: si la columna "modalidad" no existe todavía (falta migración
+  // 009), reintenta sin ese campo — que un campo nuevo no rompa TODO el
+  // guardado del alumno (mismo criterio que email en crearAlumnoConPIN).
+  if (error && "modalidad" in payload && /(column .*modalidad.* does not exist|find the 'modalidad' column)/i.test(error.message || "")) {
+    LOG("_guardarAlumno", "⚠️ Columna 'modalidad' no existe todavía (falta migración 009), guardando sin modalidad");
+    delete payload.modalidad;
+    ({ data, error } = await supabase.from("alumnos").upsert(payload, { onConflict: "id" }).select("id, nombre"));
+  }
 
   if (error) {
     ERR("_guardarAlumno", `Falló UPSERT de "${al.nombre}"`, error);
@@ -852,7 +877,7 @@ export async function loginAdmin(codigo, pin) {
   }
 }
 
-export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fechaNacimiento, tipo, email) {
+export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fechaNacimiento, tipo, email, modalidad) {
   LOG("crearAlumnoConPIN", `⏳ Creando alumno ${codigo}...`);
 
   try {
@@ -865,6 +890,7 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
     };
     if (fechaNacimiento) nuevoAlumno.fecha_nacimiento = fechaNacimiento;
     if (email) nuevoAlumno.email = email;
+    if (modalidad) nuevoAlumno.modalidad = modalidad;
 
     try {
       const pinHash = await hashearPIN(pin);
@@ -880,9 +906,16 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
 
     // Si la columna "email" todavía no existe en Supabase (falta correr la
     // migración 008), reintenta sin ese campo para no romper el alta.
-    if (error && nuevoAlumno.email && /column .*email.* does not exist/i.test(error.message || "")) {
+    if (error && nuevoAlumno.email && /(column .*email.* does not exist|find the 'email' column)/i.test(error.message || "")) {
       LOG("crearAlumnoConPIN", "⚠️ Columna 'email' no existe todavía (falta migración 008), creando sin email");
       delete nuevoAlumno.email;
+      ({ data, error } = await supabase.from("alumnos").insert([nuevoAlumno]).select());
+    }
+
+    // Ídem con "modalidad" (falta migración 009): reintenta sin ese campo.
+    if (error && nuevoAlumno.modalidad && /(column .*modalidad.* does not exist|find the 'modalidad' column)/i.test(error.message || "")) {
+      LOG("crearAlumnoConPIN", "⚠️ Columna 'modalidad' no existe todavía (falta migración 009), creando sin modalidad");
+      delete nuevoAlumno.modalidad;
       ({ data, error } = await supabase.from("alumnos").insert([nuevoAlumno]).select());
     }
 

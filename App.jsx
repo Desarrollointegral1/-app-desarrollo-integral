@@ -23,7 +23,8 @@ import {
   toggleNovedad,
   eliminarNovedad,
   // NUEVAS FUNCIONES - REDISEÑO v2
-  assignPlanToStudent,
+  getAppConfig,
+  setAppConfig,
   saveDailyWeight,
   saveDailyAttendance,
   saveBioimpedanciaCompleta,
@@ -156,7 +157,7 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
           height: size,
           borderRadius: "50%",
           background: S.card2,
-          border: "2px solid #2a2a2a",
+          border: "2px solid " + S.border,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -221,7 +222,7 @@ function MediaUploader({ media, onMedia }) {
         onClick={() => fileRef.current.click()}
         style={{
           background: S.card2,
-          border: "2px dashed #2a2a2a",
+          border: "2px dashed " + S.border,
           borderRadius: 8,
           padding: 14,
           textAlign: "center",
@@ -485,7 +486,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   style={{
                     background: "transparent",
                     color: S.gray,
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid " + S.border,
                     borderRadius: 6,
                     padding: "8px 14px",
                     cursor: "pointer",
@@ -620,7 +621,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
               style={{
                 background: "transparent",
                 color: S.gray,
-                border: "1px solid #2a2a2a",
+                border: "1px solid " + S.border,
                 borderRadius: 6,
                 padding: "8px 14px",
                 cursor: "pointer",
@@ -638,7 +639,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
             marginTop: 8,
             background: "transparent",
             color: S.gray,
-            border: "1px dashed #2a2a2a",
+            border: "1px dashed " + S.border,
             borderRadius: 8,
             padding: "10px",
             fontSize: 12,
@@ -738,7 +739,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca 
           style={{
             background: "transparent",
             color: S.gray,
-            border: "1px dashed #2a2a2a",
+            border: "1px dashed " + S.border,
             borderRadius: 8,
             padding: "6px 10px",
             fontSize: 11,
@@ -785,7 +786,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca 
               style={{
                 background: "transparent",
                 color: S.gray,
-                border: "1px solid #2a2a2a",
+                border: "1px solid " + S.border,
                 borderRadius: 6,
                 padding: "8px 14px",
                 cursor: "pointer",
@@ -956,7 +957,7 @@ function PeriodizacionEditor({ data, onChange }) {
                   style={{
                     background: "transparent",
                     color: S.gray,
-                    border: "1px solid #2a2a2a",
+                    border: "1px solid " + S.border,
                     borderRadius: 6,
                     padding: "10px 16px",
                     cursor: "pointer",
@@ -1040,7 +1041,7 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
               style={{
                 padding: "10px 14px",
                 cursor: "pointer",
-                borderBottom: "1px solid #2a2a2a",
+                borderBottom: "1px solid " + S.border,
                 background: selId === a.id ? S.card2 : S.card,
                 display: "flex",
                 justifyContent: "space-between",
@@ -1340,7 +1341,7 @@ function EvolucionCargas({ historiales, plan }) {
               <tbody>
                 {" "}
                 {[...hist].reverse().map((h, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #2a2a2a" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid " + S.border }}>
                     {" "}
                     <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>{" "}
                     <td style={{ padding: "6px 10px", color: S.white, fontWeight: 700, textAlign: "right" }}>
@@ -1418,7 +1419,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "6px 0",
-                borderBottom: i < records.length - 1 ? "1px solid #2a2a2a" : "none",
+                borderBottom: i < records.length - 1 ? "1px solid " + S.border : "none",
               }}
             >
               {" "}
@@ -1441,7 +1442,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
                 style={{
                   marginBottom: i < diarioMes.length - 1 ? 10 : 0,
                   paddingBottom: i < diarioMes.length - 1 ? 10 : 0,
-                  borderBottom: i < diarioMes.length - 1 ? "1px solid #2a2a2a" : "none",
+                  borderBottom: i < diarioMes.length - 1 ? "1px solid " + S.border : "none",
                 }}
               >
                 {" "}
@@ -1521,6 +1522,12 @@ function Diario({ entradas, onAdd }) {
               {" "}
               <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>{e.fecha}</div>{" "}
               <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
+              {e.respuesta && (
+                <div style={{ marginTop: 8, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
+                  <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
+                  <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{e.respuesta}</div>
+                </div>
+              )}{" "}
             </div>
           ))
       )}{" "}
@@ -1621,7 +1628,7 @@ function TablaPer({ data, semanaActual }) {
       <div
         style={{
           padding: "12px 16px",
-          borderBottom: "1px solid #2a2a2a",
+          borderBottom: "1px solid " + S.border,
           color: S.white,
           fontWeight: 700,
           fontSize: 14,
@@ -1648,7 +1655,7 @@ function TablaPer({ data, semanaActual }) {
             return (
               <tr
                 key={r.semana}
-                style={{ background: cur ? "#1c1c1c" : "transparent", borderBottom: "1px solid #2a2a2a" }}
+                style={{ background: cur ? S.card2 : "transparent", borderBottom: "1px solid " + S.border }}
               >
                 {" "}
                 <td
@@ -1743,7 +1750,7 @@ function HistorialAdmin({ al }) {
               <div style={{ color: S.gray }}>{isOpen ? "▲" : "▼"}</div>{" "}
             </div>{" "}
             {isOpen && hist.length > 0 && (
-              <div style={{ borderTop: "1px solid #2a2a2a", padding: 14 }}>
+              <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
                 {" "}
                 <div style={{ marginBottom: 12 }}>
                   <MiniChart data={hist} />
@@ -1758,7 +1765,7 @@ function HistorialAdmin({ al }) {
                   </thead>{" "}
                   <tbody>
                     {[...hist].reverse().map((h, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #2a2a2a" }}>
+                      <tr key={i} style={{ borderBottom: "1px solid " + S.border }}>
                         <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>
                         <td style={{ padding: "6px 10px", color: S.white, fontWeight: 700, textAlign: "right" }}>
                           {h.peso} kg
@@ -1772,7 +1779,7 @@ function HistorialAdmin({ al }) {
             {isOpen && hist.length === 0 && (
               <div
                 style={{
-                  borderTop: "1px solid #2a2a2a",
+                  borderTop: "1px solid " + S.border,
                   padding: 14,
                   textAlign: "center",
                   color: S.lgray,
@@ -1935,10 +1942,51 @@ function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
   );
 }
 // ── DIARIO ADMIN ──────────────────────────────────────────────────────
-function DiarioAdmin({ alumnos }) {
+// Una entrada del diario vista por el admin, con la posibilidad de RESPONDER.
+// La respuesta se guarda como campo `respuesta` dentro de la misma entrada
+// (el diario es un array JSON en la columna `diario` — sin tocar el esquema).
+function EntradaDiarioAdmin({ entrada, onResponder }) {
+  const [editando, setEditando] = useState(false);
+  const [txt, setTxt] = useState(entrada.respuesta || "");
+  const guardar = () => {
+    if (!txt.trim()) return;
+    onResponder(txt.trim());
+    setEditando(false);
+  };
+  return (
+    <div style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
+      <div style={{ color: S.lgray, fontSize: 11, marginBottom: 6 }}>{entrada.fecha}</div>
+      <div style={{ color: S.white, fontSize: 14, lineHeight: 1.6 }}>{entrada.texto}</div>
+      {entrada.respuesta && !editando ? (
+        <div style={{ marginTop: 10, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
+          <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
+          <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{entrada.respuesta}</div>
+          <button onClick={() => { setTxt(entrada.respuesta || ""); setEditando(true); }} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 11, cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}>Editar respuesta</button>
+        </div>
+      ) : editando ? (
+        <div style={{ marginTop: 10 }}>
+          <textarea value={txt} onChange={(e) => setTxt(e.target.value)} rows={2} placeholder="Escribile una respuesta al alumno..." style={{ ...inp, resize: "vertical", marginBottom: 6 }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={guardar} disabled={!txt.trim()} style={{ background: txt.trim() ? S.green : S.card2, color: txt.trim() ? "#fff" : S.lgray, border: "none", borderRadius: 6, padding: "7px 14px", fontWeight: 700, fontSize: 12, cursor: txt.trim() ? "pointer" : "default" }}>Responder</button>
+            <button onClick={() => setEditando(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>Cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setEditando(true)} style={{ marginTop: 8, background: "transparent", color: S.green, border: "1px solid " + S.green, borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>↩ Responder</button>
+      )}
+    </div>
+  );
+}
+function DiarioAdmin({ alumnos, onUpdate, showToast }) {
   const [selId, setSelId] = useState(alumnos[0]?.id);
   const al = alumnos.find((a) => a.id === selId) || alumnos[0];
   const entradas = [...(al?.diario || [])].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const responder = (entrada, respuesta) => {
+    if (!al || !onUpdate) return;
+    const nuevoDiario = (al.diario || []).map((d) => (d === entrada ? { ...d, respuesta } : d));
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
+    showToast && showToast("Respuesta guardada ✓");
+  };
 
   return (
     <div>
@@ -1953,10 +2001,7 @@ function DiarioAdmin({ alumnos }) {
         </div>
       ) : (
         entradas.map((e, i) => (
-          <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-            <div style={{ color: S.lgray, fontSize: 11, marginBottom: 6 }}>{e.fecha}</div>
-            <div style={{ color: S.white, fontSize: 14, lineHeight: 1.6 }}>{e.texto}</div>
-          </div>
+          <EntradaDiarioAdmin key={e.fecha + "-" + i} entrada={e} onResponder={(r) => responder(e, r)} />
         ))
       )}
     </div>
@@ -1964,7 +2009,16 @@ function DiarioAdmin({ alumnos }) {
 }
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────
-function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, novedades = [], onNovedadesChange }) {
+// Modalidades de entrenamiento del alumno (pedido de Lucas 2026-07-20).
+const MODALIDADES = [
+  "Presencial con Lucas",
+  "Presencial con Ariel",
+  "Entrena solo en Desarrollo Integral",
+  "A distancia",
+];
+// Modalidades que NO evaluamos en persona → Peso Max no aplica.
+const MODALIDADES_SIN_PESOMAX = ["Entrena solo en Desarrollo Integral", "A distancia"];
+function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, novedades = [], onNovedadesChange, darkMode, onToggleTheme }) {
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
@@ -1986,7 +2040,22 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     [na, setNa] = useState(""),
     [ne, setNe] = useState(""),
     [nfecha, setNfecha] = useState(""),
+    [nmodalidad, setNmodalidad] = useState(""),
     [ntipo, setNtipo] = useState("entrenamiento");
+  // Fecha de evaluación GLOBAL (una sola para todos) — vive en app_config
+  // (migración 007) con espejo en localStorage por si la tabla no existe.
+  const [fechaEval, setFechaEval] = useState(() => {
+    try { return localStorage.getItem("di_fecha_evaluacion") || ""; } catch (e) { return ""; }
+  });
+  useEffect(() => {
+    getAppConfig("fecha_evaluacion").then((v) => { if (v) setFechaEval(v); });
+  }, []);
+  const guardarFechaEval = async (v) => {
+    setFechaEval(v);
+    try { localStorage.setItem("di_fecha_evaluacion", v); } catch (e) {}
+    const ok = await setAppConfig("fecha_evaluacion", v);
+    showToast && showToast(ok ? "Fecha de evaluación guardada ✓" : "Guardada solo en este dispositivo (corré la migración 007)");
+  };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
     [admPin, setAdmPin] = useState("");
@@ -2006,7 +2075,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       peso: al.peso,
       altura: al.altura,
       edad: al.edad,
-      fecha_nacimiento: al.fecha_nacimiento || "",
+      fecha_nacimiento: (al.fecha_nacimiento || "").slice(0, 10),
+      modalidad: al.modalidad || "",
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
     });
   const saveEdit = () => {
@@ -2070,9 +2140,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       periodizacion: template.periodizacion || [],
     });
     try {
-      const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo, ne || null);
+      const nuevoAl = await crearAlumnoConPIN(nn, nc, npin, na, np, nfecha || null, ntipo, ne || null, nmodalidad || null);
       const alumnoConPlan = {
         ...nuevoAl,
+        modalidad: nuevoAl.modalidad || nmodalidad || "",
         // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
         horarios: Object.keys(ndias).filter((d) => ndias[d]).map((d) => ({ dia: d, hora: "" })),
         plan: JSON.parse(JSON.stringify(tpl)),
@@ -2108,6 +2179,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNa("");
       setNe("");
       setNfecha("");
+      setNmodalidad("");
       setNtipo("entrenamiento");
       setNtemplate("bilateral");
       setNdias({});
@@ -2195,11 +2267,28 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         </div>{" "}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button
+            onClick={onToggleTheme}
+            title={darkMode ? "Modo claro" : "Modo oscuro"}
+            aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            style={{
+              background: "transparent",
+              color: S.gray,
+              border: "1px solid " + S.border,
+              borderRadius: 6,
+              padding: "5px 9px",
+              fontSize: 12,
+              cursor: "pointer",
+              lineHeight: 1,
+            }}
+          >
+            {darkMode ? "☀️" : "🌙"}
+          </button>
+          <button
             onClick={() => { setSec("config"); setForm(null); }}
             style={{
               background: sec === "config" ? S.white : "transparent",
               color: sec === "config" ? S.bg : S.gray,
-              border: "1px solid " + (sec === "config" ? S.white : "#2a2a2a"),
+              border: "1px solid " + (sec === "config" ? S.white : S.border),
               borderRadius: 6,
               padding: "5px 10px",
               fontSize: 11,
@@ -2214,7 +2303,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             style={{
               background: "transparent",
               color: S.gray,
-              border: "1px solid #2a2a2a",
+              border: "1px solid " + S.border,
               borderRadius: 6,
               padding: "5px 12px",
               fontSize: 12,
@@ -2225,10 +2314,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           </button>
         </div>{" "}
       </div>{" "}
-      <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 8 }}>
+      {/* 1) Pestañas principales */}
+      <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 10 }}>
         {secBtn("Dashboard", "dashboard")}
         {secBtn("Alumno", "alumnos")}
       </div>{" "}
+      {/* 2) Selector de alumno: primero elegís el alumno... */}
+      <div style={{ padding: "0 16px" }}>
+        <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
+      </div>{" "}
+      {/* 3) ...y los submenús cuelgan del alumno elegido */}
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
         {secBtn("Plan", "plan")}
         {secBtn("Peso Max", "rm")}
@@ -2278,6 +2373,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Fecha de nacimiento</div>
                   <input type="date" value={nfecha} onChange={(e) => setNfecha(e.target.value)} style={inp} />
                   {nfecha && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(nfecha)} años</div>}
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Modalidad</div>
+                  <select value={nmodalidad} onChange={(e) => setNmodalidad(e.target.value)} style={inp}>
+                    <option value="">Sin definir</option>
+                    {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
                 </div>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento</div>
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá los días que entrena — a cada día le podés poner un plan distinto.</div>
@@ -2359,6 +2461,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     <input type="date" value={form.fecha_nacimiento || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_nacimiento: e.target.value }))} style={inp} />
                     {form.fecha_nacimiento && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(form.fecha_nacimiento)} años</div>}
                   </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Modalidad</div>
+                    <select value={form.modalidad || ""} onChange={(e) => setForm((f) => ({ ...f, modalidad: e.target.value }))} style={inp}>
+                      <option value="">Sin definir</option>
+                      {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
 
                   {/* Cambiar clave */}
                   <div style={{ marginBottom: 14 }}>
@@ -2375,18 +2484,29 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Nueva clave lista para guardar</div>}
                   </div>
 
-                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Dias y horarios</div>
-                  {form.horarios.map((h, i) => (
-                    <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                      <select value={h.dia} onChange={(e) => setForm((f) => ({ ...f, horarios: f.horarios.map((x, j) => (j === i ? { ...x, dia: e.target.value } : x)) }))} style={{ ...inp, flex: 1 }}>
-                        <option value="">Dia</option>
-                        {DIAS_SEM.map((d) => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <input type="time" value={h.hora} onChange={(e) => setForm((f) => ({ ...f, horarios: f.horarios.map((x, j) => (j === i ? { ...x, hora: e.target.value } : x)) }))} style={{ ...inp, width: 90, flex: "none" }} />
-                      <button onClick={() => setForm((f) => ({ ...f, horarios: f.horarios.filter((_, j) => j !== i) }))} style={{ color: S.red, background: "transparent", border: "1px solid " + S.red, borderRadius: 6, padding: "8px 10px", cursor: "pointer" }}>✕</button>
-                    </div>
-                  ))}
-                  <button onClick={() => setForm((f) => ({ ...f, horarios: [...f.horarios, { dia: "", hora: "" }] }))} style={{ background: "transparent", color: S.gray, border: "1px dashed #2a2a2a", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", marginBottom: 14 }}>+ Agregar dia</button>
+                  {/* Solo días de entrenamiento — sin hora del día (pedido de Lucas 2026-07-20) */}
+                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Días de entrenamiento</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                    {DIAS_SEM.map((d) => {
+                      const activo = (form.horarios || []).some((h) => h.dia === d);
+                      return (
+                        <button
+                          key={d}
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              horarios: activo
+                                ? (f.horarios || []).filter((h) => h.dia !== d)
+                                : [...(f.horarios || []), { dia: d, hora: "" }],
+                            }))
+                          }
+                          style={{ background: activo ? S.white : S.card2, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 6, padding: "8px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          {activo ? "✓ " : ""}{d}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
@@ -2400,7 +2520,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       }}
                       style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer" }}
                     >GUARDAR</button>
-                    <button onClick={() => { setForm(null); setEditPin(""); }} style={{ background: "transparent", color: S.gray, border: "1px solid #2a2a2a", borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
+                    <button onClick={() => { setForm(null); setEditPin(""); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
                   </div>
                 </div>
               ) : (
@@ -2427,49 +2547,50 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       </div>
                     ))}
                   </div>
+                  {al.modalidad && (
+                    <div style={{ marginBottom: 10 }}>
+                      <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 12px", fontSize: 11, color: S.white, fontWeight: 600 }}>
+                        {al.modalidad}
+                      </span>
+                    </div>
+                  )}
+                  {/* Días de entrenamiento (sin hora — ya no se usan horarios) */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {(al.horarios || []).map((h, i) => (
-                      <span key={i} style={{ background: S.card2, border: "1px solid #2a2a2a", borderRadius: 4, padding: "2px 8px", fontSize: 10, color: S.gray }}>
-                        <span style={{ color: S.white }}>{h.dia}</span> · {h.hora}
+                    {(al.horarios || []).filter((h) => h.dia).map((h, i) => (
+                      <span key={i} style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: S.white }}>
+                        {h.dia}
                       </span>
                     ))}
                   </div>
 
-                  {/* NUEVO: PLAN ASSIGNMENT */}
+                  {/* Planes REALES asignados (plan por día), con el de hoy marcado.
+                      Antes acá había un "bilateral/unilateral" hardcodeado. */}
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid " + S.border }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>
-                      🎯 Plan: {al.plan_type || "bilateral"}
+                      🎯 Planes asignados
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {[["Bilateral", "bilateral"], ["Unilateral", "unilateral"]].map(([label, type]) => (
-                        <button
-                          key={type}
-                          onClick={async () => {
-                            const updated = await assignPlanToStudent(al.id, type);
-                            if (updated) {
-                              onUpdate(alumnos.map(a => a.id === al.id ? { ...a, plan_type: type } : a));
-                              showToast && showToast(`Plan ${label} asignado ✓`);
-                            } else {
-                              showToast && showToast("Error al asignar plan");
-                            }
-                          }}
-                          style={{
-                            flex: 1,
-                            background: (al.plan_type || "bilateral") === type ? S.white : S.card,
-                            color: (al.plan_type || "bilateral") === type ? S.bg : S.gray,
-                            border: "1px solid " + ((al.plan_type || "bilateral") === type ? S.white : S.border),
-                            borderRadius: 8,
-                            padding: "10px 4px",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            transition: "all 0.2s"
-                          }}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    {(al.planes || []).length === 0 ? (
+                      <div style={{ fontSize: 12, color: S.lgray }}>
+                        Sin planes asignados — asignalos en Plan → Plan Día
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {(al.planes || []).map((p, i) => {
+                          const diaHoy = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"][new Date().getDay()];
+                          const esHoy = p.dia_semana === diaHoy || (p.dia_semana === "Fijo" && !(al.planes || []).some((x) => x.dia_semana === diaHoy));
+                          return (
+                            <div key={p.id || i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: S.card2, border: "1px solid " + (esHoy ? S.green : S.border), borderRadius: 8, padding: "8px 12px" }}>
+                              <div>
+                                <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{p.nombre || "Plan sin nombre"}</div>
+                                <div style={{ color: S.gray, fontSize: 10, marginTop: 1 }}>{p.dia_semana || "Fijo"}</div>
+                              </div>
+                              {esHoy && <span style={{ color: S.green, fontSize: 10, fontWeight: 700 }}>● HOY</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>Para cambiarlos: Plan → Plan Día</div>
                   </div>
                 </div>
               )}
@@ -2485,10 +2606,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   </div>
                 ) : (
                   [...(al.diario || [])].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((e, i) => (
-                    <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-                      <div style={{ color: S.lgray, fontSize: 11, marginBottom: 6 }}>{e.fecha}</div>
-                      <div style={{ color: S.white, fontSize: 14, lineHeight: 1.6 }}>{e.texto}</div>
-                    </div>
+                    <EntradaDiarioAdmin
+                      key={e.fecha + "-" + i}
+                      entrada={e}
+                      onResponder={(respuesta) => {
+                        const nuevoDiario = (al.diario || []).map((d) => (d === e ? { ...d, respuesta } : d));
+                        onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
+                        showToast && showToast("Respuesta guardada ✓");
+                      }}
+                    />
                   ))
                 )}
               </div>
@@ -2614,11 +2740,25 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "rm" && (
           <div>
             {" "}
+            {/* Fecha de evaluación GLOBAL: una sola fecha, igual para todos */}
+            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                📅 Fecha de evaluación (para todos los alumnos)
+              </div>
+              <input type="date" value={fechaEval} onChange={(e) => guardarFechaEval(e.target.value)} style={inp} />
+            </div>
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
               Peso maximo — {al ? al.nombre : "—"}
             </div>{" "}
             {!al && <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>}{" "}
-            {al &&
+            {/* Peso Max solo aplica a alumnos presenciales. Los sin modalidad
+                seteada se muestran igual (compatibilidad con datos viejos). */}
+            {al && MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
+              <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>
+                {al.nombre} tiene modalidad "{al.modalidad}" — el peso máximo se evalúa solo con alumnos presenciales.
+              </div>
+            )}{" "}
+            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) &&
               RM_EJS.map((ej) => (
                 <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
                   {" "}
@@ -2684,27 +2824,29 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   )}{" "}
                 </div>
               ))}{" "}
-            <button
-              onClick={guardarRM}
-              style={{
-                width: "100%",
-                marginTop: 8,
-                background: S.white,
-                color: S.bg,
-                border: "none",
-                borderRadius: 8,
-                padding: 14,
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              GUARDAR
-            </button>{" "}
+            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
+              <button
+                onClick={guardarRM}
+                style={{
+                  width: "100%",
+                  marginTop: 8,
+                  background: S.white,
+                  color: S.bg,
+                  border: "none",
+                  borderRadius: 8,
+                  padding: 14,
+                  fontSize: 14,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                GUARDAR
+              </button>
+            )}{" "}
           </div>
         )}{" "}
         {sec === "historial" && <HistorialAdmin al={al} />}{" "}
-        {sec === "diario" && <DiarioAdmin alumnos={alumnos} />}{" "}
+        {sec === "diario" && <DiarioAdmin alumnos={alumnos} onUpdate={onUpdate} showToast={showToast} />}{" "}
         {sec === "bioimpedancia" && al && (
           <div>
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
@@ -3242,7 +3384,7 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
                     color: S.gray,
                   }}
                 >
-                  <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span> · {h.hora}
+                  <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
                 </div>
               ))}{" "}
             </div>
@@ -3442,6 +3584,8 @@ export default function App() {
           onGuardarBiblioteca={async (ej) => { await guardarEjercicioBiblioteca(ej); cargarBiblioteca().then(setBiblioteca); }}
           novedades={novedades}
           onNovedadesChange={setNovedades}
+          darkMode={darkMode}
+          onToggleTheme={toggleTheme}
         />
         <Toast msg={toastMsg} />
       </>
@@ -3615,7 +3759,7 @@ export default function App() {
                       key={i}
                       style={{
                         background: S.card2,
-                        border: "1px solid #2a2a2a",
+                        border: "1px solid " + S.border,
                         borderRadius: 5,
                         padding: "2px 8px",
                         fontSize: 10,
@@ -3646,7 +3790,7 @@ export default function App() {
             ))}{" "}
           </div>{" "}
           {al.rm && Object.values(al.rm).some((r) => r.peso > 0) && (
-            <div style={{ marginTop: 10, borderTop: "1px solid #2a2a2a", paddingTop: 10 }}>
+            <div style={{ marginTop: 10, borderTop: "1px solid " + S.border, paddingTop: 10 }}>
               {" "}
               <div
                 style={{ fontSize: 9, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}
@@ -3657,7 +3801,7 @@ export default function App() {
                 {RM_EJS.filter((ej) => al.rm[ej] && al.rm[ej].peso > 0).map((ej) => (
                   <div
                     key={ej}
-                    style={{ background: S.card2, border: "1px solid #2a2a2a", borderRadius: 5, padding: "4px 8px" }}
+                    style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 5, padding: "4px 8px" }}
                   >
                     <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{al.rm[ej].peso}kg</div>
                     <div style={{ color: S.gray, fontSize: 9 }}>{ej}</div>
