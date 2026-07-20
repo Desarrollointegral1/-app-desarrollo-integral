@@ -60,7 +60,7 @@ import {
   clonarPlan,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, inp, tabBtn, smallBtn, tabN1, applyTheme } from "./src/utils/theme.js";
+import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, applyTheme } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
@@ -1477,7 +1477,9 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
                 }}
               >
                 {" "}
-                <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>{e.fecha}</div>{" "}
+                <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>
+                  {String(e.fecha).slice(0, 10)}{String(e.fecha).length > 10 ? ` · ${String(e.fecha).slice(11)} hs` : ""}
+                </div>{" "}
                 <div style={{ color: S.white, fontSize: 13 }}>{e.texto}</div>{" "}
               </div>
             ))}{" "}
@@ -1498,15 +1500,18 @@ function Diario({ entradas, onAdd }) {
   const MAX = 140;
   const guardar = () => {
     if (!texto.trim()) return;
-    onAdd({ fecha: hoy(), texto: texto.trim() });
+    // Ronda 8: las entradas nuevas guardan fecha Y HORA ("YYYY-MM-DD HH:mm").
+    // Las viejas quedan solo con fecha — la lectura es retrocompatible (mismo
+    // criterio que la asistencia: slice(0,10) para la fecha, resto es hora).
+    const ahora = new Date();
+    const conHora = `${hoy()} ${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
+    onAdd({ fecha: conHora, texto: texto.trim() });
     setTexto("");
   };
   return (
     <div>
-      {" "}
-      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-        Mi diario de entrenamiento
-      </div>{" "}
+      {/* Ronda 8: sin título "Mi diario de entrenamiento" — el recuadro va
+          directo debajo del botón de asistencia */}
       <div style={{ ...card, padding: 14, marginBottom: 14 }}>
         {" "}
         <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>Como estuvo el entreno hoy?</div>{" "}
@@ -1551,7 +1556,10 @@ function Diario({ entradas, onAdd }) {
           .map((e, i) => (
             <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
               {" "}
-              <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>{e.fecha}</div>{" "}
+              <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>
+                {e.fecha.slice(0, 10)}
+                {e.fecha.length > 10 && <span style={{ color: S.green, fontWeight: 700 }}> · {e.fecha.slice(11)} hs</span>}
+              </div>{" "}
               <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
               {e.respuesta && (
                 <div style={{ marginTop: 8, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
@@ -2348,7 +2356,9 @@ function EntradaDiarioAdmin({ entrada, onResponder }) {
   };
   return (
     <div style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-      <div style={{ color: S.lgray, fontSize: 11, marginBottom: 6 }}>{entrada.fecha}</div>
+      <div style={{ color: S.lgray, fontSize: 11, marginBottom: 6 }}>
+        {String(entrada.fecha).slice(0, 10)}{String(entrada.fecha).length > 10 ? ` · ${String(entrada.fecha).slice(11)} hs` : ""}
+      </div>
       <div style={{ color: S.white, fontSize: 14, lineHeight: 1.6 }}>{entrada.texto}</div>
       {entrada.respuesta && !editando ? (
         <div style={{ marginTop: 10, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
@@ -2421,6 +2431,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
+  // Ronda 8: menús del admin en 3 grupos — Plan (edición de las 4 partes),
+  // Planes (periodización · plan x día · evaluación peso max) y Reportes
+  // (asistencia · historial · bioimpedancia). Subtabs de cada grupo:
+  const [planesTab, setPlanesTab] = useState("periodizacion");
+  const [repTab, setRepTab] = useState("asistencia");
   const [selectedDia, setSelectedDia] = useState(null);
   // Plan a abrir al entrar a Plan → Principales (ronda 7: click en la ficha)
   const [planFoco, setPlanFoco] = useState(null);
@@ -2897,13 +2912,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       <div style={{ padding: "0 16px" }}>
         <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
       </div>{" "}
-      {/* 3) ...y los submenús cuelgan del alumno elegido */}
-      <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 16 }}>
-        {secBtn("Plan", "plan")}
-        {secBtn("Peso Max", "rm")}
-        {secBtn("Asistencia", "reportes")}
-        {secBtn("Historial", "historial")}
-        {secBtn("Bioimp.", "bioimpedancia")}
+      {/* 3) ...y los submenús cuelgan del alumno elegido — ronda 8: TRES
+          grupos grandes (Plan · Planes · Reportes), cada uno con sus subtabs */}
+      <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
+        {[["Plan", "plan"], ["Planes", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
+          <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
+            {l}
+          </button>
+        ))}
       </div>{" "}
       <div style={{ padding: "0 16px" }}>
         {" "}
@@ -3259,12 +3275,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
               {" "}
               {[
-                ["Movil.", "movilidad"],
-                ["Act. Banda", "calor"],
-                ["E. Calor", "activacion"],
-                ["Princip.", "entrenamiento"],
-                ["Period.", "periodizacion"],
-                ["Plan Día", "plan-dias"],
+                ["Movi", "movilidad"],
+                ["Act. Elástico", "calor"],
+                ["Entrada en calor", "activacion"],
+                ["Principales", "entrenamiento"],
               ].map(([l, k]) => (
                 <button
                   key={k}
@@ -3294,7 +3308,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 biblioteca={bibliotecaEntreno}
                 onGuardarBiblioteca={onGuardarBiblioteca}
                 showToast={showToast}
-                onIrPlanDia={() => setPlanTab("plan-dias")}
+                onIrPlanDia={() => { setSec("planes"); setPlanesTab("plan-dias"); }}
                 initialPlanId={planFoco}
               />
             )}{" "}
@@ -3339,12 +3353,42 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             {planTab === "activacion" && al && (
               <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} />
             )}{" "}
-            {planTab === "periodizacion" && al && (
+          </div>
+        )}{" "}
+        {/* ── Grupo PLANES: Periodización · Plan x día · Evaluación peso max ── */}
+        {sec === "planes" && (
+          <div>
+            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+              {[
+                ["Periodización", "periodizacion"],
+                ["Plan x día", "plan-dias"],
+                ["Eval. peso max", "rm"],
+              ].map(([l, k]) => (
+                <button
+                  key={k}
+                  onClick={() => setPlanesTab(k)}
+                  style={{
+                    flex: 1,
+                    background: planesTab === k ? S.white : S.card,
+                    color: planesTab === k ? S.bg : S.gray,
+                    border: "1px solid " + (planesTab === k ? S.white : S.border),
+                    borderRadius: 8,
+                    padding: "7px 4px",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            {planesTab === "periodizacion" && al && (
               <div style={{ ...card, overflow: "hidden", padding: 14 }}>
                 <PeriodizacionEditor data={al.plan.periodizacion} onChange={(v) => updatePlan("periodizacion", v)} />
               </div>
             )}{" "}
-            {planTab === "plan-dias" && al && (
+            {planesTab === "plan-dias" && al && (
               <div style={{ ...card, padding: 12 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12 }}>
                   Plan por día — {al.nombre}
@@ -3402,7 +3446,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
           </div>
         )}{" "}
-        {sec === "rm" && (
+        {sec === "planes" && planesTab === "rm" && (
           <div>
             {" "}
             {/* Fecha de evaluación POR ALUMNO: cuándo se lo evaluó a ESTE alumno.
@@ -3493,9 +3537,37 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
           </div>
         )}{" "}
-        {sec === "historial" && <HistorialAdmin al={al} />}{" "}
+        {/* ── Grupo REPORTES: Asistencia · Historial · Bioimpedancia ── */}
+        {sec === "reportes" && (
+          <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+            {[
+              ["Asistencia", "asistencia"],
+              ["Historial", "historial"],
+              ["Bioimpedancia", "bioimpedancia"],
+            ].map(([l, k]) => (
+              <button
+                key={k}
+                onClick={() => setRepTab(k)}
+                style={{
+                  flex: 1,
+                  background: repTab === k ? S.white : S.card,
+                  color: repTab === k ? S.bg : S.gray,
+                  border: "1px solid " + (repTab === k ? S.white : S.border),
+                  borderRadius: 8,
+                  padding: "7px 4px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        )}{" "}
+        {sec === "reportes" && repTab === "historial" && <HistorialAdmin al={al} />}{" "}
         {sec === "diario" && <DiarioAdmin alumnos={alumnos} onUpdate={onUpdate} showToast={showToast} />}{" "}
-        {sec === "bioimpedancia" && al && (
+        {sec === "reportes" && repTab === "bioimpedancia" && al && (
           <div>
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
               Bioimpedancia — {al.nombre}
@@ -3503,7 +3575,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
           </div>
         )}{" "}
-        {sec === "reportes" && al && (() => {
+        {sec === "reportes" && repTab === "asistencia" && al && (() => {
           // ASISTENCIA (ex "Reportes"): días que el alumno entrenó, con hora si
           // existe (los registros nuevos guardan "YYYY-MM-DD HH:mm"; los viejos
           // son solo fecha — se leen igual). Los reportes son MENSUALES: se
@@ -3975,27 +4047,55 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          // Ronda 7: contenido arriba (no centrado verticalmente) y logo al doble
+          // Ronda 8: título ARRIBA, logo grande centrado en el MEDIO (flex:1),
+          // y el resto (semana + horarios + botón) abajo.
           justifyContent: "flex-start",
           padding: "28px 24px 24px",
           fontFamily: "inherit",
         }}
       >
-        {" "}
-        <div style={{ perspective: 900, width: 180, marginBottom: 16 }}>
-          <img src={ICON} width={180} height={180} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.9 }} />
+        {/* ── Título arriba ── */}
+        <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360 }}>
+          <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>
+          <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{alumno.nombre}</div>
+        </div>
+        {/* ── Logo 3D con extrusión, centrado verticalmente (ronda 8): varias
+            capas del ícono separadas en Z (translateZ) girando juntas — las de
+            atrás oscurecidas = profundidad real, más sombra en el piso ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 240 }}>
+          <div style={{ perspective: 320, width: 230, height: 230 }}>
+            <div className="di-logo3d" style={{ position: "relative", width: 230, height: 230, transformStyle: "preserve-3d" }}>
+              {[-16, -8, 0, 8].map((z, i) => (
+                <img
+                  key={z}
+                  src={ICON}
+                  width={230}
+                  height={230}
+                  alt={i === 3 ? "DI" : ""}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "block",
+                    transform: `translateZ(${z}px)`,
+                    opacity: i === 3 ? 0.95 : 0.28 + i * 0.1,
+                    filter: i === 3 ? "none" : "brightness(0.55)",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          {/* Sombra en el piso, le da apoyo al giro */}
+          <div style={{ width: 130, height: 16, borderRadius: "50%", background: "radial-gradient(ellipse at center, rgba(0,0,0,0.45), transparent 70%)", marginTop: 6 }} />
         </div>
         <div className="di-pop" style={{ animationDelay: "0s" }}>
-          <FotoAlumno foto={alumno.foto} size={80} />
+          <FotoAlumno foto={alumno.foto} size={64} />
         </div>{" "}
         <div
           className="di-slide"
-          style={{ marginTop: 16, textAlign: "center", marginBottom: 32, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
+          style={{ marginTop: 12, textAlign: "center", marginBottom: 24, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
         >
           {" "}
-          <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>{" "}
-          <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{alumno.nombre}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 13, marginTop: 8 }}>Semana {semanaActual} del plan de entrenamiento</div>{" "}
+          <div style={{ color: S.gray, fontSize: 13 }}>Semana {semanaActual} del plan de entrenamiento</div>{" "}
           {semanaData && (
             <>
               <div
@@ -4240,6 +4340,39 @@ export default function App() {
     const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, diario: [...(a.diario || []), entrada] } : a));
     setAlumnos(u);
     setAlumno(u.find((a) => a.id === alumno.id));
+  };
+  // ── REGISTRAR DÍA (ronda 8) ──
+  // Cierre explícito de la sesión de hoy. Los pesos YA se autoguardan con cada
+  // cambio (handlePeso → saveDailyWeight); este botón: 1) re-sincroniza todos
+  // los pesos >0 de los ejercicios de hoy en registros_diarios (por si algún
+  // guardado suelto falló sin conexión), 2) marca la asistencia de hoy si no
+  // estaba, 3) deja constancia local de que el día fue registrado (el botón
+  // queda en verde "✓ DÍA REGISTRADO" por el resto del día).
+  const [diaRegistrado, setDiaRegistrado] = useState(() => {
+    try { return localStorage.getItem("di_dia_registrado") === hoy() ? hoy() : null; } catch (e) { return null; }
+  });
+  const [registrandoDia, setRegistrandoDia] = useState(false);
+  const registrarDia = async (ejerciciosHoy) => {
+    if (registrandoDia || !alumno) return;
+    setRegistrandoDia(true);
+    try {
+      const f = hoy();
+      for (const ej of ejerciciosHoy || []) {
+        const p = Number(pesos[ej.id]);
+        if (p > 0) await saveDailyWeight(alumno.id, f, ej.id, p);
+      }
+      await saveDailyAttendance(alumno.id, f, true);
+      const alActual = alumnos.find((a) => a.id === alumno.id);
+      if (!(alActual?.asistencia || []).some((a) => a.slice(0, 10) === f)) marcarAsistencia(f);
+      try { localStorage.setItem("di_dia_registrado", f); } catch (e) {}
+      setDiaRegistrado(f);
+      showToast("Día registrado ✓");
+    } catch (e) {
+      console.error("[registrarDia]", e);
+      showToast("Error registrando el día");
+    } finally {
+      setRegistrandoDia(false);
+    }
   };
   const handleGenerarPDF = async () => {
     setGenerandoPDF(true);
@@ -4518,6 +4651,9 @@ export default function App() {
               historiales={historiales}
               onPeso={handlePeso}
               rm={al.rm}
+              onRegistrarDia={() => registrarDia(dia?.ejercicios || [])}
+              diaRegistrado={diaRegistrado === hoy()}
+              registrandoDia={registrandoDia}
             />
           )}
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}

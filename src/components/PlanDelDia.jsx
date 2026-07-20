@@ -21,6 +21,9 @@ export default function PlanDelDia({
   historiales,
   onPeso,
   rm,
+  onRegistrarDia,
+  diaRegistrado,
+  registrandoDia,
 }) {
   const [prep, setPrep] = useState("movilidad");
   // Versión de movilidad elegida por el alumno: superrapida (~3') · corta (~8') · completa (15'+).
@@ -195,8 +198,9 @@ export default function PlanDelDia({
       ) : (
         <>
           {/* Ficha de stats — SOLO acá en Principales (Preparación usa otras
-              series/reps): series x reps · intensidad · cantidad de ejercicios */}
-          <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20, marginBottom: 12 }}>
+              series/reps): series x reps · intensidad · cantidad de ejercicios.
+              Ronda 8: contenido CENTRADO (antes quedaba pegado a la izquierda). */}
+          <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 28, marginBottom: 12, justifyContent: "center", textAlign: "center" }}>
             <div>
               <div style={{ color: S.white, fontWeight: 700 }}>
                 {sem.series}x{sem.reps}
@@ -243,6 +247,41 @@ export default function PlanDelDia({
               />
             );
           })}
+          {/* ── REGISTRAR DÍA (ronda 8): cierre de la sesión de hoy. Los pesos
+              se autoguardan igual mientras se cargan; este botón confirma la
+              sesión: re-sincroniza los pesos de hoy, marca la asistencia si no
+              estaba, y deja el día como registrado. ── */}
+          {onRegistrarDia && (
+            <button
+              onClick={onRegistrarDia}
+              disabled={registrandoDia}
+              style={{
+                width: "100%",
+                marginTop: 16,
+                background: diaRegistrado ? S.green : S.white,
+                color: diaRegistrado ? "#fff" : S.bg,
+                border: "none",
+                borderRadius: 12,
+                padding: "16px 24px",
+                fontSize: 15,
+                fontWeight: 900,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                cursor: registrandoDia ? "default" : "pointer",
+                opacity: registrandoDia ? 0.7 : 1,
+                transition: "all 0.3s",
+              }}
+            >
+              {registrandoDia ? "REGISTRANDO..." : diaRegistrado ? "✓ DÍA REGISTRADO" : "REGISTRAR DÍA"}
+            </button>
+          )}
+          {onRegistrarDia && (
+            <div style={{ fontSize: 10, color: S.lgray, textAlign: "center", marginTop: 8 }}>
+              {diaRegistrado
+                ? "La sesión de hoy quedó registrada en tu historial. Podés volver a tocar si cambiaste algún peso."
+                : "Tus pesos se van guardando solos — este botón cierra y registra la sesión de hoy."}
+            </div>
+          )}
         </>
       ))}
     </div>

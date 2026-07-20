@@ -6,6 +6,7 @@ import {
   cargarBioimpedanciaCompleta,
   eliminarBioimpedancia,
 } from "../../services/supabase.js";
+import { generarFlyerBio } from "../utils/flyerBio.js";
 
 // Sección completa: formulario + historial, conectada a Supabase.
 // La usan tal cual el panel admin (sección Bioimp.) y la vista del alumno.
@@ -59,7 +60,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
       {cargando ? (
         <div style={{ color: S.gray, fontSize: 12, padding: 16, textAlign: "center" }}>Cargando...</div>
       ) : (
-        <EstudioBioHistorial registros={registros} onEliminar={readOnly ? null : eliminar} />
+        <EstudioBioHistorial registros={registros} onEliminar={readOnly ? null : eliminar} alumnoFlyer={readOnly ? null : alumno} showToast={showToast} />
       )}
     </div>
   );
@@ -245,7 +246,10 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
 }
 
 // Historial de estudios: métricas + conclusión/objetivo + foto.
-export function EstudioBioHistorial({ registros, onEliminar }) {
+// `alumnoFlyer`: si viene (admin), cada registro muestra "Generar flyer" —
+// el documento de una página con marca DI para mandarle al alumno. Se
+// regenera siempre desde el registro (conclusión/objetivo viven en metadata).
+export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showToast }) {
   if (!registros || registros.length === 0) {
     return (
       <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
@@ -262,14 +266,27 @@ export function EstudioBioHistorial({ registros, onEliminar }) {
             <div style={{ fontSize: 11, color: S.lgray }}>
               📅 {bio.fecha} {bio.hora ? `· ${String(bio.hora).slice(0, 5)}` : ""}
             </div>
-            {onEliminar && (
-              <button
-                onClick={() => onEliminar(bio)}
-                style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer" }}
-              >
-                🗑
-              </button>
-            )}
+            <div style={{ display: "flex", gap: 6 }}>
+              {alumnoFlyer && (
+                <button
+                  onClick={() => {
+                    generarFlyerBio(alumnoFlyer, bio);
+                    showToast && showToast("Flyer generado ✓ — abrilo y guardalo como PDF");
+                  }}
+                  style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                >
+                  📄 Generar flyer
+                </button>
+              )}
+              {onEliminar && (
+                <button
+                  onClick={() => onEliminar(bio)}
+                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer" }}
+                >
+                  🗑
+                </button>
+              )}
+            </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
             {[
