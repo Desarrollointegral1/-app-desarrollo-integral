@@ -4134,18 +4134,31 @@ export default function App() {
   // Flag para cambios de estado que NO deben persistirse (ej. hidratar fotos
   // que ya vienen de la base — re-guardarlas sería subir megas al pedo).
   const _skipNextSave = useRef(false);
+  // Guardado SELECTIVO: snapshot por alumno del último estado guardado (sin
+  // foto, que se hidrata aparte). Antes se re-guardaban TODOS los alumnos en
+  // cada cambio de estado: cualquier pestaña abierta "resucitaba" alumnos
+  // borrados desde otro dispositivo y reescribía plan_dias completo al pedo.
+  const _snapAlumno = (a) => { const { foto, ...rest } = a; return JSON.stringify(rest); };
+  const _ultimoGuardado = useRef(new Map());
   useEffect(() => {
     if (!cargado) return;
     if (_primeraVez.current) {
       _primeraVez.current = false;
+      _ultimoGuardado.current = new Map(alumnos.map((a) => [a.id, _snapAlumno(a)]));
       return;
     }
     if (_skipNextSave.current) {
       _skipNextSave.current = false;
       return;
     }
-    console.log(`%c[APP] Cambio en alumnos (${alumnos.length}) → guardarDatos...`, "color:#a5b4fc;font-weight:bold");
-    guardarDatos(alumnos);
+    const cambiados = alumnos.filter((a) => _ultimoGuardado.current.get(a.id) !== _snapAlumno(a));
+    if (cambiados.length === 0) {
+      console.log(`%c[APP] Cambio en alumnos (${alumnos.length}) → sin cambios reales, skip guardado.`, "color:#a5b4fc;font-weight:bold");
+      return;
+    }
+    console.log(`%c[APP] Cambio en alumnos → guardando ${cambiados.length}/${alumnos.length}...`, "color:#a5b4fc;font-weight:bold");
+    guardarDatos(cambiados);
+    cambiados.forEach((a) => _ultimoGuardado.current.set(a.id, _snapAlumno(a)));
   }, [alumnos, cargado]);
   // Persistencia de sesión: al refrescar (F5) la app tiene que mantener al
   // usuario logueado, no mandarlo al login. Solo se cierra sesión con el
