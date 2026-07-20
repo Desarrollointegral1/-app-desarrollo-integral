@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, card, tabBtn } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
+import { MOVILIDAD_ARTICULACIONES } from "../utils/planTemplates.js";
 import ItemCard from "./ItemCard.jsx";
 
 // Vista de la sesión del alumno, con DOS tabs del mismo tamaño (pills):
@@ -91,6 +92,8 @@ export default function PlanDelDia({
     { id: "movilidad", label: "Movilidad", detalle: "6 rep por lado", items: movilidad },
     { id: "banda", label: "Activación con elástico", detalle: "5 rep por brazo", items: calor },
     { id: "peso", label: "Activación con peso", detalle: "5 repeticiones", items: activacion },
+    // Entrada en calor superrápida: bloque fijo para días con poco tiempo (CEREBRO-ENTRENAMIENTO 3.5)
+    { id: "superrapida", label: "Superrápida", detalle: "activación express — 5 por lado", items: MOVILIDAD_ARTICULACIONES },
   ];
   const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0];
 
