@@ -2147,10 +2147,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
     showToast && showToast("Fecha de evaluación guardada ✓");
   };
+  // Movilidad PREDETERMINADA por alumno (ronda 5): con cuál de las 3 versiones
+  // (superrapida/corta/completa) arranca el alumno al entrar. Vive en el jsonb
+  // `rm` como `movilidad_default` — sin migración nueva. El alumno puede
+  // cambiarla en el momento con los 3 botones de su vista.
+  const setMoviDefault = (v) => {
+    if (!al) return;
+    setRm((r) => ({ ...r, [al.id]: { ...r[al.id], movilidad_default: v } }));
+    const rmNuevo = { ...(rm[al.id] || al.rm || {}), movilidad_default: v };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
+    showToast && showToast("Movilidad predeterminada guardada ✓");
+  };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
     [admPin, setAdmPin] = useState("");
   const [configTab, setConfigTab] = useState("admin");
+  // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
+  const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
   const [alumnosTab, setAlumnosTab] = useState("perfil");
   const [editPin, setEditPin] = useState("");
@@ -2194,85 +2207,168 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     showToast && showToast("Guardado ✓");
   };
 
-  // Exporta TODA la ficha del alumno como markdown (client-side, Blob).
-  // Lucas lo pega en Claude para generar reportes.
-  const exportarAlumno = async (alumno) => {
-    showToast && showToast("Generando exportación...");
+  // ── REPORTE MENSUAL INSTITUCIONAL (ronda 5) ──
+  // Genera un HTML autocontenido (Blob, client-side, sin dependencias) con el
+  // logo DI, diseño institucional (fondo blanco para imprimir, negro/gris,
+  // acento rojo mínimo) y CSS @media print para guardarlo como PDF.
+  // Los datos del MES elegido: asistencia, pesos registrados, diario.
+  // El plan actual (con progresión de cargas desde el primer registro) y los
+  // datos personales van siempre.
+  const exportarReporteMensual = async (alumno, mes) => {
+    showToast && showToast("Generando reporte...");
     try {
       const [pesosData, bio] = await Promise.all([
         cargarPesos(alumno.id, null),
         cargarBioimpedanciaCompleta(alumno.id),
       ]);
       const historiales = (pesosData && pesosData.historiales) || {};
-      // Nombre de ejercicio por id, desde todos los planes del alumno
-      const nombreEj = {};
-      [...(alumno.planes || []), alumno.plan].forEach((p) => {
-        ((p && p.dias) || []).forEach((d) =>
-          (d.ejercicios || []).forEach((e) => { if (e.id) nombreEj[e.id] = e.nombre; })
-        );
-      });
-      const L = [];
-      L.push(`# Ficha completa — ${alumno.nombre}`);
-      L.push(`Exportado: ${new Date().toLocaleString("es-AR")}`);
-      L.push("");
-      L.push("## Datos personales");
-      L.push(`- Nombre: ${alumno.nombre}`);
-      L.push(`- Edad: ${calcularEdad(alumno.fecha_nacimiento) || alumno.edad || "—"}`);
-      L.push(`- Peso corporal: ${alumno.peso || "—"} kg`);
-      L.push(`- Altura: ${alumno.altura || "—"} cm`);
-      L.push(`- Modalidad: ${alumno.modalidad || "Sin definir"}`);
-      L.push(`- Email: ${alumno.email || "—"}`);
-      L.push(`- Tipo: ${alumno.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"}`);
-      L.push(`- Días de entrenamiento: ${(alumno.horarios || []).map((h) => h.dia).join(", ") || "—"}`);
-      L.push("");
-      L.push("## Asistencia");
-      const asis = [...(alumno.asistencia || [])].sort();
-      if (asis.length === 0) L.push("Sin registros.");
-      asis.forEach((r) => L.push(`- ${r.slice(0, 10)}${r.length > 10 ? ` · ${r.slice(11)} hs` : ""}`));
-      L.push("");
-      L.push("## Pesos máximos");
+      const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const fmtF = (f) => { const x = String(f || "").slice(0, 10).split("-"); return x.length === 3 ? `${x[2]}/${x[1]}/${x[0]}` : String(f || "—"); };
+      const MESES_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const mesLabel = `${MESES_ES[Number(mes.slice(5, 7)) - 1] || mes} ${mes.slice(0, 4)}`;
+
+      // ── Datos del mes ──
+      const asisMes = [...(alumno.asistencia || [])].filter((r) => r.startsWith(mes)).sort();
+      const diarioMes = [...(alumno.diario || [])].filter((d) => (d.fecha || "").startsWith(mes)).sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
+      const bioMes = (bio || []).filter((b) => String(b.fecha || "").startsWith(mes));
+
+      // ── Plan de entrenamiento + progresión de cargas por ejercicio ──
+      // Progresión = primer registro histórico → último registro (cómo empezó
+      // y dónde está hoy), más los pesos registrados dentro del mes.
+      const filaEjercicio = (ej) => {
+        const hist = (historiales[ej.id] || []).filter((h) => h.fecha && Number(h.peso) > 0).sort((a, b) => a.fecha.localeCompare(b.fecha));
+        const prim = hist[0], ult = hist[hist.length - 1];
+        const delMes = hist.filter((h) => h.fecha.startsWith(mes));
+        const prog = prim && ult && prim !== ult
+          ? `${prim.peso} kg <span class="fch">(${fmtF(prim.fecha)})</span> <span class="arrow">→</span> <strong>${ult.peso} kg</strong> <span class="fch">(${fmtF(ult.fecha)})</span>`
+          : prim ? `<strong>${prim.peso} kg</strong> <span class="fch">(${fmtF(prim.fecha)})</span>` : '<span class="fch">Sin registros</span>';
+        const mesTxt = delMes.length > 0 ? delMes.map((h) => `${fmtF(h.fecha)}: ${h.peso} kg`).join(" · ") : "—";
+        return `<tr><td>${esc(ej.nombre)}</td><td>${prog}</td><td class="mescol">${mesTxt}</td></tr>`;
+      };
+      const planesReales = (alumno.planes || []).length > 0 ? alumno.planes : (alumno.plan ? [{ ...alumno.plan, dia_semana: "Plan actual", nombre: alumno.plan.nombre }] : []);
+      const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7 };
+      const planHTML = [...planesReales]
+        .sort((a, b) => (ORDEN_DIAS[a.dia_semana] || 8) - (ORDEN_DIAS[b.dia_semana] || 8))
+        .map((p) => {
+          const dias = p.dias || [];
+          const bloques = dias.map((d) =>
+            (d.ejercicios || []).length === 0 ? "" : `
+            ${dias.length > 1 ? `<div class="subdia">${esc(d.dia || "")}</div>` : ""}
+            <table><thead><tr><th>Ejercicio</th><th>Progresión de cargas</th><th>Registros de ${esc(mesLabel)}</th></tr></thead>
+            <tbody>${(d.ejercicios || []).map(filaEjercicio).join("")}</tbody></table>`
+          ).join("");
+          return `<div class="dia-plan"><h3>${esc(p.dia_semana || "Fijo")}${p.nombre ? ` <span class="plan-nombre">· ${esc(p.nombre)}</span>` : ""}</h3>${bloques || '<p class="vacio">Sin ejercicios cargados.</p>'}</div>`;
+        }).join("");
+
+      // ── Asistencia del mes ──
+      const asisHTML = asisMes.length === 0 ? '<p class="vacio">Sin asistencias registradas este mes.</p>' : `
+        <table><thead><tr><th>Fecha</th><th>Hora de ingreso</th></tr></thead><tbody>
+        ${asisMes.map((r) => `<tr><td>${fmtF(r)}</td><td>${r.length > 10 ? esc(r.slice(11)) + " hs" : "—"}</td></tr>`).join("")}
+        </tbody></table><p class="nota-tabla">${asisMes.length} asistencia${asisMes.length === 1 ? "" : "s"} en ${esc(mesLabel)}.</p>`;
+
+      // ── Pesos máximos ──
       const rmAl = alumno.rm || {};
-      L.push(`Fecha de evaluación: ${rmAl.fecha_evaluacion || "—"}`);
-      RM_EJS.forEach((ej) => {
-        const r = rmAl[ej];
-        L.push(`- ${ej}: ${r && r.peso ? r.peso + " kg" : "—"}`);
-      });
-      L.push("");
-      L.push("## Historial de pesos por ejercicio");
-      const idsConHist = Object.keys(historiales).filter((id) => (historiales[id] || []).length > 0);
-      if (idsConHist.length === 0) L.push("Sin registros.");
-      idsConHist.forEach((id) => {
-        L.push(`### ${nombreEj[id] || "Ejercicio"}`);
-        (historiales[id] || []).forEach((h) => L.push(`- ${h.fecha}: ${h.peso} kg`));
-        L.push("");
-      });
-      L.push("## Bioimpedancia");
-      if (!bio || bio.length === 0) L.push("Sin estudios.");
-      (bio || []).forEach((b) => {
-        L.push(`- ${String(b.fecha || "").slice(0, 10)}: peso ${b.peso != null ? b.peso + " kg" : "—"} · grasa ${b.grasa_corporal != null ? b.grasa_corporal + "%" : "—"} · músculo ${b.masa_muscular != null ? b.masa_muscular + "%" : "—"} · visceral ${b.grasa_visceral != null ? b.grasa_visceral : "—"}`);
-      });
-      L.push("");
-      L.push("## Diario del alumno");
-      const diario = [...(alumno.diario || [])].sort((a, b) => (a.fecha || "").localeCompare(b.fecha || ""));
-      if (diario.length === 0) L.push("Sin entradas.");
-      diario.forEach((d) => {
-        L.push(`### ${d.fecha}`);
-        L.push(d.texto || "");
-        if (d.respuesta) L.push(`> Respuesta del profe: ${d.respuesta}`);
-        L.push("");
-      });
-      const blob = new Blob([L.join("\n")], { type: "text/markdown;charset=utf-8" });
+      const rmFilas = RM_EJS.map((ej) => { const r = rmAl[ej]; return `<tr><td>${esc(ej)}</td><td>${r && r.peso ? `<strong>${r.peso} kg</strong>` : "—"}</td></tr>`; }).join("");
+      const rmHTML = `${rmAl.fecha_evaluacion ? `<p class="nota-tabla">Fecha de evaluación: <strong>${fmtF(rmAl.fecha_evaluacion)}</strong></p>` : ""}
+        <table class="mitad"><thead><tr><th>Ejercicio</th><th>Peso máximo</th></tr></thead><tbody>${rmFilas}</tbody></table>`;
+
+      // ── Bioimpedancia (estudios del mes; si no hay, el último conocido) ──
+      const bioMostrar = bioMes.length > 0 ? bioMes : (bio && bio.length > 0 ? [bio[0]] : []);
+      const bioHTML = bioMostrar.length === 0 ? '<p class="vacio">Sin estudios de bioimpedancia.</p>' : `
+        ${bioMes.length === 0 ? '<p class="nota-tabla">Sin estudios este mes — se muestra el último disponible.</p>' : ""}
+        <table><thead><tr><th>Fecha</th><th>Peso</th><th>Grasa corporal</th><th>Masa muscular</th><th>Grasa visceral</th></tr></thead><tbody>
+        ${bioMostrar.map((b) => `<tr><td>${fmtF(b.fecha)}</td><td>${b.peso != null ? b.peso + " kg" : "—"}</td><td>${b.grasa_corporal != null ? b.grasa_corporal + "%" : "—"}</td><td>${b.masa_muscular != null ? b.masa_muscular + "%" : "—"}</td><td>${b.grasa_visceral != null ? b.grasa_visceral : "—"}</td></tr>`).join("")}
+        </tbody></table>`;
+
+      // ── Diario del mes ──
+      const diarioHTML = diarioMes.length === 0 ? '<p class="vacio">Sin entradas de diario este mes.</p>' :
+        diarioMes.map((d) => `
+        <div class="entrada"><div class="entrada-fecha">${fmtF(d.fecha)}</div>
+        <p>${esc(d.texto)}</p>
+        ${d.respuesta ? `<div class="respuesta"><span>Respuesta del entrenador</span><p>${esc(d.respuesta)}</p></div>` : ""}</div>`).join("");
+
+      const datos = [
+        ["Nombre", alumno.nombre],
+        ["Edad", (calcularEdad(alumno.fecha_nacimiento) || alumno.edad || "—") + " años"],
+        ["Peso corporal", alumno.peso ? alumno.peso + " kg" : "—"],
+        ["Altura", alumno.altura ? alumno.altura + " cm" : "—"],
+        ["Modalidad", alumno.modalidad || "Sin definir"],
+        ["Tipo", alumno.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"],
+        ["Días de entrenamiento", (alumno.horarios || []).map((h) => h.dia).join(" · ") || "—"],
+      ].map(([l, v]) => `<div class="dato"><span>${l}</span><strong>${esc(v)}</strong></div>`).join("");
+
+      const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte ${esc(mesLabel)} — ${esc(alumno.nombre)} — Desarrollo Integral</title>
+<style>
+  :root { --negro:#0a0a0a; --gris:#555; --gris-claro:#999; --linea:#e4e4e4; --rojo:#c8102e; --fondo:#fff; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Helvetica Neue", Helvetica, Arial, system-ui, sans-serif; background:var(--fondo); color:var(--negro); line-height:1.55; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .hoja { max-width:840px; margin:0 auto; padding:48px 40px 64px; }
+  header { display:flex; align-items:center; gap:20px; padding-bottom:24px; border-bottom:3px solid var(--negro); }
+  header img { width:72px; height:72px; }
+  .marca .nombre { font-size:22px; font-weight:900; letter-spacing:4px; text-transform:uppercase; }
+  .marca .sub { font-size:10px; letter-spacing:5px; text-transform:uppercase; color:var(--gris); margin-top:2px; }
+  .titulo-reporte { display:flex; justify-content:space-between; align-items:baseline; margin:28px 0 6px; }
+  .titulo-reporte h1 { font-size:26px; font-weight:900; letter-spacing:.5px; }
+  .titulo-reporte .mes { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--rojo); }
+  .meta { font-size:11px; color:var(--gris-claro); margin-bottom:32px; }
+  section { margin-bottom:36px; page-break-inside:avoid; }
+  section.rompible { page-break-inside:auto; }
+  h2 { font-size:11px; font-weight:900; letter-spacing:3px; text-transform:uppercase; color:var(--negro); border-left:3px solid var(--rojo); padding-left:10px; margin-bottom:14px; }
+  h3 { font-size:14px; font-weight:800; margin:18px 0 8px; }
+  h3 .plan-nombre { font-weight:500; color:var(--gris); font-size:12px; }
+  .subdia { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gris); margin:12px 0 6px; }
+  .datos-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px 24px; }
+  .dato span { display:block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--gris-claro); }
+  .dato strong { font-size:14px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; margin-bottom:4px; }
+  table.mitad { max-width:420px; }
+  th { text-align:left; font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gris); border-bottom:2px solid var(--negro); padding:6px 10px 6px 0; }
+  td { border-bottom:1px solid var(--linea); padding:7px 10px 7px 0; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  .fch { color:var(--gris-claro); font-size:11px; }
+  .arrow { color:var(--rojo); font-weight:900; }
+  .mescol { color:var(--gris); font-size:11.5px; }
+  .vacio { font-size:12.5px; color:var(--gris-claro); font-style:italic; }
+  .nota-tabla { font-size:11px; color:var(--gris); margin:6px 0 10px; }
+  .entrada { border-left:2px solid var(--linea); padding:2px 0 2px 14px; margin-bottom:16px; }
+  .entrada-fecha { font-size:10px; font-weight:800; letter-spacing:2px; color:var(--gris); margin-bottom:3px; }
+  .entrada p { font-size:13px; }
+  .respuesta { margin-top:8px; background:#f6f6f6; border-radius:6px; padding:8px 12px; }
+  .respuesta span { display:block; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--rojo); font-weight:800; margin-bottom:2px; }
+  .respuesta p { font-size:12.5px; }
+  footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--linea); display:flex; justify-content:space-between; font-size:9.5px; letter-spacing:2px; text-transform:uppercase; color:var(--gris-claro); }
+  @media print { .hoja { padding:24px 8px; max-width:none; } body { font-size:12px; } @page { margin:14mm; } }
+</style></head>
+<body><div class="hoja">
+  <header>
+    <img src="${ICON_BLACK}" alt="Desarrollo Integral">
+    <div class="marca"><div class="nombre">Desarrollo Integral</div><div class="sub">Centro de Entrenamiento</div></div>
+  </header>
+  <div class="titulo-reporte"><h1>${esc(alumno.nombre)}</h1><div class="mes">Reporte · ${esc(mesLabel)}</div></div>
+  <div class="meta">Generado el ${new Date().toLocaleDateString("es-AR")} · Documento de uso interno de Desarrollo Integral</div>
+  <section><h2>Datos del alumno</h2><div class="datos-grid">${datos}</div></section>
+  <section class="rompible"><h2>Plan de entrenamiento y progresión de cargas</h2>${planHTML || '<p class="vacio">Sin plan asignado.</p>'}</section>
+  <section><h2>Asistencia — ${esc(mesLabel)}</h2>${asisHTML}</section>
+  <section><h2>Pesos máximos</h2>${rmHTML}</section>
+  <section><h2>Bioimpedancia</h2>${bioHTML}</section>
+  <section class="rompible"><h2>Diario del alumno — ${esc(mesLabel)}</h2>${diarioHTML}</section>
+  <footer><span>Desarrollo Integral</span><span>${esc(mesLabel)}</span></footer>
+</div></body></html>`;
+
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${alumno.nombre.replace(/\s+/g, "-").toLowerCase()}-ficha.md`;
+      a.download = `reporte-${mes}-${alumno.nombre.replace(/\s+/g, "-").toLowerCase()}.html`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast && showToast("Ficha exportada ✓");
+      showToast && showToast("Reporte exportado ✓");
     } catch (e) {
-      console.error("[exportarAlumno]", e);
+      console.error("[exportarReporteMensual]", e);
       showToast && showToast("Error exportando: " + e.message);
     }
   };
@@ -2538,12 +2634,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <input type="date" value={nfecha} onChange={(e) => setNfecha(e.target.value)} style={inp} />
                   {nfecha && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(nfecha)} años</div>}
                 </div>
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Modalidad</div>
-                  <select value={nmodalidad} onChange={(e) => setNmodalidad(e.target.value)} style={inp}>
-                    <option value="">Sin definir</option>
-                    {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Modalidad de entrenamiento</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {MODALIDADES.map((m) => {
+                      const activa = nmodalidad === m;
+                      return (
+                        <button
+                          key={m}
+                          onClick={() => setNmodalidad(activa ? "" : m)}
+                          style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
+                        >
+                          {activa ? "✓ " : ""}{m}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!nmodalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
                 </div>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento</div>
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá los días que entrena — a cada día le podés poner un plan distinto.</div>
@@ -2625,12 +2732,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     <input type="date" value={form.fecha_nacimiento || ""} onChange={(e) => setForm((f) => ({ ...f, fecha_nacimiento: e.target.value }))} style={inp} />
                     {form.fecha_nacimiento && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>Edad: {calcularEdad(form.fecha_nacimiento)} años</div>}
                   </div>
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Modalidad</div>
-                    <select value={form.modalidad || ""} onChange={(e) => setForm((f) => ({ ...f, modalidad: e.target.value }))} style={inp}>
-                      <option value="">Sin definir</option>
-                      {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Modalidad de entrenamiento</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      {MODALIDADES.map((m) => {
+                        const activa = (form.modalidad || "") === m;
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => setForm((f) => ({ ...f, modalidad: activa ? "" : m }))}
+                            style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
+                          >
+                            {activa ? "✓ " : ""}{m}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!form.modalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
                   </div>
 
                   {/* Cambiar clave */}
@@ -2831,6 +2949,29 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
             {planTab === "movilidad" && al && (
               <>
+                {/* Movilidad predeterminada del alumno: con cuál versión arranca */}
+                <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                    Movilidad predeterminada — {al.nombre}
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[["superrapida", "Superrápida"], ["corta", "Corta"], ["completa", "Completa"]].map(([id, l]) => {
+                      const activa = (al.rm?.movilidad_default || "completa") === id;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => setMoviDefault(id)}
+                          style={{ flex: 1, background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "9px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          {activa ? "✓ " : ""}{l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>
+                    Es la versión con la que el alumno arranca al entrar — después puede cambiarla en el momento.
+                  </div>
+                </div>
                 <EjercicioEditor
                   items={al.plan.movilidad}
                   onChange={(v) => updatePlan("movilidad", v)}
@@ -3020,54 +3161,81 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "reportes" && al && (() => {
           // ASISTENCIA (ex "Reportes"): días que el alumno entrenó, con hora si
           // existe (los registros nuevos guardan "YYYY-MM-DD HH:mm"; los viejos
-          // son solo fecha — se leen igual).
+          // son solo fecha — se leen igual). Los reportes son MENSUALES: se
+          // elige el mes y se exporta el reporte institucional de ese mes.
           const registros = [...(al.asistencia || [])].sort((a, b) => b.localeCompare(a));
-          const esteMes = registros.filter((r) => r.startsWith(mesActual().slice(0, 7))).length;
+          const mesHoy = mesActual().slice(0, 7);
+          // Meses disponibles: el actual siempre + los que tengan asistencia o diario.
+          const mesesSet = new Set([mesHoy]);
+          registros.forEach((r) => mesesSet.add(r.slice(0, 7)));
+          (al.diario || []).forEach((d) => { if (d.fecha) mesesSet.add(String(d.fecha).slice(0, 7)); });
+          const meses = [...mesesSet].sort((a, b) => b.localeCompare(a));
+          const MESES_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+          const labelMes = (m) => `${MESES_ES[Number(m.slice(5, 7)) - 1] || m} ${m.slice(0, 4)}`;
+          const mesSel = meses.includes(repMes) ? repMes : mesHoy;
+          const delMes = registros.filter((r) => r.startsWith(mesSel));
           return (
             <div>
               <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
                 Asistencia — {al.nombre}
               </div>
+              {/* Selector de mes del reporte */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto", paddingBottom: 2 }}>
+                {meses.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setRepMes(m)}
+                    style={{ flex: "none", background: mesSel === m ? S.white : S.card, color: mesSel === m ? S.bg : S.gray, border: "1px solid " + (mesSel === m ? S.white : S.border), borderRadius: 20, padding: "7px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+                  >
+                    {labelMes(m)}{m === mesHoy ? " · actual" : ""}
+                  </button>
+                ))}
+              </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: 22 }}>{registros.length}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>TOTAL</div>
+                  <div style={{ color: S.green, fontWeight: 900, fontSize: 22 }}>{delMes.length}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>{labelMes(mesSel).toUpperCase()}</div>
                 </div>
                 <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
-                  <div style={{ color: S.green, fontWeight: 900, fontSize: 22 }}>{esteMes}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>ESTE MES</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: 22 }}>{registros.length}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>TOTAL HISTÓRICO</div>
                 </div>
               </div>
-              {registros.length === 0 ? (
+              {delMes.length === 0 ? (
                 <div style={{ ...card, padding: 30, textAlign: "center", color: S.gray, fontSize: 13, marginBottom: 12 }}>
-                  Sin asistencias registradas
+                  Sin asistencias registradas en {labelMes(mesSel)}
                 </div>
               ) : (
                 <div style={{ ...card, overflow: "hidden", marginBottom: 12 }}>
-                  {registros.map((r, i) => {
+                  {delMes.map((r, i) => {
                     const fecha = r.slice(0, 10);
                     const hora = r.length > 10 ? r.slice(11) : "";
-                    let fechaTexto = fecha;
+                    const [yy, mm, dd] = fecha.split("-");
+                    const fechaCorta = `${dd}/${mm}/${yy}`;
+                    let diaSemana = "";
                     try {
-                      fechaTexto = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+                      diaSemana = new Date(fecha + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long" });
                     } catch (e) {}
                     return (
-                      <div key={r + "-" + i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: i < registros.length - 1 ? "1px solid " + S.border : "none" }}>
-                        <div style={{ color: S.white, fontSize: 13, textTransform: "capitalize" }}>{fechaTexto}</div>
-                        <div style={{ color: hora ? S.green : S.lgray, fontSize: 12, fontWeight: hora ? 700 : 400 }}>{hora ? hora + " hs" : "—"}</div>
+                      <div key={r + "-" + i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: i < delMes.length - 1 ? "1px solid " + S.border : "none" }}>
+                        <div style={{ color: S.white, fontSize: 13 }}>
+                          <span style={{ textTransform: "capitalize", color: S.gray, fontSize: 11, marginRight: 8 }}>{diaSemana}</span>
+                          {fechaCorta}
+                        </div>
+                        <div style={{ color: hora ? S.green : S.lgray, fontSize: 12, fontWeight: hora ? 700 : 400 }}>{hora ? `· ${hora}` : "—"}</div>
                       </div>
                     );
                   })}
                 </div>
               )}
               <button
-                onClick={() => exportarAlumno(al)}
+                onClick={() => exportarReporteMensual(al, mesSel)}
                 style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", letterSpacing: 1 }}
               >
-                ⬇ EXPORTAR FICHA COMPLETA
+                ⬇ EXPORTAR REPORTE DE {labelMes(mesSel).toUpperCase()}
               </button>
               <div style={{ fontSize: 10, color: S.lgray, marginTop: 8, textAlign: "center" }}>
-                Descarga un archivo con todos los datos de {al.nombre}: perfil, asistencia, pesos máximos, historial, bioimpedancia y diario.
+                Reporte institucional de {al.nombre}: datos, plan con progresión de cargas, asistencia, pesos máximos, bioimpedancia y diario de {labelMes(mesSel)}. Se abre en el navegador y se puede imprimir o guardar como PDF.
               </div>
             </div>
           );
