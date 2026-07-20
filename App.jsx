@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 // ── PERSISTENCIA (Supabase) ────────────────────────────────────────────
 import {
   cargarDatos,
+  cargarFotos,
+  guardarFotoAlumno,
   guardarDatos,
   cargarPesos,
   guardarPesos,
@@ -139,13 +141,31 @@ function GlobalStyles() {
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
+// Comprime la imagen antes de guardarla: las fotos de cámara pesan varios MB
+// y guardadas en base64 dentro de la tabla hacían la app inusablemente lenta.
+// 512px máx + JPEG 0.82 ≈ 40-80 KB, de sobra para un avatar circular.
+function comprimirFoto(dataUrl, maxLado = 512, calidad = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * escala);
+      c.height = Math.round(img.height * escala);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", calidad));
+    };
+    img.onerror = () => resolve(dataUrl); // si no es una imagen legible, dejar tal cual
+    img.src = dataUrl;
+  });
+}
 function FotoAlumno({ foto, size = 56, editable, onFoto }) {
   const fileRef = useRef();
   const handleFile = (e) => {
     const f = e.target.files[0];
     if (!f) return;
     const r = new FileReader();
-    r.onload = (ev) => onFoto && onFoto(ev.target.result);
+    r.onload = (ev) => comprimirFoto(ev.target.result).then((comp) => onFoto && onFoto(comp));
     r.readAsDataURL(f);
   };
   return (
@@ -2527,7 +2547,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div style={{ ...card, padding: "14px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <FotoAlumno foto={al.foto} size={52} editable onFoto={(foto) => { onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, foto } : a))); }} />
+                      <FotoAlumno foto={al.foto} size={52} editable onFoto={(foto) => { guardarFotoAlumno(al.id, foto); onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, foto } : a))); }} />
                       <div>
                         <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>
                         <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>@{al.username || al.codigo}</div>
@@ -3459,15 +3479,30 @@ export default function App() {
       console.log(`%c[APP] ✅ ${data.length} alumno(s) cargados.`, "color:#6ee7b7;font-weight:bold", data.map((a) => a.nombre));
       setAlumnos(data);
       setCargado(true);
+      // Las fotos se hidratan aparte para no bloquear el arranque (pueden
+      // pesar megas). Este cambio de estado NO debe disparar un guardado.
+      cargarFotos().then((fotos) => {
+        if (Object.keys(fotos).length === 0) return;
+        _skipNextSave.current = true;
+        setAlumnos((prev) => prev.map((a) => (fotos[a.id] ? { ...a, foto: fotos[a.id] } : a)));
+        setAlumno((prev) => (prev && fotos[prev.id] ? { ...prev, foto: fotos[prev.id] } : prev));
+      });
     });
     cargarBiblioteca().then(setBiblioteca);
     cargarNovedades().then(setNovedades);
   }, []);
   const _primeraVez = useRef(true);
+  // Flag para cambios de estado que NO deben persistirse (ej. hidratar fotos
+  // que ya vienen de la base — re-guardarlas sería subir megas al pedo).
+  const _skipNextSave = useRef(false);
   useEffect(() => {
     if (!cargado) return;
     if (_primeraVez.current) {
       _primeraVez.current = false;
+      return;
+    }
+    if (_skipNextSave.current) {
+      _skipNextSave.current = false;
       return;
     }
     console.log(`%c[APP] Cambio en alumnos (${alumnos.length}) → guardarDatos...`, "color:#a5b4fc;font-weight:bold");
@@ -3744,6 +3779,7 @@ export default function App() {
               size={52}
               editable
               onFoto={(foto) => {
+                guardarFotoAlumno(al.id, foto);
                 const u = alumnos.map((a) => (a.id === al.id ? { ...a, foto } : a));
                 setAlumnos(u);
                 setAlumno(u.find((a) => a.id === al.id));

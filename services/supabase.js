@@ -127,12 +127,19 @@ function limpiarPayload(obj) {
 //   App.jsx mount → cargarDatos([]) → SELECT alumnos + getPlanDias
 // ══════════════════════════════════════════════════════════════════════
 
+// Columnas del alumno SIN la foto: las fotos son base64 gigantes (hubo una de
+// 4.8MB) y bajarlas en la carga inicial hacía la app inusablemente lenta.
+// Las fotos se hidratan aparte con cargarFotos() y se guardan solo cuando
+// cambian con guardarFotoAlumno().
+const COLS_ALUMNO_SIN_FOTO =
+  "id,nombre,username,codigo,peso,altura,edad,fecha_nacimiento,email,tipo,plan_type,modalidad,horarios,bioimpedancia,rm,asistencia,diario,plan_movilidad,plan_calor,plan_activacion,plan_periodizacion";
+
 export async function cargarDatos(fallback) {
-  LOG("cargarDatos", "⏳ Cargando alumnos...");
+  LOG("cargarDatos", "⏳ Cargando alumnos (sin fotos)...");
   try {
     const { data: rows, error } = await supabase
       .from("alumnos")
-      .select("*")
+      .select(COLS_ALUMNO_SIN_FOTO)
       .order("nombre");
 
     if (error) throw error;
@@ -169,7 +176,7 @@ export async function cargarDatos(fallback) {
           tipo:          row.tipo          || "entrenamiento",
           plan_type:     row.plan_type     || null,
           modalidad:     row.modalidad     || "",
-          foto:          row.foto          || "",
+          foto:          "", // se hidrata después con cargarFotos()
           horarios:      row.horarios      || [],
           bioimpedancia: row.bioimpedancia || [],
           rm:            row.rm            || {},
@@ -193,6 +200,43 @@ export async function cargarDatos(fallback) {
   } catch (e) {
     ERR("cargarDatos", "No se pudo cargar. ¿Existe la tabla 'alumnos'?", e);
     return fallback;
+  }
+}
+
+// Hidrata las fotos DESPUÉS de la carga inicial, sin bloquear el arranque.
+// Devuelve un mapa { alumno_id: foto } solo con los que tienen foto.
+export async function cargarFotos() {
+  try {
+    const { data, error } = await supabase
+      .from("alumnos")
+      .select("id,foto")
+      .neq("foto", "");
+    if (error) throw error;
+    const mapa = {};
+    (data || []).forEach((r) => { if (r.foto) mapa[r.id] = r.foto; });
+    LOG("cargarFotos", `✅ ${Object.keys(mapa).length} foto(s) hidratada(s).`);
+    return mapa;
+  } catch (e) {
+    ERR("cargarFotos", "No se pudieron cargar las fotos", e);
+    return {};
+  }
+}
+
+// Guarda SOLO la foto de un alumno. Es el único camino de escritura de fotos:
+// el upsert general (_guardarAlumno) nunca toca la columna foto para no
+// re-subir megas de base64 en cada guardado.
+export async function guardarFotoAlumno(alumno_id, foto) {
+  try {
+    const { error } = await supabase
+      .from("alumnos")
+      .update({ foto: foto || "" })
+      .eq("id", alumno_id);
+    if (error) throw error;
+    LOG("guardarFotoAlumno", `✅ Foto guardada para ${alumno_id} (${Math.round((foto || "").length / 1024)} KB).`);
+    return true;
+  } catch (e) {
+    ERR("guardarFotoAlumno", `No se pudo guardar la foto de ${alumno_id}`, e);
+    return false;
   }
 }
 
@@ -308,7 +352,7 @@ async function _guardarAlumno(al) {
     email:              al.email              || null,
     tipo:               al.tipo, // undefined se elimina en limpiarPayload
     modalidad:          al.modalidad, // puede no existir la columna (migración 009) — hay fallback abajo
-    foto:               al.foto               || '',
+    // foto NO va acá a propósito: se guarda solo vía guardarFotoAlumno()
     horarios:           al.horarios           || [],
     bioimpedancia:      al.bioimpedancia      || [],
     rm:                 al.rm                 || {},
@@ -819,9 +863,11 @@ export async function loginConCodigo(codigo, pin) {
     // ilike compara sin distinguir mayúsculas/minúsculas — así "Juan",
     // "juan" y "JUAN" matchean igual sin importar cómo haya quedado
     // guardado el username en la base.
+    // Sin "foto": puede pesar megas en base64 y el login no la necesita
+    // (la app la hidrata aparte con cargarFotos()).
     const { data: alumno, error } = await supabase
       .from("alumnos")
-      .select("*")
+      .select(COLS_ALUMNO_SIN_FOTO + ",pin_hash")
       .ilike("codigo", codigo.trim())
       .single();
 
