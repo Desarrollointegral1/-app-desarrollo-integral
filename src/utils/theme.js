@@ -1,5 +1,7 @@
 export const DARK_T  = {bg:"#0a0a0a",card:"#121212",card2:"#1a1a1a",border:"#242424",white:"#f0f0f0",gray:"#8a8a8a",lgray:"#4e4e4e",red:"#e53e3e",green:"#4caf50"};
-export const LIGHT_T = {bg:"#f0ede8",card:"#ffffff",card2:"#f5f2ed",border:"#ddd9d3",white:"#1a1a1a",gray:"#5a5652",lgray:"#9a9691",red:"#c0392b",green:"#1e7e34"};
+// Modo claro: blanco + escala de grises con contraste (pedido de Lucas 2026-07-20).
+// Nada de tonos crema/beige — fondos neutros, texto casi negro.
+export const LIGHT_T = {bg:"#f4f4f5",card:"#ffffff",card2:"#ececee",border:"#c9c9cf",white:"#18181b",gray:"#52525b",lgray:"#71717a",red:"#c0392b",green:"#1e7e34"};
 
 export let S = {...DARK_T};
 export let card = {background:S.card,border:"1px solid "+S.border,borderRadius:10};
