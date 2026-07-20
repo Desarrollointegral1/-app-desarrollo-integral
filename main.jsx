@@ -15,6 +15,14 @@ if (!window.storage) {
   };
 }
 
+// PWA (ronda 8): service worker mínimo — red primero para la app, cache solo
+// del shell estático. Solo en producción (en dev molestaría al HMR).
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((e) => console.warn("[SW] no registrado:", e));
+  });
+}
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <App />
