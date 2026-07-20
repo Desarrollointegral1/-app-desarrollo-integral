@@ -29,6 +29,19 @@ export const MOVILIDAD_BASE=[
   mk("Espinales nados","Boca abajo, elevas brazos y piernas alternando."),
 ];
 
+// Versión CORTA de la movilidad (~7-8 min): subconjunto de la base.
+// Ajustable por Lucas/Ari — es la que acompaña al video "Corta".
+export const MOVILIDAD_CORTA=[
+  mk("Obelisco","Rotacion de columna toracica de pie."),
+  mk("Sentadilla de Activacion de Peso","Sentadilla lenta activando gluteos y core."),
+  mk("Movilidad de cadera","Tronco con flexion de cadera, circulos amplios."),
+  mk("Dorsiflexion del tobillo","Rodilla adelante, talon apoyado, flexion tobillo."),
+  mk("Estiramiento del gato","Flexion y extension de columna en cuadrupedia."),
+  mk("Superman en cuadrupedia","Brazo y pierna opuestos, cadera estable."),
+  mk("Rotaciones toracicas","De costado, rodillas dobladas, rota el torso."),
+  mk("Plancha isometrica 15s","Core activo, cuerpo recto, 15 segundos."),
+];
+
 // Rutina 1 — piso y sentado
 export const MOVILIDAD_PISO_SENTADO=[
   mk("Elevacion de pierna acostado","Boca arriba, agarra detras de la rodilla, estira la pierna hacia arriba y baja controlado."),
