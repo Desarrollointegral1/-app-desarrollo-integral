@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { S, card, tabBtn } from "../utils/theme.js";
+import { S, card, tabBtn, tabN2, chipN3 } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
@@ -124,42 +124,14 @@ export default function PlanDelDia({
         </div>
       )}
 
-      {/* Resumen del día — sin "SEM N", pero CON intensidad: es la misma
-          intensidad del cerebro de planes (pedido de Lucas 2026-07-20) */}
-      {planValido && (
-        <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20 }}>
-          <div>
-            <div style={{ color: S.white, fontWeight: 700 }}>
-              {sem.series}x{sem.reps}
-            </div>
-            <div style={{ color: S.gray, fontSize: 10 }}>SERIES X REPS</div>
-          </div>
-          {sem.intensidad && (
-            <div>
-              <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
-              <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
-            </div>
-          )}
-          {dia && (
-            <div>
-              <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
-              <div style={{ color: S.gray, fontSize: 10 }}>PRINCIPALES</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Tabs principales: PREPARACIÓN | PRINCIPALES (pills del mismo tamaño) ── */}
-      <div style={{ display: "flex", gap: 8, margin: "16px 0 12px" }}>
+      {/* ── Tabs nivel 2: PREPARACIÓN | PRINCIPALES — activo con borde blanco
+          + fondo card, sin invertir (jerarquía visual ronda 6) ── */}
+      <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
         {[
           ["preparacion", "Preparación"],
           ["principales", "Principales"],
         ].map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setSeccion(id)}
-            style={{ ...tabBtn(seccion === id), flex: 1, padding: "12px 4px", fontSize: 12, borderRadius: 10 }}
-          >
+          <button key={id} onClick={() => setSeccion(id)} style={tabN2(seccion === id)}>
             {label}
           </button>
         ))}
@@ -167,19 +139,21 @@ export default function PlanDelDia({
 
       {seccion === "preparacion" && (
         <>
-          {/* Sub-menús de Preparación */}
-          <div style={{ display: "flex", gap: 5, marginBottom: 12 }}>
+          {/* Sub-menús de Preparación — chips nivel 3, con dot en el activo */}
+          <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
             {PREP_TABS.map((t) => (
-              <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...tabBtn(prep === t.id), flex: 1, padding: "9px 3px", fontSize: 10 }}>
+              <button key={t.id} onClick={() => setPrep(t.id)} style={chipN3(prep === t.id)}>
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: prep === t.id ? S.white : "transparent", flexShrink: 0 }} />
                 {t.label}
               </button>
             ))}
           </div>
-          {/* Selector de versión de movilidad: Superrápida / Corta / Completa */}
+          {/* Selector de versión de movilidad: Superrápida / Corta / Completa (chips nivel 3) */}
           {prep === "movilidad" && (
-            <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
               {MOVI_VERSIONES.map((v) => (
-                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={{ ...tabBtn(moviVersion === v.id), flex: 1, padding: "8px 3px", fontSize: 10 }}>
+                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={chipN3(moviVersion === v.id)}>
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: moviVersion === v.id ? S.white : "transparent", flexShrink: 0 }} />
                   {v.label}
                 </button>
               ))}
@@ -221,9 +195,25 @@ export default function PlanDelDia({
         </div>
       ) : (
         <>
-          <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
-            {sem.series}x{sem.reps}
-            {sem.intensidad ? " al " + sem.intensidad : ""}
+          {/* Ficha de stats — SOLO acá en Principales (Preparación usa otras
+              series/reps): series x reps · intensidad · cantidad de ejercicios */}
+          <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 20, marginBottom: 12 }}>
+            <div>
+              <div style={{ color: S.white, fontWeight: 700 }}>
+                {sem.series}x{sem.reps}
+              </div>
+              <div style={{ color: S.gray, fontSize: 10 }}>SERIES X REPS</div>
+            </div>
+            {sem.intensidad && (
+              <div>
+                <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
+                <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
+              </div>
+            )}
+            <div>
+              <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
+              <div style={{ color: S.gray, fontSize: 10 }}>EJERCICIOS</div>
+            </div>
           </div>
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
