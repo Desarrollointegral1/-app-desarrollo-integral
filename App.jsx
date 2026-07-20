@@ -134,7 +134,7 @@ function Toast({ msg }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        from { transform:rotateY(0deg); }        to   { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinY 10s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -1529,13 +1529,10 @@ function Diario({ entradas, onAdd }) {
 }
 // ── PESO MAX ALUMNO ───────────────────────────────────────────────────
 function PesoMaxAlumno({ rm, onUpdate }) {
-  const [editEj, setEditEj] = useState(null);
-  const [tmp, setTmp] = useState("");
-  const guardar = (ej) => {
-    if (!tmp || isNaN(Number(tmp))) return;
-    onUpdate({ ...rm, [ej]: { peso: Number(tmp), fecha: hoy() } });
-    setEditEj(null);
-    setTmp("");
+  // Sin paso de "editar": el input está SIEMPRE directamente editable.
+  const setPeso = (ej, v) => {
+    const n = Math.max(0, Number(v) || 0);
+    onUpdate({ ...rm, [ej]: { peso: n, fecha: hoy() } });
   };
   return (
     <div>
@@ -1545,7 +1542,7 @@ function PesoMaxAlumno({ rm, onUpdate }) {
       </div>{" "}
       {RM_EJS.map((ej) => {
         const dato = rm && rm[ej];
-        const isEditing = editEj === ej;
+        const peso = (dato && dato.peso) || 0;
         return (
           <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
             {" "}
@@ -1554,98 +1551,39 @@ function PesoMaxAlumno({ rm, onUpdate }) {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: isEditing ? 10 : 0,
+                gap: 10,
               }}
             >
               {" "}
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{ej}</div>
                 {dato && dato.fecha && <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>{dato.fecha}</div>}
               </div>{" "}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {" "}
-                {dato && dato.peso > 0 && !isEditing && (
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ color: S.white, fontWeight: 900, fontSize: 22 }}>{dato.peso} kg</div>
-                    <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>PESO MAX</div>
-                  </div>
-                )}{" "}
-                {!isEditing && (
-                  <button
-                    onClick={() => {
-                      setEditEj(ej);
-                      setTmp(dato && dato.peso ? String(dato.peso) : "");
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: S.white,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {dato && dato.peso > 0 ? "✎ EDITAR" : "+ CARGAR"}
-                  </button>
-                )}{" "}
+                <button
+                  onClick={() => setPeso(ej, peso - 1)}
+                  style={{ width: 34, height: 34, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                >
+                  −
+                </button>{" "}
+                <input
+                  type="number"
+                  value={peso || ""}
+                  placeholder="0"
+                  onChange={(e) => setPeso(ej, e.target.value)}
+                  style={{ width: 62, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 4px", color: S.white, fontSize: 16, fontWeight: 900, outline: "none" }}
+                />{" "}
+                <span style={{ color: S.gray, fontSize: 12 }}>kg</span>{" "}
+                <button
+                  onClick={() => setPeso(ej, peso + 1)}
+                  style={{ width: 34, height: 34, background: S.white, color: S.bg, border: "none", borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                >
+                  +
+                </button>{" "}
               </div>{" "}
             </div>{" "}
-            {isEditing && (
-              <div>
-                {" "}
-                <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>NUEVO PESO MAXIMO (kg)</div>{" "}
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                  {" "}
-                  <input
-                    type="number"
-                    value={tmp}
-                    onChange={(e) => setTmp(e.target.value)}
-                    placeholder="kg"
-                    style={{ flex: 1, ...inp, fontSize: 18, fontWeight: 700 }}
-                  />{" "}
-                  <span style={{ color: S.gray, fontSize: 14 }}>kg</span>{" "}
-                </div>{" "}
-                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 10 }}>
-                  Se registrara con la fecha de hoy: {hoy()}
-                </div>{" "}
-                <div style={{ display: "flex", gap: 8 }}>
-                  {" "}
-                  <button
-                    onClick={() => guardar(ej)}
-                    style={{
-                      flex: 1,
-                      background: S.white,
-                      color: S.bg,
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "10px",
-                      fontWeight: 900,
-                      cursor: "pointer",
-                    }}
-                  >
-                    GUARDAR
-                  </button>{" "}
-                  <button
-                    onClick={() => {
-                      setEditEj(null);
-                      setTmp("");
-                    }}
-                    style={{
-                      background: "transparent",
-                      color: S.gray,
-                      border: "1px solid #2a2a2a",
-                      borderRadius: 6,
-                      padding: "10px 16px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancelar
-                  </button>{" "}
-                </div>{" "}
-              </div>
-            )}{" "}
-            {dato && dato.peso > 0 && !isEditing && (
+            {dato && dato.peso > 0 && (
               <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {" "}
                 {[60, 65, 70, 75, 80, 85, 90, 95].map((pct) => (
@@ -2963,7 +2901,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   );
 }
 // ── LOGIN ─────────────────────────────────────────────────────────────
-function Login({ onLogin, onAdmin }) {
+function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
   const [codigo, setCodigo] = useState("");
   const [pin, setPin] = useState("");
   const [esAdmin, setEsAdmin] = useState(false);
@@ -3005,16 +2943,40 @@ function Login({ onLogin, onAdmin }) {
         justifyContent: "center",
         padding: 24,
         fontFamily: "inherit",
+        position: "relative",
       }}
     >
+      <GlobalStyles />
+      {/* Toggle modo claro/oscuro — discreto, arriba a la derecha */}
+      <button
+        onClick={onToggleTheme}
+        title={darkMode ? "Modo claro" : "Modo oscuro"}
+        aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        style={{
+          position: "absolute",
+          top: 18,
+          right: 18,
+          background: "transparent",
+          color: S.gray,
+          border: "1px solid " + S.border,
+          borderRadius: 8,
+          padding: "6px 10px",
+          fontSize: 14,
+          cursor: "pointer",
+        }}
+      >
+        {darkMode ? "☀️" : "🌙"}
+      </button>
       {/* Header de marca */}
-      <div style={{ textAlign: "center", marginBottom: 36 }}>
-        <img src={ICON} width={72} height={72} alt="DI" style={{ display: "block", margin: "0 auto 14px", opacity: 0.9 }} />
-        <div style={{ fontSize: 18, fontWeight: 800, color: S.white, letterSpacing: 3, textTransform: "uppercase" }}>Desarrollo Integral</div>
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ perspective: 700, width: 120, margin: "0 auto 14px" }}>
+          <img src={ICON} width={120} height={120} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.95 }} />
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: S.white, letterSpacing: 3, textTransform: "uppercase" }}>Desarrollo Integral</div>
         <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, marginTop: 4, textTransform: "uppercase" }}>Centro de Entrenamiento</div>
       </div>
 
-      <div style={{ width: "100%", maxWidth: 340, background: "#111111", border: "1px solid #222", borderRadius: 14, padding: "28px 24px" }}>
+      <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
         <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
           Username
         </div>
@@ -3023,7 +2985,7 @@ function Login({ onLogin, onAdmin }) {
           onChange={(e) => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="Tu username"
-          style={{ ...inp, fontSize: 15, padding: "12px 14px", background: "#181818", border: "1px solid #2a2a2a" }}
+          style={{ ...inp, fontSize: 15, padding: "12px 14px" }}
           disabled={cargando}
         />
 
@@ -3037,7 +2999,7 @@ function Login({ onLogin, onAdmin }) {
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="••••"
           maxLength={4}
-          style={{ ...inp, fontSize: 15, padding: "12px 14px", background: "#181818", border: "1px solid #2a2a2a" }}
+          style={{ ...inp, fontSize: 15, padding: "12px 14px" }}
           disabled={cargando}
         />
 
@@ -3049,7 +3011,7 @@ function Login({ onLogin, onAdmin }) {
           style={{
             width: "100%",
             marginTop: 18,
-            background: cargando ? "#1e1e1e" : S.white,
+            background: cargando ? S.card2 : S.white,
             color: cargando ? S.gray : S.bg,
             border: "none",
             borderRadius: 8,
@@ -3081,7 +3043,7 @@ function Login({ onLogin, onAdmin }) {
           gap: 7,
           background: esAdmin ? "rgba(76,175,80,0.12)" : "transparent",
           color: esAdmin ? S.green : S.lgray,
-          border: "1px solid " + (esAdmin ? S.green : "#242424"),
+          border: "1px solid " + (esAdmin ? S.green : S.border),
           borderRadius: 20,
           padding: "6px 14px",
           fontSize: 10,
@@ -3091,7 +3053,7 @@ function Login({ onLogin, onAdmin }) {
           cursor: cargando ? "not-allowed" : "pointer",
         }}
       >
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.green : "#3a3a3a", flexShrink: 0 }} />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.green : S.lgray, flexShrink: 0 }} />
         {esAdmin ? "✓ Acceso administrador activado" : "Acceso administrador"}
       </button>
     </div>
@@ -3484,7 +3446,7 @@ export default function App() {
         <Toast msg={toastMsg} />
       </>
     );
-  if (!alumno) return <Login onLogin={login} onAdmin={loginAsAdmin} alumnos={alumnos} />;
+  if (!alumno) return <Login onLogin={login} onAdmin={loginAsAdmin} alumnos={alumnos} darkMode={darkMode} onToggleTheme={toggleTheme} />;
   const al = alumnos.find((a) => a.id === alumno.id) || alumno;
   // Vista rehabilitación — interfaz simplificada para pacientes de kinesiología
   if (al.tipo === "rehabilitacion") {
@@ -3514,14 +3476,6 @@ export default function App() {
         onContinuar={() => setShowBienvenida(false)}
       />
     );
-  const GROUPS = {
-    entrenamiento: { label: "Entrenamiento", tabs: ["Ejercicios"] },
-    diario: { label: "Diario", tabs: ["Diario"] },
-  };
-  const switchGroup = (g) => {
-    setTabGroup(g);
-    setTab(GROUPS[g].tabs[0]);
-  };
   return (
     <>
       {" "}
@@ -3560,52 +3514,50 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header */}{" "}
+        {/* Header — marca centrada + logo 3D */}{" "}
         <div
           style={{
-            padding: "14px 16px 12px",
-            borderBottom: "1px solid #1c1c1c",
+            padding: "16px 16px 14px",
+            borderBottom: "1px solid " + S.border,
             marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            position: "relative",
+            textAlign: "center",
           }}
         >
           {" "}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {" "}
-            <img src={ICON} width={40} height={40} alt="DI" />{" "}
-            <div>
-              <div
-                style={{
-                  color: S.white,
-                  fontWeight: 900,
-                  fontStyle: "italic",
-                  fontSize: 12,
-                  letterSpacing: 2,
-                  textTransform: "uppercase",
-                }}
-              >
-                DESARROLLO
-              </div>
-              <div
-                style={{
-                  color: S.white,
-                  fontWeight: 900,
-                  fontSize: 16,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  lineHeight: 1,
-                }}
-              >
-                INTEGRAL
-              </div>
-              <div style={{ color: S.gray, fontSize: 8, letterSpacing: 2, textTransform: "uppercase", marginTop: 1 }}>
-                CENTRO DE ENTRENAMIENTO
-              </div>
-            </div>{" "}
+          <div style={{ perspective: 600, width: 58, margin: "0 auto 8px" }}>
+            <img src={ICON} width={58} height={58} alt="DI" className="di-logo3d" style={{ display: "block" }} />
           </div>{" "}
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div>
+            <div
+              style={{
+                color: S.white,
+                fontWeight: 900,
+                fontStyle: "italic",
+                fontSize: 13,
+                letterSpacing: 3,
+                textTransform: "uppercase",
+              }}
+            >
+              DESARROLLO
+            </div>
+            <div
+              style={{
+                color: S.white,
+                fontWeight: 900,
+                fontSize: 18,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                lineHeight: 1.1,
+              }}
+            >
+              INTEGRAL
+            </div>
+            <div style={{ color: S.gray, fontSize: 9, letterSpacing: 3, textTransform: "uppercase", marginTop: 3 }}>
+              CENTRO DE ENTRENAMIENTO
+            </div>
+          </div>{" "}
+          <div style={{ position: "absolute", top: 12, right: 16, display: "flex", gap: 8, alignItems: "center" }}>
             {" "}
             <button
               onClick={toggleTheme}
@@ -3715,77 +3667,40 @@ export default function App() {
             </div>
           )}{" "}
         </div>{" "}
-        {/* Menú dos niveles */}{" "}
-        <div style={{ padding: "0 16px 2px" }}>
-          {/* Grupo primario */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-            {Object.entries(GROUPS).map(([key, g]) => (
-              <button
-                key={key}
-                onClick={() => switchGroup(key)}
-                style={{
-                  flex: 1,
-                  background: tabGroup === key ? S.white : "transparent",
-                  color: tabGroup === key ? S.bg : S.gray,
-                  border: "1px solid " + (tabGroup === key ? S.white : S.border),
-                  borderRadius: 8,
-                  padding: "9px 12px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-          {/* Sub-tabs del grupo activo */}
-          {GROUPS[tabGroup].tabs.length > 1 && (
-          <div style={{ display: "flex", gap: 5, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none", paddingBottom: 8 }}>
-            {GROUPS[tabGroup].tabs.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{ ...tabBtn(tab === t), flex: "none", whiteSpace: "nowrap", padding: "7px 11px", fontSize: 11 }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          )}
-        </div>{" "}
-        {/* Contenido */}{" "}
-        <div key={tab} className="di-slide" style={{ padding: "0 16px" }}>
+        {/* Contenido — un solo scroll: plan del día arriba, Entrenamiento diario al final */}{" "}
+        <div className="di-slide" style={{ padding: "0 16px" }}>
           {" "}
-          {tab === "Ejercicios" && (
-            <div>
-              {/* Avisos del gimnasio (los carga el admin en Novedades) */}
-              {novedades
-                .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
-                .map((n) => (
-                  <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
-                    <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
-                    {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
-                  </div>
-                ))}
-              <PlanDelDia
-                plan={plan}
-                planValido={planValido}
-                dia={dia}
-                diaIdx={diaIdx}
-                setDiaIdx={setDiaIdx}
-                sem={sem}
-                semanaActual={semanaActual}
-                pesos={pesos}
-                historiales={historiales}
-                onPeso={handlePeso}
-                rm={al.rm}
-              />
-            </div>
-          )}{" "}
-          {tab === "Diario" && (
-            <div>
+          <div>
+            {/* Avisos del gimnasio (los carga el admin en Novedades) */}
+            {novedades
+              .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
+              .map((n) => (
+                <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
+                  {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
+                </div>
+              ))}
+            <PlanDelDia
+              plan={plan}
+              planValido={planValido}
+              dia={dia}
+              diaIdx={diaIdx}
+              setDiaIdx={setDiaIdx}
+              sem={sem}
+              semanaActual={semanaActual}
+              pesos={pesos}
+              historiales={historiales}
+              onPeso={handlePeso}
+              rm={al.rm}
+            />
+          </div>{" "}
+          {/* ── ENTRENAMIENTO DIARIO — sección inferior ── */}{" "}
+          <div>
+              <div style={{ margin: "30px 0 12px", paddingBottom: 8, borderBottom: "1px solid " + S.border, textAlign: "center" }}>
+                <span style={{ color: S.white, fontWeight: 700, fontSize: 13, letterSpacing: 2, textTransform: "uppercase" }}>
+                  Entrenamiento diario
+                </span>
+              </div>
               {/* Asistencia de hoy */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
@@ -3829,10 +3744,8 @@ export default function App() {
               </div>
               {/* Cómo estuvo el día */}
               <Diario entradas={al.diario || []} onAdd={addDiario} />
-            </div>
-          )}{" "}
-
-                  </div>{" "}
+          </div>{" "}
+        </div>{" "}
       </div>{" "}
     </>
   );
