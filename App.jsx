@@ -57,7 +57,8 @@ import {
   clonarPlan,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, inp, tabBtn, smallBtn, applyTheme } from "./src/utils/theme.js";
+import { S, card, inp, tabBtn, smallBtn, tabN1, applyTheme } from "./src/utils/theme.js";
+import DIWordmark from "./src/components/DIWordmark.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
@@ -135,7 +136,7 @@ function Toast({ msg }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        from { transform:rotateY(0deg); }        to   { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinY 10s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        from { transform:rotateY(0deg); }        to   { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinY 18s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -671,7 +672,10 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
   );
 }
 // ── DIAS EDITOR ───────────────────────────────────────────────────────
-function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca }) {
+// ocultarAgregarDia (ronda 6): en Plan → Principales el "+ Dia" de acá abajo era
+// redundante (agregar día ya está arriba con "+ Otro día") — se oculta, y si el
+// plan tiene un solo día tampoco se muestra la fila de pills.
+function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca, ocultarAgregarDia = false }) {
   const [selDia, setSelDia] = useState(0);
   const [editDia, setEditDia] = useState(false);
   const [diaForm, setDiaForm] = useState({ dia: "", subtitulo: "" });
@@ -711,6 +715,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca 
   return (
     <div>
       {" "}
+      {!(ocultarAgregarDia && dias.length <= 1) && (
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         {" "}
         {dias.map((d, i) => (
@@ -752,6 +757,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca 
             )}{" "}
           </div>
         ))}{" "}
+        {!ocultarAgregarDia && (
         <button
           onClick={addDia}
           style={{
@@ -765,8 +771,10 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca 
           }}
         >
           + Dia
-        </button>{" "}
-      </div>{" "}
+        </button>
+        )}{" "}
+      </div>
+      )}{" "}
       {editDia ? (
         <div style={{ ...card, padding: 12, marginBottom: 12 }}>
           {" "}
@@ -1888,7 +1896,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
             </div>
             <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
           </div>
-          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />
+          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} ocultarAgregarDia />
         </div>
       )}
     </div>
@@ -2176,6 +2184,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       nombre: al.nombre,
       username: al.username || "",
       codigo: al.codigo,
+      email: al.email || "",
       peso: al.peso,
       altura: al.altura,
       edad: al.edad,
@@ -2719,12 +2728,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   {[
                     ["Nombre", form.nombre, "nombre"],
                     ["Username (login)", form.codigo, "codigo"],
+                    ["Email", form.email, "email"],
                     ["Peso", form.peso, "peso"],
                     ["Altura", form.altura, "altura"],
                   ].map(([label, val, key]) => (
                     <div key={key} style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>
-                      <input value={val || ""} onChange={(e) => setForm((f) => ({ ...f, [key]: key === "codigo" ? e.target.value.toUpperCase() : e.target.value }))} style={inp} />
+                      <input type={key === "email" ? "email" : "text"} placeholder={key === "email" ? "para mandarle el acceso más adelante" : undefined} value={val || ""} onChange={(e) => setForm((f) => ({ ...f, [key]: key === "codigo" ? e.target.value.toUpperCase() : e.target.value }))} style={inp} />
                     </div>
                   ))}
                   <div style={{ marginBottom: 10 }}>
@@ -3179,17 +3189,40 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
                 Asistencia — {al.nombre}
               </div>
-              {/* Selector de mes del reporte */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 12, overflowX: "auto", paddingBottom: 2 }}>
-                {meses.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setRepMes(m)}
-                    style={{ flex: "none", background: mesSel === m ? S.white : S.card, color: mesSel === m ? S.bg : S.gray, border: "1px solid " + (mesSel === m ? S.white : S.border), borderRadius: 20, padding: "7px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
-                  >
-                    {labelMes(m)}{m === mesHoy ? " · actual" : ""}
-                  </button>
-                ))}
+              {/* Botón principal: reporte del mes en curso, hasta el momento */}
+              <button
+                onClick={() => exportarReporteMensual(al, mesHoy)}
+                style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", letterSpacing: 1, marginBottom: 14 }}
+              >
+                ⬇ EXPORTAR REPORTE DEL MES EN CURSO
+              </button>
+              {/* Meses estilo resumen bancario: una fila por mes con sus datos
+                  y su botón Exportar al lado. Tocar la fila muestra su detalle. */}
+              <div style={{ ...card, overflow: "hidden", marginBottom: 12 }}>
+                {meses.map((m, i) => {
+                  const cant = registros.filter((r) => r.startsWith(m)).length;
+                  const activo = mesSel === m;
+                  return (
+                    <div
+                      key={m}
+                      onClick={() => setRepMes(m)}
+                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", cursor: "pointer", background: activo ? S.card2 : "transparent", borderLeft: "3px solid " + (activo ? S.white : "transparent"), borderBottom: i < meses.length - 1 ? "1px solid " + S.border : "none" }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: activo ? S.white : S.gray, fontWeight: 700, fontSize: 13 }}>
+                          {labelMes(m)}{m === mesHoy ? <span style={{ color: S.green, fontSize: 10, fontWeight: 700, marginLeft: 6 }}>· EN CURSO</span> : ""}
+                        </div>
+                        <div style={{ color: S.lgray, fontSize: 11, marginTop: 1 }}>{cant} asistencia{cant === 1 ? "" : "s"}</div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); exportarReporteMensual(al, m); }}
+                        style={smallBtn(activo ? S.white : S.gray)}
+                      >
+                        ⬇ Exportar
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
@@ -3228,14 +3261,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   })}
                 </div>
               )}
-              <button
-                onClick={() => exportarReporteMensual(al, mesSel)}
-                style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", letterSpacing: 1 }}
-              >
-                ⬇ EXPORTAR REPORTE DE {labelMes(mesSel).toUpperCase()}
-              </button>
               <div style={{ fontSize: 10, color: S.lgray, marginTop: 8, textAlign: "center" }}>
-                Reporte institucional de {al.nombre}: datos, plan con progresión de cargas, asistencia, pesos máximos, bioimpedancia y diario de {labelMes(mesSel)}. Se abre en el navegador y se puede imprimir o guardar como PDF.
+                Reporte institucional de {al.nombre}: datos, plan con progresión de cargas, asistencia, pesos máximos, bioimpedancia y diario del mes elegido. Se abre en el navegador y se puede imprimir o guardar como PDF.
               </div>
             </div>
           );
@@ -3402,13 +3429,12 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
       >
         {darkMode ? "☀️" : "🌙"}
       </button>
-      {/* Header de marca */}
+      {/* Header de marca — ícono 3D grande + wordmark oficial (SVG, currentColor) */}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ perspective: 700, width: 120, margin: "0 auto 14px" }}>
-          <img src={ICON} width={120} height={120} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.95 }} />
+        <div style={{ perspective: 450, width: 150, margin: "0 auto 16px" }}>
+          <img src={ICON} width={150} height={150} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.95 }} />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: S.white, letterSpacing: 3, textTransform: "uppercase" }}>Desarrollo Integral</div>
-        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, marginTop: 4, textTransform: "uppercase" }}>Centro de Entrenamiento</div>
+        <DIWordmark width={240} style={{ color: S.white, margin: "0 auto" }} />
       </div>
 
       <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
@@ -3619,13 +3645,15 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
         }}
       >
         {" "}
-        <img src={ICON} width={44} height={44} alt="DI" style={{ opacity: 0.25, marginBottom: 20 }} />
+        <div style={{ perspective: 450, width: 90, marginBottom: 20 }}>
+          <img src={ICON} width={90} height={90} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.9 }} />
+        </div>
         <div className="di-pop" style={{ animationDelay: "0s" }}>
           <FotoAlumno foto={alumno.foto} size={80} />
         </div>{" "}
         <div
           className="di-slide"
-          style={{ marginTop: 16, textAlign: "center", marginBottom: 32, animationDelay: "0.08s" }}
+          style={{ marginTop: 16, textAlign: "center", marginBottom: 32, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
         >
           {" "}
           <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>{" "}
@@ -3650,7 +3678,7 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
                   <div style={{ color: S.green, fontSize: 13, marginTop: 2 }}>al {semanaData.intensidad}</div>
                 )}
               </div>
-              <div style={{ color: S.gray, fontSize: 13, marginTop: 10, lineHeight: 1.5 }}>
+              <div style={{ color: S.gray, fontSize: 13, marginTop: 10, lineHeight: 1.5, textAlign: "justify" }}>
                 Hoy te toca{" "}
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} series × {semanaData.reps} repeticiones
@@ -3984,38 +4012,10 @@ export default function App() {
           }}
         >
           {" "}
-          <div style={{ perspective: 600, width: 58, margin: "0 auto 8px" }}>
-            <img src={ICON} width={58} height={58} alt="DI" className="di-logo3d" style={{ display: "block" }} />
+          <div style={{ perspective: 450, width: 78, margin: "0 auto 10px" }}>
+            <img src={ICON} width={78} height={78} alt="DI" className="di-logo3d" style={{ display: "block" }} />
           </div>{" "}
-          <div>
-            <div
-              style={{
-                color: S.white,
-                fontWeight: 900,
-                fontStyle: "italic",
-                fontSize: 13,
-                letterSpacing: 3,
-                textTransform: "uppercase",
-              }}
-            >
-              DESARROLLO
-            </div>
-            <div
-              style={{
-                color: S.white,
-                fontWeight: 900,
-                fontSize: 18,
-                letterSpacing: 2,
-                textTransform: "uppercase",
-                lineHeight: 1.1,
-              }}
-            >
-              INTEGRAL
-            </div>
-            <div style={{ color: S.gray, fontSize: 9, letterSpacing: 3, textTransform: "uppercase", marginTop: 3 }}>
-              CENTRO DE ENTRENAMIENTO
-            </div>
-          </div>{" "}
+          <DIWordmark width={190} style={{ color: S.white, margin: "0 auto" }} />{" "}
           <div style={{ position: "absolute", top: 12, right: 16, display: "flex", gap: 8, alignItems: "center" }}>
             {" "}
             <button
@@ -4127,19 +4127,30 @@ export default function App() {
             </div>
           )}{" "}
         </div>{" "}
-        {/* Contenido — un solo scroll: plan del día arriba, Entrenamiento diario al final */}{" "}
+        {/* Contenido — jerarquía de menús (ronda 6): nivel 1 Entrenamiento | Diario */}{" "}
         <div className="di-slide" style={{ padding: "0 16px" }}>
           {" "}
-          <div>
-            {/* Avisos del gimnasio (los carga el admin en Novedades) */}
-            {novedades
-              .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
-              .map((n) => (
-                <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
-                  {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
-                </div>
-              ))}
+          {/* Avisos del gimnasio (los carga el admin en Novedades) */}
+          {novedades
+            .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
+            .map((n) => (
+              <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
+                {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
+              </div>
+            ))}
+          {/* ── Nivel 1: ENTRENAMIENTO | DIARIO — pills grandes, activo invertido ── */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            {[
+              ["entrenamiento", "Entrenamiento"],
+              ["diario", "Diario"],
+            ].map(([id, label]) => (
+              <button key={id} onClick={() => setTabGroup(id)} style={tabN1(tabGroup === id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {tabGroup === "entrenamiento" && (
             <PlanDelDia
               plan={plan}
               planValido={planValido}
@@ -4153,14 +4164,10 @@ export default function App() {
               onPeso={handlePeso}
               rm={al.rm}
             />
-          </div>{" "}
-          {/* ── ENTRENAMIENTO DIARIO — sección inferior ── */}{" "}
+          )}
+          {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
+          {tabGroup === "diario" && (
           <div>
-              <div style={{ margin: "30px 0 12px", paddingBottom: 8, borderBottom: "1px solid " + S.border, textAlign: "center" }}>
-                <span style={{ color: S.white, fontWeight: 700, fontSize: 13, letterSpacing: 2, textTransform: "uppercase" }}>
-                  Entrenamiento diario
-                </span>
-              </div>
               {/* Asistencia de hoy */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
@@ -4204,7 +4211,8 @@ export default function App() {
               </div>
               {/* Cómo estuvo el día */}
               <Diario entradas={al.diario || []} onAdd={addDiario} />
-          </div>{" "}
+          </div>
+          )}{" "}
         </div>{" "}
       </div>{" "}
     </>
