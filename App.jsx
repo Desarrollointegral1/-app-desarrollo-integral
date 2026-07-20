@@ -31,6 +31,9 @@ import {
   saveBioimpedanciaCompleta,
   cargarBioimpedanciaCompleta,
   cargarPesosPorDia,
+  // REHABILITACIÓN (ronda 7)
+  subirMediaRehab,
+  guardarEjercicioBibliotecaRehab,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -1828,11 +1831,15 @@ function HistorialAdmin({ al }) {
 // alta) con el plan que cada uno tiene, para retocar ejercicios puntuales.
 // Agregar un día nuevo queda como acción secundaria (deriva a Plan Día).
 const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7, Fijo: 8 };
-function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, showToast, onIrPlanDia }) {
+function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, showToast, onIrPlanDia, initialPlanId }) {
   const planes = [...(al.planes || [])].sort(
     (a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9),
   );
-  const [selPlanId, setSelPlanId] = useState(planes[0] && planes[0].id);
+  // initialPlanId (ronda 7): venir desde "Planes asignados" de la ficha abre
+  // directamente ESE plan para editarlo (el componente se re-monta por key).
+  const [selPlanId, setSelPlanId] = useState(
+    initialPlanId && planes.some((p) => p.id === initialPlanId) ? initialPlanId : planes[0] && planes[0].id,
+  );
   const plan = planes.find((p) => p.id === selPlanId) || planes[0];
 
   const guardarDias = (nuevosDias) => {
@@ -1909,6 +1916,276 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
           </div>
           <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} ocultarAgregarDia />
         </div>
+      )}
+    </div>
+  );
+}
+// ── PLAN DE REHABILITACIÓN (ADMIN) ────────────────────────────────────
+// Editor pensado para Griselda, desde el celular y EN el momento: agrega un
+// ejercicio con nombre + explicación + foto/video sacado ahí mismo (input con
+// capture → abre la cámara). El media sube a Storage (bucket rehab-media,
+// migración 010) y la URL queda en el campo `video` del ejercicio — el mismo
+// campo que ya persiste plan_ejercicios, sin esquema nuevo. Cada ejercicio se
+// guarda además en biblioteca_ejercicios con categoria='rehab' para
+// reutilizarlo con el próximo paciente.
+function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh, showToast }) {
+  const planes = al.planes || [];
+  const plan = planes[0] || null;
+  const dias = plan && plan.dias && plan.dias.length > 0 ? plan.dias : (al.plan?.dias || []);
+  const [sesionIdx, setSesionIdx] = useState(0);
+  const [editIdx, setEditIdx] = useState(null); // null = nada · -1 = nuevo · i = editando
+  const [form, setForm] = useState({ nombre: "", desc: "", video: "" });
+  const [subiendo, setSubiendo] = useState(false);
+  const camRef = useRef();
+  const fileRef = useRef();
+  const bibliotecaRehab = (biblioteca || []).filter((b) => b.categoria === "rehab");
+  const safeIdx = Math.min(sesionIdx, Math.max(0, dias.length - 1));
+  const sesion = dias[safeIdx] || null;
+
+  // Mismo criterio de persistencia que PlanesPrincipales: plan real →
+  // actualizarPlanAlumnoDias; plan sintético "Fijo" → camino viejo (al.plan).
+  const guardarDias = (nuevosDias) => {
+    onUpdate(alumnos.map((a) => a.id === al.id
+      ? {
+          ...a,
+          planes: plan ? (a.planes || []).map((p) => (p.id === plan.id ? { ...p, dias: nuevosDias } : p)) : a.planes,
+          plan: !plan || plan._sintetico ? { ...a.plan, dias: nuevosDias } : a.plan,
+        }
+      : a));
+    if (plan && !plan._sintetico) {
+      actualizarPlanAlumnoDias(plan.id, nuevosDias).then((ok) => {
+        if (!ok) showToast && showToast("Error guardando el plan — reintentá");
+      });
+    }
+  };
+
+  const esImagen = (url) => /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url || "");
+
+  const handleMediaFile = async (file) => {
+    if (!file) return;
+    const esVideo = file.type.startsWith("video/");
+    if (esVideo && file.size > 50 * 1024 * 1024) {
+      window.alert("El video pesa más de 50MB — grabá un clip más corto (10-20 segundos alcanza para mostrar el ejercicio).");
+      return;
+    }
+    setSubiendo(true);
+    try {
+      let paraSubir = file;
+      if (!esVideo) {
+        // Comprimir la foto antes de subir (las de cámara pesan varios MB)
+        const dataUrl = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = (e) => res(e.target.result);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+        const comp = await comprimirFoto(dataUrl, 1280, 0.85);
+        const blob = await (await fetch(comp)).blob();
+        paraSubir = new File([blob], "foto.jpg", { type: "image/jpeg" });
+      }
+      const url = await subirMediaRehab(paraSubir);
+      setForm((f) => ({ ...f, video: url }));
+      showToast && showToast(esVideo ? "Video subido ✓" : "Foto subida ✓");
+    } catch (e) {
+      console.error("[PlanRehabAdmin] upload", e);
+      window.alert("No se pudo subir el archivo: " + (e.message || "error desconocido"));
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
+  const saveEjercicio = () => {
+    if (!form.nombre.trim() || !sesion) return;
+    const arr = dias.map((d, i) => {
+      if (i !== safeIdx) return d;
+      const ejs = [...(d.ejercicios || [])];
+      if (editIdx === -1) ejs.push({ id: uid(), nombre: form.nombre.trim(), desc: form.desc, video: form.video, mediaLocal: "", historial: [] });
+      else ejs[editIdx] = { ...ejs[editIdx], nombre: form.nombre.trim(), desc: form.desc, video: form.video };
+      return { ...d, ejercicios: ejs };
+    });
+    guardarDias(arr);
+    // A la biblioteca de rehab siempre — así queda para el próximo paciente
+    guardarEjercicioBibliotecaRehab({ nombre: form.nombre.trim(), desc: form.desc, video: form.video })
+      .then(() => onBibliotecaRefresh && onBibliotecaRefresh());
+    setEditIdx(null);
+    setForm({ nombre: "", desc: "", video: "" });
+    showToast && showToast("Ejercicio guardado ✓");
+  };
+
+  const removeEjercicio = (i) => {
+    if (!window.confirm("¿Eliminar este ejercicio del plan?")) return;
+    guardarDias(dias.map((d, di) => (di === safeIdx ? { ...d, ejercicios: (d.ejercicios || []).filter((_, j) => j !== i) } : d)));
+  };
+
+  const MediaBtns = (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: S.gray, marginBottom: 6, textTransform: "uppercase" }}>Foto o video del ejercicio</div>
+      {form.video ? (
+        <div style={{ marginBottom: 8 }}>
+          {esImagen(form.video) ? (
+            <img src={form.video} alt="media" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8, display: "block" }} />
+          ) : (
+            <video src={form.video} controls preload="metadata" style={{ width: "100%", maxHeight: 220, borderRadius: 8, display: "block" }} />
+          )}
+          <button onClick={() => setForm((f) => ({ ...f, video: "" }))} style={{ marginTop: 6, background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
+            ✕ Quitar
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => !subiendo && camRef.current && camRef.current.click()}
+            disabled={subiendo}
+            style={{ flex: 1, background: S.card2, color: S.white, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, fontWeight: 700, cursor: subiendo ? "wait" : "pointer" }}
+          >
+            {subiendo ? "Subiendo..." : "📷 Sacar foto / grabar"}
+          </button>
+          <button
+            onClick={() => !subiendo && fileRef.current && fileRef.current.click()}
+            disabled={subiendo}
+            style={{ flex: 1, background: S.card2, color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, cursor: subiendo ? "wait" : "pointer" }}
+          >
+            📁 Elegir archivo
+          </button>
+        </div>
+      )}
+      {/* capture abre directamente la cámara del celular */}
+      <input ref={camRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
+      <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB — con 10-20 segundos alcanza.</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: S.green, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
+        🩺 Plan de rehabilitación — {al.nombre}
+      </div>
+
+      {dias.length === 0 ? (
+        <div style={{ ...card, padding: 24, textAlign: "center", marginBottom: 12 }}>
+          <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>{al.nombre} todavía no tiene sesiones de rehabilitación.</div>
+          <button
+            onClick={() => guardarDias([{ dia: "Sesión 1", subtitulo: "", ejercicios: [] }])}
+            style={{ background: S.green, color: "#fff", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}
+          >
+            + Crear primera sesión
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Sesiones */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+            {dias.map((d, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <button
+                  onClick={() => { setSesionIdx(i); setEditIdx(null); }}
+                  style={{ background: safeIdx === i ? S.white : S.card, color: safeIdx === i ? S.bg : S.gray, border: "1px solid " + (safeIdx === i ? S.white : S.border), borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                >
+                  {d.dia || `Sesión ${i + 1}`}
+                </button>
+                {dias.length > 1 && (
+                  <button
+                    onClick={() => {
+                      if (!window.confirm(`¿Eliminar ${d.dia || "esta sesión"} con sus ejercicios?`)) return;
+                      guardarDias(dias.filter((_, j) => j !== i));
+                      setSesionIdx(0);
+                    }}
+                    style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "3px 6px", fontSize: 10, cursor: "pointer" }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={() => { guardarDias([...dias, { dia: "Sesión " + (dias.length + 1), subtitulo: "", ejercicios: [] }]); setSesionIdx(dias.length); }}
+              style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer" }}
+            >
+              + Sesión
+            </button>
+          </div>
+
+          {/* Ejercicios de la sesión */}
+          {(sesion?.ejercicios || []).map((ej, i) =>
+            editIdx === i ? (
+              <div key={ej.id || i} style={{ ...card, padding: 14, marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nombre</div>
+                <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
+                <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Explicación</div>
+                <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
+                {MediaBtns}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#fff" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>GUARDAR</button>
+                  <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <div key={ej.id || i} style={{ ...card, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ minWidth: 22, height: 22, borderRadius: "50%", background: S.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: S.gray, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{ej.nombre}</div>
+                  {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.desc}</div>}
+                  {ej.video && <div style={{ color: S.green, fontSize: 10, marginTop: 2, fontWeight: 700 }}>{esImagen(ej.video) ? "📷 Foto" : "▶ Video"}</div>}
+                </div>
+                <button onClick={() => { setEditIdx(i); setForm({ nombre: ej.nombre, desc: ej.desc || "", video: ej.video || "" }); }} style={smallBtn(S.white)}>✎</button>
+                <button onClick={() => removeEjercicio(i)} style={smallBtn(S.red)}>✕</button>
+              </div>
+            ),
+          )}
+
+          {/* Agregar ejercicio */}
+          {editIdx === -1 ? (
+            <div style={{ ...card, padding: 14, marginTop: 6 }}>
+              <div style={{ color: S.white, fontWeight: 700, marginBottom: 12 }}>Nuevo ejercicio de rehabilitación</div>
+              {/* Elegir de la biblioteca de rehab (los ya guardados, con su media) */}
+              {bibliotecaRehab.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 6, textTransform: "uppercase" }}>Elegir de la biblioteca</div>
+                  <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid " + S.border, borderRadius: 8 }}>
+                    {bibliotecaRehab.map((b) => (
+                      <div
+                        key={b.id}
+                        onClick={() => setForm({ nombre: b.nombre, desc: b.descripcion || "", video: b.video || "" })}
+                        style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid " + S.border, display: "flex", alignItems: "center", gap: 8, background: form.nombre === b.nombre ? S.card2 : "transparent" }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: S.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
+                          {b.descripcion && <div style={{ color: S.gray, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.descripcion}</div>}
+                        </div>
+                        {b.video && <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{esImagen(b.video) ? "📷" : "▶"} MEDIA</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 4 }}>Tocá uno para precargarlo — o escribí uno nuevo abajo.</div>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nombre</div>
+              <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Movilidad de tobillo con banda" style={{ ...inp, marginBottom: 8 }} />
+              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Explicación</div>
+              <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} placeholder="Cómo se hace, series, cuidados..." style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
+              {MediaBtns}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#fff" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
+                  AGREGAR AL PLAN
+                </button>
+                <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            editIdx === null && (
+              <button
+                onClick={() => { setEditIdx(-1); setForm({ nombre: "", desc: "", video: "" }); }}
+                style={{ width: "100%", marginTop: 8, background: S.green, color: "#fff", border: "none", borderRadius: 10, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+              >
+                + Agregar ejercicio
+              </button>
+            )
+          )}
+          <div style={{ fontSize: 10, color: S.lgray, marginTop: 10, textAlign: "center" }}>
+            Cada ejercicio queda en el plan de {al.nombre} y en la biblioteca de rehabilitación para reutilizarlo.
+          </div>
+        </>
       )}
     </div>
   );
@@ -2126,19 +2403,27 @@ function DiarioAdmin({ alumnos, onUpdate, showToast }) {
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────
 // Modalidades de entrenamiento del alumno (pedido de Lucas 2026-07-20).
+// "Rehabilitación" (ronda 7) es la modalidad de los pacientes de Griselda:
+// elegirla setea/equivale a tipo="rehabilitacion" (el campo que activa la
+// vista y el plan de rehabilitación). tipo sigue siendo la fuente de verdad;
+// la modalidad es la forma visible de elegirlo — se sincronizan al guardar.
+const MODALIDAD_REHAB = "Rehabilitación";
 const MODALIDADES = [
   "Presencial con Lucas",
   "Presencial con Ariel",
   "Entrena solo en Desarrollo Integral",
   "A distancia",
+  MODALIDAD_REHAB,
 ];
-// Modalidades que NO evaluamos en persona → Peso Max no aplica.
-const MODALIDADES_SIN_PESOMAX = ["Entrena solo en Desarrollo Integral", "A distancia"];
-function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, novedades = [], onNovedadesChange, darkMode, onToggleTheme }) {
+// Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
+// ("por más que entrene solo, algún día lo voy a ir a ver").
+function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme }) {
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
   const [selectedDia, setSelectedDia] = useState(null);
+  // Plan a abrir al entrar a Plan → Principales (ronda 7: click en la ficha)
+  const [planFoco, setPlanFoco] = useState(null);
   const [form, setForm] = useState(null);
   const [rm, setRm] = useState(() => {
     const r = {};
@@ -2189,6 +2474,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [ntemplate, setNtemplate] = useState("bilateral");
   const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
   const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+  // Los ejercicios de rehab (categoria='rehab') no se mezclan en el
+  // autocompletado de los planes de entrenamiento.
+  const bibliotecaEntreno = biblioteca.filter((b) => b.categoria !== "rehab");
   const al = alumnos.find((a) => a.id === selId) || alumnos[0];
   const startEdit = () =>
     setForm({
@@ -2200,7 +2488,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       altura: al.altura,
       edad: al.edad,
       fecha_nacimiento: (al.fecha_nacimiento || "").slice(0, 10),
-      modalidad: al.modalidad || "",
+      // Los rehab viejos sin modalidad guardada se muestran como "Rehabilitación"
+      modalidad: al.modalidad || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
     });
   const saveEdit = () => {
@@ -2208,6 +2497,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     // Normaliza el username a mayúsculas siempre, así el login (que compara
     // en mayúsculas) funciona sin importar cómo lo haya tipeado el admin.
     const formNormalizado = { ...form, codigo: (form.codigo || "").toUpperCase() };
+    // Sincronizar tipo con la modalidad (ronda 7): "Rehabilitación" activa la
+    // vista/plan de rehab; elegir otra modalidad lo vuelve a entrenamiento.
+    // Si la modalidad quedó vacía, el tipo no se toca (datos viejos intactos).
+    if (formNormalizado.modalidad === MODALIDAD_REHAB) formNormalizado.tipo = "rehabilitacion";
+    else if (formNormalizado.modalidad) formNormalizado.tipo = "entrenamiento";
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado } : a)));
     setForm(null);
   };
@@ -2662,7 +2956,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       return (
                         <button
                           key={m}
-                          onClick={() => setNmodalidad(activa ? "" : m)}
+                          onClick={() => {
+                            const nueva = activa ? "" : m;
+                            setNmodalidad(nueva);
+                            // Modalidad ↔ tipo (ronda 7): Rehabilitación activa el tipo rehab
+                            if (nueva === MODALIDAD_REHAB) setNtipo("rehabilitacion");
+                            else if (nueva) setNtipo("entrenamiento");
+                          }}
                           style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
                         >
                           {activa ? "✓ " : ""}{m}
@@ -2693,7 +2993,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                   {[["🏋️ Entrenamiento", "entrenamiento"], ["🩺 Rehabilitación", "rehabilitacion"]].map(([l, k]) => (
-                    <button key={k} onClick={() => setNtipo(k)} style={{ flex: 1, background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+                    <button key={k} onClick={() => {
+                      setNtipo(k);
+                      // Tipo ↔ modalidad (ronda 7): mantenerlos coherentes
+                      if (k === "rehabilitacion") setNmodalidad(MODALIDAD_REHAB);
+                      else if (nmodalidad === MODALIDAD_REHAB) setNmodalidad("");
+                    }} style={{ flex: 1, background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                   ))}
                 </div>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Template de plan</div>
@@ -2882,18 +3187,30 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           const diaHoy = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"][new Date().getDay()];
                           const esHoy = p.dia_semana === diaHoy || (p.dia_semana === "Fijo" && !(al.planes || []).some((x) => x.dia_semana === diaHoy));
                           return (
-                            <div key={p.id || i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: S.card2, border: "1px solid " + (esHoy ? S.green : S.border), borderRadius: 8, padding: "8px 12px" }}>
+                            <div
+                              key={p.id || i}
+                              onClick={() => {
+                                // Ronda 7: tocar un plan abre el menú Plan con ESE plan listo para editar
+                                setPlanFoco(p.id || null);
+                                setPlanTab("entrenamiento");
+                                setSec("plan");
+                              }}
+                              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: S.card2, border: "1px solid " + (esHoy ? S.green : S.border), borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}
+                            >
                               <div>
                                 <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{p.nombre || "Plan sin nombre"}</div>
                                 <div style={{ color: S.gray, fontSize: 10, marginTop: 1 }}>{p.dia_semana || "Fijo"}</div>
                               </div>
-                              {esHoy && <span style={{ color: S.green, fontSize: 10, fontWeight: 700 }}>● HOY</span>}
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {esHoy && <span style={{ color: S.green, fontSize: 10, fontWeight: 700 }}>● HOY</span>}
+                                <span style={{ color: S.gray, fontSize: 12 }}>✎ ›</span>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     )}
-                    <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>Para cambiarlos: Plan → Plan Día</div>
+                    <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Plan → Plan Día</div>
                   </div>
                 </div>
               )}
@@ -2924,7 +3241,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}
           </div>
         )}{" "}
-        {sec === "plan" && (
+        {/* Alumnos de REHAB: la sección Plan es directamente el editor de
+            Griselda (sin tabs de movilidad/periodización de entrenamiento) */}
+        {sec === "plan" && al && al.tipo === "rehabilitacion" && (
+          <PlanRehabAdmin
+            al={al}
+            alumnos={alumnos}
+            onUpdate={onUpdate}
+            biblioteca={biblioteca}
+            onBibliotecaRefresh={onBibliotecaRefresh}
+            showToast={showToast}
+          />
+        )}{" "}
+        {sec === "plan" && (!al || al.tipo !== "rehabilitacion") && (
           <div>
             {" "}
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
@@ -2958,14 +3287,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             </div>{" "}
             {planTab === "entrenamiento" && al && (
               <PlanesPrincipales
-                key={al.id}
+                key={al.id + "-" + (planFoco || "")}
                 al={al}
                 alumnos={alumnos}
                 onUpdate={onUpdate}
-                biblioteca={biblioteca}
+                biblioteca={bibliotecaEntreno}
                 onGuardarBiblioteca={onGuardarBiblioteca}
                 showToast={showToast}
                 onIrPlanDia={() => setPlanTab("plan-dias")}
+                initialPlanId={planFoco}
               />
             )}{" "}
             {planTab === "movilidad" && al && (
@@ -2997,17 +3327,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   items={al.plan.movilidad}
                   onChange={(v) => updatePlan("movilidad", v)}
                   showVideo={true}
-                  biblioteca={biblioteca}
+                  biblioteca={bibliotecaEntreno}
                   onGuardarBiblioteca={onGuardarBiblioteca}
                 />
                 <VideosMovilidadAdmin showToast={showToast} />
               </>
             )}{" "}
             {planTab === "calor" && al && (
-              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />
+              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} />
             )}{" "}
             {planTab === "activacion" && al && (
-              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />
+              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} />
             )}{" "}
             {planTab === "periodizacion" && al && (
               <div style={{ ...card, overflow: "hidden", padding: 14 }}>
@@ -3075,8 +3405,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "rm" && (
           <div>
             {" "}
-            {/* Fecha de evaluación POR ALUMNO: cuándo se lo evaluó a ESTE alumno */}
-            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
+            {/* Fecha de evaluación POR ALUMNO: cuándo se lo evaluó a ESTE alumno.
+                Ronda 7: Peso Max aplica a TODOS — sin filtro por modalidad. */}
+            {al && (
               <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
                 <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
                   📅 Fecha de evaluación de {al.nombre}
@@ -3093,14 +3424,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               Peso maximo — {al ? al.nombre : "—"}
             </div>{" "}
             {!al && <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>}{" "}
-            {/* Peso Max solo aplica a alumnos presenciales. Los sin modalidad
-                seteada se muestran igual (compatibilidad con datos viejos). */}
-            {al && MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
-              <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>
-                {al.nombre} tiene modalidad "{al.modalidad}" — el peso máximo se evalúa solo con alumnos presenciales.
-              </div>
-            )}{" "}
-            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) &&
+            {al &&
               RM_EJS.map((ej) => (
                 <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
                   {" "}
@@ -3148,7 +3472,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   )}{" "}
                 </div>
               ))}{" "}
-            {al && !MODALIDADES_SIN_PESOMAX.includes(al.modalidad) && (
+            {al && (
               <button
                 onClick={guardarRM}
                 style={{
@@ -3533,7 +3857,8 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
 }
 // ── VISTA REHABILITACIÓN ─────────────────────────────────────────────
 function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
-  const [tabR, setTabR] = useState("Ejercicios");
+  // Ronda 7: el menú principal del alumno de rehab dice "Plan de rehabilitación"
+  const [tabR, setTabR] = useState("Plan de rehabilitación");
   const [sesionIdx, setSesionIdx] = useState(0);
   const plan = al.plan || {};
   const sesiones = plan.dias || [];
@@ -3571,13 +3896,13 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, padding: "0 16px 12px" }}>
-        {["Ejercicios", "Asistencia"].map((t) => (
-          <button key={t} onClick={() => setTabR(t)} style={{ ...tabBtn(tabR === t), padding: "8px 20px", fontSize: 12 }}>{t}</button>
+        {["Plan de rehabilitación", "Asistencia"].map((t) => (
+          <button key={t} onClick={() => setTabR(t)} style={{ ...tabBtn(tabR === t), padding: "8px 12px", fontSize: 12 }}>{t}</button>
         ))}
       </div>
 
       <div style={{ padding: "0 16px" }}>
-        {tabR === "Ejercicios" && (
+        {tabR === "Plan de rehabilitación" && (
           <div>
             {sesiones.length === 0 ? (
               <div style={{ ...card, padding: 40, textAlign: "center" }}>
@@ -3650,14 +3975,15 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
+          // Ronda 7: contenido arriba (no centrado verticalmente) y logo al doble
+          justifyContent: "flex-start",
+          padding: "28px 24px 24px",
           fontFamily: "inherit",
         }}
       >
         {" "}
-        <div style={{ perspective: 450, width: 90, marginBottom: 20 }}>
-          <img src={ICON} width={90} height={90} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.9 }} />
+        <div style={{ perspective: 900, width: 180, marginBottom: 16 }}>
+          <img src={ICON} width={180} height={180} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.9 }} />
         </div>
         <div className="di-pop" style={{ animationDelay: "0s" }}>
           <FotoAlumno foto={alumno.foto} size={80} />
@@ -3669,7 +3995,7 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           {" "}
           <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>{" "}
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{alumno.nombre}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 13, marginTop: 8 }}>Semana {semanaActual} de entrenamiento</div>{" "}
+          <div style={{ color: S.gray, fontSize: 13, marginTop: 8 }}>Semana {semanaActual} del plan de entrenamiento</div>{" "}
           {semanaData && (
             <>
               <div
@@ -3689,7 +4015,8 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
                   <div style={{ color: S.green, fontSize: 13, marginTop: 2 }}>al {semanaData.intensidad}</div>
                 )}
               </div>
-              <div style={{ color: S.gray, fontSize: 13, marginTop: 10, lineHeight: 1.5, textAlign: "justify" }}>
+              {/* Ronda 7: centrado con márgenes cortos (antes justificado) */}
+              <div style={{ color: S.gray, fontSize: 13, marginTop: 10, lineHeight: 1.5, textAlign: "center", maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
                 Hoy te toca{" "}
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} series × {semanaData.reps} repeticiones
@@ -3936,6 +4263,7 @@ export default function App() {
           showToast={showToast}
           biblioteca={biblioteca}
           onGuardarBiblioteca={async (ej) => { await guardarEjercicioBiblioteca(ej); cargarBiblioteca().then(setBiblioteca); }}
+          onBibliotecaRefresh={() => cargarBiblioteca().then(setBiblioteca)}
           novedades={novedades}
           onNovedadesChange={setNovedades}
           darkMode={darkMode}
@@ -4012,53 +4340,56 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header — marca centrada + logo 3D */}{" "}
+        {/* Header — ronda 7: una sola fila compacta (el layout en columna comía
+            mucho espacio vertical): ícono 3D a la izquierda, al lado el
+            wordmark, y a la derecha tema + Salir */}{" "}
         <div
           style={{
-            padding: "16px 16px 14px",
+            padding: "10px 16px",
             borderBottom: "1px solid " + S.border,
             marginBottom: 12,
-            position: "relative",
-            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
           }}
         >
           {" "}
-          <div style={{ perspective: 450, width: 78, margin: "0 auto 10px" }}>
-            <img src={ICON} width={78} height={78} alt="DI" className="di-logo3d" style={{ display: "block" }} />
+          <div style={{ perspective: 300, width: 42, flexShrink: 0 }}>
+            <img src={ICON} width={42} height={42} alt="DI" className="di-logo3d" style={{ display: "block" }} />
           </div>{" "}
-          <DIWordmark width={190} style={{ color: S.white, margin: "0 auto" }} />{" "}
-          <div style={{ position: "absolute", top: 12, right: 16, display: "flex", gap: 8, alignItems: "center" }}>
-            {" "}
-            <button
-              onClick={toggleTheme}
-              title={darkMode ? "Modo claro" : "Modo oscuro"}
-              style={{
-                background: "transparent",
-                color: S.gray,
-                border: "1px solid " + S.border,
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
-              {darkMode ? "☀️" : "🌙"}
-            </button>{" "}
-            <button
-              onClick={logout}
-              style={{
-                background: "transparent",
-                color: S.gray,
-                border: "1px solid " + S.border,
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 11,
-                cursor: "pointer",
-              }}
-            >
-              Salir
-            </button>{" "}
-          </div>{" "}
+          <DIWordmark width={128} style={{ color: S.white, flexShrink: 0 }} />{" "}
+          <div style={{ flex: 1 }} />{" "}
+          <button
+            onClick={toggleTheme}
+            title={darkMode ? "Modo claro" : "Modo oscuro"}
+            style={{
+              background: "transparent",
+              color: S.gray,
+              border: "1px solid " + S.border,
+              borderRadius: 6,
+              padding: "5px 9px",
+              fontSize: 13,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {darkMode ? "☀️" : "🌙"}
+          </button>{" "}
+          <button
+            onClick={logout}
+            style={{
+              background: "transparent",
+              color: S.gray,
+              border: "1px solid " + S.border,
+              borderRadius: 6,
+              padding: "5px 10px",
+              fontSize: 11,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            Salir
+          </button>{" "}
         </div>{" "}
         {/* Perfil */}{" "}
         <div className="di-pop" style={{ margin: "0 16px 12px", ...card, padding: "13px 16px" }}>

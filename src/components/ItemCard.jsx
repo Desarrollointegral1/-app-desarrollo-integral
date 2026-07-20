@@ -2,7 +2,6 @@ import { useState } from "react";
 import { S, card } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
-import MiniChart from "./MiniChart.jsx";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
 // `pesoAnterior` ({peso, fecha}) muestra el último peso registrado en días
@@ -49,16 +48,27 @@ export default function ItemCard({
           />
         </div>
       );
-    if (video && video.includes("supabase.co"))
+    // URL directa (Storage de Supabase u otra): puede ser FOTO o VIDEO.
+    // preload="none" para no bajar el video entero al abrir la tarjeta.
+    if (video && /^https?:/i.test(video)) {
+      if (/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(video))
+        return (
+          <img
+            src={video}
+            alt={nombre}
+            style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 320, objectFit: "cover" }}
+          />
+        );
       return (
-        <video controls style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 300 }}>
-          <source src={video} type="video/mp4" />
+        <video controls preload="none" style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 300 }}>
+          <source src={video} />
           Tu navegador no soporta videos
         </video>
       );
+    }
     if (mediaLocal && mediaLocal.startsWith("data:video"))
       return (
-        <video controls style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 220 }}>
+        <video controls preload="none" style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 220 }}>
           <source src={mediaLocal} />
         </video>
       );
@@ -173,23 +183,24 @@ export default function ItemCard({
                   <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} kg</div>
                 </div>
               )}
+              {/* Ronda 7: sin título "Registro de peso", sin "Sin registrar",
+                  sin gráfico. Solo: último registro arriba → título centrado
+                  → stepper compacto centrado. El peso se guarda solo al
+                  cambiarlo (no hace falta botón de guardar). */}
               <div
-                style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}
+                style={{
+                  textAlign: "center",
+                  color: S.white,
+                  fontWeight: 900,
+                  fontSize: 12,
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                  marginBottom: 12,
+                }}
               >
-                Registro de peso
+                Registrá tu peso de hoy
               </div>
-              <div style={{ color: S.lgray, fontSize: 12, marginBottom: 10 }}>Registra tu peso de hoy</div>
-              {historial.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <MiniChart data={historial} />
-                </div>
-              )}
-              <div style={{ textAlign: "center", marginBottom: 12 }}>
-                <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>
-                  {peso > 0 ? peso + " kg" : "Sin registrar"}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
                 <button
                   onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
                   style={{
@@ -209,15 +220,16 @@ export default function ItemCard({
                 </button>
                 <input
                   type="number"
-                  value={peso}
-                  onChange={(e) => onPesoChange && onPesoChange(Number(e.target.value))}
+                  value={peso || ""}
+                  placeholder="0"
+                  onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
                   style={{
-                    flex: 1,
+                    width: 72,
                     textAlign: "center",
                     background: S.card,
                     border: "1px solid " + S.border,
                     borderRadius: 8,
-                    padding: "9px 10px",
+                    padding: "9px 6px",
                     color: S.white,
                     fontSize: 16,
                     fontWeight: 700,
