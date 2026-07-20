@@ -1847,8 +1847,19 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
         }
       : a));
     if (!plan._sintetico) {
-      actualizarPlanAlumnoDias(plan.id, nuevosDias).then((ok) => {
-        if (!ok) showToast && showToast("Error guardando el plan — reintentá");
+      actualizarPlanAlumnoDias(plan.id, nuevosDias).then(async (ok) => {
+        if (ok) return;
+        // El plan pudo haber sido reemplazado/borrado desde otra sesión (id
+        // stale → FK 23503). Recargar los planes reales de la base para que
+        // el estado deje de apuntar a un id muerto.
+        showToast && showToast("Ese plan cambió en otra sesión — recargando planes");
+        try {
+          const planesFrescos = await cargarPlanesXDia(al.id, al);
+          onUpdate((prev) => (Array.isArray(prev) ? prev : []).map((a) =>
+            a.id === al.id ? { ...a, planes: planesFrescos } : a));
+        } catch (e) {
+          console.error("[guardarDias] No se pudieron recargar los planes:", e);
+        }
       });
     }
   };

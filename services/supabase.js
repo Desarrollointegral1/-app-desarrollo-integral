@@ -645,15 +645,40 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
 export async function actualizarPlanAlumnoDias(alumno_plan_id, dias) {
   LOG("actualizarPlanAlumnoDias", `⏳ Actualizando días del plan ${alumno_plan_id}`);
   try {
-    await _savePlanDias(alumno_plan_id, dias, true);
-    return true;
+    // La fila de alumno_planes puede haber sido reemplazada o borrada desde
+    // otra sesión (prod y dev comparten la misma base; crearPlanAlumno
+    // reemplaza planes con delete+insert de id nuevo). Escribir plan_dias con
+    // ese id huérfano era la causa del FK 23503 recurrente en consola.
+    const { data: existe, error: exErr } = await supabase
+      .from("alumno_planes")
+      .select("id")
+      .eq("id", alumno_plan_id)
+      .maybeSingle();
+    if (exErr) throw exErr;
+    if (!existe) {
+      ERR("actualizarPlanAlumnoDias", `El plan ${alumno_plan_id} ya no existe en alumno_planes (reemplazado o borrado desde otra sesión) — no se guardan días huérfanos`, null);
+      return false;
+    }
+    return (await _savePlanDias(alumno_plan_id, dias, true)) !== false;
   } catch (e) {
     ERR("actualizarPlanAlumnoDias", "Error actualizando plan", e);
     return false;
   }
 }
 
-async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
+// Dos _savePlanDias concurrentes sobre el MISMO alumno/plan se pisan: el
+// delete de uno borra los días recién insertados del otro y los inserts de
+// ejercicios quedan huérfanos (FK 23503). Se serializan por destino.
+const _colasPlanDias = new Map();
+
+function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
+  const prev = _colasPlanDias.get(idParam) || Promise.resolve();
+  const run = prev.then(() => _savePlanDiasImpl(idParam, dias, isAlumnoPlan));
+  _colasPlanDias.set(idParam, run.catch(() => {}));
+  return run;
+}
+
+async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
   const deleteFilter = isAlumnoPlan ? "alumno_plan_id" : "alumno_id";
   LOG("_savePlanDias", `⏳ Guardando ${dias.length} día(s) para ${idParam}`);
 
@@ -664,7 +689,7 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
 
   if (delErr) {
     ERR("_savePlanDias", "Error al borrar plan anterior", delErr);
-    return;
+    return false;
   }
 
   for (let i = 0; i < dias.length; i++) {
@@ -682,6 +707,13 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
       .single();
 
     if (diaErr || !diaRow) {
+      // 23503 = el padre (alumno o alumno_plan) ya no existe — otra sesión lo
+      // borró/reemplazó mientras guardábamos. Seguir insertando solo spamea
+      // el mismo FK error; se aborta todo el guardado.
+      if (diaErr?.code === "23503") {
+        ERR("_savePlanDias", `El destino ${idParam} ya no existe — guardado abortado`, diaErr);
+        return false;
+      }
       ERR("_savePlanDias", `No se pudo crear el día "${dias[i].dia}"`, diaErr);
       continue;
     }
@@ -708,6 +740,7 @@ async function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
   }
 
   LOG("_savePlanDias", `✅ Plan guardado para ${idParam}.`);
+  return true;
 }
 
 
