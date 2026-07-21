@@ -25,7 +25,8 @@ export default function PlanDelDia({
   diaRegistrado,
   registrandoDia,
 }) {
-  const [prep, setPrep] = useState("movilidad");
+  // null = "la primera sección visible según el orden del admin" (ronda 9)
+  const [prep, setPrep] = useState(null);
   // Versión de movilidad elegida por el alumno: superrapida (~3') · corta (~8') · completa (15'+).
   // Arranca en la PREDETERMINADA que el admin eligió para este alumno
   // (rm.movilidad_default, Admin → Plan → Movil.); el alumno puede cambiarla acá.
@@ -107,12 +108,22 @@ export default function PlanDelDia({
   ];
   const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];
 
-  const PREP_TABS = [
+  // Ronda 9: secciones renombradas (Movilidad · Act. Elástico · Entrada en
+  // calor) y el ADMIN puede ocultar/reordenar secciones por alumno vía
+  // rm.secciones_config = { orden: ["movilidad","banda","peso"], ocultas: [] }.
+  const PREP_TABS_BASE = [
     { id: "movilidad", label: "Movilidad", detalle: moviActiva.detalle, items: moviActiva.items },
-    { id: "banda", label: "Activación con elástico", detalle: "5 rep por brazo", items: calor },
-    { id: "peso", label: "Activación con peso", detalle: "5 repeticiones", items: activacion },
+    { id: "banda", label: "Act. Elástico", detalle: "5 rep por brazo", items: calor },
+    { id: "peso", label: "Entrada en calor", detalle: "5 repeticiones", items: activacion },
   ];
-  const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0];
+  const cfg = rm?.secciones_config || {};
+  const ordenCfg = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => PREP_TABS_BASE.some((t) => t.id === id));
+  PREP_TABS_BASE.forEach((t) => { if (!ordenCfg.includes(t.id)) ordenCfg.push(t.id); });
+  const ocultas = Array.isArray(cfg.ocultas) ? cfg.ocultas : [];
+  const PREP_TABS = ordenCfg
+    .map((id) => PREP_TABS_BASE.find((t) => t.id === id))
+    .filter((t) => t && !ocultas.includes(t.id));
+  const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0] || null;
 
   return (
     <div>
@@ -140,19 +151,23 @@ export default function PlanDelDia({
         ))}
       </div>
 
-      {seccion === "preparacion" && (
+      {seccion === "preparacion" && (PREP_TABS.length === 0 || !prepActiva ? (
+        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+          Tu entrenador no habilitó secciones de preparación — pasá directo a Principales.
+        </div>
+      ) : (
         <>
-          {/* Sub-menús de Preparación — nivel 3: segmented control contenido
-              en un track (ronda 7 — los chips "con dot" quedaban volando) */}
+          {/* Sub-menús de Preparación — respetan orden y visibilidad que el
+              admin configuró para este alumno (ronda 9) */}
           <div style={{ ...segTrack(), marginBottom: 8 }}>
             {PREP_TABS.map((t) => (
-              <button key={t.id} onClick={() => setPrep(t.id)} style={segChip(prep === t.id)}>
-                {t.label === "Activación con elástico" ? "Elástico" : t.label === "Activación con peso" ? "Peso" : t.label}
+              <button key={t.id} onClick={() => setPrep(t.id)} style={segChip(prepActiva.id === t.id)}>
+                {t.label}
               </button>
             ))}
           </div>
           {/* Selector de versión de movilidad: mismo segmented control */}
-          {prep === "movilidad" && (
+          {prepActiva.id === "movilidad" && (
             <div style={{ ...segTrack(), marginBottom: 8 }}>
               {MOVI_VERSIONES.map((v) => (
                 <button key={v.id} onClick={() => setMoviVersion(v.id)} style={segChip(moviVersion === v.id)}>
@@ -179,7 +194,7 @@ export default function PlanDelDia({
             ))
           )}
           {/* Video de la versión elegida, al final de Movilidad */}
-          {prep === "movilidad" && (
+          {prepActiva.id === "movilidad" && (
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
                 Rutina con el profe
@@ -188,7 +203,7 @@ export default function PlanDelDia({
             </div>
           )}
         </>
-      )}
+      ))}
 
       {/* ── PRINCIPALES ── */}
       {seccion === "principales" && (!planValido || !dia ? (
