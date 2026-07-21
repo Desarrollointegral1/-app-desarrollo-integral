@@ -1846,3 +1846,104 @@ export async function setAppConfig(clave, valor) {
   LOG("setAppConfig", `✅ Config "${clave}" guardada.`);
   return true;
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// CATÁLOGO DE EJERCICIOS (dataset ExerciseDB + custom DI — migración 015)
+// La media vive en el bucket público `catalogo-ejercicios`; la tabla
+// guarda paths RELATIVOS (images/xxx.jpg · videos/xxx.gif). Los custom DI
+// traen paths de la app (/ejercicios/xxx.gif) o URLs completas.
+// ══════════════════════════════════════════════════════════════════════
+
+const CATALOGO_MEDIA_BASE = `${SUPABASE_URL}/storage/v1/object/public/catalogo-ejercicios/`;
+
+export function catalogoMediaUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http") || path.startsWith("/") || path.startsWith("data:")) return path;
+  return CATALOGO_MEDIA_BASE + path;
+}
+
+// Carga TODO el catálogo (1.344 filas). PostgREST corta en 1000 por
+// default, así que se pagina con range(). Se llama on-demand al abrir la
+// Biblioteca o el Armador (no en el arranque de la app).
+export async function cargarCatalogo() {
+  LOG("cargarCatalogo", "⏳ Cargando catálogo completo...");
+  const PAGE = 1000;
+  let all = [];
+  for (let desde = 0; ; desde += PAGE) {
+    const { data, error } = await supabase
+      .from("catalogo_ejercicios")
+      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution")
+      .order("nombre_es")
+      .range(desde, desde + PAGE - 1);
+    if (error) { ERR("cargarCatalogo", "Error cargando catálogo", error); return all; }
+    all = all.concat(data || []);
+    if (!data || data.length < PAGE) break;
+  }
+  LOG("cargarCatalogo", `✅ ${all.length} ejercicios de catálogo.`);
+  return all;
+}
+
+// Edición desde la app (biblioteca nueva): nombre, instrucciones, video
+// propio. Marca editado=true para distinguir filas tocadas por Lucas.
+export async function guardarEjercicioCatalogo(id, patch) {
+  LOG("guardarEjercicioCatalogo", `⏳ Guardando ${id}...`, patch);
+  const { error } = await supabase
+    .from("catalogo_ejercicios")
+    .update({ ...patch, editado: true, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) { ERR("guardarEjercicioCatalogo", "Error guardando", error); return false; }
+  LOG("guardarEjercicioCatalogo", `✅ ${id} guardado.`);
+  return true;
+}
+
+// B5: al elegir un ejercicio del catálogo para un plan, si no existe en
+// biblioteca_ejercicios se agrega (con su codigo_di si lo tiene, o el
+// próximo código custom X## libre) para que después sea taxonomizable.
+// Devuelve el código con el que quedó en biblioteca.
+export async function agregarCatalogoABiblioteca(item) {
+  try {
+    // ¿ya está? — por código DI o por nombre exacto
+    let query = supabase.from("biblioteca_ejercicios").select("id,codigo,nombre");
+    if (item.codigo_di) query = query.eq("codigo", item.codigo_di);
+    else query = query.eq("nombre", item.nombre_es);
+    const { data: existentes } = await query.limit(1);
+    if (existentes && existentes.length > 0) return existentes[0].codigo;
+
+    let codigo = item.codigo_di;
+    if (!codigo) {
+      // próximo X## libre
+      const { data: xs } = await supabase
+        .from("biblioteca_ejercicios")
+        .select("codigo")
+        .like("codigo", "X%");
+      const max = (xs || []).reduce((m, r) => {
+        const n = parseInt(String(r.codigo).slice(1), 10);
+        return Number.isFinite(n) && n > m ? n : m;
+      }, 0);
+      codigo = "X" + String(max + 1).padStart(2, "0");
+    }
+    const { error } = await supabase.from("biblioteca_ejercicios").insert({
+      nombre: item.nombre_es,
+      descripcion: item.instrucciones_es || "",
+      video: item.video || "",
+      gif: catalogoMediaUrl(item.gif_url || ""),
+      categoria: "entrenamiento",
+      codigo,
+      grupo: null,
+    });
+    if (error) { ERR("agregarCatalogoABiblioteca", "Error insertando", error); return codigo; }
+    LOG("agregarCatalogoABiblioteca", `✅ "${item.nombre_es}" agregado a biblioteca como ${codigo}.`);
+    return codigo;
+  } catch (e) {
+    ERR("agregarCatalogoABiblioteca", e.message, e);
+    return item.codigo_di || null;
+  }
+}
+
+// Cache module-level: el catálogo se carga una sola vez por sesión (lo
+// comparten la Biblioteca, el Armador y el buscador del editor de planes).
+let _catalogoCache = null;
+export function cargarCatalogoCached() {
+  if (!_catalogoCache) _catalogoCache = cargarCatalogo();
+  return _catalogoCache;
+}
