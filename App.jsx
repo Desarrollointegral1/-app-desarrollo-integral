@@ -43,6 +43,8 @@ import {
   // GESTIÓN DE ADMINS CON ROL (punto 12)
   listarAdmins,
   actualizarRolAdmin,
+  // PLANES PREDETERMINADOS (punto 6)
+  listarPlanesPredeterminados,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -2146,6 +2148,145 @@ function HistorialAdmin({ al }) {
     </div>
   );
 }
+// ── ASIGNAR PLAN (punto 6, 2026-07-21) ──────────────────────────────────
+// Modal en 2 pasos, disparado desde Admin → Alumno → "＋ Asignar plan":
+//   1) Elegir una PLANTILLA (planes_predeterminados) + el día de la
+//      semana al que se asigna.
+//   2) Preview EDITABLE (mismo DiasEditor que usa Plan x día/Armador):
+//      Lucas puede tocar cualquier ejercicio de la COPIA antes de
+//      confirmar — la plantilla original queda intacta, lo editado acá
+//      es la instancia de ESE alumno (coherente con el punto 1: cada
+//      instancia asignada es independiente).
+const DIAS_ASIGNAR = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTodos, showToast, onClose, onAsignado }) {
+  const [plantillas, setPlantillas] = useState(null); // null = cargando
+  const [plantillaSel, setPlantillaSel] = useState(null);
+  const [diaSemana, setDiaSemana] = useState("Lunes");
+  const [nombreInstancia, setNombreInstancia] = useState("");
+  const [diasEditables, setDiasEditables] = useState(null); // paso 2: copia editable
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    listarPlanesPredeterminados().then(setPlantillas);
+  }, []);
+
+  const elegirPlantilla = (p) => {
+    setPlantillaSel(p);
+    setNombreInstancia(p.nombre);
+    // Copia con ids NUEVOS por ejercicio — desacoplada de la plantilla y
+    // de cualquier otra instancia ya asignada (mismo criterio que
+    // asignarPlanPredeterminado en services/supabase.js).
+    const copia = (p.dias || []).map((d) => ({
+      dia: d.dia || "Sesion",
+      subtitulo: d.subtitulo || "",
+      ejercicios: (d.ejercicios || []).map((ej) => ({ ...ej, id: uid() })),
+    }));
+    setDiasEditables(copia.length > 0 ? copia : [{ dia: "Sesion", subtitulo: "", ejercicios: [] }]);
+  };
+
+  const confirmarAsignacion = async () => {
+    if (!diasEditables) return;
+    setGuardando(true);
+    try {
+      const r = await crearPlanAlumno(al.id, diaSemana, { nombre: nombreInstancia.trim() || "Plan", dias: diasEditables }, "catalogo_v2");
+      if (!r.ok) throw new Error("No se pudo asignar el plan");
+      onAsignado && onAsignado();
+    } catch (e) {
+      showToast && showToast("Error: " + e.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const grupos = plantillas ? [...new Set(plantillas.map((p) => p.grupo || "Sin grupo"))] : [];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 230, background: "rgba(0,0,0,0.7)", overflowY: "auto", padding: "24px 12px 40px" }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...card, maxWidth: 460, margin: "0 auto", background: S.bg, padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
+            {diasEditables ? `Asignar a ${al.nombre}` : "Elegí una plantilla"}
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+        </div>
+
+        {!diasEditables ? (
+          // Paso 1: elegir plantilla
+          !plantillas ? (
+            <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>Cargando plantillas…</div>
+          ) : plantillas.length === 0 ? (
+            <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>
+              Todavía no hay plantillas — creá una desde 🖥 Armador.
+            </div>
+          ) : (
+            grupos.map((g) => (
+              <div key={g} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{g}</div>
+                {plantillas.filter((p) => (p.grupo || "Sin grupo") === g).map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => elegirPlantilla(p)}
+                    style={{ width: "100%", textAlign: "left", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 12px", marginBottom: 6, cursor: "pointer" }}
+                  >
+                    <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{p.nombre}</div>
+                    <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                      {(p.dias || []).reduce((n, d) => n + (d.ejercicios || []).length, 0)} ejercicio(s)
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))
+          )
+        ) : (
+          // Paso 2: preview editable antes de confirmar
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Día de la semana</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {DIAS_ASIGNAR.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDiaSemana(d)}
+                    style={{ background: diaSemana === d ? S.white : S.card2, color: diaSemana === d ? S.bg : S.gray, border: "1px solid " + (diaSemana === d ? S.white : S.border), borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Nombre para {al.nombre}</div>
+              <input value={nombreInstancia} onChange={(e) => setNombreInstancia(e.target.value)} style={inp} />
+            </div>
+            <div style={{ fontSize: 10, color: S.lgray, marginBottom: 10 }}>
+              Esto es una COPIA de la plantilla — podés tocar cualquier ejercicio para este alumno sin afectar la plantilla original ni a otros alumnos.
+            </div>
+            <DiasEditor
+              dias={diasEditables}
+              onChange={setDiasEditables}
+              biblioteca={biblioteca}
+              onGuardarBiblioteca={onGuardarBiblioteca}
+              onGuardarParaTodos={onGuardarParaTodos}
+              ocultarAgregarDia
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button onClick={() => setDiasEditables(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>
+                ‹ Volver
+              </button>
+              <button
+                onClick={confirmarAsignacion}
+                disabled={guardando}
+                style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1 }}
+              >
+                {guardando ? "ASIGNANDO..." : "ASIGNAR"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 // ── PLAN → PRINCIPALES: días reales del alumno con su plan asignado ───
 // Muestra directamente LOS DÍAS QUE EL ALUMNO YA ENTRENA (los elegidos en el
 // alta) con el plan que cada uno tiene, para retocar ejercicios puntuales.
@@ -3103,6 +3244,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
+  const [showAsignarPlan, setShowAsignarPlan] = useState(false); // punto 6: asignar una plantilla a este alumno
   const [showBiblioteca, setShowBiblioteca] = useState(false); // biblioteca PROPIA (movilidad/elástico/calor + GIFs)
   // Ronda 14: la Biblioteca principal ahora es el catálogo completo
   // (dataset ExerciseDB + custom DI); el Armador es la vista desktop para
@@ -4037,8 +4179,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   {/* Planes REALES asignados (plan por día), con el de hoy marcado.
                       Antes acá había un "bilateral/unilateral" hardcodeado. */}
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid " + S.border }}>
-                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 10, letterSpacing: 1 }}>
-                      🎯 Planes asignados
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1 }}>
+                        🎯 Planes asignados
+                      </div>
+                      {/* Punto 6: la asignación de un plan predeterminado a
+                          este alumno vive acá, separada del Armador (que
+                          solo crea/edita plantillas). */}
+                      <button onClick={() => setShowAsignarPlan(true)} style={smallBtn(S.white)}>
+                        ＋ Asignar plan
+                      </button>
                     </div>
                     {(al.planes || []).length === 0 ? (
                       <div style={{ fontSize: 12, color: S.lgray }}>
@@ -4075,6 +4225,22 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     )}
                     <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Plan → Plan Día</div>
                   </div>
+                  {showAsignarPlan && (
+                    <AsignarPlanModal
+                      al={al}
+                      biblioteca={biblioteca}
+                      onGuardarBiblioteca={onGuardarBiblioteca}
+                      onGuardarParaTodos={(payload) => guardarParaTodos("principales", payload)}
+                      showToast={showToast}
+                      onClose={() => setShowAsignarPlan(false)}
+                      onAsignado={async () => {
+                        setShowAsignarPlan(false);
+                        const planesFrescos = await cargarPlanesXDia(al.id, al);
+                        onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes: planesFrescos } : a)));
+                        showToast && showToast("Plan asignado ✓");
+                      }}
+                    />
+                  )}
                 </div>
               )}
             </>)}
