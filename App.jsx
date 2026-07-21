@@ -146,6 +146,38 @@ function GlobalStyles() {
 // Comprime la imagen antes de guardarla: las fotos de cámara pesan varios MB
 // y guardadas en base64 dentro de la tabla hacían la app inusablemente lenta.
 // 512px máx + JPEG 0.82 ≈ 40-80 KB, de sobra para un avatar circular.
+// ── LOGO 3D ───────────────────────────────────────────────────────────
+// Ícono oficial con extrusión real: varias capas del ícono separadas en Z
+// (translateZ) girando juntas — las de atrás oscurecidas = profundidad.
+// Reutilizable: login, pantalla de carga y bienvenida (ronda 9).
+// SIN sombra de piso (pedido de Lucas ronda 9).
+function Logo3D({ size = 230 }) {
+  const depth = Math.max(10, Math.round(size * 0.07));
+  const zs = [-depth, -depth / 2, 0, depth / 2];
+  return (
+    <div style={{ perspective: Math.round(size * 1.4), width: size, height: size }}>
+      <div className="di-logo3d" style={{ position: "relative", width: size, height: size, transformStyle: "preserve-3d" }}>
+        {zs.map((z, i) => (
+          <img
+            key={z}
+            src={ICON}
+            width={size}
+            height={size}
+            alt={i === zs.length - 1 ? "DI" : ""}
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "block",
+              transform: `translateZ(${z}px)`,
+              opacity: i === zs.length - 1 ? 0.95 : 0.28 + i * 0.1,
+              filter: i === zs.length - 1 ? "none" : "brightness(0.55)",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 function comprimirFoto(dataUrl, maxLado = 512, calidad = 0.82) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -1054,7 +1086,7 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar por nombre, codigo o username..."
+        placeholder="Buscar por nombre o username..."
         style={{ ...inp, marginBottom: 8 }}
       />{" "}
       {q && filtrados.length > 0 && (
@@ -2211,12 +2243,12 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
     <div onClick={onDeselect}>
       {/* El buscador de alumno vive UNA sola vez en el layout del AdminPanel
           (arriba de los submenús) — acá adentro no se repite (ronda 4). */}
-      {/* + Nuevo ancho completo */}
+      {/* Crear alumno — abre pantalla aparte (modal), ronda 9 */}
       <button
         onClick={(e) => { e.stopPropagation(); onNuevo(); }}
-        style={{ width: "100%", background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "9px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", marginBottom: 14 }}
+        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 14 }}
       >
-        + Nuevo alumno
+        Crear alumno
       </button>
 
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
@@ -2242,9 +2274,13 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 15 }}>{al.nombre}</div>
-                  <div style={{ background: entrenoHoy ? "#0d1f0d" : S.card2, border: "1px solid " + (entrenoHoy ? S.green : S.border), borderRadius: 20, padding: "3px 10px", fontSize: 10, color: entrenoHoy ? S.green : S.lgray, fontWeight: 700 }}>
-                    {entrenoHoy ? "✓ HOY" : "Sin registro"}
-                  </div>
+                  {/* Ronda 9: el pill solo aparece si entrenó HOY — el "Sin
+                      registro" confundía (la última asistencia ya se ve abajo) */}
+                  {entrenoHoy && (
+                    <div style={{ background: "#0d1f0d", border: "1px solid " + S.green, borderRadius: 20, padding: "3px 10px", fontSize: 10, color: S.green, fontWeight: 700 }}>
+                      ✓ Entrenó hoy
+                    </div>
+                  )}
                 </div>
                 <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
                   {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? "🩺 Rehab" : "🏋️ Entreno"}
@@ -2427,7 +2463,7 @@ const MODALIDADES = [
 ];
 // Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
 // ("por más que entrene solo, algún día lo voy a ir a ver").
-function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme }) {
+function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
@@ -2479,6 +2515,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
     showToast && showToast("Movilidad predeterminada guardada ✓");
   };
+  // Secciones visibles y su ORDEN por alumno (ronda 9): qué chips de
+  // preparación ve el alumno (Movilidad / Act. Elástico / Entrada en calor)
+  // y en qué orden. Vive en el jsonb `rm` como `secciones_config` =
+  // { orden: ["movilidad","banda","peso"], ocultas: [] } — sin migración.
+  // Los ids son los de los tabs de PlanDelDia (movilidad · banda · peso).
+  const setSeccionesConfig = (cfg) => {
+    if (!al) return;
+    setRm((r) => ({ ...r, [al.id]: { ...r[al.id], secciones_config: cfg } }));
+    const rmNuevo = { ...(rm[al.id] || al.rm || {}), secciones_config: cfg };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
+  };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
     [admPin, setAdmPin] = useState("");
@@ -2486,7 +2533,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
-  const [alumnosTab, setAlumnosTab] = useState("perfil");
+  // Visor "Todos los planes" (ronda 9): plantilla abierta en modal de lectura
+  const [planVisor, setPlanVisor] = useState(null);
   const [editPin, setEditPin] = useState("");
   const [ntemplate, setNtemplate] = useState("bilateral");
   const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
@@ -2864,6 +2912,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           </div>
         </div>{" "}
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {/* Modo entrenador (ronda 9) — al lado del toggle de tema */}
+          <button
+            onClick={onModoEntrenador}
+            title="Modo entrenador: operar la app como un alumno"
+            style={{
+              background: "transparent",
+              color: S.gray,
+              border: "1px solid " + S.border,
+              borderRadius: 6,
+              padding: "5px 9px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            🏋️ Entrenador
+          </button>
           <button
             onClick={onToggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -2883,18 +2949,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           </button>
           <button
             onClick={() => { setSec("config"); setForm(null); }}
+            title="Configuración"
             style={{
               background: sec === "config" ? S.white : "transparent",
               color: sec === "config" ? S.bg : S.gray,
               border: "1px solid " + (sec === "config" ? S.white : S.border),
               borderRadius: 6,
-              padding: "5px 10px",
-              fontSize: 11,
+              padding: "5px 9px",
+              fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
             }}
           >
-            ⚙ Config
+            ⚙
           </button>
           <button
             onClick={onClose}
@@ -2903,8 +2970,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               color: S.gray,
               border: "1px solid " + S.border,
               borderRadius: 6,
-              padding: "5px 12px",
-              fontSize: 12,
+              padding: "5px 10px",
+              fontSize: 11,
               cursor: "pointer",
             }}
           >
@@ -2921,10 +2988,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       <div style={{ padding: "0 16px" }}>
         <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
       </div>{" "}
-      {/* 3) ...y los submenús cuelgan del alumno elegido — ronda 8: TRES
-          grupos grandes (Plan · Planes · Reportes), cada uno con sus subtabs */}
+      {/* 3) ...y los submenús cuelgan del alumno elegido — ronda 9: TRES
+          grupos grandes (Ejercicios · Planificación · Reportes) */}
       <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
-        {[["Plan", "plan"], ["Planes", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
+        {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
           <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
             {l}
           </button>
@@ -2940,7 +3007,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               onSelect={(id) => {
                 setSelId(id);
                 setSec("alumnos");
-                setAlumnosTab("perfil");
                 setForm(null);
               }}
               onDelete={async (id, nombre) => {
@@ -2955,12 +3021,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               onDeselect={() => setSelId(null)}
             />
 
-            {/* Formulario nuevo alumno inline en dashboard */}
+            {/* Formulario nuevo alumno — PANTALLA APARTE (modal, ronda 9):
+                antes era inline y la página quedaba larguísima */}
             {showCrearAlumno && (
-              <div style={{ ...card, padding: 16, marginTop: 12 }}>
+              <div
+                style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.65)", overflowY: "auto", padding: "24px 12px 40px" }}
+                onClick={() => setShowCrearAlumno(false)}
+              >
+              <div onClick={(e) => e.stopPropagation()} style={{ ...card, maxWidth: 440, margin: "0 auto", background: S.bg, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
-                  <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 16, cursor: "pointer" }}>✕</button>
+                  <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
+                  <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
                 </div>
                 {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 10 }}>
@@ -3026,43 +3097,76 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     }} style={{ flex: 1, background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Template de plan</div>
-                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Es el plan por defecto: se le asigna automáticamente a cada día que actives arriba (podés cambiarlo por día) y es el único plan si no elegís ningún día.</div>
+                {/* Ronda 9: "Todos los planes" es un VISOR — tocar un plan abre
+                    una ventana con sus ejercicios explicados. El plan del
+                    alumno se asigna por día, arriba. */}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Todos los planes</div>
+                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá un plan para ver sus ejercicios con las descripciones. La asignación se hace por día, arriba.</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
                   {PLANTILLAS.map((p) => (
-                    <button key={p.id} onClick={() => setNtemplate(p.id)} title={p.descripcion} style={{ background: ntemplate === p.id ? S.white : S.card, color: ntemplate === p.id ? S.bg : S.gray, border: "1px solid " + (ntemplate === p.id ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre}</button>
+                    <button key={p.id} onClick={() => setPlanVisor(p)} title={p.descripcion} style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre} 👁</button>
                   ))}
                 </div>
                 <button
-                  onClick={async () => { const ok = await crearAlumno(); if (ok) setShowCrearAlumno(false); }}
+                  onClick={async () => {
+                    if (nn && nc && npin) {
+                      if (!window.confirm(`Estás creando el alumno ${nn.trim()}. ¿Confirmar?`)) return;
+                    }
+                    const ok = await crearAlumno();
+                    if (ok) setShowCrearAlumno(false);
+                  }}
                   style={{ width: "100%", background: ntipo === "rehabilitacion" ? S.green : S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
                 >
                   CREAR ALUMNO
                 </button>
+              </div>
+              </div>
+            )}
+            {/* Visor de plan (ronda 9): ejercicios del plan con descripciones */}
+            {planVisor && (
+              <div
+                style={{ position: "fixed", inset: 0, zIndex: 210, background: "rgba(0,0,0,0.7)", overflowY: "auto", padding: "24px 12px 40px" }}
+                onClick={() => setPlanVisor(null)}
+              >
+                <div onClick={(e) => e.stopPropagation()} style={{ ...card, maxWidth: 440, margin: "0 auto", background: S.bg, padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <div style={{ color: S.white, fontWeight: 800, fontSize: 16 }}>{planVisor.nombre}</div>
+                    <button onClick={() => setPlanVisor(null)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                  </div>
+                  {planVisor.descripcion && <div style={{ color: S.gray, fontSize: 12, marginBottom: 12 }}>{planVisor.descripcion}</div>}
+                  {(planVisor.plan.periodizacion || []).length > 0 && (
+                    <div style={{ fontSize: 11, color: S.lgray, marginBottom: 12 }}>
+                      Periodización: {planVisor.plan.periodizacion.length} semanas ·{" "}
+                      {planVisor.plan.periodizacion[0].series}x{planVisor.plan.periodizacion[0].reps} al {planVisor.plan.periodizacion[0].intensidad} →{" "}
+                      {planVisor.plan.periodizacion[planVisor.plan.periodizacion.length - 1].series}x{planVisor.plan.periodizacion[planVisor.plan.periodizacion.length - 1].reps} al {planVisor.plan.periodizacion[planVisor.plan.periodizacion.length - 1].intensidad}
+                    </div>
+                  )}
+                  {(planVisor.plan.dias || []).map((d, di) => (
+                    <div key={di} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>
+                        {(planVisor.plan.dias || []).length > 1 ? d.dia + " — " : ""}{d.subtitulo || "Ejercicios principales"}
+                      </div>
+                      {(d.ejercicios || []).map((ej, i) => (
+                        <div key={i} style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "9px 12px", marginBottom: 6 }}>
+                          <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{i + 1}. {ej.nombre}</div>
+                          {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, lineHeight: 1.45 }}>{ej.desc}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  <button onClick={() => setPlanVisor(null)} style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
+                    CERRAR
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}{" "}
         {sec === "alumnos" && al && (
           <div>
-            {/* Header con nombre + botón volver */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <button
-                onClick={() => { setSec("dashboard"); setForm(null); }}
-                style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}
-              >← Volver</button>
-              <div style={{ color: S.white, fontWeight: 700, fontSize: 15 }}>{al.nombre}</div>
-            </div>
-
-            {/* Tabs: Perfil | Diario */}
-            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-              {[["Perfil", "perfil"], ["📓 Diario", "diario"]].map(([l, k]) => (
-                <button key={k} onClick={() => { setAlumnosTab(k); setForm(null); }} style={{ flex: 1, background: alumnosTab === k ? S.white : S.card, color: alumnosTab === k ? S.bg : S.gray, border: "1px solid " + (alumnosTab === k ? S.white : S.border), borderRadius: 8, padding: "8px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{l}</button>
-              ))}
-            </div>
-
-            {/* ── TAB PERFIL ── */}
-            {alumnosTab === "perfil" && (<>
+            {/* Ronda 9: sin fila "← Volver · nombre" ni tab Diario — queda
+                solo el Perfil (el diario vive en Reportes → Asistencia) */}
+            {(<>
               {form ? (
                 <div style={{ ...card, padding: 16 }}>
                   <div style={{ color: S.white, fontWeight: 700, marginBottom: 14 }}>Editar alumno</div>
@@ -3240,30 +3344,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 </div>
               )}
             </>)}
-
-            {/* ── TAB DIARIO ── */}
-            {alumnosTab === "diario" && (
-              <div>
-                {[...(al.diario || [])].sort((a, b) => b.fecha.localeCompare(a.fecha)).length === 0 ? (
-                  <div style={{ ...card, padding: 40, textAlign: "center" }}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>📓</div>
-                    <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavía</div>
-                  </div>
-                ) : (
-                  [...(al.diario || [])].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((e, i) => (
-                    <EntradaDiarioAdmin
-                      key={e.fecha + "-" + i}
-                      entrada={e}
-                      onResponder={(respuesta) => {
-                        const nuevoDiario = (al.diario || []).map((d) => (d === e ? { ...d, respuesta } : d));
-                        onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
-                        showToast && showToast("Respuesta guardada ✓");
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-            )}
           </div>
         )}{" "}
         {/* Alumnos de REHAB: la sección Plan es directamente el editor de
@@ -3281,10 +3361,51 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "plan" && (!al || al.tipo !== "rehabilitacion") && (
           <div>
             {" "}
+            {/* ── Orden y visibilidad de secciones POR ALUMNO (ronda 9) ── */}
+            {al && (() => {
+              const SECCIONES_DEF = [["movilidad", "Movilidad"], ["banda", "Act. Elástico"], ["peso", "Entrada en calor"]];
+              const cfg = (rm[al.id] && rm[al.id].secciones_config) || al.rm?.secciones_config || {};
+              const orden = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => SECCIONES_DEF.some((s) => s[0] === id));
+              SECCIONES_DEF.forEach(([id]) => { if (!orden.includes(id)) orden.push(id); });
+              const ocultas = Array.isArray(cfg.ocultas) ? cfg.ocultas : [];
+              const mover = (id, dir) => {
+                const i = orden.indexOf(id), j = i + dir;
+                if (j < 0 || j >= orden.length) return;
+                const n = [...orden];
+                [n[i], n[j]] = [n[j], n[i]];
+                setSeccionesConfig({ orden: n, ocultas });
+              };
+              const toggleVis = (id) =>
+                setSeccionesConfig({ orden, ocultas: ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id] });
+              return (
+                <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                    Secciones que ve {al.nombre} — orden y visibilidad
+                  </div>
+                  {orden.map((id, idx) => {
+                    const def = SECCIONES_DEF.find((s) => s[0] === id);
+                    const oculta = ocultas.includes(id);
+                    return (
+                      <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: idx < orden.length - 1 ? "1px solid " + S.border : "none" }}>
+                        <div style={{ flex: 1, color: oculta ? S.lgray : S.white, fontWeight: 700, fontSize: 12, textDecoration: oculta ? "line-through" : "none" }}>
+                          {idx + 1}. {def[1]}
+                        </div>
+                        <button onClick={() => mover(id, -1)} disabled={idx === 0} style={{ ...smallBtn(S.gray), opacity: idx === 0 ? 0.35 : 1 }}>↑</button>
+                        <button onClick={() => mover(id, 1)} disabled={idx === orden.length - 1} style={{ ...smallBtn(S.gray), opacity: idx === orden.length - 1 ? 0.35 : 1 }}>↓</button>
+                        <button onClick={() => toggleVis(id)} style={smallBtn(oculta ? S.red : S.green)}>{oculta ? "Oculta" : "Visible"}</button>
+                      </div>
+                    );
+                  })}
+                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>
+                    La vista del alumno respeta este orden — las ocultas no se le muestran.
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
               {" "}
               {[
-                ["Movi", "movilidad"],
+                ["Movilidad", "movilidad"],
                 ["Act. Elástico", "calor"],
                 ["Entrada en calor", "activacion"],
                 ["Principales", "entrenamiento"],
@@ -3678,8 +3799,30 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 </div>
               )}
               <div style={{ fontSize: 10, color: S.lgray, marginTop: 8, textAlign: "center" }}>
-                Reporte institucional de {al.nombre}: datos, plan con progresión de cargas, asistencia, pesos máximos, bioimpedancia y diario del mes elegido. Se abre en el navegador y se puede imprimir o guardar como PDF.
+                Cada entrada es un día que entrenó.
               </div>
+              {/* ── DIARIO del alumno — vive acá abajo de la asistencia (ronda 9) ── */}
+              <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", margin: "22px 0 12px" }}>
+                📓 Diario — {al.nombre}
+              </div>
+              {(al.diario || []).length === 0 ? (
+                <div style={{ ...card, padding: 30, textAlign: "center" }}>
+                  <div style={{ fontSize: 26, marginBottom: 8 }}>📓</div>
+                  <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavía</div>
+                </div>
+              ) : (
+                [...(al.diario || [])].sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")).map((e, i) => (
+                  <EntradaDiarioAdmin
+                    key={(e.fecha || "") + "-" + i}
+                    entrada={e}
+                    onResponder={(respuesta) => {
+                      const nuevoDiario = (al.diario || []).map((d) => (d === e ? { ...d, respuesta } : d));
+                      onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
+                      showToast && showToast("Respuesta guardada ✓");
+                    }}
+                  />
+                ))
+              )}
             </div>
           );
         })()}{" "}
@@ -3845,12 +3988,11 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
       >
         {darkMode ? "☀️" : "🌙"}
       </button>
-      {/* Header de marca — ícono 3D grande + wordmark oficial (SVG, currentColor) */}
-      <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ perspective: 450, width: 150, margin: "0 auto 16px" }}>
-          <img src={ICON} width={150} height={150} alt="DI" className="di-logo3d" style={{ display: "block", opacity: 0.95 }} />
-        </div>
-        <DIWordmark width={240} style={{ color: S.white, margin: "0 auto" }} />
+      {/* Header de marca — ronda 9: ícono al DOBLE (300px) con el efecto 3D
+          de profundidad (mismas capas translateZ que la bienvenida) */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+        <Logo3D size={300} />
+        <DIWordmark width={240} style={{ color: S.white, marginTop: 8 }} />
       </div>
 
       <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
@@ -3903,10 +4045,6 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         >
           {cargando ? "Validando..." : "Ingresar"}
         </button>
-      </div>
-
-      <div style={{ marginTop: 16, fontSize: 11, color: S.lgray, textAlign: "center" }}>
-        Alumno: username + clave · Admin: credenciales del creador
       </div>
 
       {/* Acceso admin — discreto, al final, con estado on/off inequívoco */}
@@ -4041,6 +4179,84 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
     </div>
   );
 }
+// ── MODO ENTRENADOR (ronda 9) ─────────────────────────────────────────
+// Barra fija que deja INEQUÍVOCO que se está operando como entrenador
+// sobre la cuenta de un alumno, con salida directa al panel admin.
+function BarraEntrenador({ nombre, onVolver }) {
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 300,
+        background: S.red,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "8px 14px",
+      }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        🏋️ Modo entrenador — {nombre}
+      </div>
+      <button
+        onClick={onVolver}
+        style={{ background: "#fff", color: "#111", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: 0.5, flexShrink: 0 }}
+      >
+        Volver al panel
+      </button>
+    </div>
+  );
+}
+// Selector de alumno al activar el modo entrenador.
+function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
+  const [q, setQ] = useState("");
+  const lista = alumnos.filter(
+    (a) =>
+      a.nombre.toLowerCase().includes(q.toLowerCase()) ||
+      (a.username || a.codigo || "").toLowerCase().includes(q.toLowerCase())
+  );
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.65)", overflowY: "auto", padding: "40px 16px" }}
+      onClick={onCerrar}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 420, margin: "0 auto", background: S.bg, border: "1px solid " + S.border, borderRadius: 14, padding: 16 }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>🏋️ Modo entrenador</div>
+          <button onClick={onCerrar} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ color: S.gray, fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
+          Elegí el alumno: vas a ver su interfaz tal como la ve él, y los pesos que cargues se guardan en su historial.
+        </div>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o username..." style={{ ...inp, marginBottom: 10 }} />
+        {lista.map((a) => (
+          <div
+            key={a.id}
+            onClick={() => onElegir(a)}
+            style={{ ...card, display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 8, cursor: "pointer" }}
+          >
+            <FotoAlumno foto={a.foto} size={36} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
+              <div style={{ color: S.gray, fontSize: 11 }}>
+                {a.username || a.codigo}
+                {a.tipo === "rehabilitacion" ? " · 🩺 Rehabilitación" : ""}
+              </div>
+            </div>
+            <span style={{ color: S.gray }}>›</span>
+          </div>
+        ))}
+        {lista.length === 0 && <div style={{ color: S.gray, fontSize: 12, textAlign: "center", padding: 16 }}>Sin resultados</div>}
+      </div>
+    </div>
+  );
+}
 // ── PANTALLA BIENVENIDA ───────────────────────────────────────────────
 function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
   const hora = new Date().getHours();
@@ -4063,41 +4279,17 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           fontFamily: "inherit",
         }}
       >
-        {/* ── Título arriba ── */}
-        <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360 }}>
+        {/* ── Ronda 9: orden vertical LOGO 3D → FOTO → saludo → nombre.
+            Logo con extrusión (Logo3D, sin sombra de piso). ── */}
+        <div className="di-fade" style={{ display: "flex", justifyContent: "center" }}>
+          <Logo3D size={220} />
+        </div>
+        <div className="di-pop" style={{ marginTop: 10 }}>
+          <FotoAlumno foto={alumno.foto} size={72} />
+        </div>
+        <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 10 }}>
           <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{alumno.nombre}</div>
-        </div>
-        {/* ── Logo 3D con extrusión, centrado verticalmente (ronda 8): varias
-            capas del ícono separadas en Z (translateZ) girando juntas — las de
-            atrás oscurecidas = profundidad real, más sombra en el piso ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 240 }}>
-          <div style={{ perspective: 320, width: 230, height: 230 }}>
-            <div className="di-logo3d" style={{ position: "relative", width: 230, height: 230, transformStyle: "preserve-3d" }}>
-              {[-16, -8, 0, 8].map((z, i) => (
-                <img
-                  key={z}
-                  src={ICON}
-                  width={230}
-                  height={230}
-                  alt={i === 3 ? "DI" : ""}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "block",
-                    transform: `translateZ(${z}px)`,
-                    opacity: i === 3 ? 0.95 : 0.28 + i * 0.1,
-                    filter: i === 3 ? "none" : "brightness(0.55)",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          {/* Sombra en el piso, le da apoyo al giro */}
-          <div style={{ width: 130, height: 16, borderRadius: "50%", background: "radial-gradient(ellipse at center, rgba(0,0,0,0.45), transparent 70%)", marginTop: 6 }} />
-        </div>
-        <div className="di-pop" style={{ animationDelay: "0s" }}>
-          <FotoAlumno foto={alumno.foto} size={64} />
         </div>{" "}
         <div
           className="di-slide"
@@ -4190,6 +4382,13 @@ export default function App() {
   const [novedades, setNovedades] = useState([]);
   const [showBienvenida, setShowBienvenida] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  // ── MODO ENTRENADOR (ronda 9) ──
+  // El admin (Lucas/Ari/Griselda) opera la interfaz del alumno con los
+  // presenciales: elige un alumno y ve EXACTAMENTE su vista, cargando pesos
+  // que se guardan igual que si los cargara el alumno. Barra roja arriba +
+  // "Volver al panel" para salir.
+  const [modoEntrenador, setModoEntrenador] = useState(false);
+  const [selectorEntrenador, setSelectorEntrenador] = useState(false);
   const [tab, setTab] = useState("Movilidad");
   const [tabGroup, setTabGroup] = useState("entrenamiento");
   const [diaIdx, setDiaIdx] = useState(0);
@@ -4321,6 +4520,28 @@ export default function App() {
     try { localStorage.removeItem("di_session"); } catch (e) {}
     setAlumno(null);
     setAdminMode(false);
+    setModoEntrenador(false);
+    setSelectorEntrenador(false);
+  };
+  // Entrar al modo entrenador con un alumno elegido: carga sus pesos e
+  // historiales igual que el login del alumno, pero SIN tocar la sesión
+  // persistida (di_session sigue siendo admin) y sin bienvenida.
+  const entrarModoEntrenador = async (a) => {
+    const f = alumnos.find((x) => x.id === a.id) || a;
+    const guardado = await cargarPesos(f.id, null);
+    setPesos(guardado ? guardado.pesos : initPesos(f.plan));
+    setHistoriales(guardado ? guardado.historiales : initH(f.plan));
+    setAlumno(f);
+    setModoEntrenador(true);
+    setSelectorEntrenador(false);
+    setShowBienvenida(false);
+    setTabGroup("entrenamiento");
+    setTab("Ejercicios");
+    setDiaIdx(0);
+  };
+  const salirModoEntrenador = () => {
+    setModoEntrenador(false);
+    setAlumno(null);
   };
     const handlePeso = (id, val) => {
     const np = { ...pesos, [id]: val };
@@ -4357,8 +4578,11 @@ export default function App() {
   // guardado suelto falló sin conexión), 2) marca la asistencia de hoy si no
   // estaba, 3) deja constancia local de que el día fue registrado (el botón
   // queda en verde "✓ DÍA REGISTRADO" por el resto del día).
+  // Ronda 9: la marca guarda "fecha:alumnoId" — así en modo entrenador el
+  // registro de un alumno no marca como registrado el día de otro alumno
+  // (antes era solo la fecha, global al dispositivo).
   const [diaRegistrado, setDiaRegistrado] = useState(() => {
-    try { return localStorage.getItem("di_dia_registrado") === hoy() ? hoy() : null; } catch (e) { return null; }
+    try { return localStorage.getItem("di_dia_registrado") || null; } catch (e) { return null; }
   });
   const [registrandoDia, setRegistrandoDia] = useState(false);
   const registrarDia = async (ejerciciosHoy) => {
@@ -4373,8 +4597,9 @@ export default function App() {
       await saveDailyAttendance(alumno.id, f, true);
       const alActual = alumnos.find((a) => a.id === alumno.id);
       if (!(alActual?.asistencia || []).some((a) => a.slice(0, 10) === f)) marcarAsistencia(f);
-      try { localStorage.setItem("di_dia_registrado", f); } catch (e) {}
-      setDiaRegistrado(f);
+      const marca = f + ":" + alumno.id;
+      try { localStorage.setItem("di_dia_registrado", marca); } catch (e) {}
+      setDiaRegistrado(marca);
       showToast("Día registrado ✓");
     } catch (e) {
       console.error("[registrarDia]", e);
@@ -4391,24 +4616,25 @@ export default function App() {
       setGenerandoPDF(false);
     }
   };
+  // Pantalla de carga (ronda 9): el logo 3D girando, centrado — sin texto.
   if (!cargado)
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: S.bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <img src={ICON} width={48} height={48} alt="DI" style={{ opacity: 0.3, marginBottom: 16, display: "block", margin: "0 auto 16px" }} />
-          <div style={{ color: S.lgray, fontSize: 11, letterSpacing: 3, textTransform: "uppercase" }}>Cargando...</div>
+      <>
+        <GlobalStyles />
+        <div
+          style={{
+            minHeight: "100vh",
+            background: S.bg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Logo3D size={160} />
         </div>
-      </div>
+      </>
     );
-  if (adminMode)
+  if (adminMode && !(modoEntrenador && alumno))
     return (
       <>
         <AdminPanel
@@ -4423,7 +4649,15 @@ export default function App() {
           onNovedadesChange={setNovedades}
           darkMode={darkMode}
           onToggleTheme={toggleTheme}
+          onModoEntrenador={() => setSelectorEntrenador(true)}
         />
+        {selectorEntrenador && (
+          <SelectorAlumnoEntrenador
+            alumnos={alumnos}
+            onElegir={entrarModoEntrenador}
+            onCerrar={() => setSelectorEntrenador(false)}
+          />
+        )}
         <Toast msg={toastMsg} />
       </>
     );
@@ -4432,11 +4666,15 @@ export default function App() {
   // Vista rehabilitación — interfaz simplificada para pacientes de kinesiología
   if (al.tipo === "rehabilitacion") {
     return (
-      <VistaRehabilitacion
-        al={al}
-        onSalir={logout}
-        marcarAsistencia={marcarAsistencia}
-      />
+      <>
+        {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}
+        <VistaRehabilitacion
+          al={al}
+          onSalir={modoEntrenador ? salirModoEntrenador : logout}
+          marcarAsistencia={marcarAsistencia}
+        />
+        <Toast msg={toastMsg} />
+      </>
     );
   }
   const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
@@ -4461,6 +4699,7 @@ export default function App() {
     <>
       {" "}
       <GlobalStyles /> <Toast msg={toastMsg} />{" "}
+      {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}{" "}
       <div
         style={{
           minHeight: "100vh",
@@ -4495,9 +4734,9 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header — ronda 7: una sola fila compacta (el layout en columna comía
-            mucho espacio vertical): ícono 3D a la izquierda, al lado el
-            wordmark, y a la derecha tema + Salir */}{" "}
+        {/* Header — ronda 9: lockup (ícono 3D + wordmark) CENTRADO y más
+            grande; tema + Salir siguen a la derecha (spacers flex a ambos
+            lados para centrar sin superponer) */}{" "}
         <div
           style={{
             padding: "10px 16px",
@@ -4505,15 +4744,18 @@ export default function App() {
             marginBottom: 12,
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
           }}
         >
           {" "}
-          <div style={{ perspective: 300, width: 42, flexShrink: 0 }}>
-            <img src={ICON} width={42} height={42} alt="DI" className="di-logo3d" style={{ display: "block" }} />
+          <div style={{ flex: "1 0 0", minWidth: 0 }} />{" "}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <div style={{ perspective: 320, width: 52 }}>
+              <img src={ICON} width={52} height={52} alt="DI" className="di-logo3d" style={{ display: "block" }} />
+            </div>
+            <DIWordmark width={160} style={{ color: S.white }} />
           </div>{" "}
-          <DIWordmark width={128} style={{ color: S.white, flexShrink: 0 }} />{" "}
-          <div style={{ flex: 1 }} />{" "}
+          <div style={{ flex: "1 0 0", minWidth: 0, display: "flex", justifyContent: "flex-end", gap: 6 }}>{" "}
           <button
             onClick={toggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -4531,7 +4773,7 @@ export default function App() {
             {darkMode ? "☀️" : "🌙"}
           </button>{" "}
           <button
-            onClick={logout}
+            onClick={modoEntrenador ? salirModoEntrenador : logout}
             style={{
               background: "transparent",
               color: S.gray,
@@ -4545,6 +4787,7 @@ export default function App() {
           >
             Salir
           </button>{" "}
+          </div>{" "}
         </div>{" "}
         {/* Perfil */}{" "}
         <div className="di-pop" style={{ margin: "0 16px 12px", ...card, padding: "13px 16px" }}>
@@ -4661,7 +4904,7 @@ export default function App() {
               onPeso={handlePeso}
               rm={al.rm}
               onRegistrarDia={() => registrarDia(dia?.ejercicios || [])}
-              diaRegistrado={diaRegistrado === hoy()}
+              diaRegistrado={diaRegistrado === hoy() + ":" + al.id}
               registrandoDia={registrandoDia}
             />
           )}

@@ -14,70 +14,70 @@ import { mk, uid } from "./helpers.js";
 export const PERIODIZACION_BASE=[{semana:1,series:2,reps:6,intensidad:"70%"},{semana:2,series:3,reps:6,intensidad:"75%"},{semana:3,series:2,reps:8,intensidad:"80%"},{semana:4,series:3,reps:8,intensidad:"80%"},{semana:5,series:2,reps:4,intensidad:"85%"},{semana:6,series:3,reps:4,intensidad:"85%"},{semana:7,series:2,reps:6,intensidad:"70%"},{semana:8,series:3,reps:6,intensidad:"75%"}];
 
 // ── 1. RUTINAS DE MOVILIDAD ────────────────────────────────────────────
-
-export const MOVILIDAD_BASE=[
-  mk("Obelisco","Rotacion de columna toracica de pie."),
-  mk("Sentadilla de Activacion de Peso","Sentadilla lenta activando gluteos y core."),
-  mk("Movilidad de cadera","Tronco con flexion de cadera, circulos amplios."),
-  mk("Puente invertido mesa","Eleva la cadera desde el suelo, espalda recta."),
-  mk("Dorsiflexion del tobillo","Rodilla adelante, talon apoyado, flexion tobillo."),
-  mk("Bicho muerto","Brazo y pierna opuestos, espalda neutra."),
-  mk("Estiramiento del gato","Flexion y extension de columna en cuadrupedia."),
-  mk("Superman en cuadrupedia","Brazo y pierna opuestos, cadera estable."),
-  mk("Rotaciones toracicas","De costado, rodillas dobladas, rota el torso."),
-  mk("Plancha isometrica 15s","Core activo, cuerpo recto, 15 segundos."),
-  mk("Espinales nados","Boca abajo, elevas brazos y piernas alternando."),
-];
-
-// Versión CORTA de la movilidad (~7-8 min): subconjunto de la base.
-// Ajustable por Lucas/Ari — es la que acompaña al video "Corta".
-export const MOVILIDAD_CORTA=[
-  mk("Obelisco","Rotacion de columna toracica de pie."),
-  mk("Sentadilla de Activacion de Peso","Sentadilla lenta activando gluteos y core."),
-  mk("Movilidad de cadera","Tronco con flexion de cadera, circulos amplios."),
-  mk("Dorsiflexion del tobillo","Rodilla adelante, talon apoyado, flexion tobillo."),
-  mk("Estiramiento del gato","Flexion y extension de columna en cuadrupedia."),
-  mk("Superman en cuadrupedia","Brazo y pierna opuestos, cadera estable."),
-  mk("Rotaciones toracicas","De costado, rodillas dobladas, rota el torso."),
-  mk("Plancha isometrica 15s","Core activo, cuerpo recto, 15 segundos."),
-];
+// CONTENIDO OFICIAL (lista de Lucas, ronda 9 — 2026-07-20). La movilidad
+// "Completa" del alumno = piso y sentado + cuadrupedia + dinámica.
 
 // Rutina 1 — piso y sentado
 export const MOVILIDAD_PISO_SENTADO=[
-  mk("Elevacion de pierna acostado","Boca arriba, agarra detras de la rodilla, estira la pierna hacia arriba y baja controlado."),
-  mk("Estiramiento de gluteo cruzado","Acostado, cruza un pie sobre la otra pierna y tira de la pierna hacia vos."),
-  mk("Puente de gluteos","Acostado con los pies apoyados, leventa la cadera y baja lento."),
-  mk("Figura 4 acostado","Cruza un tobillo sobre la otra rodilla y trae la pierna hacia el pecho."),
-  mk("Flexion adelante sentado a una pierna","Una pierna estirada y la otra flexionada. Inclinate hacia el pie de la pierna estirada."),
-  mk("Mariposa","Sentado, junta las plantas de los pies y mantene la espalda recta."),
-  mk("Mariposa con inclinacion","Desde mariposa, inclinate suavemente hacia adelante."),
-  mk("Apertura de piernas sentado","Sentado con las piernas abiertas, inclina el torso levemente hacia adelante."),
-  mk("90/90 de cadera","Sentado en posicion 90/90, lleva el torso hacia el pie de adelante y luego hacia atras."),
-  mk("Apoyo atras y apertura de pecho","Sentado con las manos atras, abri el pecho y mira hacia arriba."),
-  mk("Rotacion de cadera sentado","Sentado con las manos atras, lleva una rodilla hacia el lado contrario sin mover el torso."),
-  mk("Elevacion de piernas sentado","Sentado erguido, levanta una pierna y despues la otra."),
-  mk("Elevacion asistida de piernas sentado","Sentado, toma detras de las rodillas y eleva una pierna, despues la otra."),
+  mk("Elevación de pierna (isquiotibiales)","Acostado, agarrá detrás de la rodilla, estirá la pierna y bajá."),
+  mk("Estiramiento glúteo cruzado","Cruzá un pie sobre la otra pierna. Tirá del pie y empujá la rodilla hacia afuera."),
+  mk("Puente de glúteos","Pies apoyados. Levantá la cadera y bajá lento."),
+  mk("Estiramiento figura 4 (glúteo)","Tobillo sobre rodilla. Traé la pierna hacia el pecho."),
+  mk("Flexión adelante sentado (una pierna)","Una pierna estirada. Inclinate hacia el pie."),
+  mk("Mariposa (plantas juntas)","Juntá plantas de los pies. Espalda recta."),
+  mk("Mariposa con inclinación","Desde ahí, inclinate hacia adelante."),
+  mk("Apertura de piernas sentado","Piernas abiertas. Inclinate levemente adelante."),
+  mk("90/90 cadera (rotación)","En 90/90, incliná el torso adelante y luego atrás."),
+  mk("Apoyo atrás y apertura de pecho","Manos atrás. Abrí el pecho y mirá arriba."),
+  mk("Rotación de cadera sentado","Llevá una rodilla hacia el talón contrario. Alternar."),
+  mk("Elevación de piernas sentado","Elevá una pierna y luego la otra."),
+  mk("Elevación asistida (detrás de rodillas)","Tomá detrás de rodillas y elevá alternando."),
 ];
 
-// Rutina 2 — cuadrupedia y boca abajo
+// Rutina 2 — cuadrupedia
 export const MOVILIDAD_CUADRUPEDIA=[
-  mk("Gato-vaca","En cuadrupedia, redondea la espalda y despues abrila."),
-  mk("Superman en cuadrupedia","Estira un brazo y la pierna contraria. Volve y cambia de lado (bird dog)."),
-  mk("Rotacion toracica con pierna extendida","En cuadrupedia, estira una pierna al costado, pasa un brazo por abajo y abri hacia arriba."),
-  mk("Postura del nino","Lleva la cadera hacia los talones y estira los brazos al frente."),
-  mk("Postura del nino lateral","Desde la postura del nino, camina las manos hacia un lado para estirar el costado."),
+  mk("Gato–vaca (columna)","Redondeá la espalda y luego abrila."),
+  mk("Superman en cuadrupedia","Estirá brazo y pierna opuestos."),
+  mk("Rotación torácica con pierna extendida","Pasá el brazo por debajo y abrí hacia arriba."),
+  mk("Postura del niño (atrás)","Llevá la cadera a los talones."),
+  mk("Postura del niño lateral","Caminá manos a un lado."),
 ];
 
-// Rutina 3 — dinámica en piso
+// Rutina 3 — dinámica
 export const MOVILIDAD_DINAMICA=[
-  mk("Estocada al frente para cadera","Con un pie adelante, empuja la cadera hacia la rodilla de adelante."),
-  mk("Estocada con estiramiento atras","Con el pie adelante y manos al piso, estira la pierna de atras y baja la cadera."),
-  mk("Estocada a isquiotibiales","Desde la estocada, lleva la cadera atras y estira la pierna de adelante."),
-  mk("Rana","Con las rodillas bien abiertas, lleva la cadera hacia atras."),
-  mk("Extension en rana","Desde rana, baja el ombligo y levanta el pecho."),
-  mk("Esfinge","Boca abajo, apoyado en los codos, abri el pecho y mira al frente."),
-  mk("Cobra","Boca abajo, apoya las manos y empuja el pecho hacia arriba."),
-  mk("Nado boca abajo","Boca abajo, move un brazo adelante y el otro atras sin tocar el piso."),
+  mk("Estocada al frente (cadera)","Pie adelante. Empujá la cadera hacia adelante."),
+  mk("Estocada con estiramiento atrás","Estirá la pierna de atrás y bajá la cadera."),
+  mk("Estocada a isquiotibiales","Cadera atrás, estirá la pierna de adelante."),
+  mk("Rana (aductores)","Rodillas abiertas. Llevá la cadera atrás."),
+  mk("Extensión en rana (columna)","Bajá el ombligo y levantá el pecho."),
+  mk("Esfinge (boca abajo)","Apoyado en codos. Abrí el pecho."),
+  mk("Cobra (extensión lumbar)","Empujá con manos y elevá el pecho."),
+  mk("Nado boca abajo (brazos alternados)","Alterná brazos sin tocar el piso."),
+];
+
+// Movilidad COMPLETA = las tres rutinas oficiales en orden.
+export const MOVILIDAD_COMPLETA=[
+  ...MOVILIDAD_PISO_SENTADO,
+  ...MOVILIDAD_CUADRUPEDIA,
+  ...MOVILIDAD_DINAMICA,
+];
+
+// Compatibilidad: MOVILIDAD_BASE es lo que los planes asignan como movilidad
+// del alumno — ahora apunta al contenido oficial completo.
+export const MOVILIDAD_BASE=MOVILIDAD_COMPLETA;
+
+// Versión CORTA (~8 min): subset balanceado de las tres rutinas oficiales.
+export const MOVILIDAD_CORTA=[
+  mk("Elevación de pierna (isquiotibiales)","Acostado, agarrá detrás de la rodilla, estirá la pierna y bajá."),
+  mk("Estiramiento figura 4 (glúteo)","Tobillo sobre rodilla. Traé la pierna hacia el pecho."),
+  mk("Puente de glúteos","Pies apoyados. Levantá la cadera y bajá lento."),
+  mk("Mariposa (plantas juntas)","Juntá plantas de los pies. Espalda recta."),
+  mk("90/90 cadera (rotación)","En 90/90, incliná el torso adelante y luego atrás."),
+  mk("Gato–vaca (columna)","Redondeá la espalda y luego abrila."),
+  mk("Postura del niño (atrás)","Llevá la cadera a los talones."),
+  mk("Estocada al frente (cadera)","Pie adelante. Empujá la cadera hacia adelante."),
+  mk("Estocada a isquiotibiales","Cadera atrás, estirá la pierna de adelante."),
+  mk("Cobra (extensión lumbar)","Empujá con manos y elevá el pecho."),
 ];
 
 // Rutina 4 — articulaciones y general
@@ -95,27 +95,22 @@ export const MOVILIDAD_ARTICULACIONES=[
   mk("Elevacion de rodilla con apertura","Eleva una rodilla y abrila hacia afuera. Baja y cambia de lado."),
 ];
 
-// ── 2. ENTRADA EN CALOR CON BANDA ──────────────────────────────────────
-
-export const CALOR_BASE=[
-  mk("Remo a un brazo (banda)","Codo hacia atras activando el dorsal."),
-  mk("Jalon brazos estirados (banda)","Bajas la banda activando dorsales."),
-  mk("Rotacion interna (banda)","Antebrazo hacia adentro."),
-  mk("Rotacion externa (banda)","Antebrazo hacia afuera."),
-  mk("Aperturas (banda)","Brazos hacia adelante, activa pectoral."),
-  mk("Press Paloff (banda)","Resiste la rotacion, core activo."),
-];
+// ── 2. ENTRADA EN CALOR CON ELÁSTICO (Act. Elástico) ───────────────────
+// CONTENIDO OFICIAL (lista de Lucas, ronda 9 — 2026-07-20).
 
 export const CALOR_BANDA=[
-  mk("Pasadas con banda por arriba","Con los brazos estirados, pasa la banda por arriba de la cabeza hacia atras y volve (dislocaciones)."),
-  mk("Rotacion interna con banda","Con el codo pegado al cuerpo, lleva la mano hacia el abdomen."),
-  mk("Remo con banda","Tira de la banda hacia el torso llevando los codos atras."),
-  mk("Remo con palo","Con un palo en las manos, lleva los codos hacia atras."),
-  mk("Retraccion escapular con palo","Con el palo cerca de la cintura, lleva los hombros atras y junta las escapulas."),
-  mk("Jalon con banda desde arriba","Con la banda anclada arriba, tira hacia abajo con las dos manos."),
-  mk("Movilidad de tobillo con pie elevado","Con un pie elevado, lleva el cuerpo hacia adelante sin despegar el talon."),
-  mk("Movilidad de tobillo en estocada","Con un pie adelante y el talon elevado, lleva el cuerpo hacia ese pie."),
+  mk("Pasadas con banda (hombros)","Banda arriba y atrás con brazos estirados."),
+  mk("Rotación interna con banda (codo al cuerpo)","Codo pegado. Llevá la mano al abdomen."),
+  mk("Remo con banda (doble)","Tirá hacia el torso con ambas manos."),
+  mk("Remo con palo (codos atrás)","Llevá codos atrás con el palo."),
+  mk("Retracción escapular con palo","Juntá escápulas con el palo en la cintura."),
+  mk("Jalón con banda (desde arriba)","Tirá la banda hacia abajo."),
+  mk("Movilidad de tobillo (pie elevado, avance)","Avanzá la rodilla sobre el pie elevado."),
 ];
+
+// Compatibilidad: los planes viejos (bilateral/unilateral) referenciaban
+// CALOR_BASE — ahora es el mismo contenido oficial con elástico.
+export const CALOR_BASE=CALOR_BANDA;
 
 // ── 2.1 ENTRADA EN CALOR CON PESO (disco / mancuerna / katana) ─────────
 
@@ -148,24 +143,25 @@ export const CALOR_MANCUERNA=[
 
 const mkEj=(nombre,desc)=>({id:uid(),nombre,desc,video:"",mediaLocal:"",historial:[]});
 
+// CONTENIDO OFICIAL (lista de Lucas, ronda 9 — 2026-07-20).
 export const PRINCIPALES_BASICO=()=>[
-  mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con los codos al frente."),
-  mkEj("Sentarse y pararse del cajon con peso al pecho","Sentate y parate de un cajon a la altura de la rodilla, sin usar las manos."),
-  mkEj("Press de pecho con barra en banco plano","Acostado, baja la barra al pecho y empuja hacia arriba."),
-  mkEj("Empuje de cadera con banda","Con la banda en la cadera, empuja la cadera hacia adelante y apreta gluteos (hip thrust con banda)."),
-  mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
-  mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
-  mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+  mkEj("Press de hombros sentado con mancuernas","Sentado, mancuernas a la altura de hombros. Empujá hacia arriba con codos al frente. Bajá controlado."),
+  mkEj("Sentarse y pararse del cajón (carga al pecho)","Sentate y parate de un cajón a la altura de la rodilla, con peso en el pecho. Bajá hacia atrás y subí sin usar manos."),
+  mkEj("Press de pecho con barra (plano)","Acostado, bajá la barra al pecho y empujá hacia arriba."),
+  mkEj("Bisagra de cadera con banda (hip thrust)","Banda en la cadera. Empujá la cadera hacia adelante y apretá glúteos. Volvé."),
+  mkEj("Peso muerto con kettlebell","Peso al frente. Empujá la cadera atrás y bajá; volvé llevando la cadera adelante."),
+  mkEj("Remo en TRX (inclinado)","Cuerpo inclinado, tirá del TRX llevando el pecho a las manos. Bajá lento."),
+  mkEj("Puente de glúteos en el piso (con peso)","Acostado, peso sobre la cadera. Elevá la cadera y bajá controlado."),
 ];
 
-// Principales unificados Bilateral (ex-Complejo): barra, dominadas e hip thrust.
+// Principales unificados Bilateral (= Plan complejo oficial): barra, dominadas e hip thrust.
 export const PRINCIPALES_BILATERAL=()=>[
-  mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-  mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-  mkEj("Pecho plano con barra","Baja la barra al pecho y empuja hacia arriba."),
-  mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-  mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
-  mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+  mkEj("Press de hombros sentado con mancuernas","Sentado, mancuernas a la altura de hombros. Empujá hacia arriba con codos al frente. Bajá controlado."),
+  mkEj("Sentadilla con barra","Barra sobre la espalda. Bajá llevando la cadera atrás y doblando rodillas. Subí empujando el piso."),
+  mkEj("Press de pecho con barra (plano)","Acostado, bajá la barra al pecho y empujá hacia arriba."),
+  mkEj("Peso muerto con barra","Barra cerca de las piernas. Empujá la cadera atrás, bajá y subí llevando la cadera adelante."),
+  mkEj("Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado."),
+  mkEj("Hip thrust (con barra o mancuerna)","Espalda apoyada, peso en la cadera. Elevá la cadera y apretá glúteos. Bajá controlado."),
 ];
 
 // ── PLANES CLÁSICOS (compatibilidad) ───────────────────────────────────
@@ -348,15 +344,14 @@ export const getPlantilla=(id)=>PLANTILLAS.find(p=>p.id===id)||PLANTILLAS[0];
 
 // Bloques sueltos para armar planes a medida desde el admin
 export const RUTINAS_MOVILIDAD=[
-  { id:"base",          nombre:"Movilidad base",             items:MOVILIDAD_BASE },
+  { id:"base",          nombre:"Movilidad completa (oficial)", items:MOVILIDAD_COMPLETA },
   { id:"piso-sentado",  nombre:"Movilidad piso y sentado",   items:MOVILIDAD_PISO_SENTADO },
   { id:"cuadrupedia",   nombre:"Movilidad cuadrupedia",      items:MOVILIDAD_CUADRUPEDIA },
   { id:"dinamica",      nombre:"Movilidad dinamica",         items:MOVILIDAD_DINAMICA },
 ];
 
 export const RUTINAS_CALOR=[
-  { id:"banda-base",  nombre:"Banda (base)",     items:CALOR_BASE },
-  { id:"banda-full",  nombre:"Banda completa",   items:CALOR_BANDA },
+  { id:"banda-full",  nombre:"Entrada en calor con elastico (oficial)", items:CALOR_BANDA },
   // Ex "movilidad de articulaciones" — es un bloque aparte de la movilidad (CEREBRO-ENTRENAMIENTO 3.5)
   { id:"superrapida", nombre:"Entrada en calor superrapida", items:MOVILIDAD_ARTICULACIONES },
 ];
