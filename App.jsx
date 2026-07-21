@@ -107,14 +107,13 @@ let ICON = ICON_WHITE;
 // (spacer | lockup flex:1 centrado | bloque real) y el punto medio del
 // lockup cae exactamente en total/2, para cualquier ancho de pantalla y
 // cualquier ancho que terminen ocupando los botones de tema/Salir.
-// Header del alumno — AJUSTE 2026-07-21 (vuelve a una sola línea):
-// la ronda anterior había puesto el wordmark al doble centrado en el ancho
-// total, en su PROPIO renglón debajo de los botones (2 pisos, tapándose en
-// mobile). Lucas pidió volver a una única fila horizontal: ícono (mismo
-// tamaño de antes, solo un poco más pegado al borde) + wordmark (más chico
-// que la ronda pasada) + tema/Salir, todo en el mismo renglón, sin la
-// franja de subtítulo "App de entrenamiento" (se saca para que entre todo
-// en una línea — ya se sobreentiende que es la app de entrenamiento).
+// Header del alumno — AJUSTE FINO 2026-07-21 (segundo pedido de Lucas,
+// mismo día): la fila anterior ya iba en una línea pero con aire de más
+// (padding vertical + tema/Salir empujados al borde con marginLeft:auto,
+// dejando un hueco grande entre el título y los botones). Ahora todo
+// apretado, pegado arriba, orden izquierda→derecha fijo:
+// ícono → "DESARROLLO INTEGRAL" → botón de modo → "Salir" — un cluster
+// compacto, sin estirarse a lo ancho de la pantalla.
 function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) {
   const btnBase = {
     background: "transparent",
@@ -129,38 +128,36 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "clamp(4px, 2vw, 12px)",
-        padding: "8px 8px 8px 4px",
+        gap: "clamp(3px, 1.5vw, 8px)",
+        padding: "3px 8px 3px 2px",
         borderBottom: "1px solid " + S.border,
-        marginBottom: 12,
+        marginBottom: 10,
       }}
     >
-      {/* Ícono: mismo tamaño de la ronda anterior, apenas más pegado al borde */}
+      {/* 1) Ícono, pegado arriba/izquierda */}
       <img
         src={ICON}
         alt="DI"
-        style={{ flexShrink: 0, marginLeft: -2, width: "clamp(88px, 26vw, 132px)", height: "auto", display: "block" }}
+        style={{ flexShrink: 0, marginLeft: -2, width: "clamp(72px, 22vw, 110px)", height: "auto", display: "block" }}
       />
-      {/* Wordmark, más chico que la ronda pasada para entrar en la misma
-          fila que los botones — deja de estar centrado en el ancho total */}
+      {/* 2) "DESARROLLO INTEGRAL" */}
       <DIWordmark
         soloDesarrollo
-        width={220}
-        style={{ color: S.white, width: "clamp(80px, 30vw, 220px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
+        width={200}
+        style={{ color: S.white, width: "clamp(70px, 26vw, 200px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
       />
-      {/* Tema + Salir, empujados al borde derecho */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexShrink: 0 }}>
-        <button
-          onClick={toggleTheme}
-          title={darkMode ? "Modo claro" : "Modo oscuro"}
-          style={{ ...btnBase, padding: "5px 9px", fontSize: 13 }}
-        >
-          {darkMode ? "☀️" : "🌙"}
-        </button>
-        <button onClick={onSalir} style={{ ...btnBase, padding: "5px 10px", fontSize: 11 }}>
-          {salirLabel}
-        </button>
-      </div>
+      {/* 3) Modo · 4) Salir — pegados a continuación del título, sin
+          empujarse al borde derecho (nada de marginLeft:auto). */}
+      <button
+        onClick={toggleTheme}
+        title={darkMode ? "Modo claro" : "Modo oscuro"}
+        style={{ ...btnBase, padding: "5px 8px", fontSize: 12 }}
+      >
+        {darkMode ? "☀️" : "🌙"}
+      </button>
+      <button onClick={onSalir} style={{ ...btnBase, padding: "5px 9px", fontSize: 10 }}>
+        {salirLabel}
+      </button>
     </div>
   );
 }
