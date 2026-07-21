@@ -1217,6 +1217,30 @@ export async function actualizarRolAdmin(id, rol) {
   }
 }
 
+// Editar admin existente (punto 2, ronda 2026-07-21 #2): nombre/username
+// siempre, clave solo si se tipeó una nueva (pin opcional). Mismo patrón
+// RPC SECURITY DEFINER (migración 019) — admins no acepta writes directos.
+export async function actualizarAdmin(id, nombre, codigo, pin) {
+  LOG("actualizarAdmin", `⏳ Actualizando admin ${id}...`);
+  try {
+    const pinHash = pin && pin.length === 4 ? await hashearPIN(pin) : null;
+    const { data: admin, error } = await supabase.rpc("actualizar_admin_rpc", {
+      p_id: id,
+      p_nombre: nombre,
+      p_codigo: codigo,
+      p_pin_hash: pinHash,
+    });
+    if (error || !admin) {
+      throw new Error(error?.message || "Error al actualizar admin");
+    }
+    LOG("actualizarAdmin", `✅ Admin ${nombre} actualizado`);
+    return admin;
+  } catch (e) {
+    ERR("actualizarAdmin", e.message, e);
+    throw e;
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────
 // VIDEO UPLOADS (Supabase Storage)
 // ──────────────────────────────────────────────────────────────────────

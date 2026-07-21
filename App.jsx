@@ -43,6 +43,7 @@ import {
   // GESTIÓN DE ADMINS CON ROL (punto 12)
   listarAdmins,
   actualizarRolAdmin,
+  actualizarAdmin,
   // PLANES PREDETERMINADOS (punto 6)
   listarPlanesPredeterminados,
 } from "./services/supabase.js";
@@ -3282,6 +3283,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [adminsList, setAdminsList] = useState([]);
   const cargarAdminsList = () => { listarAdmins().then(setAdminsList); };
   useEffect(() => { if (sec === "config" && configTab === "admin") cargarAdminsList(); }, [sec, configTab]);
+  // Editar admin existente (punto 2, ronda 2026-07-21 #2): id del admin
+  // que se está editando (null = ninguno) + campos del form inline.
+  const [editandoAdminId, setEditandoAdminId] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editCodigo, setEditCodigo] = useState("");
+  const [editAdminPin, setEditAdminPin] = useState("");
+  const abrirEdicionAdmin = (a) => {
+    if (editandoAdminId === a.id) { setEditandoAdminId(null); return; }
+    setEditandoAdminId(a.id);
+    setEditNombre(a.nombre);
+    setEditCodigo(a.codigo);
+    setEditPin("");
+  };
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
@@ -3824,7 +3838,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           pedido de Lucas): antes vivía adentro del Dashboard, después de
           "Crear alumno" y bien abajo. Ahora es fija, visible sin importar
           el tab (Dashboard/Alumno), justo debajo de la fila de botones y
-          arriba de los tabs. */}
+          arriba de los tabs.
+          Ronda 16 (punto 2): esto es contexto Dashboard/Alumno, no
+          Configuración — Lucas marcó que aparecía mezclado arriba de
+          "Crear admin | Comunicados". Se excluye igual que los 3 tabs de
+          abajo. */}
+      {sec !== "config" && (
       <div style={{ padding: "0 16px", marginBottom: 14 }}>
         <button
           onClick={() => setShowCatalogo(true)}
@@ -3833,11 +3852,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           📚 Biblioteca de ejercicios
         </button>
       </div>
+      )}{" "}
       {/* 1) Pestañas principales */}
+      {sec !== "config" && (
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 10 }}>
         {secBtn("Dashboard", "dashboard")}
         {secBtn("Alumno", "alumnos")}
-      </div>{" "}
+      </div>
+      )}{" "}
       {/* 2) Selector de alumno — SOLO en el Dashboard (2026-07-21): adentro
           de la ficha el buscador y la fila con el nombre quedaban duplicados;
           para cambiar de alumno se vuelve al Dashboard. */}
@@ -4812,7 +4834,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           <div>
             {/* Sub-tabs */}
             <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-              {[["👤 Crear admin", "admin"], ["📢 Comunicados", "comunicados"]].map(([l, k]) => (
+              {/* Ronda 16 (punto 2): "Crear admin" renombrado a "Configuración"
+                  — el tab ya incluye crear Y editar admins, no solo alta. */}
+              {[["⚙ Configuración", "admin"], ["📢 Comunicados", "comunicados"]].map(([l, k]) => (
                 <button
                   key={k}
                   onClick={() => setConfigTab(k)}
@@ -4896,32 +4920,94 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   Administradores ({adminsList.length})
                 </div>
                 {adminsList.map((a) => (
-                  <div key={a.id} style={{ ...card, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                    <div>
-                      <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
-                      <div style={{ color: S.gray, fontSize: 11 }}>@{a.codigo}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {[["entrenador", "🏋️"], ["kinesiologa", "🩺"]].map(([id, ic]) => (
+                  <div key={a.id} style={{ ...card, padding: "10px 12px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <div>
+                        <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
+                        <div style={{ color: S.gray, fontSize: 11 }}>@{a.codigo}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                        {[["entrenador", "🏋️"], ["kinesiologa", "🩺"]].map(([id, ic]) => (
+                          <button
+                            key={id}
+                            title={id === "entrenador" ? "Entrenador" : "Kinesióloga"}
+                            onClick={async () => {
+                              if (a.rol === id) return;
+                              const actualizado = await actualizarRolAdmin(a.id, id);
+                              if (actualizado) {
+                                setAdminsList((prev) => prev.map((x) => (x.id === a.id ? { ...x, rol: id } : x)));
+                                showToast && showToast(`${a.nombre} ahora es ${id === "entrenador" ? "Entrenador" : "Kinesióloga"}`);
+                              } else {
+                                showToast && showToast("Error al cambiar el rol");
+                              }
+                            }}
+                            style={{ background: a.rol === id ? S.white : "transparent", color: a.rol === id ? S.bg : S.gray, border: "1px solid " + (a.rol === id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
+                          >
+                            {ic}
+                          </button>
+                        ))}
+                        {/* Ronda 16 (punto 2): editar nombre/username/clave de un admin
+                            ya creado. */}
                         <button
-                          key={id}
-                          title={id === "entrenador" ? "Entrenador" : "Kinesióloga"}
-                          onClick={async () => {
-                            if (a.rol === id) return;
-                            const actualizado = await actualizarRolAdmin(a.id, id);
-                            if (actualizado) {
-                              setAdminsList((prev) => prev.map((x) => (x.id === a.id ? { ...x, rol: id } : x)));
-                              showToast && showToast(`${a.nombre} ahora es ${id === "entrenador" ? "Entrenador" : "Kinesióloga"}`);
-                            } else {
-                              showToast && showToast("Error al cambiar el rol");
-                            }
-                          }}
-                          style={{ background: a.rol === id ? S.white : "transparent", color: a.rol === id ? S.bg : S.gray, border: "1px solid " + (a.rol === id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
+                          title="Modificar datos"
+                          onClick={() => abrirEdicionAdmin(a)}
+                          style={{ background: editandoAdminId === a.id ? S.white : "transparent", color: editandoAdminId === a.id ? S.bg : S.gray, border: "1px solid " + (editandoAdminId === a.id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
                         >
-                          {ic}
+                          ✏
                         </button>
-                      ))}
+                      </div>
                     </div>
+                    {editandoAdminId === a.id && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid " + S.border }}>
+                        {[
+                          ["Nombre", editNombre, setEditNombre, "text"],
+                          ["Username", editCodigo, setEditCodigo, "text"],
+                          ["Nueva clave (dejar vacío para no cambiarla)", editAdminPin, setEditAdminPin, "password"],
+                        ].map(([label, val, set, type]) => (
+                          <div key={label} style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+                            <input
+                              type={type}
+                              value={val}
+                              onChange={(e) => set(e.target.value)}
+                              style={inp}
+                              maxLength={type === "password" ? 4 : undefined}
+                            />
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={async () => {
+                              if (!editNombre.trim() || !editCodigo.trim()) {
+                                showToast && showToast("Nombre y username son obligatorios");
+                                return;
+                              }
+                              if (editAdminPin && editAdminPin.length !== 4) {
+                                showToast && showToast("La clave nueva debe tener 4 dígitos");
+                                return;
+                              }
+                              try {
+                                await actualizarAdmin(a.id, editNombre, editCodigo, editAdminPin);
+                                showToast && showToast(`${editNombre} actualizado ✓`);
+                                setEditandoAdminId(null);
+                                cargarAdminsList();
+                              } catch (e) {
+                                showToast && showToast("Error: " + e.message);
+                              }
+                            }}
+                            style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 11, fontSize: 13, fontWeight: 900, cursor: "pointer" }}
+                          >
+                            GUARDAR CAMBIOS
+                          </button>
+                          <button
+                            onClick={() => setEditandoAdminId(null)}
+                            style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -5018,8 +5104,11 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         // Ronda 11: el logo sube un poco (antes todo el bloque quedaba
         // centrado exacto en el viewport) — arranca más arriba con padding
         // fijo en vez de centrado vertical puro.
+        // Ronda 16 (punto 1): Lucas marcó que quedaba mucho aire muerto
+        // arriba del logo — bajado de 8vh a un tope chico con clamp para
+        // que no vuelva a crecer en pantallas altas.
         justifyContent: "flex-start",
-        paddingTop: "8vh",
+        paddingTop: "clamp(12px, 2.5vh, 28px)",
         paddingLeft: 24,
         paddingRight: 24,
         paddingBottom: 24,
