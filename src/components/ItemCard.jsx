@@ -21,10 +21,15 @@ export default function ItemCard({
   pesoSugerido,
   pesoAnterior,
   intensidad,
+  unidad,
 }) {
   peso = peso || 0;
   historial = historial || [];
   showPeso = showPeso || false;
+  // Taxonomía 2026-07-21: la Plancha se mide SIEMPRE en segundos, no en
+  // repeticiones ni kilos. unidad viene del plan/biblioteca; el chequeo por
+  // nombre es la red de seguridad para planes viejos sin el campo.
+  const enSegundos = unidad === "segundos" || /^plancha\b/i.test((nombre || "").trim());
   const [open, setOpen] = useState(false);
   const ytId = getYTId(video);
   const renderMedia = () => {
@@ -146,7 +151,7 @@ export default function ItemCard({
                   onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
                   style={{ width: 44, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 7, padding: "5px 2px", color: S.white, fontSize: 13, fontWeight: 900, outline: "none" }}
                 />
-                <div style={{ color: S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>KG HOY</div>
+                <div style={{ color: S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
               </div>
               <button
                 onClick={() => onPesoChange && onPesoChange(peso + 1)}
@@ -184,7 +189,7 @@ export default function ItemCard({
                     <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
                     <div style={{ color: S.lgray, fontSize: 10 }}>{pesoAnterior.fecha}</div>
                   </div>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} kg</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
                 </div>
               )}
               {/* Ronda 7: sin título "Registro de peso", sin "Sin registrar",
@@ -202,7 +207,7 @@ export default function ItemCard({
                   marginBottom: 12,
                 }}
               >
-                Registrá tu peso de hoy
+                {enSegundos ? "Registrá tus segundos de hoy" : "Registrá tu peso de hoy"}
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
                 <button
@@ -240,7 +245,7 @@ export default function ItemCard({
                     outline: "none",
                   }}
                 />
-                <span style={{ color: S.gray, fontSize: 13, flexShrink: 0 }}>kg</span>
+                <span style={{ color: S.gray, fontSize: 13, flexShrink: 0 }}>{enSegundos ? "seg" : "kg"}</span>
                 <button
                   onClick={() => onPesoChange && onPesoChange(peso + 1)}
                   style={{

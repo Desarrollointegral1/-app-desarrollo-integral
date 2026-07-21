@@ -289,6 +289,7 @@ export default function PlanDelDia({
                 onPesoChange={(v) => onPeso(ej.id, v)}
                 pesoSugerido={pesoSugerido}
                 intensidad={sem.intensidad}
+                unidad={ej.unidad}
               />
             );
           })}

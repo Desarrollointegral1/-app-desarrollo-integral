@@ -139,29 +139,116 @@ export const CALOR_MANCUERNA=[
   mk("Peso muerto a 1 pierna","Foco en equilibrio, bisagra de cadera, espalda recta."),
 ];
 
-// ── 3. EJERCICIOS PRINCIPALES ──────────────────────────────────────────
+// ── 3. EJERCICIOS PRINCIPALES — TAXONOMÍA POR GRUPO MUSCULAR ───────────
+// (Lucas, 2026-07-21.) Cada ejercicio principal pertenece a UN grupo
+// muscular/patrón y tiene un código estable "prefijo + número de 3 dígitos".
+// El número DENTRO del grupo es la progresión de dificultad (001 = el más
+// fácil): los planes básicos usan los primeros de cada grupo, los avanzados
+// los últimos. Fuente de verdad: esta lista ↔ biblioteca_ejercicios (codigo,
+// grupo) ↔ Cerebro/desarrollo-integral/entrenamiento/CEREBRO-DE-PLANES.md.
 
-const mkEj=(nombre,desc)=>({id:uid(),nombre,desc,video:"",mediaLocal:"",historial:[]});
+const mkEj=(nombre,desc,extra={})=>({id:uid(),nombre,desc,video:"",mediaLocal:"",historial:[],...extra});
 
-// CONTENIDO OFICIAL (lista de Lucas, ronda 9 — 2026-07-20).
-export const PRINCIPALES_BASICO=()=>[
-  mkEj("Press de hombros sentado con mancuernas","Sentado, mancuernas a la altura de hombros. Empujá hacia arriba con codos al frente. Bajá controlado."),
-  mkEj("Sentarse y pararse del cajón (carga al pecho)","Sentate y parate de un cajón a la altura de la rodilla, con peso en el pecho. Bajá hacia atrás y subí sin usar manos."),
-  mkEj("Press de pecho con barra (plano)","Acostado, bajá la barra al pecho y empujá hacia arriba."),
-  mkEj("Bisagra de cadera con banda (hip thrust)","Banda en la cadera. Empujá la cadera hacia adelante y apretá glúteos. Volvé."),
-  mkEj("Peso muerto con kettlebell","Peso al frente. Empujá la cadera atrás y bajá; volvé llevando la cadera adelante."),
-  mkEj("Remo en TRX (inclinado)","Cuerpo inclinado, tirá del TRX llevando el pecho a las manos. Bajá lento."),
-  mkEj("Puente de glúteos en el piso (con peso)","Acostado, peso sobre la cadera. Elevá la cadera y bajá controlado."),
+export const GRUPOS_MUSCULARES=[
+  { id:"hombro",  prefijo:"PH", nombre:"Hombro" },
+  { id:"rodilla", prefijo:"RO", nombre:"Predominante de rodilla" },
+  { id:"pecho",   prefijo:"PE", nombre:"Pecho" },
+  { id:"cadera",  prefijo:"CA", nombre:"Predominante de cadera" },
+  { id:"jalon",   prefijo:"JA", nombre:"Dorsales — Jalón" },
+  { id:"gluteo",  prefijo:"GL", nombre:"Glúteo (puente / hip thrust)" },
+  { id:"core",    prefijo:"CO", nombre:"Core" },
 ];
 
-// Principales unificados Bilateral (= Plan complejo oficial): barra, dominadas e hip thrust.
+// unidad: "reps" (default) o "segundos" — la Plancha (CO004) se mide SIEMPRE
+// en segundos, nunca en repeticiones.
+const T=(codigo,grupo,nombre,desc,unidad)=>({codigo,grupo,nombre,desc,unidad:unidad||"reps"});
+export const EJERCICIOS_PRINCIPALES=[
+  // HOMBRO — de más fácil a más difícil
+  T("PH001","hombro","Press Militar sentado con Mancuernas","Sentado, mancuernas a la altura de los hombros. Empujá hacia arriba con control y bajá lento."),
+  T("PH002","hombro","Press Militar sentado con Mancuernas unilateral","Sentado, una mancuerna a la altura del hombro. Empujá hacia arriba de a un brazo, con el tronco firme."),
+  T("PH003","hombro","Press Militar parado con Mancuernas","De pie, mancuernas a la altura de los hombros. Empujá hacia arriba sin arquear la espalda."),
+  T("PH004","hombro","Press Militar parado con Mancuernas unilateral","De pie, una mancuerna al hombro. Empujá hacia arriba con el core activo para no ladearte."),
+  T("PH005","hombro","Press Militar parado con Barra","De pie, barra a la altura de las clavículas. Empujá hacia arriba hasta estirar los brazos, sin arquear la zona lumbar."),
+  T("PH006","hombro","Press Militar parado con Barra con split","Con un pie adelante y otro atrás (split), empujá la barra sobre la cabeza. La base te da estabilidad."),
+  T("PH007","hombro","Press con Landmine","Con la barra anclada al piso (landmine), empujá el extremo hacia arriba y adelante con las dos manos."),
+  T("PH008","hombro","Press con Landmine unilateral estricto","Landmine con una mano: empujá el extremo de la barra hacia arriba sin impulso, con el tronco firme."),
+  T("PH009","hombro","Press con Landmine unilateral con split","Landmine con una mano y pies en split: empujá hacia arriba y adelante coordinando todo el cuerpo."),
+  // PREDOMINANTE DE RODILLA
+  T("RO001","rodilla","Levantada de cajon","Sentate y parate de un cajón a la altura de la rodilla, sin usar las manos. Bajá controlado hacia atrás."),
+  T("RO002","rodilla","Sentadilla con TRX","Agarrado del TRX, bajá a la sentadilla usando las manos como ayuda y subí empujando el piso."),
+  T("RO003","rodilla","Sentadilla con peso adelante","Con el peso al pecho (goblet), bajá con la espalda recta y los codos entre las rodillas."),
+  T("RO004","rodilla","Sentadilla con barra adelante","Barra apoyada adelante, sobre los hombros. Bajá manteniendo el torso lo más vertical posible."),
+  T("RO005","rodilla","Sentadilla con barra","Barra sobre la espalda. Bajá llevando la cadera atrás y doblando rodillas. Subí empujando el piso."),
+  T("RO006","rodilla","Sentadilla con Trapbar","Adentro de la trapbar, bajá como en sentadilla con el pecho alto y subí empujando fuerte con las piernas."),
+  T("RO007","rodilla","Zancada","Paso largo al frente, rodilla hacia afuera. Bajá controlado y volvé empujando con la pierna de adelante."),
+  T("RO008","rodilla","Sentadilla Bulgara","Pie trasero elevado en un banco. Bajá controlado con el peso en la pierna de adelante."),
+  T("RO009","rodilla","Subidas al cajon unilateral","Subí al cajón empujando con una sola pierna, sin impulsarte con la de abajo. Bajá lento."),
+  // PECHO
+  T("PE001","pecho","Flexiones en oblicuo","Manos apoyadas en un banco o superficie elevada. Bajá el pecho a la superficie y empujá."),
+  T("PE002","pecho","Pecho plano","Acostado en banco plano, bajá la barra al pecho y empujá hacia arriba."),
+  T("PE003","pecho","Pecho con Mancuernas","Acostado en banco plano con mancuernas. Bajá con control a los costados del pecho y empujá hacia arriba."),
+  T("PE004","pecho","Pecho inclinado con mancuerna","Banco a 30-45°. Bajá las mancuernas con los codos controlados y empujá sin bloquear."),
+  T("PE005","pecho","Pecho inclinado con barra","Banco a 30-45°. Bajá la barra a la parte alta del pecho y empujá hacia arriba."),
+  // PREDOMINANTE DE CADERA (bisagra / peso muerto)
+  T("CA001","cadera","Empuje de cadera con elastico","Banda en la cadera anclada atrás. Empujá la cadera hacia adelante y apretá glúteos. Volvé con control."),
+  T("CA002","cadera","Peso muerto paloma","Parado en una pierna y sin peso, llevá el torso adelante y la pierna libre atrás (bisagra). Volvé sin perder el equilibrio."),
+  T("CA003","cadera","Peso muerto con KB","Con la pesa rusa al frente, empujá la cadera atrás y bajá; volvé llevando la cadera adelante."),
+  T("CA004","cadera","Peso muerto sumo con KB","Pies bien abiertos y puntas hacia afuera, la pesa entre las piernas. Bajá con la espalda recta y subí apretando glúteos."),
+  T("CA005","cadera","Peso muerto con Barra","Barra cerca de las piernas. Empujá la cadera atrás, bajá con la espalda recta y subí llevando la cadera adelante."),
+  T("CA006","cadera","Peso muerto con Trapbar","Adentro de la trapbar, agarrá las manijas y levantá empujando el piso, con la espalda firme."),
+  T("CA007","cadera","Peso muerto a una pierna","Parado en una pierna con peso en la mano. Bisagra de cadera: torso adelante, pierna libre atrás. Foco en el equilibrio."),
+  // DORSALES — JALÓN
+  T("JA001","jalon","Jalon con elastico","Banda anclada arriba. Tirá hacia abajo con los dos brazos llevando los codos al torso."),
+  T("JA002","jalon","Jalon con elastico unilateral","Banda anclada arriba. Tirá hacia abajo con un solo brazo, activando el dorsal."),
+  T("JA003","jalon","Jalon con TRX parado Inclinado","Cuerpo inclinado agarrado del TRX. Tirá llevando el pecho a las manos y bajá lento."),
+  T("JA004","jalon","Jalon unilateral con mancuerna","Torso inclinado, apoyo firme. Tirá la mancuerna con el codo al techo, activando el dorsal."),
+  T("JA005","jalon","Jalon con TRX Vertical","Colgado del TRX casi vertical, tirá del cuerpo hacia arriba llevando los codos atrás."),
+  T("JA006","jalon","Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado."),
+  // GLÚTEO (puente / hip thrust)
+  T("GL001","gluteo","Levantada de cadera","Acostado con los pies apoyados. Elevá la cadera apretando glúteos y bajá lento."),
+  T("GL002","gluteo","Levantada de cadera con elastico entre rodillas","Igual que la levantada de cadera, con una banda entre las rodillas: empujá hacia afuera mientras subís."),
+  T("GL003","gluteo","Levantada de cadera con peso","Acostado, peso sobre la cadera. Elevá la cadera y bajá controlado."),
+  T("GL004","gluteo","Levantada de cadera unilateral con peso","Con una pierna apoyada y la otra libre, peso sobre la cadera. Empujá con el talón y elevá."),
+  T("GL005","gluteo","Hip thrust","Espalda apoyada en un banco. Elevá la cadera hasta alinear rodillas, cadera y hombros. Apretá glúteos arriba."),
+  T("GL006","gluteo","Hip thrust con peso","Espalda apoyada en un banco, peso sobre la cadera. Elevá la cadera y apretá glúteos arriba."),
+  T("GL007","gluteo","Hip thrust con barra","Espalda en el banco, barra sobre la cadera. Elevá hasta la extensión completa y bajá con control."),
+  // CORE
+  T("CO001","core","DeadBug","Acostado boca arriba, brazos y rodillas al techo. Estirá brazo y pierna opuestos sin despegar la zona lumbar."),
+  T("CO002","core","Superman","Boca abajo, elevá brazos y piernas al mismo tiempo apretando la espalda. Bajá lento."),
+  T("CO003","core","Crunch abdominal","Acostado, subí el torso despacio sin tirar del cuello y bajá controlado."),
+  T("CO004","core","Plancha","Antebrazos y puntas de pie apoyados, cuerpo en línea recta. Sostené la posición el tiempo indicado, sin dejar caer la cadera.","segundos"),
+  T("CO005","core","Ruedita","De rodillas con la rueda al frente. Rodá hacia adelante manteniendo el core firme y volvé."),
+  T("CO006","core","Ham Roler","Talones sobre el rodillo: elevá la cadera y llevá el rodillo hacia vos flexionando las rodillas."),
+  T("CO007","core","Landmine core rotation","De pie con la barra anclada (landmine), llevá el extremo de lado a lado rotando el tronco con los brazos estirados."),
+];
+
+const _taxPorCodigo=Object.fromEntries(EJERCICIOS_PRINCIPALES.map((e)=>[e.codigo,e]));
+// px("PH001") → instancia fresca (id nuevo) del ejercicio de la taxonomía.
+const px=(codigo)=>{
+  const t=_taxPorCodigo[codigo];
+  return {id:uid(),nombre:t.nombre,desc:t.desc,codigo:t.codigo,unidad:t.unidad,video:"",mediaLocal:"",historial:[]};
+};
+
+// CONTENIDO OFICIAL — plan de entrada: los primeros niveles de cada grupo.
+export const PRINCIPALES_BASICO=()=>[
+  px("PH001"), // Press Militar sentado con Mancuernas
+  px("RO001"), // Levantada de cajon
+  px("PE002"), // Pecho plano
+  px("CA001"), // Empuje de cadera con elastico
+  px("CA003"), // Peso muerto con KB
+  px("JA003"), // Jalon con TRX parado Inclinado
+  px("GL003"), // Levantada de cadera con peso
+];
+
+// Principales unificados Bilateral (= ex plan Complejo): los niveles altos
+// de cada grupo, todo con barra.
 export const PRINCIPALES_BILATERAL=()=>[
-  mkEj("Press de hombros sentado con mancuernas","Sentado, mancuernas a la altura de hombros. Empujá hacia arriba con codos al frente. Bajá controlado."),
-  mkEj("Sentadilla con barra","Barra sobre la espalda. Bajá llevando la cadera atrás y doblando rodillas. Subí empujando el piso."),
-  mkEj("Press de pecho con barra (plano)","Acostado, bajá la barra al pecho y empujá hacia arriba."),
-  mkEj("Peso muerto con barra","Barra cerca de las piernas. Empujá la cadera atrás, bajá y subí llevando la cadera adelante."),
-  mkEj("Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado."),
-  mkEj("Hip thrust (con barra o mancuerna)","Espalda apoyada, peso en la cadera. Elevá la cadera y apretá glúteos. Bajá controlado."),
+  px("PH005"), // Press Militar parado con Barra
+  px("RO005"), // Sentadilla con barra
+  px("PE002"), // Pecho plano
+  px("CA005"), // Peso muerto con Barra
+  px("JA006"), // Dominadas
+  px("GL007"), // Hip thrust con barra
 ];
 
 // ── PLANES CLÁSICOS (compatibilidad) ───────────────────────────────────
@@ -174,12 +261,12 @@ export const PLAN_BILATERAL={
 export const PLAN_UNILATERAL={
   periodizacion:PERIODIZACION_BASE,movilidad:MOVILIDAD_BASE,calor:CALOR_BASE,activacion:ACTIVACION_BASE,
   dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Unilateral",ejercicios:[
-    mkEj("Fuerza con impulso a un brazo","Empuje vertical alternando brazo, hombro estable."),
-    mkEj("Zancada a una pierna","Rodilla hacia afuera, paso largo, equilibrio."),
-    mkEj("Pecho inclinado con mancuerna","Banco 30-45°, codos controlados, no bloquear."),
-    mkEj("Peso muerto a una pierna","Foco en equilibrio, bisagra de cadera, espalda recta."),
-    mkEj("Remo a un brazo","Codo al techo, espalda estable, activa dorsal."),
-    mkEj("Levantada de cadera a una pierna","Pierna libre paralela al suelo, empuja con el talon."),
+    px("PH004"), // Press Militar parado con Mancuernas unilateral
+    px("RO007"), // Zancada
+    px("PE004"), // Pecho inclinado con mancuerna
+    px("CA007"), // Peso muerto a una pierna
+    px("JA004"), // Jalon unilateral con mancuerna
+    px("GL004"), // Levantada de cadera unilateral con peso
   ]}]
 };
 
@@ -201,12 +288,7 @@ export const PLAN_ACOND_PRINCIPIANTE={
   periodizacion:per([[2,6,"60%"],[3,6,"60%"],[2,8,"65%"],[3,8,"65%"],[3,8,"70%"],[2,10,"70%"],[3,8,"70%"],[3,10,"75%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Principiante",ejercicios:[
-    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-    mkEj("Levantada del cajon","Sentate y parate de un cajon a la altura de la rodilla, sin usar las manos."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
-    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
-    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+    px("PH001"), px("RO001"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
   ]}]
 };
 
@@ -214,12 +296,7 @@ export const PLAN_ACOND_AVANZADO={
   periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,10,"75%"],[3,10,"75%"],[2,6,"80%"],[3,6,"82,5%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Avanzado",ejercicios:[
-    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-    mkEj("Goblet squat","Sentadilla con el peso al pecho, codos entre las rodillas."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-    mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
-    mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+    px("PH001"), px("RO003"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
   ]}]
 };
 
@@ -227,12 +304,7 @@ export const PLAN_PF_PRINCIPIANTE={
   periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,4,"75%"],[3,4,"75%"],[2,8,"80%"],[3,8,"80%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Principiante",ejercicios:[
-    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
-    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
-    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+    px("PH001"), px("RO005"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
   ]}]
 };
 
@@ -240,12 +312,7 @@ export const PLAN_PF_AVANZADO={
   periodizacion:per([[2,6,"70%"],[3,6,"72,5%"],[2,8,"75%"],[3,8,"77,5%"],[2,4,"80%"],[3,4,"82,5%"],[3,6,"85%"],[3,8,"87,5%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Avanzado",ejercicios:[
-    mkEj("Press de hombros con barra","De pie o sentado, empuja la barra sobre la cabeza con control."),
-    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-    mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
-    mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+    px("PH005"), px("RO005"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
   ]}]
 };
 
@@ -254,35 +321,30 @@ export const PLAN_PPL={
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[
     {dia:"Dia 1",subtitulo:"Empuje (PUSH) + Core",ejercicios:[
-      mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-      mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
+      px("PH001"), // Press Militar sentado con Mancuernas
+      px("PE002"), // Pecho plano
       mkEj("Fondos","En paralelas, baja controlado y empuja hasta estirar los brazos."),
-      mkEj("Core (crunch)","Acostado, subi el torso despacio sin tirar del cuello."),
+      px("CO003"), // Crunch abdominal
     ]},
     {dia:"Dia 2",subtitulo:"Tiron (PULL) + Core",ejercicios:[
       mkEj("Remo con mancuernas","Torso inclinado, espalda recta, lleva los codos hacia atras."),
-      mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
+      px("JA006"), // Dominadas
       mkEj("Biceps con mancuernas","Codos pegados al cuerpo, subi y baja controlado."),
       mkEj("Biceps con barra","Codos fijos, sin balancear el cuerpo."),
-      mkEj("Farmer walk","Camina erguido con peso en las dos manos."),
+      mkEj("Farmer walk","Camina erguido con peso en las dos manos.",{codigo:"P31"}),
     ]},
     {dia:"Dia 3",subtitulo:"Pierna (LEGS) + Cadera",ejercicios:[
-      mkEj("Zancadas","Paso largo, rodilla hacia afuera, baja controlado."),
-      mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-      mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-      mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
-      mkEj("Core (crunch)","Acostado, subi el torso despacio sin tirar del cuello."),
+      px("RO007"), // Zancada
+      px("CA005"), // Peso muerto con Barra
+      px("RO005"), // Sentadilla con barra
+      px("GL007"), // Hip thrust con barra
+      px("CO003"), // Crunch abdominal
     ]},
   ]
 };
 
 const EJ_HIPERTROFIA=()=>[
-  mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-  mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-  mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-  mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-  mkEj("Dominadas","Colgado de la barra, tira del cuerpo hacia arriba y baja lento."),
-  mkEj("Hip thrust con barra o mancuerna","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
+  px("PH001"), px("RO005"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
 ];
 
 export const PLAN_HIPERTROFIA_PRINCIPIANTE={
@@ -301,12 +363,7 @@ export const PLAN_FUERZA_PRINCIPIANTE={
   periodizacion:per([[3,8,"70%"],[2,8,"72,5%"],[3,6,"75%"],[2,6,"77,5%"],[3,4,"80%"],[2,4,"82,5%"],[3,4,"85%"],[2,2,"85%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Fuerza — Principiante",ejercicios:[
-    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
-    mkEj("Levantada del cajon con peso","Sentate y parate del cajon con el peso al pecho."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con kettlebell","Con el peso al frente, lleva la cadera atras y despues adelante."),
-    mkEj("Remo en TRX inclinado","Con el cuerpo inclinado, tira del TRX hacia el pecho."),
-    mkEj("Puente de gluteos con peso","Acostado, apoya el peso en la cadera y levanta la cadera."),
+    px("PH001"), px("RO001"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
   ]}]
 };
 
@@ -314,12 +371,9 @@ export const PLAN_FUERZA_AVANZADO={
   periodizacion:per([[5,5,"75%"],[5,5,"77,5%"],[5,4,"80%"],[5,4,"82,5%"],[5,3,"85%"],[5,3,"87,5%"],[5,2,"90%"],[5,1,"92,5%"]]),
   movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
   dias:[{dia:"Sesion",subtitulo:"Fuerza — Avanzado",ejercicios:[
-    mkEj("Sentadilla con barra","Con la barra en la espalda, baja y subi empujando el piso."),
-    mkEj("Press de pecho con barra en banco plano","Baja la barra al pecho y empuja hacia arriba."),
-    mkEj("Peso muerto con barra","Lleva la cadera atras, baja la barra y volve a subir."),
-    mkEj("Dominadas lastradas","Dominadas con peso extra, control total en la bajada."),
-    mkEj("Hip thrust con barra","Con la espalda apoyada, levanta la cadera y apreta gluteos."),
-    mkEj("Press de hombros sentado con mancuernas","Sentado, empuja las mancuernas hacia arriba con control."),
+    px("RO005"), px("PE002"), px("CA005"),
+    {...px("JA006"),desc:"Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. En este plan, con lastre si la técnica está sólida."},
+    px("GL007"), px("PH005"),
   ]}]
 };
 
@@ -340,16 +394,12 @@ export const PLANTILLAS=[
   { id:"fuerza-avanzado",          nombre:"Fuerza Avanzado",          descripcion:"5x5 a 5x1, 75-92,5%, los grandes con barra.",  plan:PLAN_FUERZA_AVANZADO },
 ];
 
-// ── CÓDIGOS DE EJERCICIO (ronda 11, 2026-07-21) ─────────────────────────
-// Cada ejercicio de la biblioteca/templates tiene un código ESTABLE,
-// prefijado por categoría y numerado creciente por dificultad/orden de
-// aparición: M=Movilidad, E=Act. Elástico, C=Entrada en calor/activación
-// con peso, P=Principales. Se asignan UNA sola vez acá (fuente de verdad),
-// por nombre EXACTO — si el mismo nombre aparece de nuevo (ej. Movilidad
-// Corta reusa nombres de la Completa) reutiliza el mismo código en vez de
-// generar uno nuevo. Es la base para el backfill de biblioteca_ejercicios
-// (migración 011) y para "Guardar para todos" (match por código).
-const _codCounters = { M: 0, E: 0, C: 0, P: 0 };
+// ── CÓDIGOS DE EJERCICIO ────────────────────────────────────────────────
+// M=Movilidad, E=Act. Elástico y C=Entrada en calor/activación con peso se
+// asignan por orden de aparición (ronda 11). Los PRINCIPALES ya NO usan la
+// serie P: desde 2026-07-21 tienen código de grupo muscular (PH/RO/PE/CA/
+// JA/GL/CO + 3 dígitos) definido en EJERCICIOS_PRINCIPALES, arriba.
+const _codCounters = { M: 0, E: 0, C: 0 };
 const _codMap = {};
 function _codigo(cat, nombre) {
   const key = cat + "|" + nombre;
@@ -381,22 +431,10 @@ _asignar("C", ACTIVACION_BASE);
 _asignar("C", CALOR_PESO);
 _asignar("C", CALOR_MANCUERNA);
 
-// P — Principales: primero el plan Básico, después lo que se agrega en el
-// plan Complejo (Bilateral) que no estaba en Básico, sin reiniciar la
-// numeración; después el resto de planes de compatibilidad, en el orden
-// en que aparecen en el archivo (mismo criterio: nombre exacto = mismo código).
-_asignar("P", PLAN_BASICO.dias[0].ejercicios);
-_asignar("P", PLAN_BILATERAL.dias[0].ejercicios);
-_asignar("P", PLAN_UNILATERAL.dias[0].ejercicios);
-_asignar("P", PLAN_ACOND_PRINCIPIANTE.dias[0].ejercicios);
-_asignar("P", PLAN_ACOND_AVANZADO.dias[0].ejercicios);
-_asignar("P", PLAN_PF_PRINCIPIANTE.dias[0].ejercicios);
-_asignar("P", PLAN_PF_AVANZADO.dias[0].ejercicios);
-PLAN_PPL.dias.forEach((d) => _asignar("P", d.ejercicios));
-_asignar("P", PLAN_HIPERTROFIA_PRINCIPIANTE.dias[0].ejercicios);
-_asignar("P", PLAN_HIPERTROFIA_AVANZADO.dias[0].ejercicios);
-_asignar("P", PLAN_FUERZA_PRINCIPIANTE.dias[0].ejercicios);
-_asignar("P", PLAN_FUERZA_AVANZADO.dias[0].ejercicios);
+// Principales: los códigos vienen de la taxonomía (px() los embebe al armar
+// cada plan). Se registran igual en el mapa nombre→código para que
+// "Guardar para todos" pueda asignar código por nombre a ejercicios viejos.
+EJERCICIOS_PRINCIPALES.forEach((e) => { _codMap["P|" + e.nombre] = e.codigo; });
 
 // Mapa nombre→código completo, para backfill/depuración.
 export const CODIGOS_EJERCICIO = _codMap;

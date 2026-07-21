@@ -449,6 +449,7 @@ export async function getPlanDias(alumno_id) {
         video:      e.video       || "",
         codigo:     e.codigo      || "",
         gif:        e.gif         || "",
+        unidad:     e.unidad      || "reps",
         mediaLocal: "",
         historial:  [],
       })),
@@ -494,6 +495,7 @@ export async function getPlanEjercicios(plan_dia_id) {
     video:      e.video       || "",
     codigo:     e.codigo      || "",
     gif:        e.gif         || "",
+    unidad:     e.unidad      || "reps",
     mediaLocal: "",
     historial:  [],
   }));
@@ -591,6 +593,7 @@ export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
         video:      e.video       || "",
         codigo:     e.codigo      || "",
         gif:        e.gif         || "",
+        unidad:     e.unidad      || "reps",
         mediaLocal: "",
         historial:  [],
       })),
@@ -761,6 +764,7 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
         video:       ej.video       || "",
         codigo:      ej.codigo      || null,
         gif:         ej.gif         || null,
+        unidad:      ej.unidad      || "reps",
         orden:       j,
       };
       let { error: ejErr } = await supabase.from("plan_ejercicios").insert(row);

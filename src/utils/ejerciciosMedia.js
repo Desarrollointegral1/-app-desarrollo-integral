@@ -84,6 +84,33 @@ const M = {
   "zancada": "/ejercicios/zancada.gif",
   "zancada a una pierna": "/ejercicios/zancada.gif",
   "zancadas": "/ejercicios/zancada.gif",
+
+  // ── Taxonomía por grupo muscular (2026-07-21) ──
+  // Nombres canónicos nuevos (PH/RO/PE/CA/JA/GL/CO). Cuando no hay GIF
+  // específico de la variante, se usa el del patrón base (mismo movimiento).
+  "press militar sentado con mancuernas": "/ejercicios/press-hombros-sentado.gif",
+  "press militar sentado con mancuernas unilateral": "/ejercicios/press-hombros-sentado.gif",
+  "press militar parado con mancuernas unilateral": "/ejercicios/fuerza-impulso-un-brazo.gif",
+  "press militar parado con barra": "/ejercicios/press-hombros-barra.gif",
+  "levantada de cajon": "/ejercicios/sentarse-pararse-cajon.gif",
+  "sentadilla con peso adelante": "/ejercicios/goblet-squat.gif",
+  "sentadilla bulgara": "/ejercicios/sentadilla-bulgara.gif",
+  "flexiones en oblicuo": "/ejercicios/push-up-pared.gif",
+  "pecho plano": "/ejercicios/press-pecho-barra.gif",
+  "peso muerto paloma": "/ejercicios/peso-muerto-una-pierna.gif",
+  "peso muerto con kb": "/ejercicios/peso-muerto-kettlebell.gif",
+  "peso muerto sumo con kb": "/ejercicios/peso-muerto-kettlebell.gif",
+  "jalon con elastico": "/ejercicios/jalon-banda-arriba.gif",
+  "jalon con elastico unilateral": "/ejercicios/jalon-banda-arriba.gif",
+  "jalon con trx parado inclinado": "/ejercicios/remo-trx.gif",
+  "jalon con trx vertical": "/ejercicios/remo-trx.gif",
+  "jalon unilateral con mancuerna": "/ejercicios/remo-un-brazo.gif",
+  "levantada de cadera": "/ejercicios/puente-gluteos-peso.gif",
+  "levantada de cadera con elastico entre rodillas": "/ejercicios/puente-gluteos-peso.gif",
+  "levantada de cadera con peso": "/ejercicios/puente-gluteos-peso.gif",
+  "levantada de cadera unilateral con peso": "/ejercicios/levantada-cadera-una-pierna.gif",
+  "hip thrust con peso": "/ejercicios/hip-thrust.gif",
+  "crunch abdominal": "/ejercicios/core-crunch.gif",
 };
 
 const norm = (s) =>
@@ -95,6 +122,12 @@ const norm = (s) =>
 
 // Devuelve la ruta del GIF del ejercicio (o "" si no hay match).
 export const getEjercicioGif = (nombre) => M[norm(nombre)] || "";
+
+// Inverso: nombres de ejercicio que resuelven (por lookup automático) a un
+// GIF dado. Se usa en la pestaña GIFs de la Biblioteca para mostrar a qué
+// ejercicios está asociado cada archivo.
+export const getNombresPorGif = (path) =>
+  Object.keys(M).filter((k) => M[k] === path);
 
 // ── Catálogo de GIFs disponibles (ronda 12) ─────────────────────────────
 // Para la asociación MANUAL de un GIF a un ejercicio puntual (Admin →
