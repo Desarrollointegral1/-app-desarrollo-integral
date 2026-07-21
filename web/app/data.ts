@@ -1,10 +1,10 @@
 // Desarrollo Integral · Content & Data
 
 export const APP_URL = "https://app-desarrollo-integral.vercel.app";
-export const SHIELD_W = "/logos/icon-outline-blanco.svg";
-export const ICON_W = "/logos/icon-blanco.svg";
-export const LOGO_WHITE = "/logos/logo-blanco.svg";
-export const LOGO_BLACK = "/logos/logo-negro.svg";
+export const SHIELD_W = "/web/logos/icon-outline-blanco.svg";
+export const ICON_W = "/web/logos/icon-blanco.svg";
+export const LOGO_WHITE = "/web/logos/logo-blanco.svg";
+export const LOGO_BLACK = "/web/logos/logo-negro.svg";
 
 // MÉTODO DATA
 export type MetodoDetail = {

@@ -205,7 +205,7 @@ export default function ResponderPage() {
     <main style={S.main}>
       <div style={S.wrap}>
         <div style={S.header}>
-          <img src="/logos/giver-logo.png" alt="Giver" style={S.logo} />
+          <img src="/web/logos/giver-logo.png" alt="Giver" style={S.logo} />
           <h1 style={S.h1}>Giving</h1>
           <div style={S.memLine}>
             <span>🧠 {memory.length} {memory.length === 1 ? 'ejemplo aprendido' : 'ejemplos aprendidos'} (además del estilo de fábrica)</span>

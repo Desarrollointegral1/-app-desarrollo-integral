@@ -107,7 +107,7 @@ export default function OsteopatiaPage() {
         </div>
         <div className="o-hero-right">
           <img
-            src="/Griselda/hero-sonriendo.jpeg"
+            src="/web/Griselda/hero-sonriendo.jpeg"
             alt="Griselda Politino — Kinesióloga y Osteópata"
             className="o-hero-photo"
           />
@@ -170,7 +170,7 @@ export default function OsteopatiaPage() {
           <div className="o-sobre-grid">
             <div className="o-sobre-photo-wrap o-fade">
               <img
-                src="/Griselda/medio-seria.jpeg"
+                src="/web/Griselda/medio-seria.jpeg"
                 alt="Griselda Politino"
                 className="o-sobre-photo"
               />
@@ -209,7 +209,7 @@ export default function OsteopatiaPage() {
               <p className="o-bjj-desc" style={{ marginTop: 16 }}>El BJJ me enseñó cosas sobre el cuerpo que no se aprenden en ningún libro. Eso se traslada directamente a mi trabajo clínico.</p>
             </div>
             <div className="o-bjj-photo o-fade">
-              <img src="/Griselda/bjj-brazos.jpeg" alt="Griselda Politino — BJJ Faixa Preta · Academia 360" />
+              <img src="/web/Griselda/bjj-brazos.jpeg" alt="Griselda Politino — BJJ Faixa Preta · Academia 360" />
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function OsteopatiaPage() {
       <section id="contacto" className="o-contacto">
         <div className="o-contacto-shield">
           <div className="o-spin-wrap">
-            <img className="o-spin-img" src="/logos/icon-blanco.svg" alt="" width={700} style={{ opacity: 0.04 }} />
+            <img className="o-spin-img" src="/web/logos/icon-blanco.svg" alt="" width={700} style={{ opacity: 0.04 }} />
           </div>
         </div>
         <div className="o-contacto-inner o-fade">

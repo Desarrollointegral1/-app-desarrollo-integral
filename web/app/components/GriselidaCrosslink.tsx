@@ -41,7 +41,7 @@ export function GriselidaCrosslink() {
             }}
           >
             <img
-              src="/Griselda/head-sonriendo.jpeg"
+              src="/web/Griselda/head-sonriendo.jpeg"
               alt="Griselda Politino"
               style={{
                 width: "100%",
