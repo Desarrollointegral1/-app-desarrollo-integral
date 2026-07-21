@@ -30,6 +30,7 @@
     "CO001": { "dataset_id": "0276", "dataset_name": "dead bug" },
     "CO003": { "dataset_id": "0274", "dataset_name": "crunch floor" },
     "CO005": { "dataset_id": "0857", "dataset_name": "wheel rollerout" },
+    "CO006": { "dataset_id": "0796", "dataset_name": "standing wheel rollerout", "aprox": true, "nota": "'Ham Roller' no existe en el dataset (biblioteca original: 'talones sobre el rodillo, elevar cadera' — un curl femoral con rodillo). Por pedido explícito de Lucas (ronda 2026-07-21) se matcheó por EQUIPAMIENTO — mismo principio de movimiento con rueda/rodillo abdominal — a 'standing wheel rollerout', la variante de pie del ab wheel rollout (CO005 'Ruedita' ya usa la variante arrodillada 'wheel rollerout'). Reemplazó al placeholder custom DI-CO006 (sin gif) que existía antes." },
     "CO007": { "dataset_id": "0562", "dataset_name": "landmine 180" }
   },
   "custom": [
@@ -38,6 +39,6 @@
     "CA001", "CA002", "CA003", "CA004",
     "JA005",
     "GL002", "GL004", "GL005", "GL006", "GL007",
-    "CO002", "CO004", "CO006"
+    "CO002", "CO004"
   ]
 }
