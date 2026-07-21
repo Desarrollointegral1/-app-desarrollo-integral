@@ -20,6 +20,13 @@ export const tabN2 = a => ({flex:1,textAlign:"center",background:a?S.card:"trans
 // dark premium. Claramente subordinado a N1 (invertido grande) y N2 (borde).
 export const segTrack = () => ({display:"flex",gap:3,background:S.card2,border:"1px solid "+S.border,borderRadius:10,padding:3});
 export const segChip = a => ({flex:1,textAlign:"center",background:a?S.white:"transparent",color:a?S.bg:S.gray,border:"none",borderRadius:7,padding:"7px 4px",fontSize:10,fontWeight:700,letterSpacing:0.6,textTransform:"uppercase",cursor:"pointer",transition:"all 0.25s cubic-bezier(0.32,0.72,0,1)",boxShadow:a?"0 1px 3px rgba(0,0,0,0.3)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"});
+// Nivel 4 (ronda 11) — sub-menú DENTRO de un chip de nivel 3 (ej. Superrápida
+// /Corta/Completa dentro de Movilidad). Tiene que notarse que "cuelga" del
+// nivel de arriba, no que compite con él: sin fondo, sin dot, texto chico y
+// el activo marcado con una línea inferior de acento — mismo lenguaje que un
+// tab de texto subrayado, deliberadamente más sutil que segChip.
+export const n4Track = () => ({display:"flex",gap:18,justifyContent:"center",borderTop:"1px solid "+S.border,paddingTop:8});
+export const chipN4 = a => ({background:"transparent",border:"none",borderBottom:"2px solid "+(a?S.green:"transparent"),color:a?S.white:S.gray,fontSize:11,fontWeight:a?700:500,letterSpacing:0.3,padding:"1px 1px 5px",cursor:"pointer",transition:"all 0.15s"});
 
 export function applyTheme(dark) {
   const t=dark?DARK_T:LIGHT_T;

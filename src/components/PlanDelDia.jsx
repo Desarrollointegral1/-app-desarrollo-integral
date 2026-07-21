@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { S, card, tabBtn, tabN2, segTrack, segChip } from "../utils/theme.js";
+import { S, card, tabBtn, tabN2, segTrack, segChip, n4Track, chipN4 } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
@@ -125,19 +125,22 @@ export default function PlanDelDia({
     .filter((t) => t && !ocultas.includes(t.id));
   const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0] || null;
 
+  // Selector de día (Lunes/Miércoles/Viernes...) — SOLO aplica a Principales
+  // (Preparación es igual todos los días). Ronda 11: se ubica debajo de la
+  // ficha de stats, no arriba del todo.
+  const SelectorDia = () =>
+    planValido && plan.dias.length > 1 ? (
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {plan.dias.map((d, i) => (
+          <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(diaIdx === i), flex: 1 }}>
+            {d.dia}
+          </button>
+        ))}
+      </div>
+    ) : null;
+
   return (
     <div>
-      {/* Selector de día si el plan tiene más de uno */}
-      {planValido && plan.dias.length > 1 && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-          {plan.dias.map((d, i) => (
-            <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(diaIdx === i), flex: 1 }}>
-              {d.dia}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* ── Tabs nivel 2: PREPARACIÓN | PRINCIPALES — activo con borde blanco
           + fondo card, sin invertir (jerarquía visual ronda 6) ── */}
       <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
@@ -166,11 +169,14 @@ export default function PlanDelDia({
               </button>
             ))}
           </div>
-          {/* Selector de versión de movilidad: mismo segmented control */}
+          {/* Selector de versión de movilidad — nivel 4 (ronda 11): sub-menú
+              DENTRO de Movilidad, con un estilo más chico/sutil (texto +
+              subrayado) para que no se confunda con el segmented control de
+              nivel 3 de arriba (Movilidad/Act. Elástico/Entrada en calor). */}
           {prepActiva.id === "movilidad" && (
-            <div style={{ ...segTrack(), marginBottom: 8 }}>
+            <div style={{ ...n4Track(), marginBottom: 10 }}>
               {MOVI_VERSIONES.map((v) => (
-                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={segChip(moviVersion === v.id)}>
+                <button key={v.id} onClick={() => setMoviVersion(v.id)} style={chipN4(moviVersion === v.id)}>
                   {v.label}
                 </button>
               ))}
@@ -233,6 +239,7 @@ export default function PlanDelDia({
               <div style={{ color: S.gray, fontSize: 10 }}>EJERCICIOS</div>
             </div>
           </div>
+          <SelectorDia />
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
             const rmKey = RM_EJS.find(
