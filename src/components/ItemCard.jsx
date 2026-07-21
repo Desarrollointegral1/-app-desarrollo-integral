@@ -11,6 +11,7 @@ export default function ItemCard({
   desc,
   video,
   mediaLocal,
+  gif,
   numero,
   peso,
   historial,
@@ -80,12 +81,15 @@ export default function ItemCard({
           style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 280, objectFit: "cover" }}
         />
       );
-    const gif = getEjercicioGif(nombre);
-    if (gif)
+    // Ronda 12: GIF manual (asignado a mano en el editor cuando el lookup
+    // automático por nombre no encuentra match) tiene prioridad sobre el
+    // automático — mismo componente para Preparación y Principales.
+    const gifResuelto = gif || getEjercicioGif(nombre);
+    if (gifResuelto)
       return (
         <div style={{ background: "#fff", borderRadius: 8, marginBottom: 12, padding: "10px 0 4px", textAlign: "center" }}>
           <img
-            src={gif}
+            src={gifResuelto}
             alt={nombre}
             style={{ width: 180, height: 180, objectFit: "contain" }}
           />

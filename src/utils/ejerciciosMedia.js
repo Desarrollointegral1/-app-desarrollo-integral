@@ -95,3 +95,25 @@ const norm = (s) =>
 
 // Devuelve la ruta del GIF del ejercicio (o "" si no hay match).
 export const getEjercicioGif = (nombre) => M[norm(nombre)] || "";
+
+// ── Catálogo de GIFs disponibles (ronda 12) ─────────────────────────────
+// Para la asociación MANUAL de un GIF a un ejercicio puntual (Admin →
+// Biblioteca / Principales) cuando el lookup automático por nombre de
+// arriba no lo encuentra. Lista fija de los 38 archivos que hay hoy en
+// public/ejercicios/ — si se agregan GIFs nuevos a esa carpeta, sumarlos acá
+// también (no hay endpoint para listar el filesystem en runtime).
+const _slugALabel = (slug) =>
+  slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+export const GIFS_DISPONIBLES = [
+  "biceps-barra","biceps-mancuernas","buenos-dias","core-crunch","dominadas",
+  "farmer-walk","fondos","fuerza-impulso-barra","fuerza-impulso-un-brazo",
+  "goblet-squat","hip-thrust","jalon-al-pecho","jalon-banda-arriba",
+  "jalon-brazos-estirados","jalon-mancuerna","levantada-cadera-una-pierna",
+  "pecho-inclinado-mancuerna","peso-muerto-barra","peso-muerto-kettlebell",
+  "peso-muerto-una-pierna","press-arriba","press-hombros-barra",
+  "press-hombros-sentado","press-pallof","press-pecho-barra",
+  "puente-gluteos-peso","push-up-pared","remo-banda","remo-inclinado-peso",
+  "remo-trx","remo-un-brazo-banda","remo-un-brazo","rotacion-externa-banda",
+  "sentadilla-barra","sentadilla-bulgara","sentarse-pararse-cajon",
+  "vuelta-al-mundo","zancada",
+].map((slug) => ({ slug, path: `/ejercicios/${slug}.gif`, label: _slugALabel(slug) }));

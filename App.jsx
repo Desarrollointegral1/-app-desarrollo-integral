@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 // ── PERSISTENCIA (Supabase) ────────────────────────────────────────────
 import {
   cargarDatos,
@@ -15,6 +15,7 @@ import {
   crearAlumnoConPIN,
   subirVideo,
   crearPlanAlumno,
+  eliminarPlanDia,
   cargarPlanesXDia,
   actualizarPlanAlumnoDias,
   crearAdmin,
@@ -61,13 +62,15 @@ import {
   clonarPlan,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, applyTheme } from "./src/utils/theme.js";
+import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
+import { GIFS_DISPONIBLES, getEjercicioGif } from "./src/utils/ejerciciosMedia.js";
+import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 // ── LOGO ──────────────────────────────────────────────────────────────
 const ICON_WHITE =
   "data:image/svg+xml," +
@@ -80,6 +83,97 @@ const ICON_BLACK =
     '<svg id="a" xmlns="http://www.w3.org/2000/svg" width="1500" height="1500" viewBox="0 0 1500 1500"><g><path d="M749.86,1171.008v9.548s-.04-1.818-.16-5.254c.04-1.238.1-2.657.16-4.295Z"/><g><path d="M1100.176,457.931c-1.646,2.291-66.952,91.918-156.767,161.748-43.672,33.954-80.83,75.699-107.653,124.079-17.779,32.068-34.14,70.471-44.945,115.028-31.642,130.562-39.392,274.368-40.95,312.222-.06,1.638-.12,3.056-.16,4.295-.06-1.238-.12-2.657-.18-4.295-1.558-37.854-9.309-181.66-40.95-312.222-11.623-47.953-29.689-88.78-49.034-122.25-26.185-45.303-61.486-84.632-102.803-116.74-89.891-69.855-155.269-159.576-156.909-161.865,3.036,2.697,197.94,176.187,350.116,176.287h.12c152.176-.1,347.08-173.59,350.116-176.287Z"/><path d="M749.7,1175.303c-.14,3.436-.18,5.254-.18,5.254v-9.548c.06,1.638.12,3.056.18,4.295Z"/></g></g><circle cx="750.001" cy="508.788" r="69.377"/><path d="M689.368,1062.142s-6.193-178.398-52.626-271.706c-60.339-121.251-203.315-204.621-203.315-204.621,0,0,97.15,96.045,163.424,228.592,66.274,132.547,92.518,247.736,92.518,247.736Z"/><path d="M810.874,1062.142s6.193-178.398,52.626-271.706c60.339-121.251,203.315-204.621,203.315-204.621,0,0-97.15,96.045-163.424,228.592-66.274,132.547-92.518,247.736-92.518,247.736Z"/></svg>',
   );
 let ICON = ICON_WHITE;
+
+// ── HEADER DEL ALUMNO (ícono + wordmark + tema/Salir) ──────────────────
+// Ronda 12: el centrado de ronda 11 (flex:1 solo del lado izquierdo) SIGUE
+// corrido — porque centra el lockup dentro del espacio que le queda a la
+// izquierda del bloque tema+Salir, no dentro del ANCHO TOTAL del header.
+// Con un bloque a la derecha de ancho R, ese approach centra el lockup en
+// (total-R), cuyo punto medio es (total-R)/2 ≠ total/2 — se corre a la
+// izquierda por R/2. Fix matemático: un spacer INVISIBLE a la izquierda con
+// el MISMO ancho que el bloque real de la derecha (medido en vivo con
+// getBoundingClientRect, no estimado) — así el layout queda simétrico
+// (spacer | lockup flex:1 centrado | bloque real) y el punto medio del
+// lockup cae exactamente en total/2, para cualquier ancho de pantalla y
+// cualquier ancho que terminen ocupando los botones de tema/Salir.
+function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) {
+  const rightRef = useRef(null);
+  const [rightW, setRightW] = useState(0);
+  // ResizeObserver en vez de un simple resize+medida-una-vez (bug detectado
+  // en verificación real con getBoundingClientRect, ronda 12): la fuente
+  // custom PP Formula carga async (font-display:swap) y cambia el ancho de
+  // "Salir"/tema DESPUÉS del primer render — un useLayoutEffect corrido una
+  // sola vez capturaba el ancho con la fuente fallback (medido en vivo:
+  // 86.45px) y quedaba desincronizado del ancho real ya con la fuente
+  // cargada (91.875px) → ~2.7px de corrimiento del centro. El
+  // ResizeObserver reacciona a cambios de tamaño del bloque real, pero en
+  // cold-load el swap de fuente puede pasar ANTES de que el observer termine
+  // de conectarse (y no vuelve a fireear si no hay otro resize después) —
+  // por eso además se fuerza una re-medición explícita cuando
+  // document.fonts.ready resuelve, que es la señal determinística de que la
+  // fuente ya está aplicada. Verificado con getBoundingClientRect en cold
+  // load: spacer=91.875 === right=91.875 (antes: 86.45 vs 91.875).
+  useLayoutEffect(() => {
+    if (!rightRef.current) return;
+    const el = rightRef.current;
+    const medir = () => setRightW(el.getBoundingClientRect().width);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    let cancelado = false;
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { if (!cancelado) medir(); });
+    }
+    return () => { cancelado = true; ro.disconnect(); };
+  }, [darkMode, salirLabel]);
+  const btnBase = {
+    background: "transparent",
+    color: S.gray,
+    border: "1px solid " + S.border,
+    borderRadius: 6,
+    cursor: "pointer",
+    flexShrink: 0,
+  };
+  return (
+    <div
+      style={{
+        padding: "10px 16px",
+        borderBottom: "1px solid " + S.border,
+        marginBottom: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        minHeight: 52,
+      }}
+    >
+      {/* Spacer invisible — mismo ancho que el bloque real de la derecha */}
+      <div style={{ width: rightW, flexShrink: 0 }} aria-hidden="true" />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, overflow: "hidden" }}>
+        {/* Ícono 0.5× más grande (44 → 66) y wordmark 0.3× más grande (150 → 195),
+            corrido levemente a la derecha (marginLeft 4px) respecto del ícono —
+            pedido explícito de Lucas con screenshots reales de celular. */}
+        <img src={ICON} width={66} height={66} alt="DI" style={{ display: "block", flexShrink: 1, minWidth: 0 }} />
+        <DIWordmark
+          width={195}
+          style={{ color: S.white, width: "clamp(109px, 44vw, 195px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0, marginLeft: 4 }}
+        />
+      </div>
+      <div ref={rightRef} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <button
+          onClick={toggleTheme}
+          title={darkMode ? "Modo claro" : "Modo oscuro"}
+          style={{ ...btnBase, padding: "5px 9px", fontSize: 13 }}
+        >
+          {darkMode ? "☀️" : "🌙"}
+        </button>
+        <button onClick={onSalir} style={{ ...btnBase, padding: "5px 10px", fontSize: 11 }}>
+          {salirLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const ALUMNOS_INIT = [];
 
 // Lista de ejercicios predefinidos para autocompletado
@@ -387,6 +481,78 @@ function VideoUploadButton({ onVideoUrl }) {
     </div>
   );
 }
+// ── GIF MANUAL (ronda 12, punto 9) ──────────────────────────────────────
+// Selector de GIF de public/ejercicios/ para asociar a mano cuando el
+// lookup automático por nombre (ejerciciosMedia.js) no encuentra match.
+// Se usa acá en EjercicioEditor (Principales/Movilidad/etc, por alumno) Y en
+// la pantalla Biblioteca — MISMO componente en los dos lados.
+function GifPicker({ nombre, value, onChange }) {
+  const autoMatch = getEjercicioGif(nombre);
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>
+        GIF MANUAL {autoMatch && !value ? "(ya hay uno automático por nombre)" : ""}
+      </div>
+      <select value={value || ""} onChange={(e) => onChange(e.target.value)} style={inp}>
+        <option value="">
+          {autoMatch ? "— Automático (por nombre) —" : "— Sin GIF —"}
+        </option>
+        {GIFS_DISPONIBLES.map((g) => (
+          <option key={g.slug} value={g.path}>{g.label}</option>
+        ))}
+      </select>
+      {value && (
+        <div style={{ marginTop: 6, background: "#fff", borderRadius: 6, padding: "6px 0", textAlign: "center" }}>
+          <img src={value} alt="" style={{ width: 64, height: 64, objectFit: "contain" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+// Buscador con autocomplete desde la biblioteca (ronda 12, punto 7): se usa
+// tanto para editar un ejercicio existente como para AGREGAR uno nuevo — el
+// buscador sugiere ejercicios EXISTENTES (con su código, si tienen) y
+// permite crear uno nuevo si no existe (simplemente tipeando un nombre que
+// no matchea nada y guardando).
+function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputChange, onSelect }) {
+  return (
+    <div style={{ position: "relative", marginBottom: 8 }}>
+      <input
+        value={value}
+        onChange={(e) => onInputChange(e.target.value)}
+        onBlur={() => setTimeout(() => setShowSugs(false), 150)}
+        onFocus={() => value.length >= 2 && sugs.length > 0 && setShowSugs(true)}
+        placeholder="Escribí para buscar o crear uno nuevo..."
+        style={inp}
+        autoComplete="off"
+      />
+      {showSugs && sugs.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, zIndex: 50, maxHeight: 260, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+          {sugs.map((sug, i) => (
+            <div
+              key={i}
+              onMouseDown={() => onSelect(sug)}
+              style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#252525")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              {sug.codigo && (
+                <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                  {sug.codigo}
+                </span>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
+                {sug.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
+              </div>
+              {sug.video && <div style={{ color: S.green, fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>▶ VIDEO</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 // ── EJERCICIO EDITOR ──────────────────────────────────────────────────
 // onGuardarParaTodos (ronda 11, opcional): si se pasa, en modo edición
 // aparece un segundo botón "GUARDAR PARA TODOS" además del "GUARDAR" de
@@ -394,9 +560,10 @@ function VideoUploadButton({ onVideoUrl }) {
 // TODOS" además actualiza el maestro (biblioteca_ejercicios) y propaga el
 // cambio a todos los alumnos que tengan este mismo ejercicio — ver
 // propagarEjercicioATodos en services/supabase.js.
+// gif (ronda 12): asociación manual — ver GifPicker arriba.
 function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos }) {
   const [editIdx, setEditIdx] = useState(null);
-  const [form, setForm] = useState({ nombre: "", desc: "", video: "", mediaLocal: "" });
+  const [form, setForm] = useState({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
   const [sugs, setSugs] = useState([]); // sugerencias de biblioteca activas
   const [showSugs, setShowSugs] = useState(false);
   const [propagando, setPropagando] = useState(false);
@@ -408,17 +575,18 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
       desc: items[i].desc,
       video: items[i].video || "",
       mediaLocal: items[i].mediaLocal || "",
+      gif: items[i].gif || "",
     });
     setSugs([]); setShowSugs(false);
   };
   const startNew = () => {
     setEditIdx(-1);
-    setForm({ nombre: "", desc: "", video: "", mediaLocal: "" });
+    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
     setSugs([]); setShowSugs(false);
   };
   const cancel = () => {
     setEditIdx(null);
-    setForm({ nombre: "", desc: "", video: "", mediaLocal: "" });
+    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
     setSugs([]); setShowSugs(false);
   };
   const save = () => {
@@ -427,9 +595,9 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     if (editIdx === -1) updated.push({ ...form, id: uid(), historial: [] });
     else updated[editIdx] = { ...updated[editIdx], ...form };
     onChange(updated);
-    // Auto-guardar en biblioteca si tiene video
-    if (form.video && onGuardarBiblioteca) {
-      onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video });
+    // Auto-guardar en biblioteca si tiene video o GIF manual
+    if ((form.video || form.gif) && onGuardarBiblioteca) {
+      onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video, gif: form.gif });
     }
     cancel();
   };
@@ -441,8 +609,8 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     const updated = [...items];
     updated[editIdx] = { ...updated[editIdx], ...form };
     onChange(updated);
-    if (form.video && onGuardarBiblioteca) {
-      onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video });
+    if ((form.video || form.gif) && onGuardarBiblioteca) {
+      onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video, gif: form.gif });
     }
     setPropagando(true);
     try {
@@ -496,36 +664,14 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
             <div>
               {" "}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>NOMBRE</div>{" "}
-              <div style={{ position: "relative", marginBottom: 8 }}>
-                <input
-                  value={form.nombre}
-                  onChange={(e) => handleNombreChange(e.target.value)}
-                  onBlur={() => setTimeout(() => setShowSugs(false), 150)}
-                  onFocus={() => form.nombre.length >= 2 && sugs.length > 0 && setShowSugs(true)}
-                  placeholder="Escribí para buscar..."
-                  style={inp}
-                  autoComplete="off"
-                />
-                {showSugs && sugs.length > 0 && (
-                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, zIndex: 50, maxHeight: 260, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
-                    {sugs.map((sug, i) => (
-                      <div
-                        key={i}
-                        onMouseDown={() => selectSug(sug)}
-                        style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10 }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "#252525"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
-                          {sug.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
-                        </div>
-                        {sug.video && <div style={{ color: S.green, fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>▶ VIDEO</div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>{" "}
+              <BuscadorEjercicioNombre
+                value={form.nombre}
+                sugs={sugs}
+                showSugs={showSugs}
+                setShowSugs={setShowSugs}
+                onInputChange={handleNombreChange}
+                onSelect={selectSug}
+              />{" "}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>{" "}
               <textarea
                 value={form.desc}
@@ -547,6 +693,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   <VideoUploadButton
                     onVideoUrl={(url) => setForm((f) => ({ ...f, video: url }))}
                   />{" "}
+                  <GifPicker nombre={form.nombre} value={form.gif} onChange={(v) => setForm((f) => ({ ...f, gif: v }))} />
                 </>
               )}{" "}
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -691,10 +838,17 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
           {" "}
           <div style={{ color: S.white, fontWeight: 700, marginBottom: 10 }}>Nuevo ejercicio</div>{" "}
           <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>NOMBRE</div>{" "}
-          <input
+          {/* Punto 7 (ronda 12): mismo buscador con autocomplete de la
+              biblioteca que el de "editar" — sugiere ejercicios existentes
+              (con código) y permite crear uno nuevo tipeando un nombre que
+              no matchea nada. */}
+          <BuscadorEjercicioNombre
             value={form.nombre}
-            onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-            style={{ ...inp, marginBottom: 8 }}
+            sugs={sugs}
+            showSugs={showSugs}
+            setShowSugs={setShowSugs}
+            onInputChange={handleNombreChange}
+            onSelect={selectSug}
           />{" "}
           <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>{" "}
           <textarea
@@ -715,6 +869,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
               />{" "}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>O SUBIR FOTO / VIDEO</div>{" "}
               <MediaUploader media={form.mediaLocal} onMedia={(m) => setForm((f) => ({ ...f, mediaLocal: m }))} />{" "}
+              <GifPicker nombre={form.nombre} value={form.gif} onChange={(v) => setForm((f) => ({ ...f, gif: v }))} />
             </>
           )}{" "}
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
@@ -926,7 +1081,13 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
         )}{" "}
       </div>
       )}{" "}
-      {editDia ? (
+      {/* Ronda 12 (punto 7): el botón "✎ Editar" (renombrar día/subtítulo) se
+          saca cuando esto se usa desde Principales (ocultarAgregarDia) — ya
+          no tiene sentido con el sistema de códigos (el nombre del día/plan
+          se define al asignar el plan desde Planificación, no acá). Se
+          mantiene solo en el uso genérico de DiasEditor (fuera de
+          Principales), por si hace falta armar un plan a medida. */}
+      {!ocultarAgregarDia && (editDia ? (
         <div style={{ ...card, padding: 12, marginBottom: 12 }}>
           {" "}
           <input
@@ -990,7 +1151,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
             ✎ Editar
           </button>{" "}
         </div>
-      )}{" "}
+      ))}{" "}
       <EjercicioEditor items={d.ejercicios} onChange={updateEjs} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} />{" "}
     </div>
   );
@@ -1998,6 +2159,20 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
     }
   };
 
+  // Eliminar directamente un día ya creado, sin pasar por Planificación
+  // (punto 7, ronda 12). Solo aplica a planes REALES (no al sintético "Fijo",
+  // que no tiene fila propia en alumno_planes).
+  const eliminarDia = async (p) => {
+    if (p._sintetico) return;
+    if (!window.confirm(`¿Eliminar el día "${p.dia_semana}" (${p.nombre || "plan"}) de ${al.nombre}? Se pierde el plan asignado ese día.`)) return;
+    const ok = await eliminarPlanDia(al.id, p.dia_semana);
+    if (!ok) { showToast && showToast("Error al eliminar el día — revisá la consola"); return; }
+    const restantes = planes.filter((x) => x.id !== p.id);
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes: restantes } : a)));
+    if (selPlanId === p.id) setSelPlanId(restantes[0] && restantes[0].id);
+    showToast && showToast(`Día "${p.dia_semana}" eliminado ✓`);
+  };
+
   if (planes.length === 0)
     return (
       <div style={{ ...card, padding: 24, textAlign: "center" }}>
@@ -2019,14 +2194,25 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
         {planes.map((p) => {
           const activo = plan && p.id === plan.id;
           return (
-            <button
-              key={p.id}
-              onClick={() => setSelPlanId(p.id)}
-              style={{ background: activo ? S.white : S.card, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 8, padding: "7px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
-            >
-              <div>{p.dia_semana === "Fijo" ? "Todos los días" : p.dia_semana}</div>
-              <div style={{ fontSize: 9, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
-            </button>
+            <div key={p.id} style={{ position: "relative" }}>
+              <button
+                onClick={() => setSelPlanId(p.id)}
+                style={{ background: activo ? S.white : S.card, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 8, padding: "7px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+              >
+                <div>{p.dia_semana === "Fijo" ? "Todos los días" : p.dia_semana}</div>
+                <div style={{ fontSize: 9, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
+              </button>
+              {/* Punto 7: sacar un día directo desde acá, sin ir a Planificación */}
+              {!p._sintetico && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); eliminarDia(p); }}
+                  title={`Eliminar ${p.dia_semana}`}
+                  style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: S.red, color: "#fff", border: "none", fontSize: 9, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           );
         })}
         <button onClick={onIrPlanDia} style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer" }}>
@@ -2318,7 +2504,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
   );
 }
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
-function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) {
+function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect }) {
   const lunesStr = (() => {
     const d = new Date();
     const l = new Date(d);
@@ -2336,6 +2522,15 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
         style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 14 }}
       >
         Crear alumno
+      </button>
+
+      {/* Biblioteca de ejercicios — ronda 12: pantalla central independiente
+          de cualquier alumno puntual (punto 8). */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onBiblioteca(); }}
+        style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 14 }}
+      >
+        📚 Biblioteca de ejercicios
       </button>
 
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
@@ -2395,6 +2590,139 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onDeselect }) 
           </div>
         );
       })}
+    </div>
+  );
+}
+// ── BIBLIOTECA DE EJERCICIOS (ronda 12, punto 8) ────────────────────────
+// Pantalla central e independiente de cualquier alumno puntual: TODOS los
+// ejercicios de biblioteca_ejercicios, filtrables por categoría (derivada
+// del prefijo del código: M/E/C/P), cada uno clickeable para ver/editar
+// nombre, descripción, video y GIF manual. Reusa GifPicker/VideoUploadButton
+// (los mismos componentes que ya usa el editor de Principales) — no duplica
+// el editor de media.
+function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
+  const [filtro, setFiltro] = useState("todos");
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState(null);
+  const [form, setForm] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+
+  const CATS = [
+    ["todos", "Todos"],
+    ["M", "Movilidad"],
+    ["E", "Act. Elástico"],
+    ["C", "Entrada en calor"],
+    ["P", "Principales"],
+    ["otros", "Otros"],
+  ];
+  const prefijoDe = (b) => (b.codigo || "").match(/^[A-Z]+/)?.[0] || "";
+  const lista = (biblioteca || [])
+    .filter((b) => b.categoria !== "rehab")
+    .filter((b) => {
+      if (filtro === "todos") return true;
+      if (filtro === "otros") return !["M", "E", "C", "P"].includes(prefijoDe(b));
+      return prefijoDe(b) === filtro;
+    })
+    .filter((b) => !q.trim() || b.nombre.toLowerCase().includes(q.trim().toLowerCase()))
+    .sort((a, b) => (a.codigo || "zzz").localeCompare(b.codigo || "zzz"));
+
+  const abrir = (b) => {
+    setSel(b);
+    setForm({ nombre: b.nombre, desc: b.descripcion || "", video: b.video || "", gif: b.gif || "" });
+  };
+  const guardar = async () => {
+    if (!sel || !form.nombre.trim()) return;
+    setGuardando(true);
+    const ok = await actualizarEjercicioBibliotecaPorId(sel.id, form);
+    setGuardando(false);
+    if (ok) {
+      showToast && showToast("Ejercicio actualizado ✓");
+      onGuardado && onGuardado();
+      setSel(null);
+      setForm(null);
+    } else {
+      showToast && showToast("Error al guardar — revisá la consola");
+    }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 220, background: S.bg, overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ fontSize: 13, color: S.white, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>
+            📚 Biblioteca de ejercicios
+          </div>
+          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+
+        {sel ? (
+          <div style={{ ...card, padding: 14 }}>
+            <button onClick={() => { setSel(null); setForm(null); }} style={{ ...smallBtn(S.gray), marginBottom: 12 }}>
+              ← Volver a la lista
+            </button>
+            <div style={{ color: S.gray, fontSize: 11, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+              {sel.codigo && (
+                <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 6px", fontWeight: 800, color: S.gray }}>
+                  {sel.codigo}
+                </span>
+              )}
+              Editando ejercicio de la biblioteca central
+            </div>
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>NOMBRE</div>
+            <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>
+            <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical", marginBottom: 8 }} />
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>LINK YOUTUBE</div>
+            <input value={form.video} onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))} placeholder="https://youtube.com/watch?v=..." style={{ ...inp, marginBottom: 8 }} />
+            <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>O SUBIR VIDEO</div>
+            <VideoUploadButton onVideoUrl={(url) => setForm((f) => ({ ...f, video: url }))} />
+            <GifPicker nombre={form.nombre} value={form.gif} onChange={(v) => setForm((f) => ({ ...f, gif: v }))} />
+            <button
+              onClick={guardar}
+              disabled={guardando}
+              style={{ width: "100%", marginTop: 10, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, cursor: guardando ? "default" : "pointer", opacity: guardando ? 0.6 : 1 }}
+            >
+              {guardando ? "GUARDANDO..." : "GUARDAR"}
+            </button>
+          </div>
+        ) : (
+          <>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar ejercicio..." style={{ ...inp, marginBottom: 10 }} />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+              {CATS.map(([id, l]) => (
+                <button
+                  key={id}
+                  onClick={() => setFiltro(id)}
+                  style={{ background: filtro === id ? S.white : S.card, color: filtro === id ? S.bg : S.gray, border: "1px solid " + (filtro === id ? S.white : S.border), borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div style={{ color: S.gray, fontSize: 11, marginBottom: 10 }}>{lista.length} ejercicio(s)</div>
+            {lista.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => abrir(b)}
+                style={{ ...card, padding: "10px 12px", marginBottom: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+              >
+                {b.codigo && (
+                  <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 800, color: S.gray, flexShrink: 0 }}>
+                    {b.codigo}
+                  </span>
+                )}
+                <div style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {b.nombre}
+                </div>
+                {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 10, flexShrink: 0 }}>▶</div>}
+              </div>
+            ))}
+            {lista.length === 0 && (
+              <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 12 }}>Sin ejercicios en esta categoría</div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2580,6 +2908,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     [ne, setNe] = useState(""),
     [nfecha, setNfecha] = useState(""),
     [nmodalidad, setNmodalidad] = useState(""),
+    [ngenero, setNgenero] = useState(""),
     [ntipo, setNtipo] = useState("entrenamiento");
   // Fecha de evaluación POR ALUMNO (ronda 4): es la fecha en que el entrenador
   // evaluó a ESE alumno. Vive dentro del jsonb `rm` como `fecha_evaluacion` —
@@ -2620,6 +2949,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
+  const [showBiblioteca, setShowBiblioteca] = useState(false);
   // Visor "Todos los planes" (ronda 9): plantilla abierta en modal de lectura
   const [planVisor, setPlanVisor] = useState(null);
   const [editPin, setEditPin] = useState("");
@@ -2643,18 +2973,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       // Los rehab viejos sin modalidad guardada se muestran como "Rehabilitación"
       modalidad: al.modalidad || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
+      // Género (ronda 12): vive en rm.genero, no es columna de alumnos —
+      // se saca del form antes de spreadearlo (ver saveEdit).
+      genero: al.rm?.genero || "",
     });
   const saveEdit = () => {
     if (!form.nombre) return;
     // Normaliza el username a mayúsculas siempre, así el login (que compara
     // en mayúsculas) funciona sin importar cómo lo haya tipeado el admin.
-    const formNormalizado = { ...form, codigo: (form.codigo || "").toUpperCase() };
+    // "genero" NO es columna de alumnos (vive en rm.genero) — se saca del
+    // spread para no mandarlo como campo top-level al upsert.
+    const { genero, ...formSinGenero } = form;
+    const formNormalizado = { ...formSinGenero, codigo: (form.codigo || "").toUpperCase() };
     // Sincronizar tipo con la modalidad (ronda 7): "Rehabilitación" activa la
     // vista/plan de rehab; elegir otra modalidad lo vuelve a entrenamiento.
     // Si la modalidad quedó vacía, el tipo no se toca (datos viejos intactos).
     if (formNormalizado.modalidad === MODALIDAD_REHAB) formNormalizado.tipo = "rehabilitacion";
     else if (formNormalizado.modalidad) formNormalizado.tipo = "entrenamiento";
-    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado } : a)));
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado, rm: { ...a.rm, genero: genero || undefined } } : a)));
     setForm(null);
   };
   const eliminarAlumno = async () => {
@@ -2886,6 +3222,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         modalidad: nuevoAl.modalidad || nmodalidad || "",
         // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
         horarios: Object.keys(ndias).filter((d) => ndias[d]).map((d) => ({ dia: d, hora: "" })),
+        // Género (ronda 12): sin migración, vive en rm.genero — mismo patrón
+        // que movilidad_default/secciones_config. Se guarda solo con el
+        // autosave normal de alumnos (onUpdate → guardarDatos).
+        rm: { ...(nuevoAl.rm || {}), genero: ngenero || undefined },
         plan: JSON.parse(JSON.stringify(tpl)),
         planes: [],
         plantilla_id: null,
@@ -2920,6 +3260,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNe("");
       setNfecha("");
       setNmodalidad("");
+      setNgenero("");
       setNtipo("entrenamiento");
       setNtemplate("bilateral");
       setNdias({});
@@ -2934,14 +3275,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       _creandoAlumno.current = false;
     }
   };
+  // "__sin_plan__" (ronda 12, punto 7): sentinel — NO es una plantilla real de
+  // PLANTILLAS, asigna un plan vacío A PROPÓSITO (fila real en alumno_planes,
+  // nombre "Sin plan", sin días/ejercicios). Distinto de no tener fila:
+  // permite dejar un día deliberadamente sin contenido en vez de sacarlo.
   const asignarPlanDia = async (plantillaId) => {
     if (!selectedDia || !al) return;
-    const plantilla = getPlantilla(plantillaId);
+    const esSinPlan = plantillaId === "__sin_plan__";
+    const plantilla = esSinPlan ? { nombre: "Sin plan", plan: { dias: [], movilidad: [], calor: [], activacion: [], periodizacion: [] } } : getPlantilla(plantillaId);
     // REEMPLAZO, no solapamiento (bug ronda 4): si el día ya tiene un plan,
     // confirmar y reemplazarlo — crearPlanAlumno borra el previo en la base.
     const existente = (al.planes || []).find((p) => p.dia_semana === selectedDia && !p._sintetico);
     if (existente && !window.confirm(`${selectedDia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${plantilla.nombre}"?`)) return;
-    const tpl = clonarPlan(plantilla.plan);
+    const tpl = esSinPlan ? plantilla.plan : clonarPlan(plantilla.plan);
     try {
       const result = await crearPlanAlumno(al.id, selectedDia, { ...tpl, nombre: plantilla.nombre });
       if (result.ok) {
@@ -2959,6 +3305,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       console.error("[asignarPlanDia]", e);
       showToast && showToast("Error: " + e.message);
     }
+  };
+  // Eliminar directamente el plan de un día desde Planificación (punto 7).
+  const quitarDia = async (dia) => {
+    if (!al) return;
+    if (!window.confirm(`¿Eliminar el plan de "${dia}" de ${al.nombre}? El día deja de tener plan (distinto de "Sin plan").`)) return;
+    const ok = await eliminarPlanDia(al.id, dia);
+    if (!ok) { showToast && showToast("Error al eliminar — revisá la consola"); return; }
+    const alumnoActualizado = { ...al, planes: await cargarPlanesXDia(al.id, al) };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? alumnoActualizado : a)));
+    setSelectedDia(null);
+    showToast && showToast(`Plan de "${dia}" eliminado ✓`);
   };
   const secBtn = (l, k) => (
     <button
@@ -3089,14 +3446,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
       </div>{" "}
       {/* 3) ...y los submenús cuelgan del alumno elegido — ronda 9: TRES
-          grupos grandes (Ejercicios · Planificación · Reportes) */}
+          grupos grandes (Ejercicios · Planificación · Reportes). Ronda 12:
+          NO se muestran en el Dashboard (sin alumno elegido todavía) — recién
+          aparecen al entrar a la sección "Alumno" (o cualquier otra distinta
+          de Dashboard, ej. tras tocar un alumno desde la lista). */}
+      {sec !== "dashboard" && (
       <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
         {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
           <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
             {l}
           </button>
         ))}
-      </div>{" "}
+      </div>
+      )}{" "}
       <div style={{ padding: "0 16px" }}>
         {" "}
         {sec === "dashboard" && (
@@ -3118,8 +3480,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 showToast && showToast(`${nombre} eliminado.`);
               }}
               onNuevo={() => setShowCrearAlumno((v) => !v)}
+              onBiblioteca={() => setShowBiblioteca(true)}
               onDeselect={() => setSelId(null)}
             />
+
+            {/* Biblioteca de ejercicios — pantalla aparte (punto 8, ronda 12) */}
+            {showBiblioteca && (
+              <BibliotecaScreen
+                biblioteca={biblioteca}
+                onGuardado={onBibliotecaRefresh}
+                showToast={showToast}
+                onClose={() => setShowBiblioteca(false)}
+              />
+            )}
 
             {/* Formulario nuevo alumno — PANTALLA APARTE (modal, ronda 9):
                 antes era inline y la página quedaba larguísima */}
@@ -3167,6 +3540,26 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     })}
                   </div>
                   {!nmodalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
+                </div>
+                {/* Género (ronda 12): pill simple M/F — define el saludo de la
+                    Bienvenida ("¡Bienvenido!" / "¡Bienvenida!"). Sin setear
+                    queda el fallback neutro de siempre. */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Género</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {[["M", "Hombre"], ["F", "Mujer"]].map(([id, l]) => {
+                      const activa = ngenero === id;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => setNgenero(activa ? "" : id)}
+                          style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                        >
+                          {activa ? "✓ " : ""}{l}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento</div>
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá los días que entrena — a cada día le podés poner un plan distinto.</div>
@@ -3304,6 +3697,25 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       })}
                     </div>
                     {!form.modalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
+                  </div>
+
+                  {/* Género (ronda 12): define el saludo de la Bienvenida */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Género</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      {[["M", "Hombre"], ["F", "Mujer"]].map(([id, l]) => {
+                        const activa = (form.genero || "") === id;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => setForm((f) => ({ ...f, genero: activa ? "" : id }))}
+                            style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                          >
+                            {activa ? "✓ " : ""}{l}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Cambiar clave */}
@@ -3572,27 +3984,23 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
             {planTab === "movilidad" && al && (
               <>
-                {/* Movilidad predeterminada del alumno: con cuál versión arranca */}
-                <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                    Movilidad predeterminada — {al.nombre}
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
+                {/* Ronda 12: mismo control que ve el alumno (n4Track/chipN4 de
+                    PlanDelDia.jsx) en vez del selector con estilo propio y la
+                    palabra "predeterminada" — visualmente es EL MISMO
+                    selector, acá además setea la preferencia default. */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ ...n4Track(), justifyContent: "center" }}>
                     {[["superrapida", "Superrápida"], ["corta", "Corta"], ["completa", "Completa"]].map(([id, l]) => {
                       const activa = (al.rm?.movilidad_default || "completa") === id;
                       return (
-                        <button
-                          key={id}
-                          onClick={() => setMoviDefault(id)}
-                          style={{ flex: 1, background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "9px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                        >
-                          {activa ? "✓ " : ""}{l}
+                        <button key={id} onClick={() => setMoviDefault(id)} style={chipN4(activa)}>
+                          {l}
                         </button>
                       );
                     })}
                   </div>
-                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>
-                    Es la versión con la que el alumno arranca al entrar — después puede cambiarla en el momento.
+                  <div style={{ fontSize: 10, color: S.lgray, textAlign: "center", marginTop: 6 }}>
+                    Con cuál versión arranca {al.nombre} al entrar — puede cambiarla en el momento.
                   </div>
                 </div>
                 <EjercicioEditor
@@ -3677,6 +4085,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         </div>
                         {isSelected && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                            {/* "Sin plan" (punto 7, ronda 12): asigna un plan
+                                VACÍO a propósito — el día queda registrado
+                                pero sin ejercicios. */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); asignarPlanDia("__sin_plan__"); }}
+                              style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                            >
+                              Sin plan
+                            </button>
                             {PLANTILLAS.map((p) => (
                               <button
                                 key={p.id}
@@ -3695,6 +4112,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                                 {p.nombre}
                               </button>
                             ))}
+                            {/* Eliminar el día directamente, sin asignar nada nuevo */}
+                            {planActual && !planActual._sintetico && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); quitarDia(dia); }}
+                                style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                              >
+                                ✕ Quitar día
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -4412,14 +4838,28 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
     </div>
   );
 }
-// ── PANTALLA BIENVENIDA (rediseño ronda 11) ─────────────────────────────
+// ── PANTALLA BIENVENIDA (rediseño ronda 11, saludo por género ronda 12) ──
 // Ya NO lleva logo/ícono (ni girando ni estático) — arranca directo con la
-// foto del alumno. Sin campo `genero` en la base (verificado, no existe),
-// el saludo usa una forma neutra que funciona para ambos: "¡Bienvenido/a!".
+// foto del alumno. Género vive en rm.genero ('M'/'F', ronda 12 — mismo
+// patrón sin-migración que movilidad_default/secciones_config, editable
+// desde el admin en alta y edición de alumno); sin setear usa el fallback
+// neutro "¡Bienvenido/a!" de siempre.
 function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
   const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
   const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
-  const diasPlan = ((plan && plan.dias) || []).map((d) => d.dia).filter(Boolean);
+  const genero = alumno.rm?.genero;
+  const saludo = genero === "M" ? "¡Bienvenido!" : genero === "F" ? "¡Bienvenida!" : "¡Bienvenido/a!";
+  // BUG (ronda 12): acá se leía plan.dias (los sub-días DENTRO de un plan —
+  // "Sesion", o "Día 1"/"Día 2"/"Día 3" en un PPL) en vez de los días de la
+  // SEMANA que el alumno realmente entrena (Lunes/Martes/...). Con un plan
+  // de un solo día siempre decía "Entrenás los: Sesion". Los días reales son
+  // los mismos que se ven en pill arriba de la ficha del alumno en el admin:
+  // alumno.horarios (ver AdminPanel, sección "Días de entrenamiento").
+  const ORDEN_DIAS_SEM = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7 };
+  const diasPlan = [...(alumno.horarios || [])]
+    .map((h) => h.dia)
+    .filter(Boolean)
+    .sort((a, b) => (ORDEN_DIAS_SEM[a] || 9) - (ORDEN_DIAS_SEM[b] || 9));
   return (
     <>
       {" "}
@@ -4444,7 +4884,7 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
 
         {/* 2. Saludo al doble de grande (13px → 26px) + 3. primer nombre solo */}
         <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 18 }}>
-          <div style={{ color: S.white, fontWeight: 900, fontSize: 26 }}>¡Bienvenido/a!</div>
+          <div style={{ color: S.white, fontWeight: 900, fontSize: 26 }}>{saludo}</div>
           <div style={{ color: S.green, fontWeight: 800, fontSize: 20, marginTop: 4 }}>{primerNombre}</div>
         </div>
 
@@ -4900,71 +5340,9 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header — ronda 11: FIX de la superposición reportada (el lockup
-            invadía el bloque tema+Salir en ~375px de ancho, medido con
-            getBoundingClientRect: a 375px el wordmark llegaba a x=289.75
-            pero el bloque de botones ya arrancaba en x=269 → ~21px de
-            solape). La ronda 10 centraba el lockup con position:absolute +
-            justifyContent:center sobre el 100% del contenedor, ignorando
-            por completo el ancho real del bloque de botones — por eso
-            volvía a solaparse en pantallas angostas.
-            Solución: layout de flex NORMAL (sin position:absolute), dos
-            items reales — el lockup en un contenedor flex:1 (minWidth:0)
-            que lo centra en el espacio disponible, y el bloque tema+Salir
-            como item de ancho natural al lado. Al ser flex real (no
-            absolute) el navegador GARANTIZA que nunca se pisan: si no
-            entra, el ícono/wordmark se encogen (flexShrink habilitado +
-            minWidth:0 en ambos), nunca invaden al vecino. */}{" "}
-        <div
-          style={{
-            padding: "10px 16px",
-            borderBottom: "1px solid " + S.border,
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            minHeight: 52,
-          }}
-        >
-          {" "}
-          <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, overflow: "hidden" }}>
-            <img src={ICON} width={44} height={44} alt="DI" style={{ display: "block", flexShrink: 1, minWidth: 0 }} />
-            <DIWordmark width={150} style={{ color: S.white, width: "clamp(84px, 34vw, 150px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }} />
-          </div>{" "}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{" "}
-          <button
-            onClick={toggleTheme}
-            title={darkMode ? "Modo claro" : "Modo oscuro"}
-            style={{
-              background: "transparent",
-              color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "5px 9px",
-              fontSize: 13,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            {darkMode ? "☀️" : "🌙"}
-          </button>{" "}
-          <button
-            onClick={modoEntrenador ? salirModoEntrenador : logout}
-            style={{
-              background: "transparent",
-              color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "5px 10px",
-              fontSize: 11,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            Salir
-          </button>{" "}
-          </div>{" "}
-        </div>{" "}
+        {/* Header — ronda 12: ver HeaderAlumno arriba del componente App para
+            el detalle del fix de centrado (spacer simétrico medido en vivo). */}
+        <HeaderAlumno darkMode={darkMode} toggleTheme={toggleTheme} onSalir={modoEntrenador ? salirModoEntrenador : logout} />{" "}
         {/* Perfil */}{" "}
         <div className="di-pop" style={{ margin: "0 16px 12px", ...card, padding: "13px 16px" }}>
           {" "}
