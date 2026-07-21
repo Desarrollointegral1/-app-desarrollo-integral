@@ -2148,7 +2148,7 @@ function HistorialAdmin({ al }) {
 // alta) con el plan que cada uno tiene, para retocar ejercicios puntuales.
 // Agregar un día nuevo queda como acción secundaria (deriva a Plan Día).
 const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7, Fijo: 8 };
-function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, onGuardarParaTodos, showToast, onIrPlanDia, initialPlanId }) {
+function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, onGuardarParaTodos, showToast, onIrPlanDia, initialPlanId, diasModo = "nombres", onSetDiasModo }) {
   const planes = [...(al.planes || [])].sort(
     (a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9),
   );
@@ -2226,11 +2226,40 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-        Días que entrena {al.nombre}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1 }}>
+          Días que entrena {al.nombre}
+        </div>
+        {/* Punto 9 (2026-07-21): modo de etiquetado de días para este
+            alumno — nombres reales o genérico "Día 1/Día 2/Día 3" (útil
+            para alumnos sin horario fijo). Se guarda en rm.dias_modo y lo
+            respeta el selector de día que ve el alumno en Principales. */}
+        {onSetDiasModo && (
+          <div style={{ display: "flex", gap: 2, background: S.card2, borderRadius: 6, padding: 2 }}>
+            {[["nombres", "Nombres"], ["numerico", "Día 1/2/3"]].map(([id, l]) => (
+              <button
+                key={id}
+                onClick={() => onSetDiasModo(id)}
+                title="Cómo ve el alumno el selector de día en Principales"
+                style={{
+                  background: diasModo === id ? S.white : "transparent",
+                  color: diasModo === id ? S.bg : S.gray,
+                  border: "none",
+                  borderRadius: 5,
+                  padding: "4px 8px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-        {planes.map((p) => {
+        {planes.map((p, pi) => {
           const activo = plan && p.id === plan.id;
           return (
             <div key={p.id} style={{ position: "relative" }}>
@@ -2238,7 +2267,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
                 onClick={() => setSelPlanId(p.id)}
                 style={{ background: activo ? S.white : S.card, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 8, padding: "7px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
               >
-                <div>{p.dia_semana === "Fijo" ? "Todos los días" : p.dia_semana}</div>
+                <div>{p.dia_semana === "Fijo" ? "Todos los días" : diasModo === "numerico" ? `Día ${pi + 1}` : p.dia_semana}</div>
                 <div style={{ fontSize: 9, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
               </button>
               {/* Punto 7: sacar un día directo desde acá, sin ir a Planificación */}
@@ -3044,6 +3073,18 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     setRm((r) => ({ ...r, [al.id]: { ...r[al.id], secciones_config: cfg } }));
     const rmNuevo = { ...(rm[al.id] || al.rm || {}), secciones_config: cfg };
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
+  };
+  // Modo de etiquetado de días por alumno (punto 9, 2026-07-21): "nombres"
+  // (Lunes/Miércoles/Viernes...) o "numerico" (Día 1/Día 2/Día 3... para
+  // alumnos sin horario fijo). Mismo patrón sin-migración que
+  // movilidad_default/secciones_config, vive en rm.dias_modo. Lo lee
+  // PlanDelDia.jsx (vista del alumno) en el selector de día de Principales.
+  const setDiasModo = (v) => {
+    if (!al) return;
+    setRm((r) => ({ ...r, [al.id]: { ...r[al.id], dias_modo: v } }));
+    const rmNuevo = { ...(rm[al.id] || al.rm || {}), dias_modo: v };
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
+    showToast && showToast(v === "numerico" ? "Días: Día 1 / Día 2 / Día 3…" : "Días: nombres reales");
   };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
@@ -4151,6 +4192,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 showToast={showToast}
                 onIrPlanDia={() => { setSec("planes"); setPlanesTab("plan-dias"); }}
                 initialPlanId={planFoco}
+                diasModo={(rm[al.id] && rm[al.id].dias_modo) || al.rm?.dias_modo || "nombres"}
+                onSetDiasModo={setDiasModo}
               />
             )}{" "}
             {planTab === "movilidad" && al && (
