@@ -144,15 +144,19 @@ export default function PlanDelDia({
     .filter((t) => t && !ocultas.includes(t.id));
   const prepActiva = PREP_TABS.find((t) => t.id === prep) || PREP_TABS[0] || null;
 
-  // Selector de día (Lunes/Miércoles/Viernes...) — SOLO aplica a Principales
-  // (Preparación es igual todos los días). Ronda 11: se ubica debajo de la
-  // ficha de stats, no arriba del todo.
+  // Selector de día (Lunes/Miércoles/Viernes... o Día 1/Día 2/Día 3...) —
+  // SOLO aplica a Principales (Preparación es igual todos los días). Ronda
+  // 11: se ubica debajo de la ficha de stats, no arriba del todo. Punto 9
+  // (2026-07-21): el admin elige por alumno el modo de etiquetado —
+  // rm.dias_modo === "numerico" muestra "Día 1/Día 2/..." en vez del
+  // nombre real del día (para alumnos sin horario fijo).
+  const diasModo = rm?.dias_modo === "numerico" ? "numerico" : "nombres";
   const SelectorDia = () =>
     planValido && plan.dias.length > 1 ? (
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         {plan.dias.map((d, i) => (
           <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(diaIdx === i), flex: 1 }}>
-            {d.dia}
+            {diasModo === "numerico" ? `Día ${i + 1}` : d.dia}
           </button>
         ))}
       </div>
