@@ -83,13 +83,6 @@ FORMATO:
   3. Invitación a contactar si es necesario`,
   };
 
-  private temperatures: Record<BrainDomain, number> = {
-    nutrition: 0.5,        // Más consistente (ciencia)
-    training: 0.6,         // Balance: info + motivación
-    physiotherapy: 0.4,    // Conservador (salud)
-    development: 0.7,      // Amigable, variedad
-  };
-
   constructor() {
     this.client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -118,12 +111,12 @@ FORMATO:
         : '';
 
       const systemPrompt = customPrompt || this.systemPrompts[domain];
-      const temperature = this.temperatures[domain];
 
+      // claude-opus-4-8 no acepta temperature/top_p/top_k (400) — el tono se controla por prompt.
       const response = await this.client.messages.create({
-        model: 'claude-opus-4-7',
-        max_tokens: 1024,
-        temperature,
+        model: 'claude-opus-4-8',
+        max_tokens: 16000,
+        thinking: { type: 'adaptive' },
         system: systemPrompt,
         messages: [
           {
@@ -133,7 +126,11 @@ FORMATO:
         ],
       });
 
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      // Con adaptive thinking el primer bloque puede ser "thinking" — buscar el bloque de texto.
+      const text = response.content
+        .filter((block) => block.type === 'text')
+        .map((block) => (block as { type: 'text'; text: string }).text)
+        .join('');
 
       // Calcular confianza basada en:
       // - Si hay documentos de referencia (0.5-0.9)
