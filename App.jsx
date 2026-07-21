@@ -2604,14 +2604,10 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
         Crear alumno
       </button>
 
-      {/* Biblioteca de ejercicios — ronda 12: pantalla central independiente
-          de cualquier alumno puntual (punto 8). */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onBiblioteca(); }}
-        style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 14 }}
-      >
-        📚 Biblioteca de ejercicios
-      </button>
+      {/* Biblioteca de ejercicios: reubicada 2026-07-21 como botón fijo
+          arriba de los tabs Dashboard/Alumno en AdminPanel (ver header) —
+          ya no vive acá adentro, ver onBiblioteca solo queda como prop
+          legacy sin uso directo en este componente. */}
 
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
         Todos los alumnos ({alumnos.length})
@@ -3504,38 +3500,53 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       }}
     >
       {" "}
-      <div
-        style={{
-          padding: "16px 16px 0",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 14,
-        }}
-      >
-        {" "}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src={ICON} width={28} height={28} alt="DI" style={{ opacity: 0.85 }} />
-          <div>
-            <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1.5, textTransform: "uppercase" }}>Panel Admin</div>
-            <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1 }}>Desarrollo Integral</div>
+      {/* Header en 2 filas (2026-07-21, pedido de Lucas sobre un screenshot
+          de mobile: antes título + botones compartían un renglón con
+          justify-content:space-between y "Panel Admin"/"Desarrollo Integral"
+          apilados verticalmente — en 375px el título se partía en 2 líneas
+          y los 5 botones se apretaban/desbordaban contra él).
+          Fila 1: logo + título, todo en una sola línea horizontal.
+          Fila 2 (renglón propio): los 5 botones de acción. */}
+      <div style={{ padding: "16px 16px 0", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, minWidth: 0 }}>
+          <img src={ICON} width={24} height={24} alt="DI" style={{ opacity: 0.85, flexShrink: 0 }} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 6,
+              minWidth: 0,
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ color: S.white, fontWeight: 800, fontSize: "clamp(11px, 3.4vw, 14px)", letterSpacing: 1.2, textTransform: "uppercase" }}>
+              Panel Admin
+            </span>
+            <span style={{ color: S.gray, fontSize: "clamp(9px, 2.6vw, 11px)", letterSpacing: 1, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis" }}>
+              · Desarrollo Integral
+            </span>
           </div>
-        </div>{" "}
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        </div>
+        <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
           {/* Modo entrenador (ronda 9) — al lado del toggle de tema */}
           <button
             onClick={onModoEntrenador}
             title="Modo entrenador: operar la app como un alumno"
             style={{
+              flex: 1,
+              minWidth: 0,
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border,
               borderRadius: 6,
-              padding: "5px 9px",
-              fontSize: 11,
+              padding: "6px 4px",
+              fontSize: "clamp(9px, 2.4vw, 11px)",
               fontWeight: 700,
               cursor: "pointer",
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             🏋️ Entrenador
@@ -3546,15 +3557,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             onClick={() => setShowArmador(true)}
             title="Armador de planes: catálogo completo con carrito, pensado para computadora"
             style={{
+              flex: 1,
+              minWidth: 0,
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border,
               borderRadius: 6,
-              padding: "5px 9px",
-              fontSize: 11,
+              padding: "6px 4px",
+              fontSize: "clamp(9px, 2.4vw, 11px)",
               fontWeight: 700,
               cursor: "pointer",
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             🖥 Armador
@@ -3564,11 +3579,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             title={darkMode ? "Modo claro" : "Modo oscuro"}
             aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
             style={{
+              flexShrink: 0,
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border,
               borderRadius: 6,
-              padding: "5px 9px",
+              padding: "6px 9px",
               fontSize: 12,
               cursor: "pointer",
               lineHeight: 1,
@@ -3580,11 +3596,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             onClick={() => { setSec("config"); setForm(null); }}
             title="Configuración"
             style={{
+              flexShrink: 0,
               background: sec === "config" ? S.white : "transparent",
               color: sec === "config" ? S.bg : S.gray,
               border: "1px solid " + (sec === "config" ? S.white : S.border),
               borderRadius: 6,
-              padding: "5px 9px",
+              padding: "6px 9px",
               fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
@@ -3595,19 +3612,34 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           <button
             onClick={onClose}
             style={{
+              flexShrink: 0,
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border,
               borderRadius: 6,
-              padding: "5px 10px",
-              fontSize: 11,
+              padding: "6px 8px",
+              fontSize: "clamp(9px, 2.4vw, 11px)",
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             Cerrar
           </button>
-        </div>{" "}
+        </div>
       </div>{" "}
+      {/* Biblioteca de ejercicios — reubicada arriba de todo (2026-07-21,
+          pedido de Lucas): antes vivía adentro del Dashboard, después de
+          "Crear alumno" y bien abajo. Ahora es fija, visible sin importar
+          el tab (Dashboard/Alumno), justo debajo de la fila de botones y
+          arriba de los tabs. */}
+      <div style={{ padding: "0 16px", marginBottom: 14 }}>
+        <button
+          onClick={() => setShowCatalogo(true)}
+          style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}
+        >
+          📚 Biblioteca de ejercicios
+        </button>
+      </div>
       {/* 1) Pestañas principales */}
       <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 10 }}>
         {secBtn("Dashboard", "dashboard")}
@@ -3626,7 +3658,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           NO se muestran en el Dashboard (sin alumno elegido todavía) — recién
           aparecen al entrar a la sección "Alumno" (o cualquier otra distinta
           de Dashboard, ej. tras tocar un alumno desde la lista). */}
-      {sec !== "dashboard" && (
+      {/* Bug M (2026-07-21): estos 3 tabs son del contexto "alumno seleccionado"
+          (Ejercicios/Planificación/Reportes) — antes aparecían también en
+          Configuración porque la condición solo excluía "dashboard". */}
+      {sec !== "dashboard" && sec !== "config" && (
       <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
         {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
           <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
