@@ -34,6 +34,9 @@ import {
   crearPlanAlumno,
   actualizarPlanAlumnoDias,
   cargarPlanesXDia,
+  validarCodigoDisponible,
+  renombrarCodigoEjercicio,
+  crearEjercicioCatalogo,
 } from "../../services/supabase.js";
 
 const PAGE = 60;
@@ -84,6 +87,80 @@ function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe }) {
             +{valores.length - LIMITE} más
           </Chip>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Editor de tags/músculos con "predeterminado" (punto 4, 2026-07-21): lista
+// de chips editable (agregar/sacar) + un ☆/★ para marcar cuál es el
+// principal. Se usa para músculos (target + secondary) y para tags
+// (equipment + libres).
+function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder }) {
+  const [nuevo, setNuevo] = useState("");
+  const add = () => {
+    const v = nuevo.trim();
+    if (!v || items.includes(v)) { setNuevo(""); return; }
+    const next = [...items, v];
+    onChange(next);
+    if (!defaultItem) onChangeDefault(v);
+    setNuevo("");
+  };
+  const remove = (v) => {
+    const next = items.filter((x) => x !== v);
+    onChange(next);
+    if (defaultItem === v) onChangeDefault(next[0] || "");
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
+        {items.length === 0 && <span style={{ fontSize: 11, color: S.lgray }}>Sin ninguno todavía</span>}
+        {items.map((v) => {
+          const esDefault = v === defaultItem;
+          return (
+            <span
+              key={v}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: esDefault ? S.white : S.card2,
+                color: esDefault ? S.bg : S.white,
+                border: "1px solid " + S.border,
+                borderRadius: 20,
+                padding: "3px 6px 3px 9px",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            >
+              <button
+                onClick={() => onChangeDefault(v)}
+                title="Marcar como predeterminado"
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, fontSize: 11, color: esDefault ? S.bg : S.gray, lineHeight: 1 }}
+              >
+                {esDefault ? "★" : "☆"}
+              </button>
+              {v}
+              <button
+                onClick={() => remove(v)}
+                title="Quitar"
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 2px", color: esDefault ? S.bg : S.gray, fontSize: 12, lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          value={nuevo}
+          onChange={(e) => setNuevo(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          placeholder={placeholder}
+          style={{ ...inp, flex: 1, padding: "6px 10px", fontSize: 12 }}
+        />
+        <button onClick={add} style={{ ...smallBtn(S.gray), padding: "6px 12px" }}>+ Agregar</button>
       </div>
     </div>
   );
@@ -147,6 +224,8 @@ export default function CatalogoExplorer({
   const [detalle, setDetalle] = useState(null); // item abierto
   const [form, setForm] = useState(null); // edición del detalle
   const [guardando, setGuardando] = useState(false);
+  const [creando, setCreando] = useState(false); // true = flujo "Crear ejercicio nuevo" (punto 4)
+  const [codigoError, setCodigoError] = useState(""); // validación de código duplicado (punto 5)
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   // carrito (modo armador)
   const [carrito, setCarrito] = useState([]);
@@ -177,7 +256,11 @@ export default function CatalogoExplorer({
     if (!cat) return [];
     const qq = q.toLowerCase().trim();
     return cat.filter((e) => {
+      // Punto 4: en Principales (★ Principales DI) solo se listan los que
+      // tienen media real (gif o video propio) — el resto queda en el
+      // catálogo general pero no como opción utilizable para armar planes.
       if (soloDI && !e.codigo_di) return false;
+      if (soloDI && !e.gif_url && !e.video) return false;
       if (fCat.size && !fCat.has(e.categoria)) return false;
       if (fEq.size && !fEq.has(e.equipment)) return false;
       if (fTg.size && !fTg.has(e.target)) return false;
@@ -205,22 +288,92 @@ export default function CatalogoExplorer({
     ...(soloDI ? [{ v: "di", l: "Principales DI", del: () => setSoloDI(false) }] : []),
   ];
 
+  // Punto 4: músculos/tags editables con "predeterminado". Si el ejercicio
+  // todavía no tiene las columnas nuevas (musculos/tags, migración 017)
+  // se inicializan desde los datos del dataset (target+secondary,
+  // equipment) la primera vez que se abre el detalle — sin perder nada.
   const abrirDetalle = (e) => {
+    setCreando(false);
     setDetalle(e);
-    setForm({ nombre_es: e.nombre_es, instrucciones_es: e.instrucciones_es || "", video: e.video || "" });
+    const musculosIniciales = Array.isArray(e.musculos) && e.musculos.length > 0
+      ? e.musculos
+      : [e.target_es, ...(e.secondary_muscles_es || [])].filter(Boolean);
+    const tagsIniciales = Array.isArray(e.tags) && e.tags.length > 0
+      ? e.tags
+      : [e.equipment_es].filter(Boolean);
+    setForm({
+      nombre_es: e.nombre_es,
+      instrucciones_es: e.instrucciones_es || "",
+      video: e.video || "",
+      codigo_di: e.codigo_di || "",
+      musculos: musculosIniciales,
+      musculo_default: e.musculo_default || e.target_es || musculosIniciales[0] || "",
+      tags: tagsIniciales,
+      tag_default: e.tag_default || e.equipment_es || tagsIniciales[0] || "",
+    });
+    setCodigoError("");
+  };
+
+  // Flujo "Crear ejercicio nuevo" (punto 4): único lugar donde se sube
+  // media propia para un ítem del catálogo — editar uno existente no
+  // toca su media.
+  const abrirNuevo = () => {
+    setCreando(true);
+    setDetalle({ id: null, custom: true });
+    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", musculos: [], musculo_default: "", tags: [], tag_default: "" });
+    setCodigoError("");
   };
 
   const guardarDetalle = async () => {
     if (!detalle || !form || !form.nombre_es.trim()) return;
+    // Punto 5: validar que el código no esté en uso por OTRO ejercicio
+    // antes de guardar (sin auto-reordenar el resto del grupo).
+    const codigoLimpio = (form.codigo_di || "").trim().toUpperCase();
+    if (codigoLimpio) {
+      const disponible = await validarCodigoDisponible(codigoLimpio, detalle.id);
+      if (!disponible) {
+        setCodigoError(`El código "${codigoLimpio}" ya lo tiene otro ejercicio`);
+        return;
+      }
+    }
+    setCodigoError("");
     setGuardando(true);
-    const ok = await guardarEjercicioCatalogo(detalle.id, {
+    // target_es/equipment_es (los campos que usa la card del grid y el
+    // dataset original) se mantienen en sync con el músculo/tag
+    // predeterminado — así la tarjeta no queda mostrando un dato viejo
+    // después de cambiar el ★ en el editor.
+    const payload = {
       nombre_es: form.nombre_es.trim(),
       instrucciones_es: form.instrucciones_es,
-      video: form.video || "",
-    });
+      codigo_di: codigoLimpio || null,
+      musculos: form.musculos,
+      musculo_default: form.musculo_default,
+      tags: form.tags,
+      tag_default: form.tag_default,
+      target_es: form.musculo_default || form.musculos[0] || "",
+      secondary_muscles_es: form.musculos.filter((m) => m !== form.musculo_default),
+      equipment_es: form.tag_default || form.tags[0] || "",
+    };
+    if (creando) {
+      const creado = await crearEjercicioCatalogo({ ...payload, video: form.video || "" });
+      setGuardando(false);
+      if (!creado) { showToast && showToast("Error creando — revisá la consola"); return; }
+      setCat((prev) => [...(prev || []), creado]);
+      showToast && showToast("Ejercicio creado ✓");
+      setDetalle(null);
+      setCreando(false);
+      return;
+    }
+    // Editando uno existente: si el código cambió, propagar a los planes
+    // de alumnos y a biblioteca_ejercicios que ya usaban el código viejo.
+    const codigoViejo = detalle.codigo_di || "";
+    if (codigoLimpio && codigoLimpio !== codigoViejo && codigoViejo) {
+      await renombrarCodigoEjercicio(codigoViejo, codigoLimpio);
+    }
+    const ok = await guardarEjercicioCatalogo(detalle.id, payload);
     setGuardando(false);
     if (!ok) { showToast && showToast("Error guardando — revisá la consola"); return; }
-    setCat((prev) => prev.map((e) => (e.id === detalle.id ? { ...e, ...form, editado: true } : e)));
+    setCat((prev) => prev.map((e) => (e.id === detalle.id ? { ...e, ...payload, editado: true } : e)));
     showToast && showToast("Ejercicio guardado ✓");
     setDetalle(null);
   };
@@ -310,6 +463,11 @@ export default function CatalogoExplorer({
       <div style={{ marginBottom: 14 }}>
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
       </div>
+      {/* Punto 4: único lugar donde se sube media propia — crear un
+          ejercicio nuevo, no editar uno existente. */}
+      <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), width: "100%", marginBottom: 14, fontWeight: 800 }}>
+        ＋ Crear ejercicio nuevo
+      </button>
       <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} />
       <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} />
       <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} />
@@ -471,10 +629,13 @@ export default function CatalogoExplorer({
     <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: "14px 16px" }}>
       {/* header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase" }}>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase", flex: 1 }}>
           {modo === "armador" ? "🖥 Armador de planes" : "📚 Biblioteca de ejercicios"}
         </div>
-        <div style={{ fontSize: 10, color: S.lgray, flex: 1 }}>© Gym visual — gymvisual.com</div>
+        {/* Punto 4 (2026-07-21): se saca el crédito "© Gym visual —
+            gymvisual.com" de la UI visible al usuario (acá y en el detalle
+            del ejercicio, más abajo). Los términos de licencia siguen
+            documentados en NOTICE.md, solo se deja de mostrar en pantalla. */}
         {!isWide && (
           <button onClick={() => setMostrarFiltros((v) => !v)} style={smallBtn(S.gray)}>
             {mostrarFiltros ? "Ocultar filtros" : "Filtros"}
@@ -491,53 +652,80 @@ export default function CatalogoExplorer({
 
       {/* detalle */}
       {detalle && form && (
-        <div onClick={() => setDetalle(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div onClick={() => { setDetalle(null); setCreando(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {detalle.codigo_di && (
-                  <span style={{ background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 4, fontSize: 10, fontWeight: 800, padding: "2px 6px" }}>{detalle.codigo_di}</span>
-                )}
-                {detalle.grupo_di && (
-                  <span style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{detalle.grupo_di}</span>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: 13, letterSpacing: 1, textTransform: "uppercase" }}>
+                {creando ? "＋ Crear ejercicio nuevo" : "Editar ejercicio"}
+              </div>
+              <button onClick={() => { setDetalle(null); setCreando(false); }} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+            {/* media: SOLO se muestra/edita en el flujo de crear nuevo — editar
+                un ejercicio existente del catálogo no reemplaza su media
+                (punto 4). Para uno existente se ve la media actual de solo
+                lectura arriba, sin uploader. */}
+            {!creando && (
+              <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", marginBottom: 12, display: "flex", justifyContent: "center" }}>
+                {detalle.gif_url ? (
+                  <img src={catalogoMediaUrl(detalle.gif_url)} alt={form.nombre_es} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain" }} />
+                ) : detalle.image ? (
+                  <img src={catalogoMediaUrl(detalle.image)} alt={form.nombre_es} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain" }} />
+                ) : detalle.video ? (
+                  <video src={detalle.video} controls playsInline style={{ width: "100%", maxHeight: 260, background: "#000" }} />
+                ) : (
+                  <div style={{ padding: 40, fontSize: 34 }}>🏋️</div>
                 )}
               </div>
-              <button onClick={() => setDetalle(null)} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 18, cursor: "pointer" }}>✕</button>
-            </div>
-            {/* media: video propio si hay, si no el GIF */}
-            <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", marginBottom: 12, display: "flex", justifyContent: "center" }}>
-              {form.video && !form.video.includes("youtube") ? (
-                <video src={form.video} controls playsInline style={{ width: "100%", maxHeight: 260, background: "#000" }} />
-              ) : detalle.gif_url ? (
-                <img src={catalogoMediaUrl(detalle.gif_url)} alt={form.nombre_es} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain" }} />
-              ) : detalle.image ? (
-                <img src={catalogoMediaUrl(detalle.image)} alt={form.nombre_es} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain" }} />
-              ) : (
-                <div style={{ padding: 40, fontSize: 34 }}>🏋️</div>
-              )}
-            </div>
+            )}
+            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Código</div>
+            <input
+              value={form.codigo_di}
+              onChange={(e) => { setForm((f) => ({ ...f, codigo_di: e.target.value.toUpperCase() })); setCodigoError(""); }}
+              placeholder="ej. CO006 (dejar vacío = sin código)"
+              style={{ ...inp, marginBottom: codigoError ? 4 : 10, fontWeight: 700, borderColor: codigoError ? S.red : undefined }}
+            />
+            {codigoError && <div style={{ fontSize: 11, color: S.red, marginBottom: 10 }}>{codigoError}</div>}
             <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nombre</div>
             <input value={form.nombre_es} onChange={(e) => setForm((f) => ({ ...f, nombre_es: e.target.value }))} style={{ ...inp, marginBottom: 10, fontWeight: 700 }} />
             {detalle.nombre_en && (
               <div style={{ fontSize: 10, color: S.lgray, marginTop: -6, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
             )}
             <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
-            <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 10, lineHeight: 1.45 }} />
-            {/* músculos */}
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
-              <span style={{ fontSize: 10, background: S.white, color: S.bg, borderRadius: 4, padding: "2px 8px", fontWeight: 700 }}>{detalle.target_es}</span>
-              {(detalle.secondary_muscles_es || []).map((m) => (
-                <span key={m} style={{ fontSize: 10, background: S.card2, color: S.gray, borderRadius: 4, padding: "2px 8px" }}>{m}</span>
-              ))}
-              <span style={{ fontSize: 10, background: S.card2, color: S.gray, borderRadius: 4, padding: "2px 8px" }}>🏷 {detalle.equipment_es}</span>
-            </div>
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
-            <input value={form.video} onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))} placeholder="https://…" style={{ ...inp, marginBottom: 8 }} />
+            <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 12, lineHeight: 1.45 }} />
+            {/* músculos editables, con ★ predeterminado (punto 4) */}
+            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Músculos trabajados</div>
             <div style={{ marginBottom: 12 }}>
-              <SubirVideoInline onUrl={(url) => setForm((f) => ({ ...f, video: url }))} showToast={showToast} />
+              <TagsEditor
+                items={form.musculos}
+                defaultItem={form.musculo_default}
+                onChange={(musculos) => setForm((f) => ({ ...f, musculos }))}
+                onChangeDefault={(musculo_default) => setForm((f) => ({ ...f, musculo_default }))}
+                placeholder="Agregar músculo…"
+              />
             </div>
+            {/* tags editables, con ★ predeterminado (punto 4) */}
+            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tags (equipamiento y otros)</div>
+            <div style={{ marginBottom: 12 }}>
+              <TagsEditor
+                items={form.tags}
+                defaultItem={form.tag_default}
+                onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+                onChangeDefault={(tag_default) => setForm((f) => ({ ...f, tag_default }))}
+                placeholder="Agregar tag…"
+              />
+            </div>
+            {/* video/gif propio: SOLO en el flujo de crear nuevo */}
+            {creando && (
+              <>
+                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
+                <input value={form.video} onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))} placeholder="https://…" style={{ ...inp, marginBottom: 8 }} />
+                <div style={{ marginBottom: 12 }}>
+                  <SubirVideoInline onUrl={(url) => setForm((f) => ({ ...f, video: url }))} showToast={showToast} />
+                </div>
+              </>
+            )}
             <div style={{ display: "flex", gap: 8 }}>
-              {modo === "armador" && (
+              {modo === "armador" && !creando && (
                 <button
                   onClick={() => { agregarAlCarrito(detalle); setDetalle(null); }}
                   style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: 11, fontSize: 12, fontWeight: 800, cursor: "pointer" }}
@@ -550,12 +738,9 @@ export default function CatalogoExplorer({
                 disabled={guardando}
                 style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 11, fontSize: 12, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1 }}
               >
-                {guardando ? "GUARDANDO..." : "GUARDAR"}
+                {guardando ? "GUARDANDO..." : creando ? "CREAR" : "GUARDAR"}
               </button>
             </div>
-            {detalle.attribution && (
-              <div style={{ fontSize: 9, color: S.lgray, marginTop: 10, textAlign: "center" }}>{detalle.attribution}</div>
-            )}
           </div>
         </div>
       )}
