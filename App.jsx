@@ -18,6 +18,7 @@ import {
   eliminarPlanDia,
   cargarPlanesXDia,
   actualizarPlanAlumnoDias,
+  renombrarPlanAlumno,
   crearAdmin,
   cargarBiblioteca,
   guardarEjercicioBiblioteca,
@@ -2392,6 +2393,34 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
     }
   };
 
+  // Renombrar el plan asignado (punto 7, ronda 2026-07-21 #2): al lado de
+  // "Cambiar plan" — no toca días/ejercicios, solo el nombre visible.
+  const [renombrando, setRenombrando] = useState(false);
+  const [nuevoNombrePlan, setNuevoNombrePlan] = useState("");
+  const abrirRenombrar = () => {
+    setNuevoNombrePlan(plan?.nombre || "");
+    setRenombrando(true);
+  };
+  const guardarRenombre = async () => {
+    if (!plan || !nuevoNombrePlan.trim()) return;
+    const nombreLimpio = nuevoNombrePlan.trim();
+    if (plan._sintetico) {
+      // Plan "Fijo" sin fila en alumno_planes: se guarda como el resto del
+      // camino viejo (al.plan), no hay id para el UPDATE directo.
+      onUpdate(alumnos.map((a) => a.id === al.id ? { ...a, plan: { ...a.plan, nombre: nombreLimpio } } : a));
+      setRenombrando(false);
+      showToast && showToast("Plan renombrado ✓");
+      return;
+    }
+    const ok = await renombrarPlanAlumno(plan.id, nombreLimpio);
+    if (!ok) { showToast && showToast("Error al renombrar — revisá la consola"); return; }
+    onUpdate(alumnos.map((a) => a.id === al.id
+      ? { ...a, planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, nombre: nombreLimpio } : p)) }
+      : a));
+    setRenombrando(false);
+    showToast && showToast("Plan renombrado ✓");
+  };
+
   // Eliminar directamente un día ya creado, sin pasar por Planificación
   // (punto 7, ronda 12). Solo aplica a planes REALES (no al sintético "Fijo",
   // que no tiene fila propia en alumno_planes).
@@ -2483,12 +2512,29 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
       </div>
       {plan && (
         <div style={{ ...card, padding: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
             <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>
               {plan.dia_semana === "Fijo" ? "Plan único" : plan.dia_semana} · {plan.nombre || "Plan"}
             </div>
-            <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={abrirRenombrar} style={smallBtn(S.gray)}>✏ Renombrar</button>
+              <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
+            </div>
           </div>
+          {renombrando && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+              <input
+                value={nuevoNombrePlan}
+                onChange={(e) => setNuevoNombrePlan(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && guardarRenombre()}
+                placeholder="Nombre del plan"
+                style={{ ...inp, flex: 1 }}
+                autoFocus
+              />
+              <button onClick={guardarRenombre} style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "0 14px", fontWeight: 900, cursor: "pointer" }}>✓</button>
+              <button onClick={() => setRenombrando(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "0 14px", cursor: "pointer" }}>✕</button>
+            </div>
+          )}
           <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} ocultarAgregarDia />
         </div>
       )}
@@ -3218,6 +3264,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [planesTab, setPlanesTab] = useState("periodizacion");
   const [repTab, setRepTab] = useState("asistencia");
   const [selectedDia, setSelectedDia] = useState(null);
+  // Punto 8 (ronda 16): "Plan x día" reorganizado — en vez de los 7 días
+  // fijos siempre visibles, solo se muestran los días que la persona
+  // entrena (+ los que ya tengan plan asignado, para que nada desaparezca)
+  // y un tile final "+ Agregar día" que despliega el resto de la semana
+  // (incluido "Fijo") para sumar uno nuevo.
+  const [agregandoDia, setAgregandoDia] = useState(false);
   // Guard de re-entrada del alta de alumno (ver crearAlumno)
   const _creandoAlumno = useRef(false);
   // Plan a abrir al entrar a Plan → Principales (ronda 7: click en la ficha)
@@ -3648,25 +3700,31 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // PLANTILLAS, asigna un plan vacío A PROPÓSITO (fila real en alumno_planes,
   // nombre "Sin plan", sin días/ejercicios). Distinto de no tener fila:
   // permite dejar un día deliberadamente sin contenido en vez de sacarlo.
-  const asignarPlanDia = async (plantillaId) => {
-    if (!selectedDia || !al) return;
+  const asignarPlanDia = async (plantillaId, diaOverride) => {
+    // diaOverride (punto 8): el flujo "+ Agregar día" elige un día que
+    // todavía no tiene tile propio en la grilla — pasa el día explícito en
+    // vez de depender de selectedDia (que sigue funcionando para los tiles
+    // normales, que no pasan diaOverride).
+    const dia = diaOverride || selectedDia;
+    if (!dia || !al) return;
     const esSinPlan = plantillaId === "__sin_plan__";
     const plantilla = esSinPlan ? { nombre: "Sin plan", plan: { dias: [], movilidad: [], calor: [], activacion: [], periodizacion: [] } } : getPlantilla(plantillaId);
     // REEMPLAZO, no solapamiento (bug ronda 4): si el día ya tiene un plan,
     // confirmar y reemplazarlo — crearPlanAlumno borra el previo en la base.
-    const existente = (al.planes || []).find((p) => p.dia_semana === selectedDia && !p._sintetico);
-    if (existente && !window.confirm(`${selectedDia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${plantilla.nombre}"?`)) return;
+    const existente = (al.planes || []).find((p) => p.dia_semana === dia && !p._sintetico);
+    if (existente && !window.confirm(`${dia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${plantilla.nombre}"?`)) return;
     const tpl = esSinPlan ? plantilla.plan : clonarPlan(plantilla.plan);
     try {
-      const result = await crearPlanAlumno(al.id, selectedDia, { ...tpl, nombre: plantilla.nombre });
+      const result = await crearPlanAlumno(al.id, dia, { ...tpl, nombre: plantilla.nombre });
       if (result.ok) {
-        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${selectedDia} ✓`);
+        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${dia} ✓`);
         const alumnoActualizado = {
           ...al,
           planes: await cargarPlanesXDia(al.id, al)
         };
         onUpdate(alumnos.map((a) => (a.id === al.id ? alumnoActualizado : a)));
         setSelectedDia(null);
+        setAgregandoDia(false);
       } else {
         showToast && showToast("Error al asignar plan");
       }
@@ -4505,80 +4563,176 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <PeriodizacionEditor data={al.plan.periodizacion} onChange={(v) => updatePlan("periodizacion", v)} />
               </div>
             )}{" "}
-            {planesTab === "plan-dias" && al && (
-              <div style={{ ...card, padding: 12 }}>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12 }}>
-                  Plan por día — {al.nombre}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                  {["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo", "Fijo"].map((dia) => {
-                    const planActual = al.planes?.find(p => p.dia_semana === dia);
-                    const isSelected = selectedDia === dia;
-                    return (
-                      <div
-                        key={dia}
-                        onClick={() => setSelectedDia(isSelected ? null : dia)}
-                        style={{
-                          background: isSelected ? S.card2 : S.card,
-                          border: `1px solid ${isSelected ? S.white : S.border}`,
-                          borderRadius: 8,
-                          padding: "10px 12px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 3 }}>{dia}</div>
-                        <div style={{ fontSize: 12, color: planActual ? S.green : S.lgray, fontWeight: 600 }}>
-                          {planActual ? planActual.nombre || "Asignado" : "Sin plan"}
-                        </div>
-                        {isSelected && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                            {/* "Sin plan" (punto 7, ronda 12): asigna un plan
-                                VACÍO a propósito — el día queda registrado
-                                pero sin ejercicios. */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); asignarPlanDia("__sin_plan__"); }}
-                              style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                            >
-                              Sin plan
-                            </button>
-                            {PLANTILLAS.map((p) => (
-                              <button
-                                key={p.id}
-                                onClick={(e) => { e.stopPropagation(); asignarPlanDia(p.id); }}
-                                style={{
-                                  background: S.white,
-                                  color: S.bg,
-                                  border: "none",
-                                  padding: "6px 4px",
-                                  borderRadius: 5,
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {p.nombre}
-                              </button>
-                            ))}
-                            {/* Eliminar el día directamente, sin asignar nada nuevo */}
-                            {planActual && !planActual._sintetico && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); quitarDia(dia); }}
-                                style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                              >
-                                ✕ Quitar día
-                              </button>
+            {planesTab === "plan-dias" && al && (() => {
+              // Punto 8 (ronda 16): reorganizado — antes mostraba SIEMPRE los
+              // 7 días fijos + "Fijo" sin importar si el alumno entrena ese
+              // día. Ahora solo se ven los días que la persona entrena
+              // (al.horarios) + cualquier día que YA tenga un plan asignado
+              // (para que nada desaparezca), en el orden real de la semana,
+              // etiquetados "Día 1/2/3..." si el alumno está en modo
+              // numérico (mismo criterio que ya usa PlanesPrincipales) —
+              // el ADMIN siempre ve el día real de la semana también, chico
+              // al lado, así el mapeo real no se pierde para asistencia/
+              // reportes. Al final, un tile "+ Agregar día" para sumar un
+              // día nuevo (incluido "Fijo", que ya no ocupa un lugar fijo).
+              const DIAS_SEMANA = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+              const diasHorario = (al.horarios || []).map((h) => h.dia).filter(Boolean);
+              const diasConPlanReal = (al.planes || []).filter((p) => !p._sintetico && p.dia_semana !== "Fijo").map((p) => p.dia_semana);
+              const diasUsados = [...new Set([...diasHorario, ...diasConPlanReal])]
+                .filter((d) => DIAS_SEMANA.includes(d))
+                .sort((a, b) => (ORDEN_DIAS[a] || 9) - (ORDEN_DIAS[b] || 9));
+              const tieneFijo = (al.planes || []).some((p) => p.dia_semana === "Fijo" && !p._sintetico);
+              const diasParaMostrar = tieneFijo ? [...diasUsados, "Fijo"] : diasUsados;
+              const diasModoAdmin = al.rm?.dias_modo || "nombres";
+              const diasDisponibles = [...DIAS_SEMANA.filter((d) => !diasUsados.includes(d)), ...(tieneFijo ? [] : ["Fijo"])];
+
+              return (
+                <div style={{ ...card, padding: 12 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 12 }}>
+                    Plan por día — {al.nombre}
+                  </div>
+                  {diasParaMostrar.length === 0 && (
+                    <div style={{ color: S.gray, fontSize: 12, marginBottom: 12 }}>
+                      {al.nombre} todavía no tiene días de entrenamiento configurados. Sumá uno con "+ Agregar día", o configurá sus días fijos en Ejercicios → ✎ Editar.
+                    </div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    {diasParaMostrar.map((dia, idx) => {
+                      const planActual = al.planes?.find((p) => p.dia_semana === dia);
+                      const isSelected = selectedDia === dia && !agregandoDia;
+                      const labelPrincipal = dia === "Fijo" ? "Todos los días" : diasModoAdmin === "numerico" ? `Día ${idx + 1}` : dia;
+                      return (
+                        <div
+                          key={dia}
+                          onClick={() => { setSelectedDia(isSelected ? null : dia); setAgregandoDia(false); }}
+                          style={{
+                            background: isSelected ? S.card2 : S.card,
+                            border: `1px solid ${isSelected ? S.white : S.border}`,
+                            borderRadius: 8,
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ fontSize: 11, color: S.gray, marginBottom: 3 }}>
+                            {labelPrincipal}
+                            {diasModoAdmin === "numerico" && dia !== "Fijo" && (
+                              <span style={{ color: S.lgray }}> · {dia}</span>
                             )}
                           </div>
-                        )}
+                          <div style={{ fontSize: 12, color: planActual ? S.green : S.lgray, fontWeight: 600 }}>
+                            {planActual ? planActual.nombre || "Asignado" : "Sin plan"}
+                          </div>
+                          {isSelected && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                              {/* "Sin plan" (punto 7, ronda 12): asigna un plan
+                                  VACÍO a propósito — el día queda registrado
+                                  pero sin ejercicios. */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); asignarPlanDia("__sin_plan__"); }}
+                                style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                              >
+                                Sin plan
+                              </button>
+                              {PLANTILLAS.map((p) => (
+                                <button
+                                  key={p.id}
+                                  onClick={(e) => { e.stopPropagation(); asignarPlanDia(p.id); }}
+                                  style={{
+                                    background: S.white,
+                                    color: S.bg,
+                                    border: "none",
+                                    padding: "6px 4px",
+                                    borderRadius: 5,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {p.nombre}
+                                </button>
+                              ))}
+                              {/* Eliminar el día directamente, sin asignar nada nuevo */}
+                              {planActual && !planActual._sintetico && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); quitarDia(dia); }}
+                                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  ✕ Quitar día
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* + Agregar día (punto 8): 2 pasos dentro del mismo tile
+                        expandido — elegir el día de la semana disponible, y
+                        después la plantilla (reusa asignarPlanDia con
+                        diaOverride, sin pisar selectedDia de los tiles de
+                        arriba). */}
+                    {!agregandoDia ? (
+                      <div
+                        onClick={() => { setAgregandoDia(true); setSelectedDia(null); }}
+                        style={{ background: "transparent", border: "1px dashed " + S.border, borderRadius: 8, padding: "10px 12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: S.gray, fontSize: 12, fontWeight: 700, minHeight: 44 }}
+                      >
+                        + Agregar día
                       </div>
-                    );
-                  })}
+                    ) : !selectedDia ? (
+                      <div style={{ ...card, padding: "10px 12px", gridColumn: "1 / -1" }}>
+                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Elegí el día para agregar</div>
+                        {diasDisponibles.length === 0 ? (
+                          <div style={{ color: S.gray, fontSize: 12, marginBottom: 8 }}>Ya están todos los días usados.</div>
+                        ) : (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                            {diasDisponibles.map((d) => (
+                              <button
+                                key={d}
+                                onClick={() => setSelectedDia(d)}
+                                style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                              >
+                                {d === "Fijo" ? "Todos los días" : d}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <button onClick={() => setAgregandoDia(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ ...card, padding: "10px 12px", gridColumn: "1 / -1" }}>
+                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>
+                          Plan para {selectedDia === "Fijo" ? "todos los días" : selectedDia}
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                          <button
+                            onClick={() => asignarPlanDia("__sin_plan__", selectedDia)}
+                            style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "7px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                          >
+                            Sin plan
+                          </button>
+                          {PLANTILLAS.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => asignarPlanDia(p.id, selectedDia)}
+                              style={{ background: S.white, color: S.bg, border: "none", padding: "7px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                            >
+                              {p.nombre}
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={() => setSelectedDia(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
+                          ‹ Volver
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: S.lgray }}>
+                    Tocá un día para asignarle un plan de entrenamiento
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: S.lgray }}>
-                  Tocá un día para asignarle un plan de entrenamiento
-                </div>
-              </div>
-            )}{" "}
+              );
+            })()}{" "}
           </div>
         )}{" "}
         {sec === "planes" && planesTab === "rm" && (

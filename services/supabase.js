@@ -624,6 +624,20 @@ export async function eliminarPlanDia(alumno_id, dia_semana) {
   return true;
 }
 
+// Renombra el plan asignado a un alumno (punto 7, ronda 2026-07-21 #2):
+// solo cambia alumno_planes.nombre, no toca días/ejercicios ni ids —
+// el historial de pesos (ligado a los ids de plan_ejercicios) queda intacto.
+export async function renombrarPlanAlumno(alumno_plan_id, nuevoNombre) {
+  LOG("renombrarPlanAlumno", `⏳ Renombrando plan ${alumno_plan_id} a "${nuevoNombre}"...`);
+  const { error } = await supabase
+    .from("alumno_planes")
+    .update({ nombre: nuevoNombre })
+    .eq("id", alumno_plan_id);
+  if (error) { ERR("renombrarPlanAlumno", "No se pudo renombrar el plan", error); return false; }
+  LOG("renombrarPlanAlumno", "✅ Plan renombrado");
+  return true;
+}
+
 export async function crearPlanAlumno(alumno_id, dia_semana, plan_template, origen) {
   LOG("crearPlanAlumno", `⏳ Creando plan para ${dia_semana} de ${alumno_id}`);
 
