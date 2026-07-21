@@ -6,15 +6,23 @@
 // decide el `color` del style que le pases (normalmente S.white).
 // El viewBox está recortado a la caja real del contenido (el archivo
 // original tiene viewBox de 1000 de alto con mucho aire arriba/abajo).
-export default function DIWordmark({ width = 200, style }) {
+//
+// soloDesarrollo (ronda 11): el SVG trae "CENTRO DE ENTRENAMIENTO" quemado
+// como paths — no se puede editar el texto. Para el login, que necesita
+// decir "APP DE ENTRENAMIENTO" en vez de eso, la solución es recortar el
+// viewBox a la franja que contiene SOLO "DESARROLLO INTEGRAL" (el primer
+// grupo — su caja real termina en y≈550, medido de los paths) y no
+// renderizar el segundo grupo. El subtítulo nuevo se arma aparte, como
+// texto HTML, debajo del SVG (ver Login en App.jsx).
+export default function DIWordmark({ width = 200, style, soloDesarrollo = false }) {
   return (
     <svg
-      viewBox="251.75 325.72 1841.71 348.63"
+      viewBox={soloDesarrollo ? "251.75 325.72 1841.71 226.8" : "251.75 325.72 1841.71 348.63"}
       width={width}
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Desarrollo Integral — Centro de Entrenamiento"
+      aria-label={soloDesarrollo ? "Desarrollo Integral" : "Desarrollo Integral — Centro de Entrenamiento"}
       style={{ display: "block", ...style }}
     >
       {/* DESARROLLO (itálica condensada) + INTEGRAL (bold recto) */}
@@ -39,6 +47,7 @@ export default function DIWordmark({ width = 200, style }) {
         <path d="M2007.306,328.495h39.058v189.202h47.094v32.411h-86.152v-221.613Z"/>
       </g>
       {/* CENTRO DE ENTRENAMIENTO (tracking amplio) */}
+      {!soloDesarrollo && (
       <g>
         <path d="M681.22,652.136v-16.802c0-12.932,6.795-22.063,20.748-22.063,13.078,0,19.725,8.036,20.163,19.506l.074,5.699h-7.89l-.072-6.867c-.22-7.671-4.676-11.835-12.2-11.835-8.622,0-13.005,5.333-13.005,14.392v19.213c0,9.205,4.384,14.465,12.932,14.465,7.745,0,12.055-4.164,12.274-11.908l.072-6.867h7.89l-.074,5.626c-.438,11.615-7.085,19.651-20.163,19.651-13.953,0-20.748-9.131-20.748-22.209Z"/>
         <path d="M730.164,614.002h31.78v6.502h-24.183v20.017h22.94v6.576h-22.94v20.017h24.183v6.502h-31.78v-59.613Z"/>
@@ -62,6 +71,7 @@ export default function DIWordmark({ width = 200, style }) {
         <path d="M1569.86,620.503h-14.976v-6.502h37.55v6.502h-14.978v53.112h-7.597v-53.112Z"/>
         <path d="M1594.549,652.209v-16.875c0-12.858,6.867-22.063,20.748-22.063,13.807,0,20.674,9.205,20.674,22.063v16.875c0,12.931-6.867,22.136-20.674,22.136-13.881,0-20.748-9.205-20.748-22.136ZM1615.297,667.771c8.474,0,12.858-5.333,12.858-14.392v-19.14c0-8.986-4.384-14.392-12.858-14.392-8.548,0-12.93,5.406-12.93,14.392v19.14c0,9.059,4.382,14.392,12.93,14.392Z"/>
       </g>
+      )}
     </svg>
   );
 }
