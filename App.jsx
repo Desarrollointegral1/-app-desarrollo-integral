@@ -40,6 +40,9 @@ import {
   cargarCatalogoCached,
   catalogoMediaUrl,
   agregarCatalogoABiblioteca,
+  // GESTIÓN DE ADMINS CON ROL (punto 12)
+  listarAdmins,
+  actualizarRolAdmin,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -3088,8 +3091,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
   const [admNombre, setAdmNombre] = useState(""),
     [admCodigo, setAdmCodigo] = useState(""),
-    [admPin, setAdmPin] = useState("");
+    [admPin, setAdmPin] = useState(""),
+    [admRol, setAdmRol] = useState("entrenador");
   const [configTab, setConfigTab] = useState("admin");
+  // Gestión de admins con rol (punto 12, ronda 2026-07-21): listado propio,
+  // se recarga al entrar a Configuración → Crear admin y después de crear
+  // o cambiar un rol.
+  const [adminsList, setAdminsList] = useState([]);
+  const cargarAdminsList = () => { listarAdmins().then(setAdminsList); };
+  useEffect(() => { if (sec === "config" && configTab === "admin") cargarAdminsList(); }, [sec, configTab]);
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
@@ -4637,6 +4647,22 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     />
                   </div>
                 ))}
+                {/* Rol (punto 12): por ahora solo queda como dato asignable
+                    y visible — no restringe la vista todavía. */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>Rol</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[["entrenador", "🏋️ Entrenador"], ["kinesiologa", "🩺 Kinesióloga"]].map(([id, l]) => (
+                      <button
+                        key={id}
+                        onClick={() => setAdmRol(id)}
+                        style={{ flex: 1, background: admRol === id ? S.white : S.card, color: admRol === id ? S.bg : S.gray, border: "1px solid " + (admRol === id ? S.white : S.border), borderRadius: 8, padding: "9px 6px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button
                   onClick={async () => {
                     if (!admNombre || !admCodigo || admPin.length !== 4) {
@@ -4644,9 +4670,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       return;
                     }
                     try {
-                      await crearAdmin(admNombre, admCodigo, admPin, "");
+                      await crearAdmin(admNombre, admCodigo, admPin, "", admRol);
                       showToast && showToast(`Admin "${admNombre}" creado ✓`);
-                      setAdmNombre(""); setAdmCodigo(""); setAdmPin("");
+                      setAdmNombre(""); setAdmCodigo(""); setAdmPin(""); setAdmRol("entrenador");
+                      cargarAdminsList();
                     } catch (e) {
                       showToast && showToast("Error: " + e.message);
                     }
@@ -4655,6 +4682,41 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 >
                   CREAR ADMINISTRADOR
                 </button>
+
+                {/* Gestión de admins existentes (punto 12): listado con
+                    selector de rol por admin. */}
+                <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", margin: "24px 0 12px" }}>
+                  Administradores ({adminsList.length})
+                </div>
+                {adminsList.map((a) => (
+                  <div key={a.id} style={{ ...card, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div>
+                      <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
+                      <div style={{ color: S.gray, fontSize: 11 }}>@{a.codigo}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {[["entrenador", "🏋️"], ["kinesiologa", "🩺"]].map(([id, ic]) => (
+                        <button
+                          key={id}
+                          title={id === "entrenador" ? "Entrenador" : "Kinesióloga"}
+                          onClick={async () => {
+                            if (a.rol === id) return;
+                            const actualizado = await actualizarRolAdmin(a.id, id);
+                            if (actualizado) {
+                              setAdminsList((prev) => prev.map((x) => (x.id === a.id ? { ...x, rol: id } : x)));
+                              showToast && showToast(`${a.nombre} ahora es ${id === "entrenador" ? "Entrenador" : "Kinesióloga"}`);
+                            } else {
+                              showToast && showToast("Error al cambiar el rol");
+                            }
+                          }}
+                          style={{ background: a.rol === id ? S.white : "transparent", color: a.rol === id ? S.bg : S.gray, border: "1px solid " + (a.rol === id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
+                        >
+                          {ic}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
