@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/web", "destination": "https://luquigivi.vercel.app/web" },
+    { "source": "/web/:path*", "destination": "https://luquigivi.vercel.app/web/:path*" },
+    { "source": "/((?!assets|icons|.*\\..*).*)", "destination": "/index.html" }
+  ]
+}
