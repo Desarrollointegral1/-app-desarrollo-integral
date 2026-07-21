@@ -60,6 +60,7 @@ import {
   PLANTILLAS,
   getPlantilla,
   clonarPlan,
+  GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme } from "./src/utils/theme.js";
@@ -69,7 +70,7 @@ import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
-import { GIFS_DISPONIBLES, getEjercicioGif } from "./src/utils/ejerciciosMedia.js";
+import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 // ── LOGO ──────────────────────────────────────────────────────────────
 const ICON_WHITE =
@@ -638,8 +639,12 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     setForm((f) => ({
       ...f,
       nombre: sug.nombre,
-      desc: sug.desc || f.desc,
+      desc: sug.desc || sug.descripcion || f.desc,
       video: sug.video || f.video,
+      // Taxonomía 2026-07-21: al elegir un ejercicio de la biblioteca, el
+      // ítem del plan hereda su código de grupo y su unidad (Plancha=segundos).
+      ...(sug.codigo ? { codigo: sug.codigo } : {}),
+      ...(sug.unidad ? { unidad: sug.unidad } : {}),
     }));
     setSugs([]); setShowSugs(false);
   };
@@ -2607,24 +2612,45 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
   const [form, setForm] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
+  // Taxonomía 2026-07-21: los principales usan códigos de grupo muscular
+  // (PH/RO/PE/CA/JA/GL/CO + 3 dígitos). El filtro "Principales" agrupa los 7
+  // prefijos y muestra sub-chips por grupo. "GIFs" es la galería completa de
+  // public/ejercicios/ con sus asociaciones.
+  const [grupoFiltro, setGrupoFiltro] = useState(null);
+  const PREFIJOS_PRINCIPALES = GRUPOS_MUSCULARES.map((g) => g.prefijo);
   const CATS = [
     ["todos", "Todos"],
     ["M", "Movilidad"],
     ["E", "Act. Elástico"],
     ["C", "Entrada en calor"],
-    ["P", "Principales"],
+    ["principales", "Principales"],
     ["otros", "Otros"],
+    ["gifs", "🎞 GIFs"],
   ];
   const prefijoDe = (b) => (b.codigo || "").match(/^[A-Z]+/)?.[0] || "";
   const lista = (biblioteca || [])
     .filter((b) => b.categoria !== "rehab")
     .filter((b) => {
       if (filtro === "todos") return true;
-      if (filtro === "otros") return !["M", "E", "C", "P"].includes(prefijoDe(b));
+      if (filtro === "principales")
+        return PREFIJOS_PRINCIPALES.includes(prefijoDe(b)) && (!grupoFiltro || prefijoDe(b) === grupoFiltro);
+      if (filtro === "otros") return !["M", "E", "C", ...PREFIJOS_PRINCIPALES].includes(prefijoDe(b));
       return prefijoDe(b) === filtro;
     })
     .filter((b) => !q.trim() || b.nombre.toLowerCase().includes(q.trim().toLowerCase()))
     .sort((a, b) => (a.codigo || "zzz").localeCompare(b.codigo || "zzz"));
+
+  // Asociaciones de cada GIF: por asignación manual (b.gif) o por lookup
+  // automático por nombre (getEjercicioGif) — sin duplicar.
+  const asociadosDe = (path) => {
+    const porBiblioteca = (biblioteca || []).filter(
+      (b) => b.categoria !== "rehab" && ((b.gif || "") === path || (!b.gif && getEjercicioGif(b.nombre) === path))
+    );
+    const nombres = new Set(porBiblioteca.map((b) => (b.codigo ? b.codigo + " · " : "") + b.nombre));
+    if (nombres.size === 0)
+      getNombresPorGif(path).slice(0, 3).forEach((n) => nombres.add(n));
+    return [...nombres];
+  };
 
   const abrir = (b) => {
     setSel(b);
@@ -2692,13 +2718,55 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
               {CATS.map(([id, l]) => (
                 <button
                   key={id}
-                  onClick={() => setFiltro(id)}
+                  onClick={() => { setFiltro(id); setGrupoFiltro(null); }}
                   style={{ background: filtro === id ? S.white : S.card, color: filtro === id ? S.bg : S.gray, border: "1px solid " + (filtro === id ? S.white : S.border), borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                 >
                   {l}
                 </button>
               ))}
             </div>
+            {/* Sub-chips por grupo muscular dentro de Principales */}
+            {filtro === "principales" && (
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 }}>
+                {GRUPOS_MUSCULARES.map((g) => (
+                  <button
+                    key={g.prefijo}
+                    onClick={() => setGrupoFiltro(grupoFiltro === g.prefijo ? null : g.prefijo)}
+                    style={{ background: grupoFiltro === g.prefijo ? S.card2 : "transparent", color: grupoFiltro === g.prefijo ? S.white : S.gray, border: "1px solid " + (grupoFiltro === g.prefijo ? S.white : S.border), borderRadius: 20, padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    {g.prefijo} · {g.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+            {filtro === "gifs" ? (
+              <>
+                {/* Galería completa de public/ejercicios/ con las asociaciones
+                    actuales (manuales de biblioteca + lookup por nombre). */}
+                <div style={{ color: S.gray, fontSize: 11, marginBottom: 10 }}>{GIFS_DISPONIBLES.length} GIF(s) disponibles · © Gym visual</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {GIFS_DISPONIBLES.map((g) => {
+                    const asociados = asociadosDe(g.path);
+                    return (
+                      <div key={g.slug} style={{ ...card, padding: 8, textAlign: "center" }}>
+                        <div style={{ background: "#fff", borderRadius: 6, padding: "6px 0" }}>
+                          <img src={g.path} alt={g.label} loading="lazy" style={{ width: 120, height: 120, objectFit: "contain" }} />
+                        </div>
+                        <div style={{ color: S.white, fontSize: 10, fontWeight: 700, marginTop: 6, wordBreak: "break-all" }}>{g.slug}.gif</div>
+                        {asociados.length > 0 ? (
+                          <div style={{ color: S.green, fontSize: 9, marginTop: 4, lineHeight: 1.5 }}>
+                            {asociados.map((n) => <div key={n}>{n}</div>)}
+                          </div>
+                        ) : (
+                          <div style={{ color: S.lgray, fontSize: 9, marginTop: 4 }}>Sin ejercicio asociado</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
             <div style={{ color: S.gray, fontSize: 11, marginBottom: 10 }}>{lista.length} ejercicio(s)</div>
             {lista.map((b) => (
               <div
@@ -2714,11 +2782,16 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                 <div style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {b.nombre}
                 </div>
+                {b.unidad === "segundos" && (
+                  <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0 }}>seg</span>
+                )}
                 {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 10, flexShrink: 0 }}>▶</div>}
               </div>
             ))}
             {lista.length === 0 && (
               <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 12 }}>Sin ejercicios en esta categoría</div>
+            )}
+              </>
             )}
           </>
         )}
@@ -3441,10 +3514,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {secBtn("Dashboard", "dashboard")}
         {secBtn("Alumno", "alumnos")}
       </div>{" "}
-      {/* 2) Selector de alumno: primero elegís el alumno... */}
-      <div style={{ padding: "0 16px" }}>
-        <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
-      </div>{" "}
+      {/* 2) Selector de alumno — SOLO en el Dashboard (2026-07-21): adentro
+          de la ficha el buscador y la fila con el nombre quedaban duplicados;
+          para cambiar de alumno se vuelve al Dashboard. */}
+      {sec === "dashboard" && (
+        <div style={{ padding: "0 16px" }}>
+          <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
+        </div>
+      )}{" "}
       {/* 3) ...y los submenús cuelgan del alumno elegido — ronda 9: TRES
           grupos grandes (Ejercicios · Planificación · Reportes). Ronda 12:
           NO se muestran en el Dashboard (sin alumno elegido todavía) — recién
