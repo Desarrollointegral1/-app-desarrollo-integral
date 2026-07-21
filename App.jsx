@@ -36,6 +36,10 @@ import {
   // REHABILITACIÓN (ronda 7)
   subirMediaRehab,
   guardarEjercicioBibliotecaRehab,
+  // CATÁLOGO (ronda 14)
+  cargarCatalogoCached,
+  catalogoMediaUrl,
+  agregarCatalogoABiblioteca,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -65,6 +69,7 @@ import {
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
+import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
@@ -97,36 +102,21 @@ let ICON = ICON_WHITE;
 // (spacer | lockup flex:1 centrado | bloque real) y el punto medio del
 // lockup cae exactamente en total/2, para cualquier ancho de pantalla y
 // cualquier ancho que terminen ocupando los botones de tema/Salir.
+// Header del alumno — rediseño 2026-07-21 (pedido de Lucas con screenshot):
+//   · ícono al DOBLE (66 → 132) pegado al borde IZQUIERDO (margen mínimo,
+//     centrado vertical, fuera del flujo)
+//   · wordmark "DESARROLLO INTEGRAL" al doble, centrado en el ANCHO TOTAL
+//     de la pantalla (los laterales son position:absolute, así el centrado
+//     es real, no "centrado en el espacio sobrante")
+//   · debajo, "APP DE ENTRENAMIENTO" como texto HTML en PP Formula (misma
+//     solución del login: el SVG con soloDesarrollo recorta el "CENTRO DE
+//     ENTRENAMIENTO" quemado en paths)
+//   · tema + Salir arriba a la derecha, nunca pisados por el wordmark
+// Tope real documentado: el "doble" literal (wordmark 390px / ícono 132px)
+// entra recién desde ~900px de ancho; en celular el wordmark se acota a
+// clamp(150px, 48vw - 40px, 390px) y el ícono a clamp(88px, 26vw, 132px)
+// para que el centrado real no pise el ícono a 375px (gap medido ~11px).
 function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) {
-  const rightRef = useRef(null);
-  const [rightW, setRightW] = useState(0);
-  // ResizeObserver en vez de un simple resize+medida-una-vez (bug detectado
-  // en verificación real con getBoundingClientRect, ronda 12): la fuente
-  // custom PP Formula carga async (font-display:swap) y cambia el ancho de
-  // "Salir"/tema DESPUÉS del primer render — un useLayoutEffect corrido una
-  // sola vez capturaba el ancho con la fuente fallback (medido en vivo:
-  // 86.45px) y quedaba desincronizado del ancho real ya con la fuente
-  // cargada (91.875px) → ~2.7px de corrimiento del centro. El
-  // ResizeObserver reacciona a cambios de tamaño del bloque real, pero en
-  // cold-load el swap de fuente puede pasar ANTES de que el observer termine
-  // de conectarse (y no vuelve a fireear si no hay otro resize después) —
-  // por eso además se fuerza una re-medición explícita cuando
-  // document.fonts.ready resuelve, que es la señal determinística de que la
-  // fuente ya está aplicada. Verificado con getBoundingClientRect en cold
-  // load: spacer=91.875 === right=91.875 (antes: 86.45 vs 91.875).
-  useLayoutEffect(() => {
-    if (!rightRef.current) return;
-    const el = rightRef.current;
-    const medir = () => setRightW(el.getBoundingClientRect().width);
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    let cancelado = false;
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => { if (!cancelado) medir(); });
-    }
-    return () => { cancelado = true; ro.disconnect(); };
-  }, [darkMode, salirLabel]);
   const btnBase = {
     background: "transparent",
     color: S.gray,
@@ -138,28 +128,21 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
   return (
     <div
       style={{
-        padding: "10px 16px",
+        position: "relative",
+        padding: "10px 8px 12px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        minHeight: 52,
+        minHeight: "calc(clamp(88px, 26vw, 132px) + 22px)",
       }}
     >
-      {/* Spacer invisible — mismo ancho que el bloque real de la derecha */}
-      <div style={{ width: rightW, flexShrink: 0 }} aria-hidden="true" />
-      <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, overflow: "hidden" }}>
-        {/* Ícono 0.5× más grande (44 → 66) y wordmark 0.3× más grande (150 → 195),
-            corrido levemente a la derecha (marginLeft 4px) respecto del ícono —
-            pedido explícito de Lucas con screenshots reales de celular. */}
-        <img src={ICON} width={66} height={66} alt="DI" style={{ display: "block", flexShrink: 1, minWidth: 0 }} />
-        <DIWordmark
-          width={195}
-          style={{ color: S.white, width: "clamp(109px, 44vw, 195px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0, marginLeft: 4 }}
-        />
-      </div>
-      <div ref={rightRef} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      {/* Ícono doble, casi tocando el borde izquierdo */}
+      <img
+        src={ICON}
+        alt="DI"
+        style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: "clamp(88px, 26vw, 132px)", height: "auto", display: "block" }}
+      />
+      {/* Tema + Salir arriba a la derecha */}
+      <div style={{ position: "absolute", top: 8, right: 8, display: "flex", alignItems: "center", gap: 6 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -170,6 +153,17 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
         <button onClick={onSalir} style={{ ...btnBase, padding: "5px 10px", fontSize: 11 }}>
           {salirLabel}
         </button>
+      </div>
+      {/* Wordmark + subtítulo centrados en el ancho total */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 34 }}>
+        <DIWordmark
+          soloDesarrollo
+          width={390}
+          style={{ color: S.white, width: "clamp(150px, calc(48vw - 40px), 390px)", maxWidth: "100%", height: "auto" }}
+        />
+        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 5, textAlign: "center" }}>
+          App de entrenamiento
+        </div>
       </div>
     </div>
   );
@@ -621,14 +615,35 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     }
     cancel();
   };
+  // B5 (ronda 14): el buscador busca TAMBIÉN en el catálogo completo
+  // (1.344 del dataset + custom DI). Se carga lazy la primera vez que se
+  // tipea; los resultados de catálogo aparecen después de los de la
+  // biblioteca curada, sin duplicar nombres.
+  const _catalogoRef = useRef(null);
   const handleNombreChange = (val) => {
     setForm((f) => ({ ...f, nombre: val }));
     if (val.length >= 2) {
+      if (!_catalogoRef.current) {
+        _catalogoRef.current = [];
+        cargarCatalogoCached().then((c) => { _catalogoRef.current = c; });
+      }
       const q = val.toLowerCase();
+      const deCatalogo = (Array.isArray(_catalogoRef.current) ? _catalogoRef.current : [])
+        .filter((c) => c.nombre_es.toLowerCase().includes(q) || (c.nombre_en || "").toLowerCase().includes(q))
+        .slice(0, 6)
+        .map((c) => ({
+          nombre: c.nombre_es,
+          desc: c.instrucciones_es || "",
+          video: c.video || "",
+          codigo: c.codigo_di || null,
+          gif: catalogoMediaUrl(c.gif_url || ""),
+          _catalogo: c,
+        }));
       const matches = [
         ...biblioteca.filter((b) => b.nombre.toLowerCase().includes(q)),
+        ...deCatalogo.filter((c) => !biblioteca.find((b) => b.nombre.toLowerCase() === c.nombre.toLowerCase())),
         ...EJS_SUGERIDOS.filter((n) => n.toLowerCase().includes(q) && !biblioteca.find((b) => b.nombre.toLowerCase() === n.toLowerCase())).map((n) => ({ nombre: n, desc: "", video: "" })),
-      ].slice(0, 8);
+      ].slice(0, 10);
       setSugs(matches);
       setShowSugs(matches.length > 0);
     } else {
@@ -636,6 +651,24 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     }
   };
   const selectSug = (sug) => {
+    if (sug._catalogo) {
+      // Copia nombre ES + instrucciones + media al plan, y lo agrega a
+      // biblioteca_ejercicios si no estaba (para que tenga código X /
+      // taxonomía asignable después). El código llega async.
+      setForm((f) => ({
+        ...f,
+        nombre: sug.nombre,
+        desc: sug.desc || f.desc,
+        video: sug.video || f.video,
+        gif: sug.gif || f.gif,
+        ...(sug.codigo ? { codigo: sug.codigo } : {}),
+      }));
+      agregarCatalogoABiblioteca(sug._catalogo).then((codigo) => {
+        if (codigo) setForm((f) => (f.nombre === sug.nombre ? { ...f, codigo } : f));
+      });
+      setSugs([]); setShowSugs(false);
+      return;
+    }
     setForm((f) => ({
       ...f,
       nombre: sug.nombre,
@@ -3064,7 +3097,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Mes elegido para el reporte mensual (tab Asistencia). "YYYY-MM".
   const [repMes, setRepMes] = useState(mesActual().slice(0, 7));
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
-  const [showBiblioteca, setShowBiblioteca] = useState(false);
+  const [showBiblioteca, setShowBiblioteca] = useState(false); // biblioteca PROPIA (movilidad/elástico/calor + GIFs)
+  // Ronda 14: la Biblioteca principal ahora es el catálogo completo
+  // (dataset ExerciseDB + custom DI); el Armador es la vista desktop para
+  // armar planes desde el mismo catálogo.
+  const [showCatalogo, setShowCatalogo] = useState(false);
+  const [showArmador, setShowArmador] = useState(false);
   // Visor "Todos los planes" (ronda 9): plantilla abierta en modal de lectura
   const [planVisor, setPlanVisor] = useState(null);
   const [editPin, setEditPin] = useState("");
@@ -3502,6 +3540,25 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           >
             🏋️ Entrenador
           </button>
+          {/* Armador de planes (ronda 14) — vista web desktop del catálogo
+              con carrito para armar planes por alumno/día */}
+          <button
+            onClick={() => setShowArmador(true)}
+            title="Armador de planes: catálogo completo con carrito, pensado para computadora"
+            style={{
+              background: "transparent",
+              color: S.gray,
+              border: "1px solid " + S.border,
+              borderRadius: 6,
+              padding: "5px 9px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            🖥 Armador
+          </button>
           <button
             onClick={onToggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -3599,11 +3656,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 showToast && showToast(`${nombre} eliminado.`);
               }}
               onNuevo={() => setShowCrearAlumno((v) => !v)}
-              onBiblioteca={() => setShowBiblioteca(true)}
+              onBiblioteca={() => setShowCatalogo(true)}
               onDeselect={() => setSelId(null)}
             />
 
-            {/* Biblioteca de ejercicios — pantalla aparte (punto 8, ronda 12) */}
+            {/* Biblioteca PROPIA (movilidad/elástico/calor + GIFs manuales) —
+                se abre desde adentro del catálogo (ronda 14) */}
             {showBiblioteca && (
               <BibliotecaScreen
                 biblioteca={biblioteca}
@@ -4588,6 +4646,26 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           </div>
         )}{" "}
       </div>{" "}
+      {/* Ronda 14: Biblioteca = catálogo completo (dataset + custom DI).
+          Desde adentro se puede saltar a la biblioteca propia (M/E/C). */}
+      {showCatalogo && (
+        <CatalogoExplorer
+          modo="biblioteca"
+          onClose={() => setShowCatalogo(false)}
+          showToast={showToast}
+          onAbrirPropia={() => { setShowCatalogo(false); setShowBiblioteca(true); }}
+        />
+      )}
+      {/* Armador de planes — versión web desktop */}
+      {showArmador && (
+        <CatalogoExplorer
+          modo="armador"
+          onClose={() => setShowArmador(false)}
+          showToast={showToast}
+          alumnos={alumnos}
+          onAlumnosUpdate={onUpdate}
+        />
+      )}
     </div>
   );
 }
@@ -5422,8 +5500,11 @@ export default function App() {
   const plan = planHoy || al.plan;
   const planValido = plan && Array.isArray(plan.dias) && plan.dias.length > 0;
   const semanaActual = planValido ? getSemanaActual(plan.periodizacion) : 1;
-  const sem = planValido ? (plan.periodizacion.find((p) => p.semana === semanaActual) || plan.periodizacion[0]) : { series: "-", reps: "-", intensidad: "" };
-  const prevSem = planValido ? plan.periodizacion.find((p) => p.semana === semanaActual - 1) : null;
+  // Fallback SIEMPRE (ronda 14): un alumno nuevo armado desde el Armador
+  // puede tener plan sin periodización todavía — sem undefined rompía
+  // PlanDelDia con pantalla en blanco.
+  const sem = (planValido && ((plan.periodizacion || []).find((p) => p.semana === semanaActual) || (plan.periodizacion || [])[0])) || { series: "-", reps: "-", intensidad: "" };
+  const prevSem = planValido ? (plan.periodizacion || []).find((p) => p.semana === semanaActual - 1) : null;
   const dia = planValido ? plan.dias[diaIdx] : null;
   if (showBienvenida)
     return (
