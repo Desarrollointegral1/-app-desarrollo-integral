@@ -73,7 +73,7 @@ import {
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme } from "./src/utils/theme.js";
+import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
@@ -223,7 +223,7 @@ function Toast({ msg }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        from { transform:rotateY(0deg); }        to   { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinY 18s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(28deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-28deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 8s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -233,8 +233,16 @@ function GlobalStyles() {
 // ── LOGO 3D ───────────────────────────────────────────────────────────
 // Ícono oficial con extrusión real: varias capas del ícono separadas en Z
 // (translateZ) girando juntas — las de atrás oscurecidas = profundidad.
-// Reutilizable: login, pantalla de carga y bienvenida (ronda 9).
+// Reutilizable: login y pantalla de carga (comparten la clase .di-logo3d).
 // SIN sombra de piso (pedido de Lucas ronda 9).
+// Ronda 16: Lucas mandó un screenshot del giro completo (rotateY 0→360)
+// mostrando un artefacto de "fantasma"/capas superpuestas raras a mitad
+// de vuelta — son las 4 capas en translateZ vistas de perfil/de espalda
+// (~90°-270°), donde al ser planos 2D apilados se ven como líneas finas
+// superpuestas y, del otro lado, el ícono espejado por backface-visibility.
+// Fix: en vez de rotar 360° completo, el logo ahora OSCILA tipo péndulo
+// (0° → 28° → 0° → -28° → 0°, ease-in-out) — nunca llega a los ángulos
+// donde se ve el artefacto.
 function Logo3D({ size = 230 }) {
   const depth = Math.max(10, Math.round(size * 0.07));
   const zs = [-depth, -depth / 2, 0, depth / 2];
@@ -2924,7 +2932,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 220, background: S.bg, overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
       <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 13, color: S.white, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 13, color: S.white, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
             📚 Biblioteca de ejercicios
           </div>
           <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 20, cursor: "pointer" }}>✕</button>
@@ -3731,7 +3739,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               whiteSpace: "nowrap",
             }}
           >
-            <span style={{ color: S.white, fontWeight: 800, fontSize: "clamp(11px, 3.4vw, 14px)", letterSpacing: 1.2, textTransform: "uppercase" }}>
+            <span style={{ color: S.white, fontWeight: 800, fontSize: "clamp(11px, 3.4vw, 14px)", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
               Panel Admin
             </span>
             <span style={{ color: S.gray, fontSize: "clamp(9px, 2.6vw, 11px)", letterSpacing: 1, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -5166,6 +5174,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
             textTransform: "uppercase",
             marginTop: 6,
             textAlign: "center",
+            fontFamily: FONT_BODY,
           }}
         >
           App de entrenamiento
@@ -5173,7 +5182,10 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
       </div>
 
       <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
-        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
+        {/* Ronda 16: labels centrados + bold, misma tipografía (FONT_BODY)
+            que el subtítulo "App de entrenamiento" de arriba — pedido
+            explícito de Lucas de unificar la identidad tipográfica. */}
+        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, textAlign: "center", fontWeight: 700, fontFamily: FONT_BODY }}>
           Usuario
         </div>
         <input
@@ -5185,7 +5197,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           disabled={cargando}
         />
 
-        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14 }}>
+        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14, textAlign: "center", fontWeight: 700, fontFamily: FONT_BODY }}>
           Clave
         </div>
         <input
@@ -5480,8 +5492,8 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
 
         {/* 2. Saludo al doble de grande (13px → 26px) + 3. primer nombre solo */}
         <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 18 }}>
-          <div style={{ color: S.white, fontWeight: 900, fontSize: 26 }}>{saludo}</div>
-          <div style={{ color: S.green, fontWeight: 800, fontSize: 20, marginTop: 4 }}>{primerNombre}</div>
+          <div style={{ color: S.white, fontWeight: 900, fontSize: 26, fontFamily: FONT_DISPLAY }}>{saludo}</div>
+          <div style={{ color: S.green, fontWeight: 800, fontSize: 20, marginTop: 4, fontFamily: FONT_DISPLAY }}>{primerNombre}</div>
         </div>
 
         <div

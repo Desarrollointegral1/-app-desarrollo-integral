@@ -51,6 +51,21 @@
         font-weight: 700 900;
         font-display: swap;
       }
+      /* Ronda 16: identidad tipográfica formal de la app — 2 niveles.
+         DISPLAY (títulos de pantalla, nombres de sección, el wordmark en
+         sí): "PP Formula Condensed", el mismo peso condensado bold recto
+         que se usó para dibujar los paths de "INTEGRAL" en el SVG del
+         logo (DIWordmark.jsx) — nunca se había cargado como fuente web,
+         solo existía quemado en el vector. BODY (todo lo demás: labels,
+         botones, inputs, texto de UI): "PP Formula" normal, ya cargada
+         arriba y ya aplicada como fuente base del <body> desde antes.
+         Ver FONT_DISPLAY / FONT_BODY en src/utils/theme.js. */
+      @font-face {
+        font-family: "PP Formula Condensed";
+        src: url("/fonts/PPFormula-CondensedBlack.otf") format("opentype");
+        font-weight: 700 900;
+        font-display: swap;
+      }
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html { -webkit-text-size-adjust: 100%; }
       body {

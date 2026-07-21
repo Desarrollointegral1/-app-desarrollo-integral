@@ -1,3 +1,21 @@
+// ── IDENTIDAD TIPOGRÁFICA DI (ronda 16) ─────────────────────────────────
+// Sistema de 2 niveles, pedido explícito de Lucas ("que toda la app siga
+// esa letra... tiene que haber una identidad visual"):
+//   · FONT_DISPLAY — títulos de pantalla, nombres de sección importantes,
+//     el wordmark. "PP Formula Condensed" (peso Black condensado, el
+//     mismo que dibuja "INTEGRAL" en el SVG de DIWordmark.jsx — antes
+//     solo vivía quemado en el vector, ahora también existe como fuente
+//     web real en public/fonts/PPFormula-CondensedBlack.otf).
+//   · FONT_BODY — todo lo demás: labels, botones, inputs, texto de UI.
+//     "PP Formula" (Light/Medium/Extrabold ya cargadas), que es la misma
+//     familia que usa el subtítulo "APP DE ENTRENAMIENTO" del login.
+//     Ya es la fuente base del <body> en index.html — cualquier texto
+//     que no pise fontFamily la hereda sola. Esta constante existe para
+//     los lugares que SÍ quieran declararla explícitamente (ej. un
+//     elemento dentro de un contexto con otra fuente heredada).
+export const FONT_DISPLAY = '"PP Formula Condensed", "PP Formula", system-ui, -apple-system, "Segoe UI", sans-serif';
+export const FONT_BODY = '"PP Formula", system-ui, -apple-system, "Segoe UI", sans-serif';
+
 export const DARK_T  = {bg:"#0a0a0a",card:"#121212",card2:"#1a1a1a",border:"#242424",white:"#f0f0f0",gray:"#8a8a8a",lgray:"#4e4e4e",red:"#e53e3e",green:"#4caf50"};
 // Modo claro: blanco + escala de grises con contraste (pedido de Lucas 2026-07-20).
 // Nada de tonos crema/beige — fondos neutros, texto casi negro.
@@ -11,7 +29,10 @@ export const smallBtn = (color="#888",bg="transparent") => ({background:bg,color
 
 // ── Jerarquía de tabs del alumno (ronda 6) — 3 niveles bien diferenciados ──
 // Nivel 1 (Entrenamiento | Diario): pills grandes, borde marcado, el activo invertido (fondo blanco/texto negro).
-export const tabN1 = a => ({flex:1,textAlign:"center",background:a?S.white:S.card,color:a?S.bg:S.gray,border:"1.5px solid "+(a?S.white:S.border),borderRadius:12,padding:"13px 6px",fontSize:14,fontWeight:800,cursor:"pointer",letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s"});
+// Nivel 1 usa FONT_DISPLAY (ronda 16) — es el nivel de navegación más
+// grande/protagonista (ENTRENAMIENTO | DIARIO), el más parecido a un
+// "título de pantalla" que tiene la app.
+export const tabN1 = a => ({flex:1,textAlign:"center",background:a?S.white:S.card,color:a?S.bg:S.gray,border:"1.5px solid "+(a?S.white:S.border),borderRadius:12,padding:"13px 6px",fontSize:14,fontWeight:800,cursor:"pointer",letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s",fontFamily:FONT_DISPLAY});
 // Nivel 2 (Preparación | Principales): tamaño medio, el activo con borde blanco + fondo card — sin invertir.
 export const tabN2 = a => ({flex:1,textAlign:"center",background:a?S.card:"transparent",color:a?S.white:S.gray,border:"1px solid "+(a?S.white:S.border),borderRadius:10,padding:"11px 4px",fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:1,transition:"all 0.15s"});
 // Nivel 3 (Movilidad/elástico/peso · Superrápida/Corta/Completa) — ronda 7:
