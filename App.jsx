@@ -675,8 +675,20 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
         cargarCatalogoCached().then((c) => { _catalogoRef.current = c; });
       }
       const q = val.toLowerCase();
+      // Punto 6 (2026-07-21): además del nombre, matchea por músculo o tag
+      // — usa musculos/tags editables si el admin ya los cargó, si no cae
+      // a los campos originales del dataset (target_es/secondary_muscles_es
+      // para músculo, equipment_es para tag).
+      const matchCatalogo = (c) => {
+        if (c.nombre_es.toLowerCase().includes(q) || (c.nombre_en || "").toLowerCase().includes(q)) return true;
+        const musc = c.musculos && c.musculos.length ? c.musculos : [c.target_es, ...(c.secondary_muscles_es || [])].filter(Boolean);
+        if (musc.some((m) => (m || "").toLowerCase().includes(q))) return true;
+        const tgs = c.tags && c.tags.length ? c.tags : [c.equipment_es].filter(Boolean);
+        if (tgs.some((t) => (t || "").toLowerCase().includes(q))) return true;
+        return false;
+      };
       const deCatalogo = (Array.isArray(_catalogoRef.current) ? _catalogoRef.current : [])
-        .filter((c) => c.nombre_es.toLowerCase().includes(q) || (c.nombre_en || "").toLowerCase().includes(q))
+        .filter(matchCatalogo)
         .slice(0, 6)
         .map((c) => ({
           nombre: c.nombre_es,
