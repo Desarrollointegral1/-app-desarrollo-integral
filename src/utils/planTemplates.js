@@ -201,7 +201,7 @@ export const EJERCICIOS_PRINCIPALES=[
   T("JA001","jalon","Jalon con elastico","Banda anclada arriba. Tirá hacia abajo con los dos brazos llevando los codos al torso."),
   T("JA002","jalon","Jalon con elastico unilateral","Banda anclada arriba. Tirá hacia abajo con un solo brazo, activando el dorsal."),
   T("JA003","jalon","Jalon con TRX parado Inclinado","Cuerpo inclinado agarrado del TRX. Tirá llevando el pecho a las manos y bajá lento."),
-  T("JA004","jalon","Jalon unilateral con mancuerna","Torso inclinado, apoyo firme. Tirá la mancuerna con el codo al techo, activando el dorsal."),
+  T("JA004","jalon","Jalón unilateral con mancuerna","También conocido como remo a una mano: trabaja el dorsal ancho y corrige desequilibrios entre lados. Rodilla y mano contraria apoyadas en un banco plano, pierna del lado que trabaja firme en el suelo, espalda recta y cabeza alineada. Brazo extendido hacia el suelo, dejando descender el hombro para estirar el dorsal. Elevá la mancuerna traccionando desde el hombro, llevando el codo hacia el bolsillo sin separarlo del cuerpo. Bajá lento y controlado, manteniendo la tensión."),
   T("JA005","jalon","Jalon con TRX Vertical","Colgado del TRX casi vertical, tirá del cuerpo hacia arriba llevando los codos atrás."),
   T("JA006","jalon","Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado."),
   // GLÚTEO (puente / hip thrust)

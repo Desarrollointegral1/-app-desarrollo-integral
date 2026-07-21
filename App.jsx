@@ -2135,18 +2135,60 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
   );
   const plan = planes.find((p) => p.id === selPlanId) || planes[0];
 
+  // ── Propagación a días hermanos (bug Vic, 2026-07-21) ──
+  // El mismo plan asignado a varios días (ej. "Hipertrofia Avanzado" en
+  // Lunes/Jueves/Sábado) son COPIAS independientes en alumno_planes. Editar
+  // un ejercicio con el chip de Lunes seleccionado solo tocaba la copia del
+  // Lunes: el alumno abría la app otro día y seguía viendo el ejercicio
+  // viejo. Ahora el cambio se aplica también a los otros días que tengan un
+  // plan con el MISMO nombre, reusando los ids de ejercicios existentes de
+  // cada copia (match por código, si no por nombre) para no romper el
+  // historial de pesos (registros_diarios está keyeado por ejercicio_id).
+  const _diasParaHermano = (hermano, nuevosDias) => {
+    const pool = [];
+    (hermano.dias || []).forEach((d) => (d.ejercicios || []).forEach((e) => pool.push({ ...e })));
+    const tomar = (ej) => {
+      let i = pool.findIndex((p) => ej.codigo && p.codigo === ej.codigo);
+      if (i < 0) i = pool.findIndex((p) => p.nombre === ej.nombre);
+      if (i < 0) return null;
+      return pool.splice(i, 1)[0];
+    };
+    return nuevosDias.map((d) => ({
+      ...d,
+      ejercicios: (d.ejercicios || []).map((ej) => {
+        const previo = tomar(ej);
+        return { ...ej, id: previo ? previo.id : uid() };
+      }),
+    }));
+  };
+
   const guardarDias = (nuevosDias) => {
     if (!plan) return;
+    // Días hermanos: mismo alumno, plan real con el mismo nombre.
+    const hermanos = plan._sintetico ? [] : planes.filter(
+      (p) => p.id !== plan.id && !p._sintetico && (p.nombre || "") === (plan.nombre || ""),
+    );
+    const diasPorHermano = new Map(hermanos.map((h) => [h.id, _diasParaHermano(h, nuevosDias)]));
     onUpdate(alumnos.map((a) => a.id === al.id
       ? {
           ...a,
-          planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, dias: nuevosDias } : p)),
+          planes: (a.planes || []).map((p) =>
+            p.id === plan.id
+              ? { ...p, dias: nuevosDias }
+              : diasPorHermano.has(p.id)
+                ? { ...p, dias: diasPorHermano.get(p.id) }
+                : p),
           // El plan sintético "Fijo" (sin fila en alumno_planes) se persiste
           // por el camino viejo: al.plan.dias → _guardarAlumno → plan_dias.
           plan: plan._sintetico ? { ...a.plan, dias: nuevosDias } : a.plan,
         }
       : a));
     if (!plan._sintetico) {
+      diasPorHermano.forEach((dias, hermanoId) => {
+        actualizarPlanAlumnoDias(hermanoId, dias).then((ok) => {
+          if (!ok) showToast && showToast("No se pudo actualizar uno de los otros días — reintentá");
+        });
+      });
       actualizarPlanAlumnoDias(plan.id, nuevosDias).then(async (ok) => {
         if (ok) return;
         // El plan pudo haber sido reemplazado/borrado desde otra sesión (id
@@ -5361,7 +5403,22 @@ export default function App() {
   }
   const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
   const hoyTexto = DIAS_SEMANA[new Date().getDay()];
-  const planHoy = al.planes?.find(p => p.dia_semana === hoyTexto || p.dia_semana === "Fijo") || al.plan || al.planes?.[0];
+  // Elección del plan a mostrar (bug Vic, 2026-07-21): antes, un día sin plan
+  // asignado caía en al.plan (copia de compatibilidad de planes[0], orden
+  // arbitrario de la base) y el alumno podía ver una copia vieja distinta de
+  // la que el admin editó. Ahora es determinístico: plan de HOY → "Fijo" →
+  // el PRÓXIMO día que entrena → el primero de la semana. al.plan queda solo
+  // como último recurso cuando no hay planes reales.
+  const _planesOrdenados = [...(al.planes || [])]
+    .filter((p) => p && Array.isArray(p.dias) && p.dias.length > 0)
+    .sort((a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9));
+  const _hoyOrden = ORDEN_DIAS[hoyTexto] || 0;
+  const planHoy =
+    _planesOrdenados.find((p) => p.dia_semana === hoyTexto) ||
+    _planesOrdenados.find((p) => p.dia_semana === "Fijo") ||
+    _planesOrdenados.find((p) => (ORDEN_DIAS[p.dia_semana] || 9) > _hoyOrden) ||
+    _planesOrdenados[0] ||
+    al.plan;
   const plan = planHoy || al.plan;
   const planValido = plan && Array.isArray(plan.dias) && plan.dias.length > 0;
   const semanaActual = planValido ? getSemanaActual(plan.periodizacion) : 1;

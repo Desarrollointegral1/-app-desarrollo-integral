@@ -397,8 +397,13 @@ async function _guardarAlumno(al) {
 
   LOG("_guardarAlumno", `✅ UPSERT confirmado:`, data);
 
-  // Guardar plan de días (tablas normalizadas)
-  if (al.plan?.dias) {
+  // Guardar plan de días (tablas normalizadas) — SOLO si el alumno no tiene
+  // planes reales en alumno_planes. al.plan es una copia de compatibilidad de
+  // planes[0] (cargarDatos): re-escribirla acá creaba filas huérfanas en
+  // plan_dias(alumno_id) que ninguna vista lee (bug Vic 2026-07-21 — datos
+  // muertos que confundían el diagnóstico del desfase admin→alumno).
+  const tienePlanesReales = (al.planes || []).some((p) => p && !p._sintetico);
+  if (al.plan?.dias && !tienePlanesReales) {
     await _savePlanDias(al.id, al.plan.dias);
   }
 }
@@ -1097,26 +1102,24 @@ export async function crearAdmin(nombre, codigo, pin, email) {
   LOG("crearAdmin", `⏳ Creando admin ${codigo}...`);
 
   try {
+    // La tabla admins tiene RLS sin policies (nadie la toca directo con la
+    // anon key) — el INSERT directo fallaba con 42501 y el admin nunca se
+    // creaba. El alta corre server-side en crear_admin_rpc (migración 014),
+    // mismo patrón que login_admin_rpc.
     const pinHash = await hashearPIN(pin);
-    const nuevoAdmin = {
-      id: makeUuid(),
-      nombre,
-      codigo: codigo.toUpperCase(),
-      pin_hash: pinHash,
-      email,
-      activo: true,
-    };
+    const { data: admin, error } = await supabase.rpc("crear_admin_rpc", {
+      p_nombre: nombre,
+      p_codigo: codigo,
+      p_pin_hash: pinHash,
+      p_email: email || "",
+    });
 
-    const { error } = await supabase
-      .from("admins")
-      .insert([nuevoAdmin]);
-
-    if (error) {
-      throw new Error(error.message || "Error al crear admin");
+    if (error || !admin) {
+      throw new Error(error?.message || "Error al crear admin");
     }
 
     LOG("crearAdmin", `✅ Admin ${nombre} creado exitosamente`);
-    return nuevoAdmin;
+    return admin;
   } catch (e) {
     ERR("crearAdmin", e.message, e);
     throw e;
