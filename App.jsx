@@ -21,6 +21,7 @@ import {
   cargarBiblioteca,
   guardarEjercicioBiblioteca,
   eliminarEjercicioBiblioteca,
+  propagarEjercicioATodos,
   cargarNovedades,
   crearNovedad,
   toggleNovedad,
@@ -154,19 +155,23 @@ function GlobalStyles() {
 function Logo3D({ size = 230 }) {
   const depth = Math.max(10, Math.round(size * 0.07));
   const zs = [-depth, -depth / 2, 0, depth / 2];
+  // Ronda 11: el box se limita a 82vw además del `size` pedido — así un size
+  // grande (login, carga) nunca desborda el ancho de pantalla en celular; en
+  // viewports angostos se ve más chico pero SIEMPRE entero, nunca cortado.
+  const box = `min(${size}px, 82vw)`;
   return (
-    <div style={{ perspective: Math.round(size * 1.4), width: size, height: size }}>
-      <div className="di-logo3d" style={{ position: "relative", width: size, height: size, transformStyle: "preserve-3d" }}>
+    <div style={{ perspective: Math.round(size * 1.4), width: box, height: box }}>
+      <div className="di-logo3d" style={{ position: "relative", width: "100%", height: "100%", transformStyle: "preserve-3d" }}>
         {zs.map((z, i) => (
           <img
             key={z}
             src={ICON}
-            width={size}
-            height={size}
             alt={i === zs.length - 1 ? "DI" : ""}
             style={{
               position: "absolute",
               inset: 0,
+              width: "100%",
+              height: "100%",
               display: "block",
               transform: `translateZ(${z}px)`,
               opacity: i === zs.length - 1 ? 0.95 : 0.28 + i * 0.1,
@@ -383,11 +388,18 @@ function VideoUploadButton({ onVideoUrl }) {
   );
 }
 // ── EJERCICIO EDITOR ──────────────────────────────────────────────────
-function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca }) {
+// onGuardarParaTodos (ronda 11, opcional): si se pasa, en modo edición
+// aparece un segundo botón "GUARDAR PARA TODOS" además del "GUARDAR" de
+// siempre. "GUARDAR" solo cambia la copia de ESTE alumno; "GUARDAR PARA
+// TODOS" además actualiza el maestro (biblioteca_ejercicios) y propaga el
+// cambio a todos los alumnos que tengan este mismo ejercicio — ver
+// propagarEjercicioATodos en services/supabase.js.
+function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos }) {
   const [editIdx, setEditIdx] = useState(null);
   const [form, setForm] = useState({ nombre: "", desc: "", video: "", mediaLocal: "" });
   const [sugs, setSugs] = useState([]); // sugerencias de biblioteca activas
   const [showSugs, setShowSugs] = useState(false);
+  const [propagando, setPropagando] = useState(false);
 
   const startEdit = (i) => {
     setEditIdx(i);
@@ -418,6 +430,25 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     // Auto-guardar en biblioteca si tiene video
     if (form.video && onGuardarBiblioteca) {
       onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video });
+    }
+    cancel();
+  };
+  // Ronda 11: "Guardar para todos" — solo tiene sentido editando un
+  // ejercicio EXISTENTE (editIdx >= 0), no al crear uno nuevo.
+  const saveParaTodos = async () => {
+    if (!form.nombre.trim() || editIdx === null || editIdx === -1 || !onGuardarParaTodos) return;
+    const original = items[editIdx];
+    const updated = [...items];
+    updated[editIdx] = { ...updated[editIdx], ...form };
+    onChange(updated);
+    if (form.video && onGuardarBiblioteca) {
+      onGuardarBiblioteca({ nombre: form.nombre, desc: form.desc, video: form.video });
+    }
+    setPropagando(true);
+    try {
+      await onGuardarParaTodos({ codigo: original.codigo || null, nombreOriginal: original.nombre, form });
+    } finally {
+      setPropagando(false);
     }
     cancel();
   };
@@ -518,10 +549,11 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   />{" "}
                 </>
               )}{" "}
-              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 {" "}
                 <button
                   onClick={save}
+                  disabled={propagando}
                   style={{
                     flex: 1,
                     background: S.white,
@@ -530,13 +562,38 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                     borderRadius: 6,
                     padding: "8px",
                     fontWeight: 900,
-                    cursor: "pointer",
+                    cursor: propagando ? "default" : "pointer",
+                    opacity: propagando ? 0.6 : 1,
+                    minWidth: 90,
                   }}
                 >
                   GUARDAR
                 </button>{" "}
+                {onGuardarParaTodos && (
+                  <button
+                    onClick={saveParaTodos}
+                    disabled={propagando}
+                    title="Actualiza el ejercicio maestro y lo propaga a todos los alumnos que lo tengan"
+                    style={{
+                      flex: 1,
+                      background: "transparent",
+                      color: S.green,
+                      border: "1px solid " + S.green,
+                      borderRadius: 6,
+                      padding: "8px",
+                      fontWeight: 900,
+                      fontSize: 11,
+                      cursor: propagando ? "default" : "pointer",
+                      opacity: propagando ? 0.6 : 1,
+                      minWidth: 130,
+                    }}
+                  >
+                    {propagando ? "PROPAGANDO..." : "GUARDAR PARA TODOS"}
+                  </button>
+                )}{" "}
                 <button
                   onClick={cancel}
+                  disabled={propagando}
                   style={{
                     background: "transparent",
                     color: S.gray,
@@ -601,7 +658,14 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
               </div>{" "}
               <div style={{ flex: 1 }}>
                 {" "}
-                <div style={{ color: S.white, fontSize: 13, fontWeight: 600 }}>{ej.nombre}</div>{" "}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {ej.codigo && (
+                    <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                      {ej.codigo}
+                    </span>
+                  )}
+                  <div style={{ color: S.white, fontSize: 13, fontWeight: 600 }}>{ej.nombre}</div>
+                </div>{" "}
                 {ej.desc && (
                   <div style={{ color: S.gray, fontSize: 11, marginTop: 1 }}>
                     {ej.desc.slice(0, 50)}
@@ -710,7 +774,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
 // ocultarAgregarDia (ronda 6): en Plan → Principales el "+ Dia" de acá abajo era
 // redundante (agregar día ya está arriba con "+ Otro día") — se oculta, y si el
 // plan tiene un solo día tampoco se muestra la fila de pills.
-function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca, ocultarAgregarDia = false }) {
+function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos, ocultarAgregarDia = false }) {
   const [selDia, setSelDia] = useState(0);
   const [editDia, setEditDia] = useState(false);
   const [diaForm, setDiaForm] = useState({ dia: "", subtitulo: "" });
@@ -737,9 +801,22 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
       window.alert("Debe haber al menos 1 dia.");
       return;
     }
+    // Ronda 11: confirm explícito antes de borrar un día completo.
+    if (!window.confirm(`¿Borrar "${dias[i].dia}"? Se pierden los ejercicios asignados ese día.`)) return;
     const arr = dias.filter((_, j) => j !== i);
     onChange(arr);
     setSelDia(Math.min(selDia, arr.length - 1));
+  };
+  // Ronda 11: reordenar días (el orden acá es el mismo que ve el alumno en
+  // el selector de día de Principales).
+  const moveDia = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= dias.length) return;
+    const arr = [...dias];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    onChange(arr);
+    if (selDia === i) setSelDia(j);
+    else if (selDia === j) setSelDia(i);
   };
   if (!d) return (
     <div style={{ ...card, padding: 24, textAlign: "center" }}>
@@ -776,7 +853,46 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
             </button>{" "}
             {dias.length > 1 && (
               <button
+                onClick={() => moveDia(i, -1)}
+                disabled={i === 0}
+                title="Mover antes"
+                style={{
+                  background: "transparent",
+                  color: i === 0 ? S.lgray : S.gray,
+                  border: "1px solid " + S.border,
+                  borderRadius: 6,
+                  padding: "3px 5px",
+                  fontSize: 10,
+                  cursor: i === 0 ? "default" : "pointer",
+                  opacity: i === 0 ? 0.4 : 1,
+                }}
+              >
+                ◀
+              </button>
+            )}{" "}
+            {dias.length > 1 && (
+              <button
+                onClick={() => moveDia(i, 1)}
+                disabled={i === dias.length - 1}
+                title="Mover después"
+                style={{
+                  background: "transparent",
+                  color: i === dias.length - 1 ? S.lgray : S.gray,
+                  border: "1px solid " + S.border,
+                  borderRadius: 6,
+                  padding: "3px 5px",
+                  fontSize: 10,
+                  cursor: i === dias.length - 1 ? "default" : "pointer",
+                  opacity: i === dias.length - 1 ? 0.4 : 1,
+                }}
+              >
+                ▶
+              </button>
+            )}{" "}
+            {dias.length > 1 && (
+              <button
                 onClick={() => removeDia(i)}
+                title="Borrar día"
                 style={{
                   background: "transparent",
                   color: S.red,
@@ -875,7 +991,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
           </button>{" "}
         </div>
       )}{" "}
-      <EjercicioEditor items={d.ejercicios} onChange={updateEjs} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} />{" "}
+      <EjercicioEditor items={d.ejercicios} onChange={updateEjs} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} />{" "}
     </div>
   );
 }
@@ -1605,92 +1721,11 @@ function Diario({ entradas, onAdd }) {
     </div>
   );
 }
-// ── PESO MAX ALUMNO ───────────────────────────────────────────────────
-function PesoMaxAlumno({ rm, onUpdate }) {
-  // Sin paso de "editar": el input está SIEMPRE directamente editable.
-  const setPeso = (ej, v) => {
-    const n = Math.max(0, Number(v) || 0);
-    onUpdate({ ...rm, [ej]: { peso: n, fecha: hoy() } });
-  };
-  return (
-    <div>
-      {" "}
-      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-        Mis pesos maximos
-      </div>{" "}
-      {RM_EJS.map((ej) => {
-        const dato = rm && rm[ej];
-        const peso = (dato && dato.peso) || 0;
-        return (
-          <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-            {" "}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              {" "}
-              <div style={{ flex: 1 }}>
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{ej}</div>
-                {dato && dato.fecha && <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>{dato.fecha}</div>}
-              </div>{" "}
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {" "}
-                <button
-                  onClick={() => setPeso(ej, peso - 1)}
-                  style={{ width: 34, height: 34, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
-                >
-                  −
-                </button>{" "}
-                <input
-                  type="number"
-                  value={peso || ""}
-                  placeholder="0"
-                  onChange={(e) => setPeso(ej, e.target.value)}
-                  style={{ width: 62, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 4px", color: S.white, fontSize: 16, fontWeight: 900, outline: "none" }}
-                />{" "}
-                <span style={{ color: S.gray, fontSize: 12 }}>kg</span>{" "}
-                <button
-                  onClick={() => setPeso(ej, peso + 1)}
-                  style={{ width: 34, height: 34, background: S.white, color: S.bg, border: "none", borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
-                >
-                  +
-                </button>{" "}
-              </div>{" "}
-            </div>{" "}
-            {dato && dato.peso > 0 && (
-              <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {" "}
-                {[60, 65, 70, 75, 80, 85, 90, 95].map((pct) => (
-                  <div
-                    key={pct}
-                    style={{
-                      background: S.card2,
-                      borderRadius: 6,
-                      padding: "4px 8px",
-                      textAlign: "center",
-                      flex: 1,
-                      minWidth: 44,
-                    }}
-                  >
-                    {" "}
-                    <div style={{ color: S.white, fontSize: 12, fontWeight: 700 }}>
-                      {Math.round((dato.peso * pct) / 100)}kg
-                    </div>{" "}
-                    <div style={{ color: S.gray, fontSize: 9 }}>{pct}%</div>{" "}
-                  </div>
-                ))}{" "}
-              </div>
-            )}{" "}
-          </div>
-        );
-      })}{" "}
-    </div>
-  );
-}
+// (PesoMaxAlumno se eliminó en la ronda 11 — quedó huérfano desde que "Peso
+// Max" se sacó del admin. El peso máximo ahora se CALCULA solo, ver
+// HistorialAdmin más abajo: es el mayor valor entre todos los registros de
+// registros_diarios para ese ejercicio, sin importar si lo cargó el alumno
+// en Principales o el entrenador desde Modo Entrenador.)
 // ── TABLA PERIODIZACION ───────────────────────────────────────────────
 function TablaPer({ data, semanaActual }) {
   return (
@@ -1767,58 +1802,110 @@ function TablaPer({ data, semanaActual }) {
   );
 }
 // ── HISTORIAL ADMIN ───────────────────────────────────────────────────
+// Ronda 11: rediseño completo. Reemplaza el viejo "Historial" (una fila por
+// ejercicio-instancia, duplicado si el mismo ejercicio aparecía en más de un
+// día) y el viejo "Peso Max" (rm manual, ya sacado del admin). Ahora es UNA
+// fuente: registros_diarios (via cargarPesos → historiales), sin distinguir
+// si el peso lo cargó el alumno en Principales o Lucas/Ari/Gri desde Modo
+// Entrenador — usan el mismo handler y la misma tabla, así que ya está
+// unificado de origen (no hay campo "cargado por" en ningún lado).
+// Acá se agrupan los ejercicios por CÓDIGO (o por nombre exacto si es un
+// ejercicio viejo sin código todavía) uniendo TODOS los días del plan, y se
+// muestra el peso máximo histórico + la fecha en que se logró por primera vez.
 function HistorialAdmin({ al }) {
-  const [selEj, setSelEj] = useState(null);
+  const [selKey, setSelKey] = useState(null);
   const [histData, setHistData] = useState({});
   useEffect(() => {
     if (!al?.id) return;
-    setSelEj(null);
+    setSelKey(null);
     setHistData({});
     cargarPesos(al.id, null).then((data) => {
       if (data && data.historiales) setHistData(data.historiales);
       else setHistData({});
     });
   }, [al?.id]);
-  const ejercicios = al ? (al.plan?.dias || []).flatMap((d) => d.ejercicios) : [];
+
+  const grupos = (() => {
+    const porClave = new Map();
+    const ejercicios = al ? (al.plan?.dias || []).flatMap((d) => d.ejercicios || []) : [];
+    ejercicios.forEach((ej) => {
+      const clave = ej.codigo || ej.nombre;
+      if (!clave) return;
+      if (!porClave.has(clave)) porClave.set(clave, { clave, nombre: ej.nombre, codigo: ej.codigo || "", ids: [] });
+      const g = porClave.get(clave);
+      if (!g.ids.includes(ej.id)) g.ids.push(ej.id);
+    });
+    return [...porClave.values()];
+  })();
+
+  const historialUnido = (ids) =>
+    ids
+      .flatMap((id) => histData[id] || [])
+      .filter((h) => h.fecha && Number(h.peso) > 0)
+      .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+
+  // Máximo histórico + fecha en que se alcanzó POR PRIMERA VEZ (si hay
+  // empates en el valor máximo, se queda con la fecha más vieja).
+  const maxDe = (hist) => {
+    let max = 0, fecha = null;
+    hist.forEach((h) => {
+      if (Number(h.peso) > max) { max = Number(h.peso); fecha = h.fecha; }
+    });
+    return { max, fecha };
+  };
+
   if (!al) return <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>;
   return (
     <div>
       {" "}
-      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>
         Historial — {al.nombre}
       </div>{" "}
-      {ejercicios.map((ej) => {
-        const hist = histData[ej.id] || [];
-        const isOpen = selEj === ej.id;
+      <div style={{ fontSize: 11, color: S.lgray, marginBottom: 12 }}>
+        Peso máximo por ejercicio (unifica todos los días asignados)
+      </div>{" "}
+      {grupos.length === 0 && (
+        <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Sin ejercicios de Principales asignados</div>
+      )}
+      {grupos.map((g) => {
+        const hist = historialUnido(g.ids);
+        const { max, fecha } = maxDe(hist);
+        const isOpen = selKey === g.clave;
         return (
-          <div key={ej.id} style={{ ...card, marginBottom: 8, overflow: "hidden" }}>
+          <div key={g.clave} style={{ ...card, marginBottom: 8, overflow: "hidden" }}>
             {" "}
             <div
-              onClick={() => setSelEj(isOpen ? null : ej.id)}
+              onClick={() => setSelKey(isOpen ? null : g.clave)}
               style={{
                 padding: "12px 14px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 cursor: "pointer",
+                gap: 10,
               }}
             >
               {" "}
-              <div>
-                {" "}
-                <div style={{ color: S.white, fontWeight: 600, fontSize: 13 }}>{ej.nombre}</div>{" "}
-                <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
-                  {hist.length > 0 ? (
-                    <span>
-                      <span style={{ color: S.white, fontWeight: 700 }}>{hist[hist.length - 1].peso}kg</span> · ultimo ·{" "}
-                      {hist.length} registros
-                    </span>
-                  ) : (
-                    "Sin registros"
-                  )}
-                </div>{" "}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                {g.codigo && (
+                  <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                    {g.codigo}
+                  </span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: S.white, fontWeight: 600, fontSize: 13 }}>{g.nombre}</div>
+                  <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                    {max > 0 ? (
+                      <span>
+                        <span style={{ color: S.green, fontWeight: 700 }}>{max}kg</span> máximo · {fecha} · {hist.length} registro{hist.length === 1 ? "" : "s"}
+                      </span>
+                    ) : (
+                      "Sin registros"
+                    )}
+                  </div>
+                </div>
               </div>{" "}
-              <div style={{ color: S.gray }}>{isOpen ? "▲" : "▼"}</div>{" "}
+              <div style={{ color: S.gray, flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</div>{" "}
             </div>{" "}
             {isOpen && hist.length > 0 && (
               <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
@@ -1838,8 +1925,8 @@ function HistorialAdmin({ al }) {
                     {[...hist].reverse().map((h, i) => (
                       <tr key={i} style={{ borderBottom: "1px solid " + S.border }}>
                         <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>
-                        <td style={{ padding: "6px 10px", color: S.white, fontWeight: 700, textAlign: "right" }}>
-                          {h.peso} kg
+                        <td style={{ padding: "6px 10px", color: h.peso === max ? S.green : S.white, fontWeight: 700, textAlign: "right" }}>
+                          {h.peso} kg{h.peso === max ? " 🏆" : ""}
                         </td>
                       </tr>
                     ))}
@@ -1871,7 +1958,7 @@ function HistorialAdmin({ al }) {
 // alta) con el plan que cada uno tiene, para retocar ejercicios puntuales.
 // Agregar un día nuevo queda como acción secundaria (deriva a Plan Día).
 const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7, Fijo: 8 };
-function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, showToast, onIrPlanDia, initialPlanId }) {
+function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBiblioteca, onGuardarParaTodos, showToast, onIrPlanDia, initialPlanId }) {
   const planes = [...(al.planes || [])].sort(
     (a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9),
   );
@@ -1954,7 +2041,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
             </div>
             <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
           </div>
-          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} ocultarAgregarDia />
+          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} ocultarAgregarDia />
         </div>
       )}
     </div>
@@ -2581,6 +2668,19 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
   const updatePlan = (campo, valor) =>
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, plan: { ...a.plan, [campo]: valor } } : a)));
+  // Ronda 11: "Guardar para todos" — actualiza el maestro (biblioteca) y
+  // propaga a todos los alumnos que tengan el mismo ejercicio (matched por
+  // código o, si es viejo y no tiene, por nombre exacto). Ver
+  // propagarEjercicioATodos en services/supabase.js.
+  const guardarParaTodos = async (categoria, payload) => {
+    const r = await propagarEjercicioATodos({ categoria, ...payload });
+    if (r.ok) {
+      showToast && showToast(`Propagado a ${r.total} ${categoria === "principales" ? "ejercicio(s)" : "alumno(s)"} ✓`);
+      onBibliotecaRefresh && onBibliotecaRefresh();
+    } else {
+      showToast && showToast("Error al propagar — revisá la consola");
+    }
+  };
   const guardarRM = () => {
     onUpdate(alumnos.map((a) => ({ ...a, rm: rm[a.id] || a.rm })));
     showToast && showToast("Guardado ✓");
@@ -3464,6 +3564,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 onUpdate={onUpdate}
                 biblioteca={bibliotecaEntreno}
                 onGuardarBiblioteca={onGuardarBiblioteca}
+                onGuardarParaTodos={(payload) => guardarParaTodos("principales", payload)}
                 showToast={showToast}
                 onIrPlanDia={() => { setSec("planes"); setPlanesTab("plan-dias"); }}
                 initialPlanId={planFoco}
@@ -3500,15 +3601,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   showVideo={true}
                   biblioteca={bibliotecaEntreno}
                   onGuardarBiblioteca={onGuardarBiblioteca}
+                  onGuardarParaTodos={(payload) => guardarParaTodos("movilidad", payload)}
                 />
                 <VideosMovilidadAdmin showToast={showToast} />
               </>
             )}{" "}
             {planTab === "calor" && al && (
-              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} />
+              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("calor", payload)} />
             )}{" "}
             {planTab === "activacion" && al && (
-              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} />
+              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("activacion", payload)} />
             )}{" "}
           </div>
         )}{" "}
@@ -3984,8 +4086,14 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
+        // Ronda 11: el logo sube un poco (antes todo el bloque quedaba
+        // centrado exacto en el viewport) — arranca más arriba con padding
+        // fijo en vez de centrado vertical puro.
+        justifyContent: "flex-start",
+        paddingTop: "8vh",
+        paddingLeft: 24,
+        paddingRight: 24,
+        paddingBottom: 24,
         fontFamily: "inherit",
         position: "relative",
       }}
@@ -4011,16 +4119,40 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
       >
         {darkMode ? "☀️" : "🌙"}
       </button>
-      {/* Header de marca — ronda 9: ícono al DOBLE (300px) con el efecto 3D
-          de profundidad (mismas capas translateZ que la bienvenida) */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
-        <Logo3D size={300} />
-        <DIWordmark width={240} style={{ color: S.white, marginTop: 8 }} />
+      {/* Header de marca — ronda 11: ícono y wordmark al DOBLE de tamaño que
+          la ronda anterior (600 / 480, con tope responsivo para no desbordar
+          celulares angostos — ver Logo3D y el width:"min(...)" de acá abajo).
+          Subtítulo del login: "APP DE ENTRENAMIENTO" en vez de "CENTRO DE
+          ENTRENAMIENTO" — el SVG trae ese texto quemado como paths, así que
+          se recorta el wordmark a SOLO "DESARROLLO INTEGRAL"
+          (soloDesarrollo) y el subtítulo se arma como texto HTML aparte,
+          con PP Formula (ya cargada globalmente en index.html) en bold
+          condensado imitando el tracking de marca. */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 28 }}>
+        <Logo3D size={600} />
+        <DIWordmark
+          soloDesarrollo
+          width={480}
+          style={{ color: S.white, marginTop: 10, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
+        />
+        <div
+          style={{
+            color: S.gray,
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: 5,
+            textTransform: "uppercase",
+            marginTop: 6,
+            textAlign: "center",
+          }}
+        >
+          App de entrenamiento
+        </div>
       </div>
 
       <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
         <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}>
-          Username
+          Usuario
         </div>
         <input
           value={codigo}
@@ -4032,7 +4164,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         />
 
         <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14 }}>
-          Clave (4 dígitos)
+          Clave
         </div>
         <input
           type="password"
@@ -4280,10 +4412,14 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
     </div>
   );
 }
-// ── PANTALLA BIENVENIDA ───────────────────────────────────────────────
-function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
-  const hora = new Date().getHours();
-  const saludo = hora < 12 ? "Buenos dias" : hora < 18 ? "Buenas tardes" : "Buenas noches";
+// ── PANTALLA BIENVENIDA (rediseño ronda 11) ─────────────────────────────
+// Ya NO lleva logo/ícono (ni girando ni estático) — arranca directo con la
+// foto del alumno. Sin campo `genero` en la base (verificado, no existe),
+// el saludo usa una forma neutra que funciona para ambos: "¡Bienvenido/a!".
+function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
+  const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
+  const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
+  const diasPlan = ((plan && plan.dias) || []).map((d) => d.dia).filter(Boolean);
   return (
     <>
       {" "}
@@ -4295,33 +4431,32 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          // Ronda 8: título ARRIBA, logo grande centrado en el MEDIO (flex:1),
-          // y el resto (semana + horarios + botón) abajo.
           justifyContent: "flex-start",
-          padding: "28px 24px 24px",
+          padding: "36px 24px 28px",
           fontFamily: "inherit",
         }}
       >
-        {/* ── Ronda 9: orden vertical LOGO 3D → FOTO → saludo → nombre.
-            Logo con extrusión (Logo3D, sin sombra de piso). ── */}
+        {/* 1. Foto del alumno — al doble de grande que antes (72px → 144px),
+            ocupando el lugar donde antes iba el logo. */}
         <div className="di-fade" style={{ display: "flex", justifyContent: "center" }}>
-          <Logo3D size={220} />
+          <FotoAlumno foto={alumno.foto} size={144} />
         </div>
-        <div className="di-pop" style={{ marginTop: 10 }}>
-          <FotoAlumno foto={alumno.foto} size={72} />
+
+        {/* 2. Saludo al doble de grande (13px → 26px) + 3. primer nombre solo */}
+        <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 18 }}>
+          <div style={{ color: S.white, fontWeight: 900, fontSize: 26 }}>¡Bienvenido/a!</div>
+          <div style={{ color: S.green, fontWeight: 800, fontSize: 20, marginTop: 4 }}>{primerNombre}</div>
         </div>
-        <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 10 }}>
-          <div style={{ color: S.gray, fontSize: 13, marginBottom: 4 }}>{saludo},</div>
-          <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{alumno.nombre}</div>
-        </div>{" "}
+
         <div
           className="di-slide"
-          style={{ marginTop: 12, textAlign: "center", marginBottom: 24, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
+          style={{ marginTop: 14, textAlign: "center", marginBottom: 26, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
         >
-          {" "}
-          <div style={{ color: S.gray, fontSize: 13 }}>Semana {semanaActual} del plan de entrenamiento</div>{" "}
+          {/* 4. Semana N de tu plan de entrenamiento */}
+          <div style={{ color: S.gray, fontSize: 13 }}>Semana {semanaActual} de tu plan de entrenamiento</div>
           {semanaData && (
             <>
+              {/* 5. Ficha 2x6 / al 70% */}
               <div
                 style={{
                   marginTop: 12,
@@ -4339,42 +4474,49 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
                   <div style={{ color: S.green, fontSize: 13, marginTop: 2 }}>al {semanaData.intensidad}</div>
                 )}
               </div>
-              {/* Ronda 7: centrado con márgenes cortos (antes justificado) */}
-              <div style={{ color: S.gray, fontSize: 13, marginTop: 10, lineHeight: 1.5, textAlign: "center", maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
-                Hoy te toca{" "}
+              {/* 6. "Hoy te toca en los EJERCICIOS PRINCIPALES" + versión en palabras */}
+              <div style={{ color: S.gray, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", marginTop: 14 }}>
+                Hoy te toca en los <span style={{ color: S.white, fontWeight: 800 }}>ejercicios principales</span>
+              </div>
+              <div style={{ color: S.gray, fontSize: 13, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
                 <span style={{ color: S.white, fontWeight: 700 }}>
-                  {semanaData.series} series × {semanaData.reps} repeticiones
+                  {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
+                  {pl(semanaData.reps, "repetición", "repeticiones")}
                 </span>
                 {semanaData.intensidad && (
                   <> al <span style={{ color: S.green, fontWeight: 700 }}>{semanaData.intensidad}</span></>
-                )}{" "}
-                en los ejercicios principales
+                )}
               </div>
             </>
-          )}{" "}
-          {alumno.horarios && alumno.horarios.length > 0 && (
-            <div style={{ marginTop: 12, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
-              {" "}
-              {alumno.horarios.map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: S.card,
-                    border: "1px solid " + S.border,
-                    borderRadius: 6,
-                    padding: "4px 12px",
-                    fontSize: 12,
-                    color: S.gray,
-                  }}
-                >
-                  <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
-                </div>
-              ))}{" "}
+          )}
+          {/* 7. "Entrenás los:" + días en pill */}
+          {diasPlan.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ color: S.gray, fontSize: 12, marginBottom: 8 }}>Entrenás los:</div>
+              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
+                {diasPlan.map((d, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: S.card,
+                      border: "1px solid " + S.border,
+                      borderRadius: 20,
+                      padding: "6px 14px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: S.white,
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
             </div>
-          )}{" "}
-        </div>{" "}
+          )}
+        </div>
+
+        {/* 8. Botón final ENTRENAR */}
         <div className="di-slide" style={{ animationDelay: "0.16s" }}>
-          {" "}
           <button
             onClick={onContinuar}
             style={{
@@ -4389,9 +4531,9 @@ function Bienvenida({ alumno, semanaData, semanaActual, onContinuar }) {
               cursor: "pointer",
             }}
           >
-            EMPEZAR →
-          </button>{" "}
-        </div>{" "}
+            ENTRENAR
+          </button>
+        </div>
       </div>{" "}
     </>
   );
@@ -4639,7 +4781,7 @@ export default function App() {
       setGenerandoPDF(false);
     }
   };
-  // Pantalla de carga (ronda 9): el logo 3D girando, centrado — sin texto.
+  // Pantalla de carga (ronda 9, logo al doble ronda 11): el logo 3D girando, centrado — sin texto.
   if (!cargado)
     return (
       <>
@@ -4653,7 +4795,7 @@ export default function App() {
             justifyContent: "center",
           }}
         >
-          <Logo3D size={160} />
+          <Logo3D size={320} />
         </div>
       </>
     );
@@ -4713,6 +4855,7 @@ export default function App() {
     return (
       <Bienvenida
         alumno={al}
+        plan={plan}
         semanaData={sem}
         semanaActual={semanaActual}
         onContinuar={() => setShowBienvenida(false)}
@@ -4757,41 +4900,38 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header — ronda 10: centrado de VERDAD del lockup ícono+wordmark.
-            Se probaron dos variantes de "1fr auto 1fr" (flex y grid) y NINGUNA
-            centra de verdad acá: esos tracks/items respetan un mínimo de
-            contenido automático, y como el bloque tema+Salir (~92px) pesa más
-            que un spacer vacío, el lockup quedaba corrido a la izquierda
-            (verificado con getBoundingClientRect). Ponerle al spacer
-            izquierdo el mismo ancho real que el bloque de botones tampoco
-            sirve: 222px de lockup + 92px x2 de reservas no entra en un
-            viewport de celular (se verificó: desborda el ancho de pantalla).
-            Solución real: tema+Salir en position:absolute (afuera del flujo,
-            no compiten por espacio) y el lockup centrado con
-            justifyContent:center en el 100% del contenedor. El wordmark usa
-            un ancho responsivo (clamp) para no solaparse con los botones en
-            pantallas angostas, manteniéndose en 160px igual que antes en
-            cualquier viewport de celular normal (>=~420px). Ícono SIN el giro
-            3D acá (solo gira en Bienvenida y en la pantalla de carga) — es un
-            <img> estático, alineado a la misma altura que el wordmark con
-            alignItems:"center". */}{" "}
+        {/* Header — ronda 11: FIX de la superposición reportada (el lockup
+            invadía el bloque tema+Salir en ~375px de ancho, medido con
+            getBoundingClientRect: a 375px el wordmark llegaba a x=289.75
+            pero el bloque de botones ya arrancaba en x=269 → ~21px de
+            solape). La ronda 10 centraba el lockup con position:absolute +
+            justifyContent:center sobre el 100% del contenedor, ignorando
+            por completo el ancho real del bloque de botones — por eso
+            volvía a solaparse en pantallas angostas.
+            Solución: layout de flex NORMAL (sin position:absolute), dos
+            items reales — el lockup en un contenedor flex:1 (minWidth:0)
+            que lo centra en el espacio disponible, y el bloque tema+Salir
+            como item de ancho natural al lado. Al ser flex real (no
+            absolute) el navegador GARANTIZA que nunca se pisan: si no
+            entra, el ícono/wordmark se encogen (flexShrink habilitado +
+            minWidth:0 en ambos), nunca invaden al vecino. */}{" "}
         <div
           style={{
-            position: "relative",
             padding: "10px 16px",
             borderBottom: "1px solid " + S.border,
             marginBottom: 12,
             display: "flex",
             alignItems: "center",
+            gap: 8,
             minHeight: 52,
           }}
         >
           {" "}
-          <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", gap: 10 }}>
-            <img src={ICON} width={52} height={52} alt="DI" style={{ display: "block", flexShrink: 0 }} />
-            <DIWordmark width={160} style={{ color: S.white, width: "clamp(96px, 38vw, 160px)", height: "auto" }} />
+          <div style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, overflow: "hidden" }}>
+            <img src={ICON} width={44} height={44} alt="DI" style={{ display: "block", flexShrink: 1, minWidth: 0 }} />
+            <DIWordmark width={150} style={{ color: S.white, width: "clamp(84px, 34vw, 150px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }} />
           </div>{" "}
-          <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 6 }}>{" "}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>{" "}
           <button
             onClick={toggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
