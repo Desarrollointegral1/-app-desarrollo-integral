@@ -22,7 +22,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef } from "react";
-import { S, card, inp, smallBtn } from "../utils/theme.js";
+import { S, card, inp, smallBtn, FONT_DISPLAY } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
 import {
@@ -597,7 +597,7 @@ export default function CatalogoExplorer({
     <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: "14px 16px" }}>
       {/* header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase", flex: 1 }}>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
           {modo === "armador" ? "🖥 Armador de planes" : "📚 Biblioteca de ejercicios"}
         </div>
         {/* Punto 4 (2026-07-21): se saca el crédito "© Gym visual —
