@@ -146,6 +146,18 @@ export const CALOR_MANCUERNA=[
 // fácil): los planes básicos usan los primeros de cada grupo, los avanzados
 // los últimos. Fuente de verdad: esta lista ↔ biblioteca_ejercicios (codigo,
 // grupo) ↔ Cerebro/desarrollo-integral/entrenamiento/CEREBRO-DE-PLANES.md.
+//
+// Punto 7 (confirmado, ronda 2026-07-21): este archivo sigue siendo el
+// ÚNICO lugar donde vive el criterio de códigos (letra(s) de prefijo =
+// grupo muscular ↔ GRUPOS_MUSCULARES de acá abajo; número = dificultad
+// creciente). El criterio de 2 letras por grupo (PH/RO/PE/CA/JA/GL/CO) se
+// mantiene sin cambios — no se pidió pasar a 1 letra. Lo nuevo del punto 5
+// es que el código de cada ejercicio del CATÁLOGO (catalogo_ejercicios.
+// codigo_di) ahora es editable a mano desde la Biblioteca (con validación
+// de duplicado, ver CatalogoExplorer.jsx/validarCodigoDisponible en
+// services/supabase.js) — la numeración de acá sigue siendo el punto de
+// partida/referencia, pero el código real de un ejercicio puntual puede
+// haber sido corregido a mano después.
 
 const mkEj=(nombre,desc,extra={})=>({id:uid(),nombre,desc,video:"",mediaLocal:"",historial:[],...extra});
 
