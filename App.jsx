@@ -3361,74 +3361,101 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "plan" && (!al || al.tipo !== "rehabilitacion") && (
           <div>
             {" "}
-            {/* ── Orden y visibilidad de secciones POR ALUMNO (ronda 9) ── */}
-            {al && (() => {
+            {/* ── Ronda 10: la reorganización/ocultado de secciones vive DIRECTO
+                en esta fila de tabs (reemplaza la card "Secciones que ve...").
+                Cada chip de preparación tiene una "✕" para ocultar/mostrar
+                (toggle — atenuado en el admin, oculto de verdad solo para el
+                alumno) y soporta drag&drop nativo para reordenar. Mismo
+                storage de siempre: rm.secciones_config = { orden, ocultas },
+                con ids "movilidad"/"banda"/"peso" (los que usa PlanDelDia).
+                "Principales" queda fijo al final, sin drag ni ocultar. ── */}
+            {(() => {
               const SECCIONES_DEF = [["movilidad", "Movilidad"], ["banda", "Act. Elástico"], ["peso", "Entrada en calor"]];
-              const cfg = (rm[al.id] && rm[al.id].secciones_config) || al.rm?.secciones_config || {};
+              const TAB_KEY_BY_SECCION = { movilidad: "movilidad", banda: "calor", peso: "activacion" };
+              const cfg = al ? (rm[al.id] && rm[al.id].secciones_config) || al.rm?.secciones_config || {} : {};
               const orden = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => SECCIONES_DEF.some((s) => s[0] === id));
               SECCIONES_DEF.forEach(([id]) => { if (!orden.includes(id)) orden.push(id); });
               const ocultas = Array.isArray(cfg.ocultas) ? cfg.ocultas : [];
-              const mover = (id, dir) => {
-                const i = orden.indexOf(id), j = i + dir;
-                if (j < 0 || j >= orden.length) return;
-                const n = [...orden];
-                [n[i], n[j]] = [n[j], n[i]];
+              const toggleVis = (id) =>
+                al && setSeccionesConfig({ orden, ocultas: ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id] });
+              const reordenar = (idArrastrado, idDestino) => {
+                if (!al || idArrastrado === idDestino || !orden.includes(idArrastrado) || !orden.includes(idDestino)) return;
+                const n = orden.filter((x) => x !== idArrastrado);
+                n.splice(n.indexOf(idDestino), 0, idArrastrado);
                 setSeccionesConfig({ orden: n, ocultas });
               };
-              const toggleVis = (id) =>
-                setSeccionesConfig({ orden, ocultas: ocultas.includes(id) ? ocultas.filter((x) => x !== id) : [...ocultas, id] });
+              const chips = orden.map((id) => {
+                const def = SECCIONES_DEF.find((s) => s[0] === id);
+                return { key: TAB_KEY_BY_SECCION[id], seccionId: id, label: def[1] };
+              });
+              chips.push({ key: "entrenamiento", seccionId: null, label: "Principales" });
               return (
-                <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
-                  <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-                    Secciones que ve {al.nombre} — orden y visibilidad
-                  </div>
-                  {orden.map((id, idx) => {
-                    const def = SECCIONES_DEF.find((s) => s[0] === id);
-                    const oculta = ocultas.includes(id);
+                <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+                  {chips.map((c) => {
+                    const oculta = c.seccionId && ocultas.includes(c.seccionId);
                     return (
-                      <div key={id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: idx < orden.length - 1 ? "1px solid " + S.border : "none" }}>
-                        <div style={{ flex: 1, color: oculta ? S.lgray : S.white, fontWeight: 700, fontSize: 12, textDecoration: oculta ? "line-through" : "none" }}>
-                          {idx + 1}. {def[1]}
-                        </div>
-                        <button onClick={() => mover(id, -1)} disabled={idx === 0} style={{ ...smallBtn(S.gray), opacity: idx === 0 ? 0.35 : 1 }}>↑</button>
-                        <button onClick={() => mover(id, 1)} disabled={idx === orden.length - 1} style={{ ...smallBtn(S.gray), opacity: idx === orden.length - 1 ? 0.35 : 1 }}>↓</button>
-                        <button onClick={() => toggleVis(id)} style={smallBtn(oculta ? S.red : S.green)}>{oculta ? "Oculta" : "Visible"}</button>
+                      <div
+                        key={c.key}
+                        draggable={!!(al && c.seccionId)}
+                        onDragStart={(e) => { if (c.seccionId) e.dataTransfer.setData("text/plain", c.seccionId); }}
+                        onDragOver={(e) => { if (c.seccionId) e.preventDefault(); }}
+                        onDrop={(e) => {
+                          if (!c.seccionId) return;
+                          e.preventDefault();
+                          reordenar(e.dataTransfer.getData("text/plain"), c.seccionId);
+                        }}
+                        style={{ position: "relative", flex: 1 }}
+                      >
+                        <button
+                          onClick={() => setPlanTab(c.key)}
+                          style={{
+                            width: "100%",
+                            background: planTab === c.key ? S.white : S.card,
+                            color: planTab === c.key ? S.bg : S.gray,
+                            border: "1px solid " + (planTab === c.key ? S.white : S.border),
+                            borderRadius: 8,
+                            padding: "7px 4px",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            cursor: al && c.seccionId ? "grab" : "pointer",
+                            opacity: oculta ? 0.4 : 1,
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                        {al && c.seccionId && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleVis(c.seccionId); }}
+                            title={oculta ? `Mostrar a ${al.nombre}` : `Ocultar a ${al.nombre}`}
+                            style={{
+                              position: "absolute",
+                              top: -6,
+                              right: -4,
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              background: oculta ? S.green : S.red,
+                              color: "#fff",
+                              border: "none",
+                              fontSize: 9,
+                              fontWeight: 900,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            {oculta ? "+" : "✕"}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
-                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>
-                    La vista del alumno respeta este orden — las ocultas no se le muestran.
-                  </div>
                 </div>
               );
-            })()}
-            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-              {" "}
-              {[
-                ["Movilidad", "movilidad"],
-                ["Act. Elástico", "calor"],
-                ["Entrada en calor", "activacion"],
-                ["Principales", "entrenamiento"],
-              ].map(([l, k]) => (
-                <button
-                  key={k}
-                  onClick={() => setPlanTab(k)}
-                  style={{
-                    flex: 1,
-                    background: planTab === k ? S.white : S.card,
-                    color: planTab === k ? S.bg : S.gray,
-                    border: "1px solid " + (planTab === k ? S.white : S.border),
-                    borderRadius: 8,
-                    padding: "7px 4px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {l}
-                </button>
-              ))}{" "}
-            </div>{" "}
+            })()}{" "}
             {planTab === "entrenamiento" && al && (
               <PlanesPrincipales
                 key={al.id + "-" + (planFoco || "")}
@@ -3485,14 +3512,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
           </div>
         )}{" "}
-        {/* ── Grupo PLANES: Periodización · Plan x día · Evaluación peso max ── */}
+        {/* ── Grupo PLANES: Periodización · Plan x día (ronda 10: se sacó el
+            subtab "Eval. peso max" de acá — Lucas ahora carga los pesos
+            máximos entrando como el alumno vía Modo Entrenador, no desde el
+            admin. El bloque planesTab==="rm" de abajo queda en el código sin
+            usar, ya no es alcanzable desde esta fila de tabs. ── */}
         {sec === "planes" && (
           <div>
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
               {[
                 ["Periodización", "periodizacion"],
                 ["Plan x día", "plan-dias"],
-                ["Eval. peso max", "rm"],
               ].map(([l, k]) => (
                 <button
                   key={k}
@@ -3726,13 +3756,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
                 Asistencia — {al.nombre}
               </div>
-              {/* Botón principal: reporte del mes en curso, hasta el momento */}
-              <button
-                onClick={() => exportarReporteMensual(al, mesHoy)}
-                style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", letterSpacing: 1, marginBottom: 14 }}
-              >
-                ⬇ EXPORTAR REPORTE DEL MES EN CURSO
-              </button>
+              {/* Ronda 10: se sacó el botón grande "EXPORTAR REPORTE DEL MES EN
+                  CURSO" de acá — quedaba redundante con el botón "Exportar"
+                  chico de la fila del mes en curso, más abajo. */}
               {/* Meses estilo resumen bancario: una fila por mes con sus datos
                   y su botón Exportar al lado. Tocar la fila muestra su detalle. */}
               <div style={{ ...card, overflow: "hidden", marginBottom: 12 }}>
@@ -3792,15 +3818,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           <span style={{ textTransform: "capitalize", color: S.gray, fontSize: 11, marginRight: 8 }}>{diaSemana}</span>
                           {fechaCorta}
                         </div>
-                        <div style={{ color: hora ? S.green : S.lgray, fontSize: 12, fontWeight: hora ? 700 : 400 }}>{hora ? `· ${hora}` : "—"}</div>
+                        <div style={{ color: hora ? S.green : S.lgray, fontSize: 12, fontWeight: hora ? 700 : 400 }}>{`Horario: ${hora || "—"}`}</div>
                       </div>
                     );
                   })}
                 </div>
               )}
-              <div style={{ fontSize: 10, color: S.lgray, marginTop: 8, textAlign: "center" }}>
-                Cada entrada es un día que entrenó.
-              </div>
               {/* ── DIARIO del alumno — vive acá abajo de la asistencia (ronda 9) ── */}
               <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", margin: "22px 0 12px" }}>
                 📓 Diario — {al.nombre}
@@ -4734,28 +4757,41 @@ export default function App() {
             </div>{" "}
           </div>
         )}{" "}
-        {/* Header — ronda 9: lockup (ícono 3D + wordmark) CENTRADO y más
-            grande; tema + Salir siguen a la derecha (spacers flex a ambos
-            lados para centrar sin superponer) */}{" "}
+        {/* Header — ronda 10: centrado de VERDAD del lockup ícono+wordmark.
+            Se probaron dos variantes de "1fr auto 1fr" (flex y grid) y NINGUNA
+            centra de verdad acá: esos tracks/items respetan un mínimo de
+            contenido automático, y como el bloque tema+Salir (~92px) pesa más
+            que un spacer vacío, el lockup quedaba corrido a la izquierda
+            (verificado con getBoundingClientRect). Ponerle al spacer
+            izquierdo el mismo ancho real que el bloque de botones tampoco
+            sirve: 222px de lockup + 92px x2 de reservas no entra en un
+            viewport de celular (se verificó: desborda el ancho de pantalla).
+            Solución real: tema+Salir en position:absolute (afuera del flujo,
+            no compiten por espacio) y el lockup centrado con
+            justifyContent:center en el 100% del contenedor. El wordmark usa
+            un ancho responsivo (clamp) para no solaparse con los botones en
+            pantallas angostas, manteniéndose en 160px igual que antes en
+            cualquier viewport de celular normal (>=~420px). Ícono SIN el giro
+            3D acá (solo gira en Bienvenida y en la pantalla de carga) — es un
+            <img> estático, alineado a la misma altura que el wordmark con
+            alignItems:"center". */}{" "}
         <div
           style={{
+            position: "relative",
             padding: "10px 16px",
             borderBottom: "1px solid " + S.border,
             marginBottom: 12,
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            minHeight: 52,
           }}
         >
           {" "}
-          <div style={{ flex: "1 0 0", minWidth: 0 }} />{" "}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div style={{ perspective: 320, width: 52 }}>
-              <img src={ICON} width={52} height={52} alt="DI" className="di-logo3d" style={{ display: "block" }} />
-            </div>
-            <DIWordmark width={160} style={{ color: S.white }} />
+          <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", gap: 10 }}>
+            <img src={ICON} width={52} height={52} alt="DI" style={{ display: "block", flexShrink: 0 }} />
+            <DIWordmark width={160} style={{ color: S.white, width: "clamp(96px, 38vw, 160px)", height: "auto" }} />
           </div>{" "}
-          <div style={{ flex: "1 0 0", minWidth: 0, display: "flex", justifyContent: "flex-end", gap: 6 }}>{" "}
+          <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 6 }}>{" "}
           <button
             onClick={toggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
