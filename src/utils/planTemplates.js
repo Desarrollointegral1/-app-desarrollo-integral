@@ -218,7 +218,7 @@ export const EJERCICIOS_PRINCIPALES=[
   T("CO003","core","Crunch abdominal","Acostado, subí el torso despacio sin tirar del cuello y bajá controlado."),
   T("CO004","core","Plancha","Antebrazos y puntas de pie apoyados, cuerpo en línea recta. Sostené la posición el tiempo indicado, sin dejar caer la cadera.","segundos"),
   T("CO005","core","Ruedita","De rodillas con la rueda al frente. Rodá hacia adelante manteniendo el core firme y volvé."),
-  T("CO006","core","Ham Roler","Talones sobre el rodillo: elevá la cadera y llevá el rodillo hacia vos flexionando las rodillas."),
+  T("CO006","core","Ham Roller","Parado con la rueda abdominal al frente, pies a la altura de los hombros: hacé rodar el rodillo hacia adelante controlando el core, hasta el máximo estiramiento posible, y volvé a la posición inicial."),
   T("CO007","core","Landmine core rotation","De pie con la barra anclada (landmine), llevá el extremo de lado a lado rotando el tronco con los brazos estirados."),
 ];
 
