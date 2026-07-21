@@ -2872,9 +2872,13 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
     ["otros", "Otros"],
     ["gifs", "🎞 GIFs"],
   ];
-  const prefijoDe = (b) => (b.codigo || "").match(/^[A-Z]+/)?.[0] || "";
+  const prefijoDe = (b) => (b?.codigo || "").match(/^[A-Z]+/)?.[0] || "";
+  // Ronda 16 (punto 3): null-safety defensiva — cualquier fila con nombre/
+  // codigo null/undefined (dato corrupto o fila a medio guardar) ya no
+  // tira una excepción que rompe TODA la pantalla; simplemente se trata
+  // como si no matcheara el filtro/búsqueda en vez de crashear.
   const lista = (biblioteca || [])
-    .filter((b) => b.categoria !== "rehab")
+    .filter((b) => b && b.categoria !== "rehab")
     .filter((b) => {
       if (filtro === "todos") return true;
       if (filtro === "principales")
@@ -2882,16 +2886,16 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
       if (filtro === "otros") return !["M", "E", "C", ...PREFIJOS_PRINCIPALES].includes(prefijoDe(b));
       return prefijoDe(b) === filtro;
     })
-    .filter((b) => !q.trim() || b.nombre.toLowerCase().includes(q.trim().toLowerCase()))
-    .sort((a, b) => (a.codigo || "zzz").localeCompare(b.codigo || "zzz"));
+    .filter((b) => !q.trim() || (b.nombre || "").toLowerCase().includes(q.trim().toLowerCase()))
+    .sort((a, b) => (a?.codigo || "zzz").localeCompare(b?.codigo || "zzz"));
 
   // Asociaciones de cada GIF: por asignación manual (b.gif) o por lookup
   // automático por nombre (getEjercicioGif) — sin duplicar.
   const asociadosDe = (path) => {
     const porBiblioteca = (biblioteca || []).filter(
-      (b) => b.categoria !== "rehab" && ((b.gif || "") === path || (!b.gif && getEjercicioGif(b.nombre) === path))
+      (b) => b && b.categoria !== "rehab" && ((b.gif || "") === path || (!b.gif && getEjercicioGif(b.nombre) === path))
     );
-    const nombres = new Set(porBiblioteca.map((b) => (b.codigo ? b.codigo + " · " : "") + b.nombre));
+    const nombres = new Set(porBiblioteca.map((b) => (b.codigo ? b.codigo + " · " : "") + (b.nombre || "")));
     if (nombres.size === 0)
       getNombresPorGif(path).slice(0, 3).forEach((n) => nombres.add(n));
     return [...nombres];
