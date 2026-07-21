@@ -1,0 +1,7946 @@
+[
+ {
+  "id": "0001",
+  "en": "3/4 sit-up",
+  "es": "3/4 abdominal completo (sit-up)",
+  "method": "phrase"
+ },
+ {
+  "id": "0002",
+  "en": "45° side bend",
+  "es": "45° flexión lateral de torso",
+  "method": "phrase"
+ },
+ {
+  "id": "0003",
+  "en": "air bike",
+  "es": "Bicicleta en el aire",
+  "method": "phrase"
+ },
+ {
+  "id": "1512",
+  "en": "all fours squad stretch",
+  "es": "Estiramiento de cuádriceps en cuadrupedia",
+  "method": "override"
+ },
+ {
+  "id": "0006",
+  "en": "alternate heel touchers",
+  "es": "Toques de talón alternado",
+  "method": "phrase"
+ },
+ {
+  "id": "0007",
+  "en": "alternate lateral pulldown",
+  "es": "Jalón lateral alternado",
+  "method": "override"
+ },
+ {
+  "id": "1368",
+  "en": "ankle circles",
+  "es": "Círculos de tobillo",
+  "method": "phrase"
+ },
+ {
+  "id": "3293",
+  "en": "archer pull up",
+  "es": "Dominada estilo arquero",
+  "method": "phrase"
+ },
+ {
+  "id": "3294",
+  "en": "archer push up",
+  "es": "Flexión de brazos estilo arquero",
+  "method": "phrase"
+ },
+ {
+  "id": "2355",
+  "en": "arm slingers hanging bent knee legs",
+  "es": "Balanceo de piernas colgado con rodillas flexionadas",
+  "method": "override"
+ },
+ {
+  "id": "2333",
+  "en": "arm slingers hanging straight legs",
+  "es": "Balanceo de piernas colgado con piernas rectas",
+  "method": "override"
+ },
+ {
+  "id": "3214",
+  "en": "arms apart circular toe touch (male)",
+  "es": "Toque de puntas de pie circular con brazos abiertos",
+  "method": "override"
+ },
+ {
+  "id": "3204",
+  "en": "arms overhead full sit-up (male)",
+  "es": "Abdominal completo con brazos sobre la cabeza",
+  "method": "override"
+ },
+ {
+  "id": "0009",
+  "en": "assisted chest dip (kneeling)",
+  "es": "Fondos para pecho asistidos (de rodillas)",
+  "method": "override"
+ },
+ {
+  "id": "0011",
+  "en": "assisted hanging knee raise",
+  "es": "Elevación de rodillas colgado asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "0010",
+  "en": "assisted hanging knee raise with throw down",
+  "es": "Elevación de rodillas con lanzamiento colgado asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "1708",
+  "en": "assisted lying calves stretch",
+  "es": "Estiramiento de pantorrillas acostado asistido",
+  "method": "phrase"
+ },
+ {
+  "id": "1709",
+  "en": "assisted lying glutes stretch",
+  "es": "Estiramiento de glúteos acostado asistido",
+  "method": "phrase"
+ },
+ {
+  "id": "1710",
+  "en": "assisted lying gluteus and piriformis stretch",
+  "es": "Estiramiento de glúteo y piriforme acostado asistido",
+  "method": "override"
+ },
+ {
+  "id": "0012",
+  "en": "assisted lying leg raise with lateral throw down",
+  "es": "Elevación de piernas con lanzamiento lateral acostado asistida",
+  "method": "override"
+ },
+ {
+  "id": "0013",
+  "en": "assisted lying leg raise with throw down",
+  "es": "Elevación de piernas con lanzamiento acostado asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "0014",
+  "en": "assisted motion russian twist",
+  "es": "Giro ruso asistido",
+  "method": "override"
+ },
+ {
+  "id": "0015",
+  "en": "assisted parallel close grip pull-up",
+  "es": "Dominada con agarre cerrado en paralelas asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "0016",
+  "en": "assisted prone hamstring",
+  "es": "Estiramiento de isquiotibiales boca abajo asistido",
+  "method": "override"
+ },
+ {
+  "id": "1713",
+  "en": "assisted prone lying quads stretch",
+  "es": "Estiramiento de cuádriceps acostado boca abajo asistido",
+  "method": "phrase"
+ },
+ {
+  "id": "1714",
+  "en": "assisted prone rectus femoris stretch",
+  "es": "Estiramiento del recto femoral boca abajo asistido",
+  "method": "override"
+ },
+ {
+  "id": "0017",
+  "en": "assisted pull-up",
+  "es": "Dominada asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "1716",
+  "en": "assisted seated pectoralis major stretch with stability ball",
+  "es": "Estiramiento de pectoral mayor sentado con pelota de estabilidad asistido",
+  "method": "override"
+ },
+ {
+  "id": "1712",
+  "en": "assisted side lying adductor stretch",
+  "es": "Estiramiento de aductores acostado de lado asistido",
+  "method": "override"
+ },
+ {
+  "id": "1758",
+  "en": "assisted sit-up",
+  "es": "Abdominal completo (sit-up) asistido",
+  "method": "phrase"
+ },
+ {
+  "id": "1431",
+  "en": "assisted standing chin-up",
+  "es": "Dominada supina de pie asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "1432",
+  "en": "assisted standing pull-up",
+  "es": "Dominada de pie asistida",
+  "method": "phrase"
+ },
+ {
+  "id": "0018",
+  "en": "assisted standing triceps extension (with towel)",
+  "es": "Extensión de tríceps de pie asistida (con toalla)",
+  "method": "phrase"
+ },
+ {
+  "id": "0019",
+  "en": "assisted triceps dip (kneeling)",
+  "es": "Fondos de tríceps asistidos (de rodillas)",
+  "method": "override"
+ },
+ {
+  "id": "2364",
+  "en": "assisted wide-grip chest dip (kneeling)",
+  "es": "Fondos para pecho con agarre ancho asistidos (de rodillas)",
+  "method": "override"
+ },
+ {
+  "id": "3220",
+  "en": "astride jumps (male)",
+  "es": "Saltos con piernas abiertas",
+  "method": "override"
+ },
+ {
+  "id": "3672",
+  "en": "back and forth step",
+  "es": "Paso adelante y atrás",
+  "method": "override"
+ },
+ {
+  "id": "1314",
+  "en": "back extension on exercise ball",
+  "es": "Extensión lumbar sobre pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "3297",
+  "en": "back lever",
+  "es": "Back lever (calistenia)",
+  "method": "phrase"
+ },
+ {
+  "id": "1405",
+  "en": "back pec stretch",
+  "es": "Estiramiento de pectorales por detrás de la espalda",
+  "method": "override"
+ },
+ {
+  "id": "1473",
+  "en": "backward jump",
+  "es": "Salto hacia atrás",
+  "method": "override"
+ },
+ {
+  "id": "0020",
+  "en": "balance board",
+  "es": "Tabla de equilibrio",
+  "method": "phrase"
+ },
+ {
+  "id": "0968",
+  "en": "band alternating biceps curl",
+  "es": "Curl de bíceps alternado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0969",
+  "en": "band alternating v-up",
+  "es": "Abdominal en V alternado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0970",
+  "en": "band assisted pull-up",
+  "es": "Dominada asistida con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0971",
+  "en": "band assisted wheel rollerout",
+  "es": "Rollout con rueda abdominal asistido con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1254",
+  "en": "band bench press",
+  "es": "Press de banca con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0980",
+  "en": "band bent-over hip extension",
+  "es": "Extensión de cadera con torso inclinado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0972",
+  "en": "band bicycle crunch",
+  "es": "Crunch bicicleta con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0974",
+  "en": "band close-grip pulldown",
+  "es": "Jalón con agarre cerrado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0975",
+  "en": "band close-grip push-up",
+  "es": "Flexión de brazos con agarre cerrado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0976",
+  "en": "band concentration curl",
+  "es": "Curl concentrado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "3117",
+  "en": "band fixed back close grip pulldown",
+  "es": "Jalón con agarre cerrado con espalda fija con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "3116",
+  "en": "band fixed back underhand pulldown",
+  "es": "Jalón con agarre supino con espalda fija con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0977",
+  "en": "band front lateral raise",
+  "es": "Elevación lateral al frente con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0978",
+  "en": "band front raise",
+  "es": "Elevación frontal con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1408",
+  "en": "band hip lift",
+  "es": "Elevación de cadera con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0979",
+  "en": "band horizontal pallof press",
+  "es": "Press Pallof horizontal con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0981",
+  "en": "band jack knife sit-up",
+  "es": "Abdominal navaja (jackknife) con banda",
+  "method": "override"
+ },
+ {
+  "id": "0983",
+  "en": "band kneeling one arm pulldown",
+  "es": "Jalón a un brazo de rodillas con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0985",
+  "en": "band kneeling twisting crunch",
+  "es": "Crunch abdominal con giro de rodillas con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0984",
+  "en": "band lying hip internal rotation",
+  "es": "Rotación interna de cadera acostado con banda",
+  "method": "override"
+ },
+ {
+  "id": "1002",
+  "en": "band lying straight leg raise",
+  "es": "Elevación de piernas rectas acostado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0986",
+  "en": "band one arm overhead biceps curl",
+  "es": "Curl de bíceps a un brazo sobre la cabeza con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0987",
+  "en": "band one arm single leg split squat",
+  "es": "Sentadilla split a una pierna a un brazo con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0988",
+  "en": "band one arm standing low row",
+  "es": "Remo bajo a un brazo de pie con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0989",
+  "en": "band one arm twisting chest press",
+  "es": "Press de pecho a un brazo con giro con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0990",
+  "en": "band one arm twisting seated row",
+  "es": "Remo a un brazo con giro sentado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0991",
+  "en": "band pull through",
+  "es": "Pull through (tirón entre piernas) con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0992",
+  "en": "band push sit-up",
+  "es": "Abdominal con empuje de banda",
+  "method": "override"
+ },
+ {
+  "id": "0993",
+  "en": "band reverse fly",
+  "es": "Apertura invertida con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0994",
+  "en": "band reverse wrist curl",
+  "es": "Curl de muñeca invertido con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0996",
+  "en": "band seated hip internal rotation",
+  "es": "Rotación interna de cadera sentado con banda",
+  "method": "override"
+ },
+ {
+  "id": "1011",
+  "en": "band seated twist",
+  "es": "Giro de torso sentado con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0997",
+  "en": "band shoulder press",
+  "es": "Press de hombros con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1018",
+  "en": "band shrug",
+  "es": "Encogimiento de hombros con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0998",
+  "en": "band side triceps extension",
+  "es": "Lateral extensión de tríceps con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0999",
+  "en": "band single leg calf raise",
+  "es": "Elevación de talones a una pierna con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1000",
+  "en": "band single leg reverse calf raise",
+  "es": "Elevación de talones a una pierna invertida con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1001",
+  "en": "band single leg split squat",
+  "es": "Sentadilla split a una pierna con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1004",
+  "en": "band squat",
+  "es": "Sentadilla con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1003",
+  "en": "band squat row",
+  "es": "Sentadilla con remo con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1005",
+  "en": "band standing crunch",
+  "es": "Crunch abdominal de pie con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1022",
+  "en": "band standing rear delt row",
+  "es": "Remo para deltoides posterior de pie con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1007",
+  "en": "band standing twisting crunch",
+  "es": "Crunch abdominal con giro de pie con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1008",
+  "en": "band step-up",
+  "es": "Subida al cajón con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1009",
+  "en": "band stiff leg deadlift",
+  "es": "Peso muerto con piernas rígidas con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1023",
+  "en": "band straight back stiff leg deadlift",
+  "es": "Peso muerto con piernas rígidas con espalda recta con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1010",
+  "en": "band straight leg deadlift",
+  "es": "Peso muerto con piernas rectas con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1012",
+  "en": "band twisting overhead press",
+  "es": "Press sobre la cabeza con giro con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1369",
+  "en": "band two legs calf raise - (band under both legs) v. 2",
+  "es": "Elevación de talones a dos piernas con banda (banda bajo los dos pies, v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "1013",
+  "en": "band underhand pulldown",
+  "es": "Jalón con agarre supino con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1014",
+  "en": "band v-up",
+  "es": "Abdominal en V con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1015",
+  "en": "band vertical pallof press",
+  "es": "Press Pallof vertical con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1016",
+  "en": "band wrist curl",
+  "es": "Curl de muñeca con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "1017",
+  "en": "band y-raise",
+  "es": "Elevación en Y con banda",
+  "method": "phrase"
+ },
+ {
+  "id": "0023",
+  "en": "barbell alternate biceps curl",
+  "es": "Curl de bíceps alternado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0024",
+  "en": "barbell bench front squat",
+  "es": "Sentadilla frontal al banco con barra",
+  "method": "override"
+ },
+ {
+  "id": "0025",
+  "en": "barbell bench press",
+  "es": "Press de banca con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0026",
+  "en": "barbell bench squat",
+  "es": "Sentadilla al banco con barra",
+  "method": "override"
+ },
+ {
+  "id": "1316",
+  "en": "barbell bent arm pullover",
+  "es": "Pullover con brazos flexionados con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0027",
+  "en": "barbell bent over row",
+  "es": "Remo inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "2407",
+  "en": "barbell biceps curl (with arm blaster)",
+  "es": "Curl de bíceps con barra (con arm blaster)",
+  "method": "phrase"
+ },
+ {
+  "id": "0028",
+  "en": "barbell clean and press",
+  "es": "Cargada y press con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0029",
+  "en": "barbell clean-grip front squat",
+  "es": "Sentadilla frontal con agarre de cargada con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0030",
+  "en": "barbell close-grip bench press",
+  "es": "Press de banca con agarre cerrado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0031",
+  "en": "barbell curl",
+  "es": "Curl con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0032",
+  "en": "barbell deadlift",
+  "es": "Peso muerto con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0033",
+  "en": "barbell decline bench press",
+  "es": "Press de banca en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0034",
+  "en": "barbell decline bent arm pullover",
+  "es": "Pullover con brazos flexionados en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0035",
+  "en": "barbell decline close grip to skull press",
+  "es": "Press declinado con agarre cerrado a la frente con barra",
+  "method": "override"
+ },
+ {
+  "id": "1255",
+  "en": "barbell decline pullover",
+  "es": "Pullover en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0036",
+  "en": "barbell decline wide-grip press",
+  "es": "Press con agarre ancho en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0037",
+  "en": "barbell decline wide-grip pullover",
+  "es": "Pullover con agarre ancho en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0038",
+  "en": "barbell drag curl",
+  "es": "Curl de arrastre con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1370",
+  "en": "barbell floor calf raise",
+  "es": "Elevación de talones en el piso con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0039",
+  "en": "barbell front chest squat",
+  "es": "Sentadilla frontal con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0041",
+  "en": "barbell front raise",
+  "es": "Elevación frontal con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0040",
+  "en": "barbell front raise and pullover",
+  "es": "Elevación frontal y pullover con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0042",
+  "en": "barbell front squat",
+  "es": "Sentadilla frontal con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0043",
+  "en": "barbell full squat",
+  "es": "Sentadilla profunda con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1461",
+  "en": "barbell full squat (back pov)",
+  "es": "Sentadilla profunda con barra (vista trasera)",
+  "method": "phrase"
+ },
+ {
+  "id": "1462",
+  "en": "barbell full squat (side pov)",
+  "es": "Sentadilla profunda con barra (vista lateral)",
+  "method": "phrase"
+ },
+ {
+  "id": "1545",
+  "en": "barbell full zercher squat",
+  "es": "Sentadilla Zercher profunda con barra",
+  "method": "override"
+ },
+ {
+  "id": "1409",
+  "en": "barbell glute bridge",
+  "es": "Puente de glúteos con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "3562",
+  "en": "barbell glute bridge two legs on bench (male)",
+  "es": "Puente de glúteos a dos piernas en banco con barra (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "0044",
+  "en": "barbell good morning",
+  "es": "Buenos días (bisagra de cadera) con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0045",
+  "en": "barbell guillotine bench press",
+  "es": "Press guillotina con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0046",
+  "en": "barbell hack squat",
+  "es": "Sentadilla hack con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1436",
+  "en": "barbell high bar squat",
+  "es": "Sentadilla con barra alta (high bar)",
+  "method": "override"
+ },
+ {
+  "id": "0047",
+  "en": "barbell incline bench press",
+  "es": "Press de banca en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1719",
+  "en": "barbell incline close grip bench press",
+  "es": "Press de banca con agarre cerrado en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0048",
+  "en": "barbell incline reverse-grip press",
+  "es": "Press con agarre invertido en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0049",
+  "en": "barbell incline row",
+  "es": "Remo en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0050",
+  "en": "barbell incline shoulder raise",
+  "es": "Elevación de hombros en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0051",
+  "en": "barbell jefferson squat",
+  "es": "Sentadilla Jefferson con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0052",
+  "en": "barbell jm bench press",
+  "es": "Press JM con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0053",
+  "en": "barbell jump squat",
+  "es": "Sentadilla con salto con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1410",
+  "en": "barbell lateral lunge",
+  "es": "Estocada lateral con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1435",
+  "en": "barbell low bar squat",
+  "es": "Sentadilla con barra baja (low bar)",
+  "method": "override"
+ },
+ {
+  "id": "0054",
+  "en": "barbell lunge",
+  "es": "Estocada con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1720",
+  "en": "barbell lying back of the head tricep extension",
+  "es": "Extensión de tríceps por detrás de la cabeza acostado con barra",
+  "method": "override"
+ },
+ {
+  "id": "0055",
+  "en": "barbell lying close-grip press",
+  "es": "Press con agarre cerrado acostado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0056",
+  "en": "barbell lying close-grip triceps extension",
+  "es": "Extensión de tríceps con agarre cerrado acostado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0057",
+  "en": "barbell lying extension",
+  "es": "Extensión acostado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0058",
+  "en": "barbell lying lifting (on hip)",
+  "es": "Elevación de cadera acostado con barra",
+  "method": "override"
+ },
+ {
+  "id": "0059",
+  "en": "barbell lying preacher curl",
+  "es": "Curl en banco Scott acostado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0061",
+  "en": "barbell lying triceps extension",
+  "es": "Extensión de tríceps acostado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0060",
+  "en": "barbell lying triceps extension skull crusher",
+  "es": "Extensión de tríceps rompecráneos acostado con barra",
+  "method": "override"
+ },
+ {
+  "id": "0063",
+  "en": "barbell narrow stance squat",
+  "es": "Sentadilla con postura cerrada con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0064",
+  "en": "barbell one arm bent over row",
+  "es": "Remo inclinado a un brazo con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0065",
+  "en": "barbell one arm floor press",
+  "es": "Press en el piso a un brazo con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0066",
+  "en": "barbell one arm side deadlift",
+  "es": "Peso muerto lateral a un brazo con barra",
+  "method": "override"
+ },
+ {
+  "id": "0067",
+  "en": "barbell one arm snatch",
+  "es": "Arranque a un brazo con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0068",
+  "en": "barbell one leg squat",
+  "es": "Sentadilla a una pierna con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0069",
+  "en": "barbell overhead squat",
+  "es": "Sentadilla sobre la cabeza con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1411",
+  "en": "barbell palms down wrist curl over a bench",
+  "es": "Curl de muñeca con palmas hacia abajo sobre banco con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1412",
+  "en": "barbell palms up wrist curl over a bench",
+  "es": "Curl de muñeca con palmas hacia arriba sobre banco con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "3017",
+  "en": "barbell pendlay row",
+  "es": "Remo Pendlay con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1751",
+  "en": "barbell pin presses",
+  "es": "Press desde pines con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0070",
+  "en": "barbell preacher curl",
+  "es": "Curl en banco Scott con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0071",
+  "en": "barbell press sit-up",
+  "es": "Abdominal con press con barra",
+  "method": "override"
+ },
+ {
+  "id": "0072",
+  "en": "barbell prone incline curl",
+  "es": "Curl en banco inclinado boca abajo con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0073",
+  "en": "barbell pullover",
+  "es": "Pullover con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0022",
+  "en": "barbell pullover to press",
+  "es": "Pullover a press con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0074",
+  "en": "barbell rack pull",
+  "es": "Rack pull (peso muerto parcial) con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0075",
+  "en": "barbell rear delt raise",
+  "es": "Elevación posterior de deltoides con barra",
+  "method": "override"
+ },
+ {
+  "id": "0076",
+  "en": "barbell rear delt row",
+  "es": "Remo para deltoides posterior con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0078",
+  "en": "barbell rear lunge",
+  "es": "Estocada hacia atrás con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0077",
+  "en": "barbell rear lunge v. 2",
+  "es": "Estocada hacia atrás con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0079",
+  "en": "barbell revers wrist curl v. 2",
+  "es": "Curl de muñeca invertido con barra (v2)",
+  "method": "override"
+ },
+ {
+  "id": "2187",
+  "en": "barbell reverse close-grip bench press",
+  "es": "Press de banca con agarre cerrado invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0080",
+  "en": "barbell reverse curl",
+  "es": "Curl invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0118",
+  "en": "barbell reverse grip bent over row",
+  "es": "Remo inclinado con agarre invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1256",
+  "en": "barbell reverse grip decline bench press",
+  "es": "Press de banca con agarre invertido en banco declinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1257",
+  "en": "barbell reverse grip incline bench press",
+  "es": "Press de banca con agarre invertido en banco inclinado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1317",
+  "en": "barbell reverse grip incline bench row",
+  "es": "Remo con agarre invertido en banco inclinado con barra",
+  "method": "override"
+ },
+ {
+  "id": "1721",
+  "en": "barbell reverse grip skullcrusher",
+  "es": "Extensión rompecráneos de tríceps con agarre invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0081",
+  "en": "barbell reverse preacher curl",
+  "es": "Curl en banco Scott invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0082",
+  "en": "barbell reverse wrist curl",
+  "es": "Curl de muñeca invertido con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0084",
+  "en": "barbell rollerout",
+  "es": "Rollout con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0083",
+  "en": "barbell rollerout from bench",
+  "es": "Rollout desde banco con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0085",
+  "en": "barbell romanian deadlift",
+  "es": "Peso muerto rumano con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0086",
+  "en": "barbell seated behind head military press",
+  "es": "Press militar por detrás de la cabeza sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0087",
+  "en": "barbell seated bradford rocky press",
+  "es": "Press Bradford (rocky) sentado con barra",
+  "method": "override"
+ },
+ {
+  "id": "0088",
+  "en": "barbell seated calf raise",
+  "es": "Elevación de talones sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1371",
+  "en": "barbell seated calf raise",
+  "es": "Elevación de talones sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1718",
+  "en": "barbell seated close grip behind neck triceps extension",
+  "es": "Extensión de tríceps con agarre cerrado por detrás de la nuca sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0089",
+  "en": "barbell seated close-grip concentration curl",
+  "es": "Curl concentrado con agarre cerrado sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0090",
+  "en": "barbell seated good morning",
+  "es": "Buenos días (bisagra de cadera) sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0091",
+  "en": "barbell seated overhead press",
+  "es": "Press sobre la cabeza sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0092",
+  "en": "barbell seated overhead triceps extension",
+  "es": "Extensión de tríceps sobre la cabeza sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0094",
+  "en": "barbell seated twist",
+  "es": "Giro de torso sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0095",
+  "en": "barbell shrug",
+  "es": "Encogimiento de hombros con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0096",
+  "en": "barbell side bent v. 2",
+  "es": "Flexión lateral de torso con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0098",
+  "en": "barbell side split squat",
+  "es": "Sentadilla split lateral con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0097",
+  "en": "barbell side split squat v. 2",
+  "es": "Sentadilla split lateral con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "1756",
+  "en": "barbell single leg deadlift",
+  "es": "Peso muerto a una pierna con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0099",
+  "en": "barbell single leg split squat",
+  "es": "Sentadilla split a una pierna con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "2799",
+  "en": "barbell sitted alternate leg raise",
+  "es": "Elevación de piernas alternada sentado con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "2800",
+  "en": "barbell sitted alternate leg raise (female)",
+  "es": "Elevación de piernas alternada sentado con barra (demo mujer)",
+  "method": "phrase"
+ },
+ {
+  "id": "0100",
+  "en": "barbell skier",
+  "es": "Esquiador con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0101",
+  "en": "barbell speed squat",
+  "es": "Sentadilla de velocidad con barra",
+  "method": "override"
+ },
+ {
+  "id": "2810",
+  "en": "barbell split squat v. 2",
+  "es": "Sentadilla split con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0102",
+  "en": "barbell squat (on knees)",
+  "es": "Sentadilla con barra (de rodillas)",
+  "method": "phrase"
+ },
+ {
+  "id": "2798",
+  "en": "barbell squat jump step rear lunge",
+  "es": "Sentadilla con salto + estocada atrás con barra",
+  "method": "override"
+ },
+ {
+  "id": "0103",
+  "en": "barbell standing ab rollerout",
+  "es": "Abdominal rollout de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0104",
+  "en": "barbell standing back wrist curl",
+  "es": "Curl de muñeca por detrás de la espalda de pie con barra",
+  "method": "override"
+ },
+ {
+  "id": "0105",
+  "en": "barbell standing bradford press",
+  "es": "Press Bradford de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1372",
+  "en": "barbell standing calf raise",
+  "es": "Elevación de talones de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0106",
+  "en": "barbell standing close grip curl",
+  "es": "Curl con agarre cerrado de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1456",
+  "en": "barbell standing close grip military press",
+  "es": "Press militar con agarre cerrado de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "2414",
+  "en": "barbell standing concentration curl",
+  "es": "Curl concentrado de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0107",
+  "en": "barbell standing front raise over head",
+  "es": "Elevación frontal sobre la cabeza de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0108",
+  "en": "barbell standing leg calf raise",
+  "es": "Elevación de talones a una pierna de pie con barra",
+  "method": "override"
+ },
+ {
+  "id": "0109",
+  "en": "barbell standing overhead triceps extension",
+  "es": "Extensión de tríceps sobre la cabeza de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0110",
+  "en": "barbell standing reverse grip curl",
+  "es": "Curl con agarre invertido de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0111",
+  "en": "barbell standing rocking leg calf raise",
+  "es": "Elevación de talones con balanceo de pie con barra",
+  "method": "override"
+ },
+ {
+  "id": "0112",
+  "en": "barbell standing twist",
+  "es": "Giro de torso de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1629",
+  "en": "barbell standing wide grip biceps curl",
+  "es": "Curl de bíceps con agarre ancho de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1457",
+  "en": "barbell standing wide military press",
+  "es": "Press militar con agarre ancho de pie con barra",
+  "method": "override"
+ },
+ {
+  "id": "0113",
+  "en": "barbell standing wide-grip curl",
+  "es": "Curl con agarre ancho de pie con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0114",
+  "en": "barbell step-up",
+  "es": "Subida al cajón con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0115",
+  "en": "barbell stiff leg good morning",
+  "es": "Buenos días con piernas rígidas con barra",
+  "method": "override"
+ },
+ {
+  "id": "0116",
+  "en": "barbell straight leg deadlift",
+  "es": "Peso muerto con piernas rectas con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0117",
+  "en": "barbell sumo deadlift",
+  "es": "Peso muerto sumo con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "3305",
+  "en": "barbell thruster",
+  "es": "Thruster (sentadilla + press) con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0120",
+  "en": "barbell upright row",
+  "es": "Remo al mentón con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0119",
+  "en": "barbell upright row v. 2",
+  "es": "Remo al mentón con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0121",
+  "en": "barbell upright row v. 3",
+  "es": "Remo al mentón con barra (v3)",
+  "method": "phrase"
+ },
+ {
+  "id": "0122",
+  "en": "barbell wide bench press",
+  "es": "Press de banca ancho con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "1258",
+  "en": "barbell wide reverse grip bench press",
+  "es": "Press de banca con agarre invertido ancho con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0124",
+  "en": "barbell wide squat",
+  "es": "Sentadilla ancha con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0123",
+  "en": "barbell wide-grip upright row",
+  "es": "Remo al mentón con agarre ancho con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0126",
+  "en": "barbell wrist curl",
+  "es": "Curl de muñeca con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "0125",
+  "en": "barbell wrist curl v. 2",
+  "es": "Curl de muñeca con barra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0127",
+  "en": "barbell zercher squat",
+  "es": "Sentadilla Zercher con barra",
+  "method": "phrase"
+ },
+ {
+  "id": "3212",
+  "en": "basic toe touch (male)",
+  "es": "Toque de puntas de pie básico",
+  "method": "override"
+ },
+ {
+  "id": "0128",
+  "en": "battling ropes",
+  "es": "Sogas de batalla",
+  "method": "phrase"
+ },
+ {
+  "id": "3360",
+  "en": "bear crawl",
+  "es": "Caminata del oso",
+  "method": "phrase"
+ },
+ {
+  "id": "1259",
+  "en": "behind head chest stretch",
+  "es": "Estiramiento de pecho por detrás de la cabeza",
+  "method": "phrase"
+ },
+ {
+  "id": "0129",
+  "en": "bench dip (knees bent)",
+  "es": "Fondos en banco (rodillas flexionadas)",
+  "method": "override"
+ },
+ {
+  "id": "1399",
+  "en": "bench dip on floor",
+  "es": "Fondos en banco en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "0130",
+  "en": "bench hip extension",
+  "es": "Extensión de cadera en banco",
+  "method": "phrase"
+ },
+ {
+  "id": "3019",
+  "en": "bench pull-ups",
+  "es": "Dominadas en banco",
+  "method": "phrase"
+ },
+ {
+  "id": "3639",
+  "en": "bent knee lying twist (male)",
+  "es": "Giro de torso con rodillas flexionadas acostado (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "1770",
+  "en": "biceps leg concentration curl",
+  "es": "Curl concentrado apoyado en la pierna",
+  "method": "override"
+ },
+ {
+  "id": "0139",
+  "en": "biceps narrow pull-ups",
+  "es": "Dominadas con agarre cerrado para bíceps",
+  "method": "override"
+ },
+ {
+  "id": "0140",
+  "en": "biceps pull-up",
+  "es": "Dominada para bíceps",
+  "method": "override"
+ },
+ {
+  "id": "0137",
+  "en": "body-up",
+  "es": "Body-up (flexión a codos)",
+  "method": "override"
+ },
+ {
+  "id": "3543",
+  "en": "bodyweight drop jump squat",
+  "es": "Sentadilla con salto con caída con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3544",
+  "en": "bodyweight incline side plank",
+  "es": "Plancha lateral en banco inclinado con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "1771",
+  "en": "bodyweight kneeling triceps extension",
+  "es": "Extensión de tríceps de rodillas con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "1769",
+  "en": "bodyweight side lying biceps curl",
+  "es": "Curl de bíceps acostado de lado",
+  "method": "override"
+ },
+ {
+  "id": "3168",
+  "en": "bodyweight squatting row",
+  "es": "Remo en cuclillas con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3167",
+  "en": "bodyweight squatting row (with towel)",
+  "es": "Remo en cuclillas con peso corporal (con toalla)",
+  "method": "phrase"
+ },
+ {
+  "id": "1373",
+  "en": "bodyweight standing calf raise",
+  "es": "Elevación de talones de pie con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3156",
+  "en": "bodyweight standing close-grip one arm row",
+  "es": "Remo con agarre cerrado a un brazo de pie con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3158",
+  "en": "bodyweight standing close-grip row",
+  "es": "Remo con agarre cerrado de pie con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3162",
+  "en": "bodyweight standing one arm row",
+  "es": "Remo a un brazo de pie con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3161",
+  "en": "bodyweight standing one arm row (with towel)",
+  "es": "Remo a un brazo de pie con peso corporal (con toalla)",
+  "method": "phrase"
+ },
+ {
+  "id": "3166",
+  "en": "bodyweight standing row",
+  "es": "Remo de pie con peso corporal",
+  "method": "phrase"
+ },
+ {
+  "id": "3165",
+  "en": "bodyweight standing row (with towel)",
+  "es": "Remo de pie con peso corporal (con toalla)",
+  "method": "phrase"
+ },
+ {
+  "id": "0138",
+  "en": "bottoms-up",
+  "es": "Bottoms-up",
+  "method": "override"
+ },
+ {
+  "id": "1374",
+  "en": "box jump down with one leg stabilization",
+  "es": "Salto del cajón con estabilización a una pierna",
+  "method": "override"
+ },
+ {
+  "id": "2466",
+  "en": "bridge - mountain climber (cross body)",
+  "es": "Puente + escalador cruzado",
+  "method": "override"
+ },
+ {
+  "id": "1160",
+  "en": "burpee",
+  "es": "Burpee",
+  "method": "phrase"
+ },
+ {
+  "id": "0870",
+  "en": "butt-ups",
+  "es": "Butt-ups (elevación de cadera en plancha)",
+  "method": "override"
+ },
+ {
+  "id": "1494",
+  "en": "butterfly yoga pose",
+  "es": "Postura de mariposa (yoga)",
+  "method": "override"
+ },
+ {
+  "id": "0148",
+  "en": "cable alternate shoulder press",
+  "es": "Press de hombros alternado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0149",
+  "en": "cable alternate triceps extension",
+  "es": "Extensión de tríceps alternada en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "3235",
+  "en": "cable assisted inverse leg curl",
+  "es": "Curl femoral inverso asistido en polea",
+  "method": "override"
+ },
+ {
+  "id": "0150",
+  "en": "cable bar lateral pulldown",
+  "es": "Jalón lateral con barra en polea",
+  "method": "override"
+ },
+ {
+  "id": "0151",
+  "en": "cable bench press",
+  "es": "Press de banca en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1630",
+  "en": "cable close grip curl",
+  "es": "Curl con agarre cerrado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1631",
+  "en": "cable concentration curl",
+  "es": "Curl concentrado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0152",
+  "en": "cable concentration extension (on knee)",
+  "es": "Extensión concentrada en polea (sobre rodilla)",
+  "method": "override"
+ },
+ {
+  "id": "0153",
+  "en": "cable cross-over lateral pulldown",
+  "es": "Jalón lateral en cruce de poleas",
+  "method": "override"
+ },
+ {
+  "id": "0154",
+  "en": "cable cross-over revers fly",
+  "es": "Apertura invertida en cruce de poleas",
+  "method": "override"
+ },
+ {
+  "id": "0155",
+  "en": "cable cross-over variation",
+  "es": "Cruce de poleas (variante)",
+  "method": "override"
+ },
+ {
+  "id": "0868",
+  "en": "cable curl",
+  "es": "Curl en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0157",
+  "en": "cable deadlift",
+  "es": "Peso muerto en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0158",
+  "en": "cable decline fly",
+  "es": "Apertura en banco declinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1260",
+  "en": "cable decline one arm press",
+  "es": "Press a un brazo en banco declinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1261",
+  "en": "cable decline press",
+  "es": "Press en banco declinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0159",
+  "en": "cable decline seated wide-grip row",
+  "es": "Remo con agarre ancho en banco declinado sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1632",
+  "en": "cable drag curl",
+  "es": "Curl de arrastre en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0160",
+  "en": "cable floor seated wide-grip row",
+  "es": "Remo con agarre ancho sentado en el piso en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0161",
+  "en": "cable forward raise",
+  "es": "Elevación al frente en polea",
+  "method": "override"
+ },
+ {
+  "id": "0162",
+  "en": "cable front raise",
+  "es": "Elevación frontal en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0164",
+  "en": "cable front shoulder raise",
+  "es": "Elevación de hombros al frente en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0165",
+  "en": "cable hammer curl (with rope)",
+  "es": "Curl martillo en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "1722",
+  "en": "cable high pulley overhead tricep extension",
+  "es": "Extensión de tríceps sobre la cabeza desde polea alta",
+  "method": "override"
+ },
+ {
+  "id": "0167",
+  "en": "cable high row (kneeling)",
+  "es": "Remo alto en polea (de rodillas)",
+  "method": "phrase"
+ },
+ {
+  "id": "0168",
+  "en": "cable hip adduction",
+  "es": "Aducción de cadera en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0169",
+  "en": "cable incline bench press",
+  "es": "Press de banca en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1318",
+  "en": "cable incline bench row",
+  "es": "Remo en banco inclinado en polea",
+  "method": "override"
+ },
+ {
+  "id": "0171",
+  "en": "cable incline fly",
+  "es": "Apertura en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0170",
+  "en": "cable incline fly (on stability ball)",
+  "es": "Apertura en banco inclinado en polea (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0172",
+  "en": "cable incline pushdown",
+  "es": "Extensión de tríceps en banco inclinado en polea",
+  "method": "override"
+ },
+ {
+  "id": "0173",
+  "en": "cable incline triceps extension",
+  "es": "Extensión de tríceps en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0174",
+  "en": "cable judo flip",
+  "es": "Volteo de judo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0860",
+  "en": "cable kickback",
+  "es": "Patada trasera en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0175",
+  "en": "cable kneeling crunch",
+  "es": "Crunch abdominal de rodillas en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "3697",
+  "en": "cable kneeling rear delt row (with rope) (male)",
+  "es": "Remo para deltoides posterior de rodillas en polea (con soga, demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "0176",
+  "en": "cable kneeling triceps extension",
+  "es": "Extensión de tríceps de rodillas en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "2330",
+  "en": "cable lat pulldown full range of motion",
+  "es": "Jalón al pecho en rango completo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0177",
+  "en": "cable lateral pulldown (with rope attachment)",
+  "es": "Jalón lateral en polea (con soga)",
+  "method": "override"
+ },
+ {
+  "id": "2616",
+  "en": "cable lateral pulldown with v-bar",
+  "es": "Jalón lateral con barra V en polea",
+  "method": "override"
+ },
+ {
+  "id": "0178",
+  "en": "cable lateral raise",
+  "es": "Elevación lateral en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0179",
+  "en": "cable low fly",
+  "es": "Apertura baja en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0180",
+  "en": "cable low seated row",
+  "es": "Remo bajo sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1634",
+  "en": "cable lying bicep curl",
+  "es": "Curl de bíceps acostado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0182",
+  "en": "cable lying close-grip curl",
+  "es": "Curl con agarre cerrado acostado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0184",
+  "en": "cable lying extension pullover (with rope attachment)",
+  "es": "Extensión + pullover acostado en polea (con soga)",
+  "method": "override"
+ },
+ {
+  "id": "0185",
+  "en": "cable lying fly",
+  "es": "Apertura acostado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0186",
+  "en": "cable lying triceps extension v. 2",
+  "es": "Extensión de tríceps acostado en polea (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0188",
+  "en": "cable middle fly",
+  "es": "Apertura media en polea",
+  "method": "override"
+ },
+ {
+  "id": "0189",
+  "en": "cable one arm bent over row",
+  "es": "Remo inclinado a un brazo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0190",
+  "en": "cable one arm curl",
+  "es": "Curl a un brazo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1262",
+  "en": "cable one arm decline chest fly",
+  "es": "Apertura de pecho a un brazo en banco declinado en polea",
+  "method": "override"
+ },
+ {
+  "id": "1263",
+  "en": "cable one arm fly on exercise ball",
+  "es": "Apertura a un brazo sobre pelota de estabilidad en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1264",
+  "en": "cable one arm incline fly on exercise ball",
+  "es": "Apertura a un brazo sobre pelota de estabilidad en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1265",
+  "en": "cable one arm incline press",
+  "es": "Press a un brazo en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1266",
+  "en": "cable one arm incline press on exercise ball",
+  "es": "Press a un brazo sobre pelota de estabilidad en banco inclinado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0191",
+  "en": "cable one arm lateral bent-over",
+  "es": "Elevación lateral a un brazo con torso inclinado en polea",
+  "method": "override"
+ },
+ {
+  "id": "0192",
+  "en": "cable one arm lateral raise",
+  "es": "Elevación lateral a un brazo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1633",
+  "en": "cable one arm preacher curl",
+  "es": "Curl en banco Scott a un brazo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1267",
+  "en": "cable one arm press on exercise ball",
+  "es": "Press a un brazo sobre pelota de estabilidad en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "3563",
+  "en": "cable one arm pulldown",
+  "es": "Jalón a un brazo en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1635",
+  "en": "cable one arm reverse preacher curl",
+  "es": "Curl en banco Scott a un brazo invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0193",
+  "en": "cable one arm straight back high row (kneeling)",
+  "es": "Remo alto a un brazo con espalda recta en polea (de rodillas)",
+  "method": "phrase"
+ },
+ {
+  "id": "1723",
+  "en": "cable one arm tricep pushdown",
+  "es": "Extensión de tríceps en polea a un brazo",
+  "method": "phrase"
+ },
+ {
+  "id": "1636",
+  "en": "cable overhead curl",
+  "es": "Curl sobre la cabeza en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1637",
+  "en": "cable overhead curl on exercise ball",
+  "es": "Curl sobre la cabeza sobre pelota de estabilidad en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0194",
+  "en": "cable overhead triceps extension (rope attachment)",
+  "es": "Extensión de tríceps sobre la cabeza en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "1319",
+  "en": "cable palm rotational row",
+  "es": "Remo con rotación de palma en polea",
+  "method": "override"
+ },
+ {
+  "id": "0195",
+  "en": "cable preacher curl",
+  "es": "Curl en banco Scott en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1268",
+  "en": "cable press on exercise ball",
+  "es": "Press sobre pelota de estabilidad en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0196",
+  "en": "cable pull through (with rope)",
+  "es": "Pull through (tirón entre piernas) en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0198",
+  "en": "cable pulldown",
+  "es": "Jalón en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0197",
+  "en": "cable pulldown (pro lat bar)",
+  "es": "Jalón en polea (con barra de dorsales)",
+  "method": "phrase"
+ },
+ {
+  "id": "1638",
+  "en": "cable pulldown bicep curl",
+  "es": "Jalón + curl de bíceps en polea",
+  "method": "override"
+ },
+ {
+  "id": "0201",
+  "en": "cable pushdown",
+  "es": "Extensión de tríceps en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0199",
+  "en": "cable pushdown (straight arm) v. 2",
+  "es": "Extensión de tríceps en polea (con brazos rectos, v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0200",
+  "en": "cable pushdown (with rope attachment)",
+  "es": "Extensión de tríceps en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0202",
+  "en": "cable rear delt row (stirrups)",
+  "es": "Remo para deltoides posterior en polea (con estribos)",
+  "method": "phrase"
+ },
+ {
+  "id": "0203",
+  "en": "cable rear delt row (with rope)",
+  "es": "Remo para deltoides posterior en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0204",
+  "en": "cable rear drive",
+  "es": "Empuje posterior en polea",
+  "method": "override"
+ },
+ {
+  "id": "0205",
+  "en": "cable rear pulldown",
+  "es": "Jalón posterior en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0873",
+  "en": "cable reverse crunch",
+  "es": "Crunch abdominal invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0206",
+  "en": "cable reverse curl",
+  "es": "Curl invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "2406",
+  "en": "cable reverse grip triceps pushdown (sz-bar) (with arm blaster)",
+  "es": "Extensión de tríceps en polea con agarre invertido (barra Z, con arm blaster)",
+  "method": "override"
+ },
+ {
+  "id": "1413",
+  "en": "cable reverse one arm curl",
+  "es": "Curl a un brazo invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0209",
+  "en": "cable reverse preacher curl",
+  "es": "Curl en banco Scott invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0210",
+  "en": "cable reverse wrist curl",
+  "es": "Curl de muñeca invertido en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0207",
+  "en": "cable reverse-grip pushdown",
+  "es": "Extensión de tríceps en polea con agarre invertido",
+  "method": "phrase"
+ },
+ {
+  "id": "0208",
+  "en": "cable reverse-grip straight back seated high row",
+  "es": "Remo alto con agarre invertido con espalda recta sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1320",
+  "en": "cable rope crossover seated row",
+  "es": "Remo sentado en cruce de poleas con soga",
+  "method": "override"
+ },
+ {
+  "id": "1321",
+  "en": "cable rope elevated seated row",
+  "es": "Remo sentado elevado con soga en polea",
+  "method": "override"
+ },
+ {
+  "id": "1322",
+  "en": "cable rope extension incline bench row",
+  "es": "Remo-extensión en banco inclinado con soga en polea",
+  "method": "override"
+ },
+ {
+  "id": "1639",
+  "en": "cable rope hammer preacher curl",
+  "es": "Curl martillo en banco Scott con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1724",
+  "en": "cable rope high pulley overhead tricep extension",
+  "es": "Extensión de tríceps sobre la cabeza desde polea alta con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1725",
+  "en": "cable rope incline tricep extension",
+  "es": "Extensión de tríceps en banco inclinado con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1726",
+  "en": "cable rope lying on floor tricep extension",
+  "es": "Extensión de tríceps en el piso acostado con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1640",
+  "en": "cable rope one arm hammer preacher curl",
+  "es": "Curl martillo en banco Scott a un brazo con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1323",
+  "en": "cable rope seated row",
+  "es": "Remo sentado con soga en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0211",
+  "en": "cable russian twists (on stability ball)",
+  "es": "Giros rusos en polea (sobre pelota de estabilidad)",
+  "method": "override"
+ },
+ {
+  "id": "2144",
+  "en": "cable seated chest press",
+  "es": "Press de pecho sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0212",
+  "en": "cable seated crunch",
+  "es": "Crunch abdominal sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1641",
+  "en": "cable seated curl",
+  "es": "Curl sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0213",
+  "en": "cable seated high row (v-bar)",
+  "es": "Remo alto sentado en polea (con barra V)",
+  "method": "phrase"
+ },
+ {
+  "id": "0214",
+  "en": "cable seated one arm alternate row",
+  "es": "Remo alternado a un brazo sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1642",
+  "en": "cable seated one arm concentration curl",
+  "es": "Curl concentrado a un brazo sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1643",
+  "en": "cable seated overhead curl",
+  "es": "Curl sobre la cabeza sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0215",
+  "en": "cable seated rear lateral raise",
+  "es": "Elevación lateral posterior sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0861",
+  "en": "cable seated row",
+  "es": "Remo sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0216",
+  "en": "cable seated shoulder internal rotation",
+  "es": "Rotación interna de hombro sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "2399",
+  "en": "cable seated twist",
+  "es": "Giro de torso sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0218",
+  "en": "cable seated wide-grip row",
+  "es": "Remo con agarre ancho sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0219",
+  "en": "cable shoulder press",
+  "es": "Press de hombros en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0220",
+  "en": "cable shrug",
+  "es": "Encogimiento de hombros en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0222",
+  "en": "cable side bend",
+  "es": "Flexión lateral de torso en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0221",
+  "en": "cable side bend crunch (bosu ball)",
+  "es": "Crunch con flexión lateral en polea (en bosu)",
+  "method": "override"
+ },
+ {
+  "id": "0223",
+  "en": "cable side crunch",
+  "es": "Crunch lateral en polea",
+  "method": "override"
+ },
+ {
+  "id": "1717",
+  "en": "cable squat row (with rope attachment)",
+  "es": "Sentadilla con remo en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "1644",
+  "en": "cable squatting curl",
+  "es": "Curl en cuclillas en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0224",
+  "en": "cable standing back wrist curl",
+  "es": "Curl de muñeca por detrás de la espalda de pie en polea",
+  "method": "override"
+ },
+ {
+  "id": "1375",
+  "en": "cable standing calf raise",
+  "es": "Elevación de talones de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0225",
+  "en": "cable standing cross-over high reverse fly",
+  "es": "Apertura invertida alta en cruce de poleas de pie",
+  "method": "override"
+ },
+ {
+  "id": "0226",
+  "en": "cable standing crunch",
+  "es": "Crunch abdominal de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0874",
+  "en": "cable standing crunch (with rope attachment)",
+  "es": "Crunch abdominal de pie en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0227",
+  "en": "cable standing fly",
+  "es": "Apertura de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0228",
+  "en": "cable standing hip extension",
+  "es": "Extensión de cadera de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0229",
+  "en": "cable standing inner curl",
+  "es": "Curl interno de pie en polea",
+  "method": "override"
+ },
+ {
+  "id": "0230",
+  "en": "cable standing lift",
+  "es": "Elevación de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0231",
+  "en": "cable standing one arm triceps extension",
+  "es": "Extensión de tríceps a un brazo de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1376",
+  "en": "cable standing one leg calf raise",
+  "es": "Elevación de talones a una pierna de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0232",
+  "en": "cable standing pulldown (with rope)",
+  "es": "Jalón de pie en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0233",
+  "en": "cable standing rear delt row (with rope)",
+  "es": "Remo para deltoides posterior de pie en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "1727",
+  "en": "cable standing reverse grip one arm overhead tricep extension",
+  "es": "Extensión de tríceps con agarre invertido a un brazo sobre la cabeza de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0234",
+  "en": "cable standing row (v-bar)",
+  "es": "Remo de pie en polea (con barra V)",
+  "method": "phrase"
+ },
+ {
+  "id": "0235",
+  "en": "cable standing shoulder external rotation",
+  "es": "Rotación externa de hombro de pie en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0236",
+  "en": "cable standing twist row (v-bar)",
+  "es": "Giro de torso remo de pie en polea (con barra V)",
+  "method": "phrase"
+ },
+ {
+  "id": "1269",
+  "en": "cable standing up straight crossovers",
+  "es": "Cruce de poleas hacia arriba de pie",
+  "method": "override"
+ },
+ {
+  "id": "0238",
+  "en": "cable straight arm pulldown",
+  "es": "Jalón con brazos rectos en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0237",
+  "en": "cable straight arm pulldown (with rope)",
+  "es": "Jalón con brazos rectos en polea (con soga)",
+  "method": "phrase"
+ },
+ {
+  "id": "0239",
+  "en": "cable straight back seated row",
+  "es": "Remo con espalda recta sentado en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0240",
+  "en": "cable supine reverse fly",
+  "es": "Apertura invertida boca arriba en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "2464",
+  "en": "cable thibaudeau kayak row",
+  "es": "Remo kayak (Thibaudeau) en polea",
+  "method": "override"
+ },
+ {
+  "id": "0241",
+  "en": "cable triceps pushdown (v-bar)",
+  "es": "Extensión de tríceps en polea (con barra V)",
+  "method": "phrase"
+ },
+ {
+  "id": "2405",
+  "en": "cable triceps pushdown (v-bar) (with arm blaster)",
+  "es": "Extensión de tríceps en polea (con barra V, con arm blaster)",
+  "method": "phrase"
+ },
+ {
+  "id": "0242",
+  "en": "cable tuck reverse crunch",
+  "es": "Crunch invertido con rodillas al pecho en polea",
+  "method": "override"
+ },
+ {
+  "id": "0243",
+  "en": "cable twist",
+  "es": "Giro de torso en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "0862",
+  "en": "cable twist (up-down)",
+  "es": "Giro de torso en polea (arriba-abajo)",
+  "method": "phrase"
+ },
+ {
+  "id": "0244",
+  "en": "cable twisting pull",
+  "es": "Tirón con giro en polea",
+  "method": "override"
+ },
+ {
+  "id": "1645",
+  "en": "cable two arm curl on incline bench",
+  "es": "Curl a dos brazos en banco inclinado en polea",
+  "method": "override"
+ },
+ {
+  "id": "1728",
+  "en": "cable two arm tricep kickback",
+  "es": "Patada de tríceps a dos brazos en polea",
+  "method": "override"
+ },
+ {
+  "id": "0245",
+  "en": "cable underhand pulldown",
+  "es": "Jalón con agarre supino en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1270",
+  "en": "cable upper chest crossovers",
+  "es": "Cruce de poleas para pecho superior",
+  "method": "override"
+ },
+ {
+  "id": "1324",
+  "en": "cable upper row",
+  "es": "Remo alto en polea",
+  "method": "override"
+ },
+ {
+  "id": "0246",
+  "en": "cable upright row",
+  "es": "Remo al mentón en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1325",
+  "en": "cable wide grip rear pulldown behind neck",
+  "es": "Jalón por detrás de la nuca con agarre ancho en polea",
+  "method": "override"
+ },
+ {
+  "id": "0247",
+  "en": "cable wrist curl",
+  "es": "Curl de muñeca en polea",
+  "method": "phrase"
+ },
+ {
+  "id": "1407",
+  "en": "calf push stretch with hands against wall",
+  "es": "Estiramiento de pantorrilla con empuje contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "1377",
+  "en": "calf stretch with hands against wall",
+  "es": "Estiramiento de pantorrilla con manos contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "1378",
+  "en": "calf stretch with rope",
+  "es": "Estiramiento de pantorrilla con soga",
+  "method": "phrase"
+ },
+ {
+  "id": "0248",
+  "en": "cambered bar lying row",
+  "es": "Remo acostado con barra camber",
+  "method": "override"
+ },
+ {
+  "id": "2963",
+  "en": "captains chair straight leg raise",
+  "es": "Elevación de piernas rectas en silla romana",
+  "method": "override"
+ },
+ {
+  "id": "1548",
+  "en": "chair leg extended stretch",
+  "es": "Estiramiento de pierna extendida en silla",
+  "method": "override"
+ },
+ {
+  "id": "1271",
+  "en": "chest and front of shoulder stretch",
+  "es": "Estiramiento de pecho y hombro frontal",
+  "method": "override"
+ },
+ {
+  "id": "0251",
+  "en": "chest dip",
+  "es": "Fondos para pecho",
+  "method": "phrase"
+ },
+ {
+  "id": "1430",
+  "en": "chest dip (on dip-pull-up cage)",
+  "es": "Fondos para pecho (en jaula de fondos y dominadas)",
+  "method": "override"
+ },
+ {
+  "id": "2462",
+  "en": "chest dip on straight bar",
+  "es": "Fondos para pecho en barra recta",
+  "method": "override"
+ },
+ {
+  "id": "1272",
+  "en": "chest stretch with exercise ball",
+  "es": "Estiramiento de pecho con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "3216",
+  "en": "chest tap push-up (male)",
+  "es": "Flexión de brazos con toque de pecho",
+  "method": "override"
+ },
+ {
+  "id": "1326",
+  "en": "chin-up",
+  "es": "Dominada supina",
+  "method": "phrase"
+ },
+ {
+  "id": "0253",
+  "en": "chin-ups (narrow parallel grip)",
+  "es": "Dominadas supinas (agarre paralelo cerrado)",
+  "method": "override"
+ },
+ {
+  "id": "0257",
+  "en": "circles knee stretch",
+  "es": "Estiramiento de rodilla con círculos",
+  "method": "override"
+ },
+ {
+  "id": "1273",
+  "en": "clap push up",
+  "es": "Flexión de brazos con aplauso",
+  "method": "override"
+ },
+ {
+  "id": "0258",
+  "en": "clock push-up",
+  "es": "Flexión de brazos en reloj",
+  "method": "override"
+ },
+ {
+  "id": "1327",
+  "en": "close grip chin-up",
+  "es": "Dominada supina con agarre cerrado",
+  "method": "phrase"
+ },
+ {
+  "id": "0259",
+  "en": "close-grip push-up",
+  "es": "Flexión de brazos con agarre cerrado",
+  "method": "phrase"
+ },
+ {
+  "id": "2398",
+  "en": "close-grip push-up (on knees)",
+  "es": "Flexión de brazos con agarre cerrado (de rodillas)",
+  "method": "phrase"
+ },
+ {
+  "id": "0260",
+  "en": "cocoons",
+  "es": "Abdominal capullo (cocoon)",
+  "method": "phrase"
+ },
+ {
+  "id": "1468",
+  "en": "crab twist toe touch",
+  "es": "Toque de puntas de pie con giro (cangrejo)",
+  "method": "override"
+ },
+ {
+  "id": "0262",
+  "en": "cross body crunch",
+  "es": "Crunch cruzado (codo a rodilla)",
+  "method": "override"
+ },
+ {
+  "id": "0267",
+  "en": "crunch (hands overhead)",
+  "es": "Crunch abdominal (manos sobre la cabeza)",
+  "method": "phrase"
+ },
+ {
+  "id": "0271",
+  "en": "crunch (on stability ball)",
+  "es": "Crunch abdominal (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0272",
+  "en": "crunch (on stability ball, arms straight)",
+  "es": "Crunch abdominal (sobre pelota, brazos rectos)",
+  "method": "phrase"
+ },
+ {
+  "id": "0274",
+  "en": "crunch floor",
+  "es": "Crunch abdominal en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "3016",
+  "en": "curl-up",
+  "es": "Curl-up (abdominal parcial)",
+  "method": "override"
+ },
+ {
+  "id": "3769",
+  "en": "curtsey squat",
+  "es": "Sentadilla cruzada (curtsey)",
+  "method": "phrase"
+ },
+ {
+  "id": "2331",
+  "en": "cycle cross trainer",
+  "es": "Elíptico (cross trainer)",
+  "method": "override"
+ },
+ {
+  "id": "0276",
+  "en": "dead bug",
+  "es": "Dead bug (bicho muerto)",
+  "method": "phrase"
+ },
+ {
+  "id": "0277",
+  "en": "decline crunch",
+  "es": "Crunch abdominal en banco declinado",
+  "method": "phrase"
+ },
+ {
+  "id": "0279",
+  "en": "decline push-up",
+  "es": "Flexión de brazos en banco declinado",
+  "method": "phrase"
+ },
+ {
+  "id": "0282",
+  "en": "decline sit-up",
+  "es": "Abdominal completo (sit-up) en banco declinado",
+  "method": "phrase"
+ },
+ {
+  "id": "1274",
+  "en": "deep push up",
+  "es": "Flexión de brazos profunda",
+  "method": "override"
+ },
+ {
+  "id": "0283",
+  "en": "diamond push-up",
+  "es": "Flexión de brazos diamante",
+  "method": "override"
+ },
+ {
+  "id": "0284",
+  "en": "donkey calf raise",
+  "es": "Elevación de talones estilo burro",
+  "method": "phrase"
+ },
+ {
+  "id": "1275",
+  "en": "drop push up",
+  "es": "Flexión de brazos con caída",
+  "method": "phrase"
+ },
+ {
+  "id": "0285",
+  "en": "dumbbell alternate biceps curl",
+  "es": "Curl de bíceps alternado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2403",
+  "en": "dumbbell alternate biceps curl (with arm blaster)",
+  "es": "Curl de bíceps alternado con mancuerna (con arm blaster)",
+  "method": "phrase"
+ },
+ {
+  "id": "1646",
+  "en": "dumbbell alternate hammer preacher curl",
+  "es": "Curl martillo en banco Scott alternado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1647",
+  "en": "dumbbell alternate preacher curl",
+  "es": "Curl en banco Scott alternado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1648",
+  "en": "dumbbell alternate seated hammer curl",
+  "es": "Curl martillo alternado sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0286",
+  "en": "dumbbell alternate side press",
+  "es": "Press lateral alternado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1649",
+  "en": "dumbbell alternating bicep curl with leg raised on exercise ball",
+  "es": "Curl de bíceps alternado con pierna elevada sobre pelota de estabilidad con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1650",
+  "en": "dumbbell alternating seated bicep curl on exercise ball",
+  "es": "Curl de bíceps alternado sobre pelota de estabilidad sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2137",
+  "en": "dumbbell arnold press",
+  "es": "Press Arnold con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0287",
+  "en": "dumbbell arnold press v. 2",
+  "es": "Press Arnold con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0288",
+  "en": "dumbbell around pullover",
+  "es": "Pullover alrededor de la cabeza con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0289",
+  "en": "dumbbell bench press",
+  "es": "Press de banca con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0290",
+  "en": "dumbbell bench seated press",
+  "es": "Press sentado en banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0291",
+  "en": "dumbbell bench squat",
+  "es": "Sentadilla en banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0293",
+  "en": "dumbbell bent over row",
+  "es": "Remo inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1651",
+  "en": "dumbbell bicep curl lunge with bowling motion",
+  "es": "Estocada con curl de bíceps (movimiento de bowling) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1652",
+  "en": "dumbbell bicep curl on exercise ball with leg raised",
+  "es": "Curl de bíceps sobre pelota de estabilidad con pierna elevada con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1653",
+  "en": "dumbbell bicep curl with stork stance",
+  "es": "Curl de bíceps parado en una pierna (stork) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0294",
+  "en": "dumbbell biceps curl",
+  "es": "Curl de bíceps con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2401",
+  "en": "dumbbell biceps curl (with arm blaster)",
+  "es": "Curl de bíceps con mancuerna (con arm blaster)",
+  "method": "phrase"
+ },
+ {
+  "id": "1654",
+  "en": "dumbbell biceps curl reverse",
+  "es": "Curl de bíceps invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1655",
+  "en": "dumbbell biceps curl squat",
+  "es": "Sentadilla con curl de bíceps con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1656",
+  "en": "dumbbell biceps curl v sit on bosu ball",
+  "es": "Curl de bíceps en V-sit sobre bosu con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1201",
+  "en": "dumbbell burpee",
+  "es": "Burpee con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0295",
+  "en": "dumbbell clean",
+  "es": "Cargada con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1731",
+  "en": "dumbbell close grip press",
+  "es": "Press con agarre cerrado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0296",
+  "en": "dumbbell close-grip press",
+  "es": "Press con agarre cerrado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0297",
+  "en": "dumbbell concentration curl",
+  "es": "Curl concentrado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3635",
+  "en": "dumbbell contralateral forward lunge",
+  "es": "Estocada al frente contralateral con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0298",
+  "en": "dumbbell cross body hammer curl",
+  "es": "Curl martillo cruzado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1657",
+  "en": "dumbbell cross body hammer curl v. 2",
+  "es": "Curl martillo cruzado con mancuerna (v2)",
+  "method": "override"
+ },
+ {
+  "id": "0299",
+  "en": "dumbbell cuban press",
+  "es": "Press cubano con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2136",
+  "en": "dumbbell cuban press v. 2",
+  "es": "Press cubano con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0300",
+  "en": "dumbbell deadlift",
+  "es": "Peso muerto con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0301",
+  "en": "dumbbell decline bench press",
+  "es": "Press de banca en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0302",
+  "en": "dumbbell decline fly",
+  "es": "Apertura en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0303",
+  "en": "dumbbell decline hammer press",
+  "es": "Press con agarre neutro (martillo) en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1276",
+  "en": "dumbbell decline one arm fly",
+  "es": "Apertura a un brazo en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1617",
+  "en": "dumbbell decline one arm hammer press",
+  "es": "Press con agarre neutro (martillo) a un brazo en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0305",
+  "en": "dumbbell decline shrug",
+  "es": "Encogimiento de hombros en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0304",
+  "en": "dumbbell decline shrug v. 2",
+  "es": "Encogimiento de hombros en banco declinado con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0306",
+  "en": "dumbbell decline triceps extension",
+  "es": "Extensión de tríceps en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0307",
+  "en": "dumbbell decline twist fly",
+  "es": "Giro de torso apertura en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1437",
+  "en": "dumbbell finger curls",
+  "es": "Curl de dedos con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0308",
+  "en": "dumbbell fly",
+  "es": "Apertura con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1277",
+  "en": "dumbbell fly on exercise ball",
+  "es": "Apertura sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1732",
+  "en": "dumbbell forward lunge triceps extension",
+  "es": "Estocada al frente + extensión de tríceps con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0310",
+  "en": "dumbbell front raise",
+  "es": "Elevación frontal con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0309",
+  "en": "dumbbell front raise v. 2",
+  "es": "Elevación frontal con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0311",
+  "en": "dumbbell full can lateral raise",
+  "es": "Elevación lateral \"full can\" con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1760",
+  "en": "dumbbell goblet squat",
+  "es": "Sentadilla goblet con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0313",
+  "en": "dumbbell hammer curl",
+  "es": "Curl martillo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1659",
+  "en": "dumbbell hammer curl on exercise ball",
+  "es": "Curl martillo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0312",
+  "en": "dumbbell hammer curl v. 2",
+  "es": "Curl martillo con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "2402",
+  "en": "dumbbell hammer curls (with arm blaster)",
+  "es": "Curl martillo con mancuernas (con arm blaster)",
+  "method": "override"
+ },
+ {
+  "id": "1664",
+  "en": "dumbbell high curl",
+  "es": "Curl alto con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3545",
+  "en": "dumbbell incline alternate press",
+  "es": "Press alternado en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0314",
+  "en": "dumbbell incline bench press",
+  "es": "Press de banca en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0315",
+  "en": "dumbbell incline biceps curl",
+  "es": "Curl de bíceps en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0316",
+  "en": "dumbbell incline breeding",
+  "es": "Apertura en banco inclinado (breeding) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0318",
+  "en": "dumbbell incline curl",
+  "es": "Curl en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0317",
+  "en": "dumbbell incline curl v. 2",
+  "es": "Curl en banco inclinado con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0319",
+  "en": "dumbbell incline fly",
+  "es": "Apertura en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1278",
+  "en": "dumbbell incline fly on exercise ball",
+  "es": "Apertura sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0320",
+  "en": "dumbbell incline hammer curl",
+  "es": "Curl martillo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0321",
+  "en": "dumbbell incline hammer press",
+  "es": "Press con agarre neutro (martillo) en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1618",
+  "en": "dumbbell incline hammer press on exercise ball",
+  "es": "Press con agarre neutro (martillo) sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0322",
+  "en": "dumbbell incline inner biceps curl",
+  "es": "Curl de bíceps interno en banco inclinado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1279",
+  "en": "dumbbell incline one arm fly",
+  "es": "Apertura a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1280",
+  "en": "dumbbell incline one arm fly on exercise ball",
+  "es": "Apertura a un brazo sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1619",
+  "en": "dumbbell incline one arm hammer press",
+  "es": "Press con agarre neutro (martillo) a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1620",
+  "en": "dumbbell incline one arm hammer press on exercise ball",
+  "es": "Press con agarre neutro (martillo) a un brazo sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0323",
+  "en": "dumbbell incline one arm lateral raise",
+  "es": "Elevación lateral a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1281",
+  "en": "dumbbell incline one arm press",
+  "es": "Press a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1282",
+  "en": "dumbbell incline one arm press on exercise ball",
+  "es": "Press a un brazo sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0324",
+  "en": "dumbbell incline palm-in press",
+  "es": "Press con palmas enfrentadas en banco inclinado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1283",
+  "en": "dumbbell incline press on exercise ball",
+  "es": "Press sobre pelota de estabilidad en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0325",
+  "en": "dumbbell incline raise",
+  "es": "Elevación en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0326",
+  "en": "dumbbell incline rear lateral raise",
+  "es": "Elevación lateral posterior en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0327",
+  "en": "dumbbell incline row",
+  "es": "Remo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0328",
+  "en": "dumbbell incline shoulder raise",
+  "es": "Elevación de hombros en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0329",
+  "en": "dumbbell incline shrug",
+  "es": "Encogimiento de hombros en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3542",
+  "en": "dumbbell incline t-raise",
+  "es": "Elevación en T en banco inclinado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0330",
+  "en": "dumbbell incline triceps extension",
+  "es": "Extensión de tríceps en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0331",
+  "en": "dumbbell incline twisted flyes",
+  "es": "Aperturas con giro en banco inclinado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1733",
+  "en": "dumbbell incline two arm extension",
+  "es": "Extensión a dos brazos en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3541",
+  "en": "dumbbell incline y-raise",
+  "es": "Elevación en Y en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0332",
+  "en": "dumbbell iron cross",
+  "es": "Cruz de hierro (iron cross) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0333",
+  "en": "dumbbell kickback",
+  "es": "Patada trasera con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1734",
+  "en": "dumbbell kickbacks on exercise ball",
+  "es": "Patada de tríceps sobre pelota de estabilidad con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1660",
+  "en": "dumbbell kneeling bicep curl exercise ball",
+  "es": "Curl de bíceps de rodillas sobre pelota de estabilidad con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0334",
+  "en": "dumbbell lateral raise",
+  "es": "Elevación lateral con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0335",
+  "en": "dumbbell lateral to front raise",
+  "es": "Elevación lateral a frontal con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0336",
+  "en": "dumbbell lunge",
+  "es": "Estocada con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1658",
+  "en": "dumbbell lunge with bicep curl",
+  "es": "Estocada con curl de bíceps con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0337",
+  "en": "dumbbell lying extension (across face)",
+  "es": "Extensión acostado cruzando la cara con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1729",
+  "en": "dumbbell lying alternate extension",
+  "es": "Extensión alternada acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0338",
+  "en": "dumbbell lying elbow press",
+  "es": "Press de codo acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0863",
+  "en": "dumbbell lying external shoulder rotation",
+  "es": "Rotación externa de hombro acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0339",
+  "en": "dumbbell lying femoral",
+  "es": "Curl femoral acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0340",
+  "en": "dumbbell lying hammer press",
+  "es": "Press con agarre neutro (martillo) acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2470",
+  "en": "dumbbell lying on floor rear delt raise",
+  "es": "Elevación posterior de deltoides acostado en el piso con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0341",
+  "en": "dumbbell lying one arm deltoid rear",
+  "es": "Elevación posterior de deltoides a un brazo acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0343",
+  "en": "dumbbell lying one arm press",
+  "es": "Press a un brazo acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0342",
+  "en": "dumbbell lying one arm press v. 2",
+  "es": "Press a un brazo acostado con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0344",
+  "en": "dumbbell lying one arm pronated triceps extension",
+  "es": "Extensión de tríceps a un brazo pronada acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0345",
+  "en": "dumbbell lying one arm rear lateral raise",
+  "es": "Elevación lateral a un brazo posterior acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0346",
+  "en": "dumbbell lying one arm supinated triceps extension",
+  "es": "Extensión de tríceps a un brazo supinada acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0347",
+  "en": "dumbbell lying pronation",
+  "es": "Pronación de muñeca acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2705",
+  "en": "dumbbell lying pronation on floor",
+  "es": "Pronación de muñeca acostado en el piso con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1284",
+  "en": "dumbbell lying pullover on exercise ball",
+  "es": "Pullover sobre pelota de estabilidad acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1328",
+  "en": "dumbbell lying rear delt row",
+  "es": "Remo para deltoides posterior acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0348",
+  "en": "dumbbell lying rear lateral raise",
+  "es": "Elevación lateral posterior acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1735",
+  "en": "dumbbell lying single extension",
+  "es": "Extensión a un brazo acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0349",
+  "en": "dumbbell lying supination",
+  "es": "Supinación de muñeca acostado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2706",
+  "en": "dumbbell lying supination on floor",
+  "es": "Supinación de muñeca acostado en el piso con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1661",
+  "en": "dumbbell lying supine biceps curl",
+  "es": "Curl de bíceps boca arriba acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0350",
+  "en": "dumbbell lying supine curl",
+  "es": "Curl boca arriba acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0351",
+  "en": "dumbbell lying triceps extension",
+  "es": "Extensión de tríceps acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1662",
+  "en": "dumbbell lying wide curl",
+  "es": "Curl ancho acostado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0352",
+  "en": "dumbbell neutral grip bench press",
+  "es": "Press de banca con agarre neutro con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1285",
+  "en": "dumbbell one arm bench fly",
+  "es": "Apertura a un brazo en banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0292",
+  "en": "dumbbell one arm bent-over row",
+  "es": "Remo inclinado a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1286",
+  "en": "dumbbell one arm chest fly on exercise ball",
+  "es": "Apertura de pecho a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0353",
+  "en": "dumbbell one arm concentration curl (on stability ball)",
+  "es": "Curl concentrado a un brazo con mancuerna (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "1287",
+  "en": "dumbbell one arm decline chest press",
+  "es": "Press de pecho a un brazo en banco declinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1288",
+  "en": "dumbbell one arm fly on exercise ball",
+  "es": "Apertura a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1736",
+  "en": "dumbbell one arm french press on exercise ball",
+  "es": "Press francés a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1663",
+  "en": "dumbbell one arm hammer preacher curl",
+  "es": "Curl martillo en banco Scott a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1621",
+  "en": "dumbbell one arm hammer press on exercise ball",
+  "es": "Press con agarre neutro (martillo) a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1289",
+  "en": "dumbbell one arm incline chest press",
+  "es": "Press de pecho a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0354",
+  "en": "dumbbell one arm kickback",
+  "es": "Patada trasera a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0355",
+  "en": "dumbbell one arm lateral raise",
+  "es": "Elevación lateral a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0356",
+  "en": "dumbbell one arm lateral raise with support",
+  "es": "Elevación lateral a un brazo con apoyo con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1290",
+  "en": "dumbbell one arm press on exercise ball",
+  "es": "Press a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1665",
+  "en": "dumbbell one arm prone curl",
+  "es": "Curl a un brazo boca abajo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1666",
+  "en": "dumbbell one arm prone hammer curl",
+  "es": "Curl martillo a un brazo boca abajo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1291",
+  "en": "dumbbell one arm pullover on exercise ball",
+  "es": "Pullover a un brazo sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0358",
+  "en": "dumbbell one arm reverse wrist curl",
+  "es": "Curl de muñeca a un brazo invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0359",
+  "en": "dumbbell one arm reverse fly (with support)",
+  "es": "Apertura invertida a un brazo (con apoyo) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1622",
+  "en": "dumbbell one arm reverse grip press",
+  "es": "Press con agarre invertido a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1414",
+  "en": "dumbbell one arm reverse preacher curl",
+  "es": "Curl en banco Scott a un brazo invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1667",
+  "en": "dumbbell one arm reverse spider curl",
+  "es": "Curl araña a un brazo invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1668",
+  "en": "dumbbell one arm seated bicep curl on exercise ball",
+  "es": "Curl de bíceps a un brazo sobre pelota de estabilidad sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1669",
+  "en": "dumbbell one arm seated hammer curl",
+  "es": "Curl martillo a un brazo sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1415",
+  "en": "dumbbell one arm seated neutral wrist curl",
+  "es": "Curl de muñeca neutro a un brazo sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0361",
+  "en": "dumbbell one arm shoulder press",
+  "es": "Press de hombros a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0360",
+  "en": "dumbbell one arm shoulder press v. 2",
+  "es": "Press de hombros a un brazo con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "3888",
+  "en": "dumbbell one arm snatch",
+  "es": "Arranque a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1670",
+  "en": "dumbbell one arm standing curl",
+  "es": "Curl a un brazo de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1671",
+  "en": "dumbbell one arm standing hammer curl",
+  "es": "Curl martillo a un brazo de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0362",
+  "en": "dumbbell one arm triceps extension (on bench)",
+  "es": "Extensión de tríceps a un brazo con mancuerna (en banco)",
+  "method": "phrase"
+ },
+ {
+  "id": "0363",
+  "en": "dumbbell one arm upright row",
+  "es": "Remo al mentón a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0364",
+  "en": "dumbbell one arm wrist curl",
+  "es": "Curl de muñeca a un brazo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1672",
+  "en": "dumbbell one arm zottman preacher curl",
+  "es": "Curl Zottman en banco Scott a un brazo con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1292",
+  "en": "dumbbell one leg fly on exercise ball",
+  "es": "Apertura a una pierna sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0365",
+  "en": "dumbbell over bench neutral wrist curl",
+  "es": "Curl de muñeca neutro sobre banco con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0366",
+  "en": "dumbbell over bench one arm neutral wrist curl",
+  "es": "Curl de muñeca neutro a un brazo sobre banco con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1441",
+  "en": "dumbbell over bench one arm reverse wrist curl",
+  "es": "Curl de muñeca a un brazo invertido sobre banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0367",
+  "en": "dumbbell over bench one arm wrist curl",
+  "es": "Curl de muñeca a un brazo sobre banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0368",
+  "en": "dumbbell over bench revers wrist curl",
+  "es": "Curl de muñeca invertido sobre banco con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0369",
+  "en": "dumbbell over bench wrist curl",
+  "es": "Curl de muñeca sobre banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1329",
+  "en": "dumbbell palm rotational bent over row",
+  "es": "Remo inclinado con rotación de palma con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1623",
+  "en": "dumbbell palms in incline bench press",
+  "es": "Press de banca con palmas enfrentadas en banco inclinado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0370",
+  "en": "dumbbell peacher hammer curl",
+  "es": "Curl martillo en banco Scott con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0371",
+  "en": "dumbbell plyo squat",
+  "es": "Sentadilla pliométrica con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0372",
+  "en": "dumbbell preacher curl",
+  "es": "Curl en banco Scott con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1673",
+  "en": "dumbbell preacher curl over exercise ball",
+  "es": "Curl en banco Scott sobre pelota de estabilidad con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1293",
+  "en": "dumbbell press on exercise ball",
+  "es": "Press sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0373",
+  "en": "dumbbell pronate-grip triceps extension",
+  "es": "Extensión de tríceps con agarre prono con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0374",
+  "en": "dumbbell prone incline curl",
+  "es": "Curl en banco inclinado boca abajo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1674",
+  "en": "dumbbell prone incline hammer curl",
+  "es": "Curl martillo en banco inclinado boca abajo con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0375",
+  "en": "dumbbell pullover",
+  "es": "Pullover con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1294",
+  "en": "dumbbell pullover hip extension on exercise ball",
+  "es": "Pullover extensión de cadera sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1295",
+  "en": "dumbbell pullover on exercise ball",
+  "es": "Pullover sobre pelota de estabilidad con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1700",
+  "en": "dumbbell push press",
+  "es": "Push press con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0376",
+  "en": "dumbbell raise",
+  "es": "Elevación con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2292",
+  "en": "dumbbell rear delt raise",
+  "es": "Elevación posterior de deltoides con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0377",
+  "en": "dumbbell rear delt row_shoulder",
+  "es": "Remo para deltoides posterior con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0378",
+  "en": "dumbbell rear fly",
+  "es": "Apertura posterior con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0380",
+  "en": "dumbbell rear lateral raise",
+  "es": "Elevación lateral posterior con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0379",
+  "en": "dumbbell rear lateral raise (support head)",
+  "es": "Elevación lateral posterior con mancuerna (cabeza apoyada)",
+  "method": "override"
+ },
+ {
+  "id": "0381",
+  "en": "dumbbell rear lunge",
+  "es": "Estocada hacia atrás con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0382",
+  "en": "dumbbell revers grip biceps curl",
+  "es": "Curl de bíceps con agarre invertido con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1624",
+  "en": "dumbbell reverse bench press",
+  "es": "Press de banca invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0383",
+  "en": "dumbbell reverse fly",
+  "es": "Apertura invertida con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1330",
+  "en": "dumbbell reverse grip incline bench one arm row",
+  "es": "Remo con agarre invertido a un brazo en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1331",
+  "en": "dumbbell reverse grip incline bench two arm row",
+  "es": "Remo con agarre invertido a dos brazos en banco inclinado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2327",
+  "en": "dumbbell reverse grip row (female)",
+  "es": "Remo con agarre invertido con mancuerna (demo mujer)",
+  "method": "phrase"
+ },
+ {
+  "id": "0384",
+  "en": "dumbbell reverse preacher curl",
+  "es": "Curl en banco Scott invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1675",
+  "en": "dumbbell reverse spider curl",
+  "es": "Curl araña invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0385",
+  "en": "dumbbell reverse wrist curl",
+  "es": "Curl de muñeca invertido con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1459",
+  "en": "dumbbell romanian deadlift",
+  "es": "Peso muerto rumano con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0386",
+  "en": "dumbbell rotation reverse fly",
+  "es": "Apertura invertida con rotación con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2397",
+  "en": "dumbbell scott press",
+  "es": "Press Scott con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0387",
+  "en": "dumbbell seated alternate front raise",
+  "es": "Elevación frontal alternada sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1676",
+  "en": "dumbbell seated alternate hammer curl on exercise ball",
+  "es": "Curl martillo alternado sobre pelota de estabilidad sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0388",
+  "en": "dumbbell seated alternate press",
+  "es": "Press alternado sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3546",
+  "en": "dumbbell seated alternate shoulder",
+  "es": "Press de hombros alternado sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0389",
+  "en": "dumbbell seated bench extension",
+  "es": "Extensión sentado en banco con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2317",
+  "en": "dumbbell seated bent arm lateral raise",
+  "es": "Elevación lateral con brazos flexionados sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1730",
+  "en": "dumbbell seated bent over alternate kickback",
+  "es": "Patada trasera alternada con torso inclinado sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1737",
+  "en": "dumbbell seated bent over triceps extension",
+  "es": "Extensión de tríceps con torso inclinado sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1677",
+  "en": "dumbbell seated bicep curl",
+  "es": "Curl de bíceps sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0390",
+  "en": "dumbbell seated biceps curl (on stability ball)",
+  "es": "Curl de bíceps sentado con mancuerna (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "3547",
+  "en": "dumbbell seated biceps curl to shoulder press",
+  "es": "Curl de bíceps a press de hombros sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1379",
+  "en": "dumbbell seated calf raise",
+  "es": "Elevación de talones sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0391",
+  "en": "dumbbell seated curl",
+  "es": "Curl sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0392",
+  "en": "dumbbell seated front raise",
+  "es": "Elevación frontal sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1678",
+  "en": "dumbbell seated hammer curl",
+  "es": "Curl martillo sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0393",
+  "en": "dumbbell seated inner biceps curl",
+  "es": "Curl de bíceps interno sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0394",
+  "en": "dumbbell seated kickback",
+  "es": "Patada trasera sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0396",
+  "en": "dumbbell seated lateral raise",
+  "es": "Elevación lateral sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0395",
+  "en": "dumbbell seated lateral raise v. 2",
+  "es": "Elevación lateral sentado con mancuerna (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0397",
+  "en": "dumbbell seated neutral wrist curl",
+  "es": "Curl de muñeca neutro sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1679",
+  "en": "dumbbell seated one arm bicep curl on exercise ball with leg raised",
+  "es": "Curl de bíceps a un brazo con pierna elevada sobre pelota de estabilidad sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0398",
+  "en": "dumbbell seated one arm kickback",
+  "es": "Patada trasera a un brazo sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0399",
+  "en": "dumbbell seated one arm rotate",
+  "es": "Rotación a un brazo sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0400",
+  "en": "dumbbell seated one leg calf raise",
+  "es": "Elevación de talones a una pierna sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1380",
+  "en": "dumbbell seated one leg calf raise - hammer grip",
+  "es": "Elevación de talones a una pierna sentado (agarre martillo) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1381",
+  "en": "dumbbell seated one leg calf raise - palm up",
+  "es": "Elevación de talones a una pierna con palma hacia arriba sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0401",
+  "en": "dumbbell seated palms up wrist curl",
+  "es": "Curl de muñeca con palmas hacia arriba sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0402",
+  "en": "dumbbell seated preacher curl",
+  "es": "Curl en banco Scott sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0403",
+  "en": "dumbbell seated revers grip concentration curl",
+  "es": "Curl concentrado con agarre invertido sentado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1738",
+  "en": "dumbbell seated reverse grip one arm overhead tricep extension",
+  "es": "Extensión de tríceps con agarre invertido a un brazo sobre la cabeza sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0405",
+  "en": "dumbbell seated shoulder press",
+  "es": "Press de hombros sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0404",
+  "en": "dumbbell seated shoulder press (parallel grip)",
+  "es": "Press de hombros sentado con mancuerna (agarre paralelo)",
+  "method": "override"
+ },
+ {
+  "id": "2188",
+  "en": "dumbbell seated triceps extension",
+  "es": "Extensión de tríceps sentado con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0406",
+  "en": "dumbbell shrug",
+  "es": "Encogimiento de hombros con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0407",
+  "en": "dumbbell side bend",
+  "es": "Flexión lateral de torso con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0408",
+  "en": "dumbbell side lying one hand raise",
+  "es": "Elevación a una mano acostado de lado con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "3664",
+  "en": "dumbbell side plank with rear fly",
+  "es": "Plancha lateral con apertura posterior con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3548",
+  "en": "dumbbell single arm overhead carry",
+  "es": "Caminata con mancuerna sobre la cabeza a un brazo",
+  "method": "override"
+ },
+ {
+  "id": "0409",
+  "en": "dumbbell single leg calf raise",
+  "es": "Elevación de talones a una pierna con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1757",
+  "en": "dumbbell single leg deadlift",
+  "es": "Peso muerto a una pierna con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2805",
+  "en": "dumbbell single leg deadlift with stepbox support",
+  "es": "Peso muerto a una pierna con apoyo en cajón con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0410",
+  "en": "dumbbell single leg split squat",
+  "es": "Sentadilla split a una pierna con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0411",
+  "en": "dumbbell single leg squat",
+  "es": "Sentadilla a una pierna con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0413",
+  "en": "dumbbell squat",
+  "es": "Sentadilla con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "3560",
+  "en": "dumbbell standing alternate hammer curl and press",
+  "es": "Curl martillo y press alternado de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0414",
+  "en": "dumbbell standing alternate overhead press",
+  "es": "Press sobre la cabeza alternado de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0415",
+  "en": "dumbbell standing alternate raise",
+  "es": "Elevación alternada de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1739",
+  "en": "dumbbell standing alternating tricep kickback",
+  "es": "Patada de tríceps alternada de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2143",
+  "en": "dumbbell standing around world",
+  "es": "Vuelta al mundo de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1740",
+  "en": "dumbbell standing bent over one arm triceps extension",
+  "es": "Extensión de tríceps a un brazo con torso inclinado de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1741",
+  "en": "dumbbell standing bent over two arm triceps extension",
+  "es": "Extensión de tríceps a dos brazos con torso inclinado de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0416",
+  "en": "dumbbell standing biceps curl",
+  "es": "Curl de bíceps de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0417",
+  "en": "dumbbell standing calf raise",
+  "es": "Elevación de talones de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0418",
+  "en": "dumbbell standing concentration curl",
+  "es": "Curl concentrado de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0419",
+  "en": "dumbbell standing front raise above head",
+  "es": "Elevación frontal por encima de la cabeza de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2321",
+  "en": "dumbbell standing inner biceps curl v. 2",
+  "es": "Curl de bíceps interno de pie con mancuerna (v2)",
+  "method": "override"
+ },
+ {
+  "id": "0420",
+  "en": "dumbbell standing kickback",
+  "es": "Patada trasera de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0421",
+  "en": "dumbbell standing one arm concentration curl",
+  "es": "Curl concentrado a un brazo de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0422",
+  "en": "dumbbell standing one arm curl (over incline bench)",
+  "es": "Curl a un brazo sobre banco inclinado de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1680",
+  "en": "dumbbell standing one arm curl over incline bench",
+  "es": "Curl a un brazo sobre banco inclinado de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0423",
+  "en": "dumbbell standing one arm extension",
+  "es": "Extensión a un brazo de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0424",
+  "en": "dumbbell standing one arm palm in press",
+  "es": "Press con palma enfrentada a un brazo de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0425",
+  "en": "dumbbell standing one arm reverse curl",
+  "es": "Curl a un brazo invertido de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0426",
+  "en": "dumbbell standing overhead press",
+  "es": "Press sobre la cabeza de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0427",
+  "en": "dumbbell standing palms in press",
+  "es": "Press con palmas enfrentadas de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0428",
+  "en": "dumbbell standing preacher curl",
+  "es": "Curl en banco Scott de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0429",
+  "en": "dumbbell standing reverse curl",
+  "es": "Curl invertido de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0430",
+  "en": "dumbbell standing triceps extension",
+  "es": "Extensión de tríceps de pie con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2293",
+  "en": "dumbbell standing zottman preacher curl",
+  "es": "Curl Zottman en banco Scott de pie con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1684",
+  "en": "dumbbell step up single leg balance with bicep curl",
+  "es": "Subida al cajón con equilibrio a una pierna y curl de bíceps con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0431",
+  "en": "dumbbell step-up",
+  "es": "Subida al cajón con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2796",
+  "en": "dumbbell step-up lunge",
+  "es": "Subida al cajón + estocada con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2812",
+  "en": "dumbbell step-up split squat",
+  "es": "Subida al cajón + sentadilla split con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0432",
+  "en": "dumbbell stiff leg deadlift",
+  "es": "Peso muerto con piernas rígidas con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0433",
+  "en": "dumbbell straight arm pullover",
+  "es": "Pullover con brazos rectos con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0434",
+  "en": "dumbbell straight leg deadlift",
+  "es": "Peso muerto con piernas rectas con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2808",
+  "en": "dumbbell sumo pull through",
+  "es": "Pull through sumo con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2803",
+  "en": "dumbbell supported squat",
+  "es": "Sentadilla con apoyo con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0436",
+  "en": "dumbbell tate press",
+  "es": "Press Tate con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1742",
+  "en": "dumbbell tricep kickback with stork stance",
+  "es": "Patada de tríceps parado en una pierna (stork) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "1743",
+  "en": "dumbbell twisting bench press",
+  "es": "Press de banca con giro con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "0437",
+  "en": "dumbbell upright row",
+  "es": "Remo al mentón con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "1765",
+  "en": "dumbbell upright row (back pov)",
+  "es": "Remo al mentón con mancuerna (vista trasera)",
+  "method": "phrase"
+ },
+ {
+  "id": "0864",
+  "en": "dumbbell upright shoulder external rotation",
+  "es": "Rotación externa de hombro vertical con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "5201",
+  "en": "dumbbell waiter biceps curl",
+  "es": "Curl de bíceps del mozo (waiter) con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0438",
+  "en": "dumbbell w-press",
+  "es": "Press en W con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0439",
+  "en": "dumbbell zottman curl",
+  "es": "Curl Zottman con mancuerna",
+  "method": "phrase"
+ },
+ {
+  "id": "2294",
+  "en": "dumbbell zottman preacher curl",
+  "es": "Curl Zottman en banco Scott con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "2189",
+  "en": "dumbbells seated triceps extension",
+  "es": "Extensión de tríceps sentado con mancuernas",
+  "method": "phrase"
+ },
+ {
+  "id": "1167",
+  "en": "dynamic chest stretch (male)",
+  "es": "Estiramiento de pecho dinámico (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "3287",
+  "en": "elbow dips",
+  "es": "Fondos de codos",
+  "method": "override"
+ },
+ {
+  "id": "1772",
+  "en": "elbow lift - reverse push-up",
+  "es": "Elevación de codos (flexión invertida)",
+  "method": "override"
+ },
+ {
+  "id": "0443",
+  "en": "elbow-to-knee",
+  "es": "Codo a rodilla",
+  "method": "override"
+ },
+ {
+  "id": "3292",
+  "en": "elevator",
+  "es": "Elevador (elevator)",
+  "method": "override"
+ },
+ {
+  "id": "1332",
+  "en": "exercise ball alternating arm ups",
+  "es": "Elevación de brazos alternada con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1333",
+  "en": "exercise ball back extension with arms extended",
+  "es": "Extensión lumbar con brazos extendidos con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1334",
+  "en": "exercise ball back extension with hands behind head",
+  "es": "Extensión lumbar con manos por detrás de la cabeza con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1335",
+  "en": "exercise ball back extension with knees off ground",
+  "es": "Extensión lumbar con rodillas en el aire con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1336",
+  "en": "exercise ball back extension with rotation",
+  "es": "Extensión lumbar con rotación con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1744",
+  "en": "exercise ball dip",
+  "es": "Fondos con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1559",
+  "en": "exercise ball hip flexor stretch",
+  "es": "Estiramiento de flexores de cadera con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1338",
+  "en": "exercise ball hug",
+  "es": "Abrazo a la pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1339",
+  "en": "exercise ball lat stretch",
+  "es": "Estiramiento de dorsal con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1341",
+  "en": "exercise ball lower back stretch (pyramid)",
+  "es": "Estiramiento de zona lumbar con pelota de estabilidad (pirámide)",
+  "method": "override"
+ },
+ {
+  "id": "1342",
+  "en": "exercise ball lying side lat stretch",
+  "es": "Estiramiento lateral de dorsal acostado con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1382",
+  "en": "exercise ball on the wall calf raise",
+  "es": "Elevación de talones con pelota de estabilidad contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "3241",
+  "en": "exercise ball on the wall calf raise (tennis ball between ankles)",
+  "es": "Elevación de talones con pelota contra la pared (pelotita entre los tobillos)",
+  "method": "override"
+ },
+ {
+  "id": "3240",
+  "en": "exercise ball on the wall calf raise (tennis ball between knees)",
+  "es": "Elevación de talones con pelota contra la pared (pelotita entre las rodillas)",
+  "method": "override"
+ },
+ {
+  "id": "1416",
+  "en": "exercise ball one leg prone lower body rotation",
+  "es": "Rotación de tren inferior a una pierna boca abajo con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1417",
+  "en": "exercise ball one legged diagonal kick hamstring curl",
+  "es": "Curl de isquiotibiales con patada diagonal a una pierna con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1296",
+  "en": "exercise ball pike push up",
+  "es": "Flexión de brazos pike con pelota de estabilidad",
+  "method": "override"
+ },
+ {
+  "id": "1343",
+  "en": "exercise ball prone leg raise",
+  "es": "Elevación de piernas boca abajo con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1560",
+  "en": "exercise ball seated hamstring stretch",
+  "es": "Estiramiento de isquiotibiales sentado con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1745",
+  "en": "exercise ball seated triceps stretch",
+  "es": "Estiramiento de tríceps sentado con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1746",
+  "en": "exercise ball supine triceps extension",
+  "es": "Extensión de tríceps boca arriba con pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1747",
+  "en": "ez bar french press on exercise ball",
+  "es": "Press francés sobre pelota de estabilidad con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "3010",
+  "en": "ez bar lying bent arms pullover",
+  "es": "Pullover con brazos flexionados acostado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1748",
+  "en": "ez bar lying close grip triceps extension behind head",
+  "es": "Extensión de tríceps con agarre cerrado por detrás de la cabeza acostado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1344",
+  "en": "ez bar reverse grip bent over row",
+  "es": "Remo inclinado con agarre invertido con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1682",
+  "en": "ez bar seated close grip concentration curl",
+  "es": "Curl concentrado con agarre cerrado sentado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1749",
+  "en": "ez bar standing french press",
+  "es": "Press francés de pie con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0445",
+  "en": "ez barbell anti gravity press",
+  "es": "Press antigravedad con barra Z",
+  "method": "override"
+ },
+ {
+  "id": "1627",
+  "en": "ez barbell close grip preacher curl",
+  "es": "Curl en banco Scott con agarre cerrado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0446",
+  "en": "ez barbell close-grip curl",
+  "es": "Curl con agarre cerrado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0447",
+  "en": "ez barbell curl",
+  "es": "Curl con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0448",
+  "en": "ez barbell decline close grip face press",
+  "es": "Press a la cara con agarre cerrado en banco declinado con barra Z",
+  "method": "override"
+ },
+ {
+  "id": "2186",
+  "en": "ez barbell decline triceps extension",
+  "es": "Extensión de tríceps en banco declinado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0449",
+  "en": "ez barbell incline triceps extension",
+  "es": "Extensión de tríceps en banco inclinado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0450",
+  "en": "ez barbell jm bench press",
+  "es": "Press JM con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0451",
+  "en": "ez barbell reverse grip curl",
+  "es": "Curl con agarre invertido con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0452",
+  "en": "ez barbell reverse grip preacher curl",
+  "es": "Curl en banco Scott con agarre invertido con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1458",
+  "en": "ez barbell seated curls",
+  "es": "Curl sentado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0453",
+  "en": "ez barbell seated triceps extension",
+  "es": "Extensión de tríceps sentado con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "0454",
+  "en": "ez barbell spider curl",
+  "es": "Curl araña con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "1628",
+  "en": "ez barbell spider curl",
+  "es": "Curl araña con barra Z",
+  "method": "phrase"
+ },
+ {
+  "id": "2404",
+  "en": "ez-bar biceps curl (with arm blaster)",
+  "es": "Curl de bíceps con barra Z (con arm blaster)",
+  "method": "override"
+ },
+ {
+  "id": "2432",
+  "en": "ez-bar close-grip bench press",
+  "es": "Press de banca con agarre cerrado con barra Z",
+  "method": "override"
+ },
+ {
+  "id": "2741",
+  "en": "ez-barbell standing wide grip biceps curl",
+  "es": "Curl de bíceps con agarre ancho de pie con barra Z",
+  "method": "override"
+ },
+ {
+  "id": "2133",
+  "en": "farmers walk",
+  "es": "Caminata del granjero",
+  "method": "phrase"
+ },
+ {
+  "id": "0455",
+  "en": "finger curls",
+  "es": "Curl de dedos",
+  "method": "phrase"
+ },
+ {
+  "id": "3303",
+  "en": "flag",
+  "es": "Bandera (flag)",
+  "method": "override"
+ },
+ {
+  "id": "0456",
+  "en": "flexion leg sit up (bent knee)",
+  "es": "Abdominal con flexión de piernas (rodillas flexionadas)",
+  "method": "override"
+ },
+ {
+  "id": "0457",
+  "en": "flexion leg sit up (straight arm)",
+  "es": "Abdominal con flexión de piernas (brazos rectos)",
+  "method": "override"
+ },
+ {
+  "id": "0458",
+  "en": "floor fly (with barbell)",
+  "es": "Apertura en el piso (con barra)",
+  "method": "override"
+ },
+ {
+  "id": "0459",
+  "en": "flutter kicks",
+  "es": "Patada de tijera",
+  "method": "phrase"
+ },
+ {
+  "id": "1472",
+  "en": "forward jump",
+  "es": "Salto hacia adelante",
+  "method": "override"
+ },
+ {
+  "id": "3470",
+  "en": "forward lunge (male)",
+  "es": "Estocada al frente (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "3194",
+  "en": "frankenstein squat",
+  "es": "Sentadilla Frankenstein",
+  "method": "override"
+ },
+ {
+  "id": "2429",
+  "en": "frog crunch",
+  "es": "Crunch rana",
+  "method": "override"
+ },
+ {
+  "id": "3301",
+  "en": "frog planche",
+  "es": "Planche rana (calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "3296",
+  "en": "front lever",
+  "es": "Front lever (calistenia)",
+  "method": "phrase"
+ },
+ {
+  "id": "3295",
+  "en": "front lever reps",
+  "es": "Front lever con repeticiones (calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "0464",
+  "en": "front plank with twist",
+  "es": "Plancha frontal con giro",
+  "method": "override"
+ },
+ {
+  "id": "3315",
+  "en": "full maltese",
+  "es": "Maltese completo (calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "3299",
+  "en": "full planche",
+  "es": "Planche completa (calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "3327",
+  "en": "full planche push-up",
+  "es": "Flexión de brazos en planche completa",
+  "method": "override"
+ },
+ {
+  "id": "0466",
+  "en": "gironda sternum chin",
+  "es": "Dominada Gironda al esternón",
+  "method": "override"
+ },
+ {
+  "id": "3561",
+  "en": "glute bridge march",
+  "es": "Puente de glúteos con marcha",
+  "method": "override"
+ },
+ {
+  "id": "3523",
+  "en": "glute bridge two legs on bench (male)",
+  "es": "Puente de glúteos a dos piernas en banco (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "3193",
+  "en": "glute-ham raise",
+  "es": "Elevación glúteo-femoral (GHR)",
+  "method": "override"
+ },
+ {
+  "id": "0467",
+  "en": "gorilla chin",
+  "es": "Dominada gorila",
+  "method": "override"
+ },
+ {
+  "id": "0469",
+  "en": "groin crunch",
+  "es": "Crunch de ingle",
+  "method": "override"
+ },
+ {
+  "id": "1383",
+  "en": "hack calf raise",
+  "es": "Elevación de talones en máquina hack",
+  "method": "override"
+ },
+ {
+  "id": "1384",
+  "en": "hack one leg calf raise",
+  "es": "Elevación de talones a una pierna en máquina hack",
+  "method": "override"
+ },
+ {
+  "id": "3221",
+  "en": "half knee bends (male)",
+  "es": "Media flexión de rodillas",
+  "method": "override"
+ },
+ {
+  "id": "3202",
+  "en": "half sit-up (male)",
+  "es": "Medio abdominal (half sit-up)",
+  "method": "override"
+ },
+ {
+  "id": "1511",
+  "en": "hamstring stretch",
+  "es": "Estiramiento de isquiotibiales",
+  "method": "phrase"
+ },
+ {
+  "id": "2139",
+  "en": "hands bike",
+  "es": "Bicicleta de manos (ergómetro)",
+  "method": "override"
+ },
+ {
+  "id": "3218",
+  "en": "hands clasped circular toe touch (male)",
+  "es": "Toque de puntas de pie circular con manos entrelazadas",
+  "method": "override"
+ },
+ {
+  "id": "3215",
+  "en": "hands reversed clasped circular toe touch (male)",
+  "es": "Toque de puntas de pie circular con manos entrelazadas invertidas",
+  "method": "override"
+ },
+ {
+  "id": "3302",
+  "en": "handstand",
+  "es": "Parada de manos",
+  "method": "phrase"
+ },
+ {
+  "id": "0471",
+  "en": "handstand push-up",
+  "es": "Flexión de brazos en parada de manos",
+  "method": "override"
+ },
+ {
+  "id": "1764",
+  "en": "hanging leg hip raise",
+  "es": "Elevación de cadera y piernas colgado",
+  "method": "override"
+ },
+ {
+  "id": "0472",
+  "en": "hanging leg raise",
+  "es": "Elevación de piernas colgado",
+  "method": "phrase"
+ },
+ {
+  "id": "1761",
+  "en": "hanging oblique knee raise",
+  "es": "Elevación de rodillas oblicua colgado",
+  "method": "phrase"
+ },
+ {
+  "id": "0473",
+  "en": "hanging pike",
+  "es": "Pike colgado (elevación en V)",
+  "method": "override"
+ },
+ {
+  "id": "0474",
+  "en": "hanging straight leg hip raise",
+  "es": "Elevación de cadera con piernas rectas colgado",
+  "method": "phrase"
+ },
+ {
+  "id": "0475",
+  "en": "hanging straight leg raise",
+  "es": "Elevación de piernas rectas colgado",
+  "method": "phrase"
+ },
+ {
+  "id": "0476",
+  "en": "hanging straight twisting leg hip raise",
+  "es": "Elevación de cadera con giro y piernas rectas colgado",
+  "method": "override"
+ },
+ {
+  "id": "3636",
+  "en": "high knee against wall",
+  "es": "Rodilla alta contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "0484",
+  "en": "hip raise (bent knee)",
+  "es": "Elevación de cadera (rodillas flexionadas)",
+  "method": "override"
+ },
+ {
+  "id": "1418",
+  "en": "hug keens to chest",
+  "es": "Abrazo de rodillas al pecho",
+  "method": "override"
+ },
+ {
+  "id": "3234",
+  "en": "hyght dumbbell fly",
+  "es": "Apertura Hyght con mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0489",
+  "en": "hyperextension",
+  "es": "Hiperextensión",
+  "method": "phrase"
+ },
+ {
+  "id": "0488",
+  "en": "hyperextension (on bench)",
+  "es": "Hiperextensión (en banco)",
+  "method": "phrase"
+ },
+ {
+  "id": "3289",
+  "en": "impossible dips",
+  "es": "Fondos imposibles (impossible dips)",
+  "method": "override"
+ },
+ {
+  "id": "1471",
+  "en": "inchworm",
+  "es": "Gusano (inchworm)",
+  "method": "phrase"
+ },
+ {
+  "id": "3698",
+  "en": "inchworm v. 2",
+  "es": "Gusano (inchworm) (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0490",
+  "en": "incline close-grip push-up",
+  "es": "Flexión de brazos con agarre cerrado en banco inclinado",
+  "method": "phrase"
+ },
+ {
+  "id": "0491",
+  "en": "incline leg hip raise (leg straight)",
+  "es": "Elevación de cadera con piernas rectas en banco inclinado",
+  "method": "override"
+ },
+ {
+  "id": "0492",
+  "en": "incline push up depth jump",
+  "es": "Flexión de brazos con salto de profundidad en banco inclinado",
+  "method": "override"
+ },
+ {
+  "id": "0493",
+  "en": "incline push-up",
+  "es": "Flexión de brazos en banco inclinado",
+  "method": "phrase"
+ },
+ {
+  "id": "3785",
+  "en": "incline push-up (on box)",
+  "es": "Flexión de brazos en banco inclinado (sobre cajón)",
+  "method": "override"
+ },
+ {
+  "id": "0494",
+  "en": "incline reverse grip push-up",
+  "es": "Flexión de brazos con agarre invertido en banco inclinado",
+  "method": "phrase"
+ },
+ {
+  "id": "3011",
+  "en": "incline scapula push up",
+  "es": "Flexión escapular en banco inclinado",
+  "method": "override"
+ },
+ {
+  "id": "0495",
+  "en": "incline twisting sit-up",
+  "es": "Abdominal completo (sit-up) con giro en banco inclinado",
+  "method": "phrase"
+ },
+ {
+  "id": "1564",
+  "en": "intermediate hip flexor and quad stretch",
+  "es": "Estiramiento de flexores de cadera y cuádriceps (intermedio)",
+  "method": "override"
+ },
+ {
+  "id": "0496",
+  "en": "inverse leg curl (bench support)",
+  "es": "Curl femoral inverso (apoyo en banco)",
+  "method": "override"
+ },
+ {
+  "id": "2400",
+  "en": "inverse leg curl (on pull-up cable machine)",
+  "es": "Curl femoral inverso (en máquina de polea de dominadas)",
+  "method": "override"
+ },
+ {
+  "id": "0499",
+  "en": "inverted row",
+  "es": "Remo invertido",
+  "method": "override"
+ },
+ {
+  "id": "2300",
+  "en": "inverted row bent knees",
+  "es": "Remo invertido con rodillas flexionadas",
+  "method": "override"
+ },
+ {
+  "id": "2298",
+  "en": "inverted row on bench",
+  "es": "Remo invertido en banco",
+  "method": "override"
+ },
+ {
+  "id": "0497",
+  "en": "inverted row v. 2",
+  "es": "Remo invertido (v2)",
+  "method": "override"
+ },
+ {
+  "id": "0498",
+  "en": "inverted row with straps",
+  "es": "Remo invertido con correas",
+  "method": "override"
+ },
+ {
+  "id": "1419",
+  "en": "iron cross stretch",
+  "es": "Estiramiento en cruz de hierro",
+  "method": "override"
+ },
+ {
+  "id": "1297",
+  "en": "isometric chest squeeze",
+  "es": "Apriete de pecho isométrico",
+  "method": "override"
+ },
+ {
+  "id": "0500",
+  "en": "isometric wipers",
+  "es": "Limpiaparabrisas isométrico",
+  "method": "override"
+ },
+ {
+  "id": "0501",
+  "en": "jack burpee",
+  "es": "Burpee con salto de tijera",
+  "method": "override"
+ },
+ {
+  "id": "3224",
+  "en": "jack jump (male)",
+  "es": "Salto de tijera (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "0507",
+  "en": "jackknife sit-up",
+  "es": "Abdominal navaja (jackknife)",
+  "method": "override"
+ },
+ {
+  "id": "0508",
+  "en": "janda sit-up",
+  "es": "Abdominal Janda",
+  "method": "override"
+ },
+ {
+  "id": "2612",
+  "en": "jump rope",
+  "es": "Salto de soga",
+  "method": "phrase"
+ },
+ {
+  "id": "0514",
+  "en": "jump squat",
+  "es": "Sentadilla con salto",
+  "method": "phrase"
+ },
+ {
+  "id": "0513",
+  "en": "jump squat v. 2",
+  "es": "Sentadilla con salto (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0517",
+  "en": "kettlebell advanced windmill",
+  "es": "Molino avanzado con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0518",
+  "en": "kettlebell alternating hang clean",
+  "es": "Cargada colgante alternada con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0520",
+  "en": "kettlebell alternating press",
+  "es": "Press alternado con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0519",
+  "en": "kettlebell alternating press on floor",
+  "es": "Press alternado en el piso con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0521",
+  "en": "kettlebell alternating renegade row",
+  "es": "Remo renegado alternado con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0522",
+  "en": "kettlebell alternating row",
+  "es": "Remo alternado con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0523",
+  "en": "kettlebell arnold press",
+  "es": "Press Arnold con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0524",
+  "en": "kettlebell bent press",
+  "es": "Bent press con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0525",
+  "en": "kettlebell bottoms up clean from the hang position",
+  "es": "Cargada bottoms-up desde posición colgante con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0526",
+  "en": "kettlebell double alternating hang clean",
+  "es": "Cargada colgante doble alternada con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0527",
+  "en": "kettlebell double jerk",
+  "es": "Envión doble con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0528",
+  "en": "kettlebell double push press",
+  "es": "Push press doble con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0529",
+  "en": "kettlebell double snatch",
+  "es": "Doble arranque con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0530",
+  "en": "kettlebell double windmill",
+  "es": "Doble molino (windmill) con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0531",
+  "en": "kettlebell extended range one arm press on floor",
+  "es": "Press a un brazo con rango extendido en el piso con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0532",
+  "en": "kettlebell figure 8",
+  "es": "Figura 8 con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0533",
+  "en": "kettlebell front squat",
+  "es": "Sentadilla frontal con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0534",
+  "en": "kettlebell goblet squat",
+  "es": "Sentadilla goblet con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0535",
+  "en": "kettlebell hang clean",
+  "es": "Cargada colgante con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0536",
+  "en": "kettlebell lunge pass through",
+  "es": "Estocada con pase de kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0537",
+  "en": "kettlebell one arm clean and jerk",
+  "es": "Cargada y envión a un brazo con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "1298",
+  "en": "kettlebell one arm floor press",
+  "es": "Press en el piso a un brazo con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0538",
+  "en": "kettlebell one arm jerk",
+  "es": "Envión a un brazo con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0539",
+  "en": "kettlebell one arm military press to the side",
+  "es": "Press militar lateral a un brazo con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0540",
+  "en": "kettlebell one arm push press",
+  "es": "Push press a un brazo con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0541",
+  "en": "kettlebell one arm row",
+  "es": "Remo a un brazo con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0542",
+  "en": "kettlebell one arm snatch",
+  "es": "Arranque a un brazo con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0543",
+  "en": "kettlebell pirate supper legs",
+  "es": "Piernas de pirata con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0544",
+  "en": "kettlebell pistol squat",
+  "es": "Sentadilla pistol con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0545",
+  "en": "kettlebell plyo push-up",
+  "es": "Flexión de brazos pliométrica con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0546",
+  "en": "kettlebell seated press",
+  "es": "Press sentado con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "1438",
+  "en": "kettlebell seated two arm military press",
+  "es": "Press militar a dos brazos sentado con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0547",
+  "en": "kettlebell seesaw press",
+  "es": "Press sube y baja (seesaw) con kettlebell",
+  "method": "override"
+ },
+ {
+  "id": "0548",
+  "en": "kettlebell sumo high pull",
+  "es": "Sumo tirón alto con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0549",
+  "en": "kettlebell swing",
+  "es": "Swing con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0550",
+  "en": "kettlebell thruster",
+  "es": "Thruster (sentadilla + press) con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0551",
+  "en": "kettlebell turkish get up (squat style)",
+  "es": "Levantada turca con kettlebell (estilo sentadilla)",
+  "method": "override"
+ },
+ {
+  "id": "0552",
+  "en": "kettlebell two arm clean",
+  "es": "Cargada a dos brazos con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0553",
+  "en": "kettlebell two arm military press",
+  "es": "Press militar a dos brazos con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "1345",
+  "en": "kettlebell two arm row",
+  "es": "Remo a dos brazos con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0554",
+  "en": "kettlebell windmill",
+  "es": "Molino (windmill) con kettlebell",
+  "method": "phrase"
+ },
+ {
+  "id": "0555",
+  "en": "kick out sit",
+  "es": "Patada al frente sentado",
+  "method": "override"
+ },
+ {
+  "id": "0558",
+  "en": "kipping muscle up",
+  "es": "Kipping muscle up",
+  "method": "phrase"
+ },
+ {
+  "id": "3640",
+  "en": "knee touch crunch",
+  "es": "Crunch con toque de rodillas",
+  "method": "override"
+ },
+ {
+  "id": "1420",
+  "en": "kneeling jump squat",
+  "es": "Sentadilla con salto de rodillas",
+  "method": "phrase"
+ },
+ {
+  "id": "1346",
+  "en": "kneeling lat stretch",
+  "es": "Estiramiento de dorsal de rodillas",
+  "method": "phrase"
+ },
+ {
+  "id": "3239",
+  "en": "kneeling plank tap shoulder (male)",
+  "es": "Plancha con toque de hombro de rodillas",
+  "method": "override"
+ },
+ {
+  "id": "3211",
+  "en": "kneeling push-up (male)",
+  "es": "Flexión de brazos de rodillas (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "3288",
+  "en": "korean dips",
+  "es": "Fondos coreanos",
+  "method": "override"
+ },
+ {
+  "id": "3418",
+  "en": "l-pull-up",
+  "es": "Dominada en L (L-pull-up)",
+  "method": "override"
+ },
+ {
+  "id": "3419",
+  "en": "l-sit on floor",
+  "es": "L-sit en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "0562",
+  "en": "landmine 180",
+  "es": "Rotación de core 180 con barra landmine (landmine 180)",
+  "method": "override"
+ },
+ {
+  "id": "3237",
+  "en": "landmine lateral raise",
+  "es": "Elevación lateral con barra landmine",
+  "method": "phrase"
+ },
+ {
+  "id": "3300",
+  "en": "lean planche",
+  "es": "Planche inclinada (lean, calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "2271",
+  "en": "left hook. boxing",
+  "es": "Gancho de izquierda (boxeo)",
+  "method": "override"
+ },
+ {
+  "id": "0570",
+  "en": "leg pull in flat bench",
+  "es": "Recogida de piernas en banco plano",
+  "method": "override"
+ },
+ {
+  "id": "1576",
+  "en": "leg up hamstring stretch",
+  "es": "Estiramiento de isquiotibiales con pierna elevada",
+  "method": "override"
+ },
+ {
+  "id": "2287",
+  "en": "lever alternate leg press",
+  "es": "Prensa de piernas alternada en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0571",
+  "en": "lever alternating narrow grip seated row",
+  "es": "Remo alternado con agarre cerrado sentado en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0572",
+  "en": "lever assisted chin-up",
+  "es": "Dominada supina asistida en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0573",
+  "en": "lever back extension",
+  "es": "Extensión lumbar en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0574",
+  "en": "lever bent over row",
+  "es": "Remo inclinado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "3200",
+  "en": "lever bent-over row with v-bar",
+  "es": "Remo inclinado con barra V en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0575",
+  "en": "lever bicep curl",
+  "es": "Curl de bíceps en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "2289",
+  "en": "lever calf press",
+  "es": "Empuje de pantorrillas en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0577",
+  "en": "lever chest press",
+  "es": "Press de pecho en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0576",
+  "en": "lever chest press",
+  "es": "Press de pecho en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0578",
+  "en": "lever deadlift",
+  "es": "Peso muerto en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1300",
+  "en": "lever decline chest press",
+  "es": "Press de pecho en banco declinado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1253",
+  "en": "lever donkey calf raise",
+  "es": "Elevación de talones estilo burro en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0579",
+  "en": "lever front pulldown",
+  "es": "Jalón al frente en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0580",
+  "en": "lever gripless shrug",
+  "es": "Encogimiento de hombros sin agarre en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1439",
+  "en": "lever gripless shrug v. 2",
+  "es": "Encogimiento de hombros sin agarre en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "2288",
+  "en": "lever gripper hands",
+  "es": "Aprietes de mano en máquina",
+  "method": "override"
+ },
+ {
+  "id": "1615",
+  "en": "lever hammer grip preacher curl",
+  "es": "Curl martillo en banco Scott en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0581",
+  "en": "lever high row",
+  "es": "Remo alto en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "2286",
+  "en": "lever hip extension v. 2",
+  "es": "Extensión de cadera en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "2611",
+  "en": "lever horizontal one leg press",
+  "es": "Prensa de piernas horizontal a una pierna en máquina",
+  "method": "override"
+ },
+ {
+  "id": "1299",
+  "en": "lever incline chest press",
+  "es": "Press de pecho en banco inclinado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1479",
+  "en": "lever incline chest press v. 2",
+  "es": "Press de pecho en banco inclinado en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0582",
+  "en": "lever kneeling leg curl",
+  "es": "Curl femoral de rodillas en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0583",
+  "en": "lever kneeling twist",
+  "es": "Giro de torso de rodillas en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0584",
+  "en": "lever lateral raise",
+  "es": "Elevación lateral en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0585",
+  "en": "lever leg extension",
+  "es": "Extensión de piernas en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0586",
+  "en": "lever lying leg curl",
+  "es": "Curl femoral acostado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "3195",
+  "en": "lever lying two-one leg curl",
+  "es": "Curl femoral acostado dos-una pierna en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0587",
+  "en": "lever military press",
+  "es": "Press militar en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0588",
+  "en": "lever narrow grip seated row",
+  "es": "Remo con agarre cerrado sentado en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0589",
+  "en": "lever one arm bent over row",
+  "es": "Remo inclinado a un brazo en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1356",
+  "en": "lever one arm lateral high row",
+  "es": "Remo alto lateral a un brazo en máquina",
+  "method": "override"
+ },
+ {
+  "id": "1347",
+  "en": "lever one arm lateral wide pulldown",
+  "es": "Jalón lateral ancho a un brazo en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0590",
+  "en": "lever one arm shoulder press",
+  "es": "Press de hombros a un brazo en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0591",
+  "en": "lever overhand triceps dip",
+  "es": "Fondos de tríceps con agarre prono en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0592",
+  "en": "lever preacher curl",
+  "es": "Curl en banco Scott en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1614",
+  "en": "lever preacher curl v. 2",
+  "es": "Curl en banco Scott en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "2285",
+  "en": "lever pullover",
+  "es": "Pullover en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "2736",
+  "en": "lever reverse grip lateral pulldown",
+  "es": "Jalón lateral con agarre invertido en máquina",
+  "method": "override"
+ },
+ {
+  "id": "1616",
+  "en": "lever reverse grip preacher curl",
+  "es": "Curl en banco Scott con agarre invertido en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1348",
+  "en": "lever reverse grip vertical row",
+  "es": "Remo vertical con agarre invertido en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0593",
+  "en": "lever reverse hyperextension",
+  "es": "Hiperextensión invertida en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1349",
+  "en": "lever reverse t-bar row",
+  "es": "Remo en barra T invertido en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "2315",
+  "en": "lever rotary calf",
+  "es": "Pantorrillas en máquina rotatoria",
+  "method": "override"
+ },
+ {
+  "id": "2335",
+  "en": "lever seated calf press",
+  "es": "Empuje de pantorrillas sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0594",
+  "en": "lever seated calf raise",
+  "es": "Elevación de talones sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1452",
+  "en": "lever seated crunch",
+  "es": "Crunch abdominal sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0595",
+  "en": "lever seated crunch (chest pad)",
+  "es": "Crunch sentado en máquina (almohadilla al pecho)",
+  "method": "override"
+ },
+ {
+  "id": "3760",
+  "en": "lever seated crunch v. 2",
+  "es": "Crunch abdominal sentado en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "1451",
+  "en": "lever seated dip",
+  "es": "Fondos sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0596",
+  "en": "lever seated fly",
+  "es": "Apertura sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "3759",
+  "en": "lever seated good morning",
+  "es": "Buenos días (bisagra de cadera) sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0597",
+  "en": "lever seated hip abduction",
+  "es": "Abducción de cadera sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0598",
+  "en": "lever seated hip adduction",
+  "es": "Aducción de cadera sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0599",
+  "en": "lever seated leg curl",
+  "es": "Curl femoral sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0600",
+  "en": "lever seated leg raise crunch",
+  "es": "Elevación de piernas crunch abdominal sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0602",
+  "en": "lever seated reverse fly",
+  "es": "Apertura invertida sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0601",
+  "en": "lever seated reverse fly (parallel grip)",
+  "es": "Apertura invertida sentado en máquina (parallel grip)",
+  "method": "phrase"
+ },
+ {
+  "id": "1350",
+  "en": "lever seated row",
+  "es": "Remo sentado en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1385",
+  "en": "lever seated squat calf raise on leg press machine",
+  "es": "Elevación de talones en cuclillas sentado en la prensa",
+  "method": "override"
+ },
+ {
+  "id": "0603",
+  "en": "lever shoulder press",
+  "es": "Press de hombros en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0869",
+  "en": "lever shoulder press v. 2",
+  "es": "Press de hombros en máquina (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "2318",
+  "en": "lever shoulder press v. 3",
+  "es": "Press de hombros en máquina (v3)",
+  "method": "phrase"
+ },
+ {
+  "id": "0604",
+  "en": "lever shrug",
+  "es": "Encogimiento de hombros en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0605",
+  "en": "lever standing calf raise",
+  "es": "Elevación de talones de pie en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "3758",
+  "en": "lever standing chest press",
+  "es": "Press de pecho de pie en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0606",
+  "en": "lever t bar row",
+  "es": "Remo en barra T en máquina",
+  "method": "override"
+ },
+ {
+  "id": "1351",
+  "en": "lever t-bar reverse grip row",
+  "es": "Remo en barra T con agarre invertido en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0607",
+  "en": "lever triceps extension",
+  "es": "Extensión de tríceps en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "1313",
+  "en": "lever unilateral row",
+  "es": "Remo unilateral en máquina",
+  "method": "phrase"
+ },
+ {
+  "id": "0609",
+  "en": "london bridge",
+  "es": "Puente de Londres",
+  "method": "override"
+ },
+ {
+  "id": "3013",
+  "en": "low glute bridge on floor",
+  "es": "Puente de glúteos bajo en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "1352",
+  "en": "lower back curl",
+  "es": "Curl lumbar",
+  "method": "override"
+ },
+ {
+  "id": "3582",
+  "en": "lunge with jump",
+  "es": "Estocada con salto",
+  "method": "phrase"
+ },
+ {
+  "id": "1688",
+  "en": "lunge with twist",
+  "es": "Estocada con giro de torso",
+  "method": "phrase"
+ },
+ {
+  "id": "0613",
+  "en": "lying (side) quads stretch",
+  "es": "Estiramiento de cuádriceps acostado de lado",
+  "method": "override"
+ },
+ {
+  "id": "2312",
+  "en": "lying elbow to knee",
+  "es": "Codo a rodilla acostado",
+  "method": "override"
+ },
+ {
+  "id": "0620",
+  "en": "lying leg raise flat bench",
+  "es": "Elevación de piernas acostado en banco plano",
+  "method": "override"
+ },
+ {
+  "id": "0865",
+  "en": "lying leg-hip raise",
+  "es": "Elevación de piernas y cadera acostado",
+  "method": "override"
+ },
+ {
+  "id": "1301",
+  "en": "machine inner chest press",
+  "es": "Press de pecho interno en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0624",
+  "en": "march sit (wall)",
+  "es": "Marcha sentado contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "1353",
+  "en": "medicine ball catch and overhead throw",
+  "es": "Recepción y lanzamiento sobre la cabeza con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1302",
+  "en": "medicine ball chest pass",
+  "es": "Pase de pecho con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1303",
+  "en": "medicine ball chest push from 3 point stance",
+  "es": "Empuje de pecho desde posición de 3 apoyos con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1304",
+  "en": "medicine ball chest push multiple response",
+  "es": "Empuje de pecho con respuesta múltiple con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1305",
+  "en": "medicine ball chest push single response",
+  "es": "Empuje de pecho con respuesta simple con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1312",
+  "en": "medicine ball chest push with run release",
+  "es": "Empuje de pecho con salida a carrera con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1701",
+  "en": "medicine ball close grip push up",
+  "es": "Flexión de brazos con agarre cerrado con pelota medicinal",
+  "method": "phrase"
+ },
+ {
+  "id": "1354",
+  "en": "medicine ball overhead slam",
+  "es": "Slam sobre la cabeza con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1750",
+  "en": "medicine ball supine chest throw",
+  "es": "Lanzamiento de pecho boca arriba con pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "0627",
+  "en": "mixed grip chin-up",
+  "es": "Dominada supina con agarre mixto",
+  "method": "phrase"
+ },
+ {
+  "id": "3217",
+  "en": "modified hindu push-up (male)",
+  "es": "Flexión hindú modificada",
+  "method": "override"
+ },
+ {
+  "id": "1421",
+  "en": "modified push up to lower arms",
+  "es": "Flexión de brazos a antebrazos modificada",
+  "method": "override"
+ },
+ {
+  "id": "0628",
+  "en": "monster walk",
+  "es": "Caminata del monstruo",
+  "method": "override"
+ },
+ {
+  "id": "0630",
+  "en": "mountain climber",
+  "es": "Escalador (mountain climber)",
+  "method": "phrase"
+ },
+ {
+  "id": "0631",
+  "en": "muscle up",
+  "es": "Muscle up",
+  "method": "phrase"
+ },
+ {
+  "id": "1401",
+  "en": "muscle-up (on vertical bar)",
+  "es": "Muscle-up (en barra vertical)",
+  "method": "override"
+ },
+ {
+  "id": "2328",
+  "en": "narrow push-up on exercise ball",
+  "es": "Flexión de brazos cerrada sobre pelota de estabilidad",
+  "method": "phrase"
+ },
+ {
+  "id": "1403",
+  "en": "neck side stretch",
+  "es": "Estiramiento de cuello lateral",
+  "method": "phrase"
+ },
+ {
+  "id": "0634",
+  "en": "negative crunch",
+  "es": "Crunch abdominal negativo",
+  "method": "phrase"
+ },
+ {
+  "id": "1495",
+  "en": "oblique crunch v. 2",
+  "es": "Crunch abdominal oblicuo (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0635",
+  "en": "oblique crunches floor",
+  "es": "Crunch abdominal oblicuo en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "0636",
+  "en": "olympic barbell hammer curl",
+  "es": "Curl martillo con barra olímpica",
+  "method": "phrase"
+ },
+ {
+  "id": "0637",
+  "en": "olympic barbell triceps extension",
+  "es": "Extensión de tríceps con barra olímpica",
+  "method": "phrase"
+ },
+ {
+  "id": "1355",
+  "en": "one arm against wall",
+  "es": "Estiramiento a un brazo contra la pared",
+  "method": "override"
+ },
+ {
+  "id": "0638",
+  "en": "one arm chin-up",
+  "es": "Dominada supina a un brazo",
+  "method": "phrase"
+ },
+ {
+  "id": "0639",
+  "en": "one arm dip",
+  "es": "Fondos a un brazo",
+  "method": "phrase"
+ },
+ {
+  "id": "0640",
+  "en": "one arm slam (with medicine ball)",
+  "es": "Slam a un brazo (con pelota medicinal)",
+  "method": "override"
+ },
+ {
+  "id": "1773",
+  "en": "one arm towel row",
+  "es": "Remo a un brazo con toalla",
+  "method": "override"
+ },
+ {
+  "id": "1386",
+  "en": "one leg donkey calf raise",
+  "es": "Elevación de talones estilo burro a una pierna",
+  "method": "phrase"
+ },
+ {
+  "id": "1387",
+  "en": "one leg floor calf raise",
+  "es": "Elevación de talones a una pierna en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "1476",
+  "en": "one leg squat",
+  "es": "Sentadilla a una pierna",
+  "method": "phrase"
+ },
+ {
+  "id": "0641",
+  "en": "otis up",
+  "es": "Otis-up (abdominal con peso)",
+  "method": "override"
+ },
+ {
+  "id": "0642",
+  "en": "outside leg kick push-up",
+  "es": "Flexión de brazos con patada lateral",
+  "method": "override"
+ },
+ {
+  "id": "0643",
+  "en": "overhead triceps stretch",
+  "es": "Estiramiento de tríceps sobre la cabeza",
+  "method": "phrase"
+ },
+ {
+  "id": "3147",
+  "en": "pelvic tilt",
+  "es": "Báscula pélvica",
+  "method": "phrase"
+ },
+ {
+  "id": "1422",
+  "en": "pelvic tilt into bridge",
+  "es": "Báscula pélvica a puente",
+  "method": "override"
+ },
+ {
+  "id": "1388",
+  "en": "peroneals stretch",
+  "es": "Estiramiento de peroneos",
+  "method": "phrase"
+ },
+ {
+  "id": "3662",
+  "en": "pike-to-cobra push-up",
+  "es": "Flexión de brazos pike a cobra",
+  "method": "override"
+ },
+ {
+  "id": "1306",
+  "en": "plyo push up",
+  "es": "Flexión de brazos pliométrica",
+  "method": "phrase"
+ },
+ {
+  "id": "1687",
+  "en": "posterior step to overhead reach",
+  "es": "Paso atrás con alcance sobre la cabeza",
+  "method": "override"
+ },
+ {
+  "id": "1389",
+  "en": "posterior tibialis stretch",
+  "es": "Estiramiento del tibial posterior",
+  "method": "override"
+ },
+ {
+  "id": "3119",
+  "en": "potty squat",
+  "es": "Sentadilla al banquito (potty squat)",
+  "method": "override"
+ },
+ {
+  "id": "3132",
+  "en": "potty squat with support",
+  "es": "Sentadilla al banquito con apoyo",
+  "method": "override"
+ },
+ {
+  "id": "0648",
+  "en": "power clean",
+  "es": "Cargada de potencia",
+  "method": "phrase"
+ },
+ {
+  "id": "3665",
+  "en": "power point plank",
+  "es": "Plancha de potencia",
+  "method": "override"
+ },
+ {
+  "id": "3203",
+  "en": "prisoner half sit-up (male)",
+  "es": "Medio abdominal prisionero",
+  "method": "override"
+ },
+ {
+  "id": "1707",
+  "en": "prone twist on stability ball",
+  "es": "Giro de torso sobre pelota de estabilidad boca abajo",
+  "method": "phrase"
+ },
+ {
+  "id": "0651",
+  "en": "pull up (neutral grip)",
+  "es": "Dominada (agarre neutro)",
+  "method": "override"
+ },
+ {
+  "id": "0650",
+  "en": "pull-in (on stability ball)",
+  "es": "Recogida de piernas (sobre pelota de estabilidad)",
+  "method": "override"
+ },
+ {
+  "id": "0652",
+  "en": "pull-up",
+  "es": "Dominada",
+  "method": "phrase"
+ },
+ {
+  "id": "1689",
+  "en": "push and pull bodyweight",
+  "es": "Empuje y tracción con peso corporal",
+  "method": "override"
+ },
+ {
+  "id": "3638",
+  "en": "push to run",
+  "es": "Empuje a carrera",
+  "method": "override"
+ },
+ {
+  "id": "1307",
+  "en": "push up on bosu ball",
+  "es": "Flexión de brazos sobre bosu",
+  "method": "override"
+ },
+ {
+  "id": "0662",
+  "en": "push-up",
+  "es": "Flexión de brazos",
+  "method": "phrase"
+ },
+ {
+  "id": "0653",
+  "en": "push-up (bosu ball)",
+  "es": "Flexión de brazos (en bosu)",
+  "method": "phrase"
+ },
+ {
+  "id": "0655",
+  "en": "push-up (on stability ball)",
+  "es": "Flexión de brazos (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0656",
+  "en": "push-up (on stability ball)",
+  "es": "Flexión de brazos (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0659",
+  "en": "push-up (wall)",
+  "es": "Flexión de brazos (en pared)",
+  "method": "override"
+ },
+ {
+  "id": "0658",
+  "en": "push-up (wall) v. 2",
+  "es": "Flexión de brazos (en pared, v2)",
+  "method": "override"
+ },
+ {
+  "id": "0660",
+  "en": "push-up close-grip off dumbbell",
+  "es": "Flexión de brazos con agarre cerrado sobre mancuerna",
+  "method": "override"
+ },
+ {
+  "id": "0661",
+  "en": "push-up inside leg kick",
+  "es": "Flexión de brazos con patada interna",
+  "method": "override"
+ },
+ {
+  "id": "0663",
+  "en": "push-up medicine ball",
+  "es": "Flexión de brazos sobre pelota medicinal",
+  "method": "override"
+ },
+ {
+  "id": "1467",
+  "en": "push-up on lower arms",
+  "es": "Flexión de brazos sobre antebrazos",
+  "method": "override"
+ },
+ {
+  "id": "3145",
+  "en": "push-up plus",
+  "es": "Flexión de brazos plus (con protracción)",
+  "method": "override"
+ },
+ {
+  "id": "0664",
+  "en": "push-up to side plank",
+  "es": "Flexión de brazos a plancha lateral",
+  "method": "phrase"
+ },
+ {
+  "id": "3533",
+  "en": "quads",
+  "es": "Estiramiento de cuádriceps",
+  "method": "override"
+ },
+ {
+  "id": "3201",
+  "en": "quarter sit-up",
+  "es": "Cuarto de abdominal",
+  "method": "override"
+ },
+ {
+  "id": "3552",
+  "en": "quick feet v. 2",
+  "es": "Pies rápidos (v2)",
+  "method": "override"
+ },
+ {
+  "id": "0666",
+  "en": "raise single arm push-up",
+  "es": "Flexión de brazos con elevación a un brazo",
+  "method": "override"
+ },
+ {
+  "id": "0668",
+  "en": "rear decline bridge",
+  "es": "Puente posterior en banco declinado",
+  "method": "phrase"
+ },
+ {
+  "id": "0669",
+  "en": "rear deltoid stretch",
+  "es": "Estiramiento de deltoides posterior",
+  "method": "phrase"
+ },
+ {
+  "id": "0670",
+  "en": "rear pull-up",
+  "es": "Dominada posterior",
+  "method": "phrase"
+ },
+ {
+  "id": "1582",
+  "en": "reclining big toe pose with rope",
+  "es": "Postura del dedo gordo reclinada con soga",
+  "method": "override"
+ },
+ {
+  "id": "3236",
+  "en": "resistance band hip thrusts on knees (female)",
+  "es": "Hip thrust de rodillas con banda elástica",
+  "method": "override"
+ },
+ {
+  "id": "3007",
+  "en": "resistance band leg extension",
+  "es": "Extensión de piernas con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "3123",
+  "en": "resistance band seated biceps curl",
+  "es": "Curl de bíceps sentado con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "3124",
+  "en": "resistance band seated chest press",
+  "es": "Press de pecho sentado con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "3006",
+  "en": "resistance band seated hip abduction",
+  "es": "Abducción de cadera sentado con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "3122",
+  "en": "resistance band seated shoulder press",
+  "es": "Press de hombros sentado con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "3144",
+  "en": "resistance band seated straight back row",
+  "es": "Remo con espalda recta sentado con banda elástica",
+  "method": "phrase"
+ },
+ {
+  "id": "0872",
+  "en": "reverse crunch",
+  "es": "Crunch abdominal invertido",
+  "method": "phrase"
+ },
+ {
+  "id": "0672",
+  "en": "reverse dip",
+  "es": "Fondos invertido",
+  "method": "phrase"
+ },
+ {
+  "id": "0673",
+  "en": "reverse grip machine lat pulldown",
+  "es": "Jalón al pecho con agarre invertido en máquina",
+  "method": "override"
+ },
+ {
+  "id": "0674",
+  "en": "reverse grip pull-up",
+  "es": "Dominada con agarre invertido",
+  "method": "phrase"
+ },
+ {
+  "id": "0675",
+  "en": "reverse hyper extension (on stability ball)",
+  "es": "Hiperextensión invertida (sobre pelota de estabilidad)",
+  "method": "override"
+ },
+ {
+  "id": "1423",
+  "en": "reverse hyper on flat bench",
+  "es": "Hiperextensión invertida en banco plano",
+  "method": "override"
+ },
+ {
+  "id": "3663",
+  "en": "reverse plank with leg lift",
+  "es": "Plancha invertida con elevación de pierna",
+  "method": "override"
+ },
+ {
+  "id": "0677",
+  "en": "ring dips",
+  "es": "Fondos en anillas",
+  "method": "phrase"
+ },
+ {
+  "id": "2571",
+  "en": "rocking frog stretch",
+  "es": "Estiramiento de rana con balanceo",
+  "method": "override"
+ },
+ {
+  "id": "0678",
+  "en": "rocky pull-up pulldown",
+  "es": "Dominada-jalón Rocky",
+  "method": "override"
+ },
+ {
+  "id": "2208",
+  "en": "roller back stretch",
+  "es": "Estiramiento de espalda con rodillo",
+  "method": "phrase"
+ },
+ {
+  "id": "2204",
+  "en": "roller body saw",
+  "es": "Sierra corporal con rodillo",
+  "method": "override"
+ },
+ {
+  "id": "2205",
+  "en": "roller hip lat stretch",
+  "es": "Estiramiento de cadera y dorsal con rodillo",
+  "method": "override"
+ },
+ {
+  "id": "2202",
+  "en": "roller hip stretch",
+  "es": "Estiramiento de cadera con rodillo",
+  "method": "phrase"
+ },
+ {
+  "id": "2206",
+  "en": "roller reverse crunch",
+  "es": "Crunch abdominal invertido con rodillo",
+  "method": "phrase"
+ },
+ {
+  "id": "2203",
+  "en": "roller seated shoulder flexor depresor retractor",
+  "es": "Movilidad de hombro sentado con rodillo (flexión-depresión-retracción)",
+  "method": "override"
+ },
+ {
+  "id": "2209",
+  "en": "roller seated single leg shoulder flexor depresor retractor",
+  "es": "Movilidad de hombro a una pierna sentado con rodillo",
+  "method": "override"
+ },
+ {
+  "id": "2207",
+  "en": "roller side lat stretch",
+  "es": "Estiramiento de lateral de dorsal con rodillo",
+  "method": "phrase"
+ },
+ {
+  "id": "0680",
+  "en": "rope climb",
+  "es": "Trepada de soga",
+  "method": "override"
+ },
+ {
+  "id": "0685",
+  "en": "run",
+  "es": "Carrera",
+  "method": "phrase"
+ },
+ {
+  "id": "0684",
+  "en": "run (equipment)",
+  "es": "Carrera (en máquina)",
+  "method": "override"
+ },
+ {
+  "id": "1585",
+  "en": "runners stretch",
+  "es": "Estiramiento del corredor",
+  "method": "override"
+ },
+ {
+  "id": "0687",
+  "en": "russian twist",
+  "es": "Giro ruso",
+  "method": "phrase"
+ },
+ {
+  "id": "3012",
+  "en": "scapula dips",
+  "es": "Fondos escapulares",
+  "method": "override"
+ },
+ {
+  "id": "3021",
+  "en": "scapula push-up",
+  "es": "Flexión escapular",
+  "method": "override"
+ },
+ {
+  "id": "0688",
+  "en": "scapular pull-up",
+  "es": "Dominada escapular",
+  "method": "override"
+ },
+ {
+  "id": "3219",
+  "en": "scissor jumps (male)",
+  "es": "Saltos de tijera",
+  "method": "override"
+ },
+ {
+  "id": "1390",
+  "en": "seated calf stretch (male)",
+  "es": "Estiramiento de pantorrilla sentado (demo hombre)",
+  "method": "phrase"
+ },
+ {
+  "id": "1424",
+  "en": "seated glute stretch",
+  "es": "Estiramiento de glúteo sentado",
+  "method": "phrase"
+ },
+ {
+  "id": "0689",
+  "en": "seated leg raise",
+  "es": "Elevación de piernas sentado",
+  "method": "phrase"
+ },
+ {
+  "id": "0690",
+  "en": "seated lower back stretch",
+  "es": "Estiramiento de inferior de espalda sentado",
+  "method": "phrase"
+ },
+ {
+  "id": "2567",
+  "en": "seated piriformis stretch",
+  "es": "Estiramiento de piriforme sentado",
+  "method": "phrase"
+ },
+ {
+  "id": "0691",
+  "en": "seated side crunch (wall)",
+  "es": "Crunch lateral sentado (contra pared)",
+  "method": "override"
+ },
+ {
+  "id": "1587",
+  "en": "seated wide angle pose sequence",
+  "es": "Secuencia de apertura de piernas sentado",
+  "method": "override"
+ },
+ {
+  "id": "0697",
+  "en": "self assisted inverse leg curl",
+  "es": "Curl femoral inverso autoasistido",
+  "method": "override"
+ },
+ {
+  "id": "1766",
+  "en": "self assisted inverse leg curl",
+  "es": "Curl femoral inverso autoasistido",
+  "method": "override"
+ },
+ {
+  "id": "0696",
+  "en": "self assisted inverse leg curl (on floor)",
+  "es": "Curl femoral inverso autoasistido (en el piso)",
+  "method": "override"
+ },
+ {
+  "id": "3222",
+  "en": "semi squat jump (male)",
+  "es": "Semisentadilla con salto",
+  "method": "override"
+ },
+ {
+  "id": "3656",
+  "en": "short stride run",
+  "es": "Carrera con zancada corta",
+  "method": "override"
+ },
+ {
+  "id": "1763",
+  "en": "shoulder grip pull-up",
+  "es": "Dominada con agarre al ancho de hombros",
+  "method": "override"
+ },
+ {
+  "id": "3699",
+  "en": "shoulder tap",
+  "es": "Toque de hombro",
+  "method": "override"
+ },
+ {
+  "id": "0699",
+  "en": "shoulder tap push-up",
+  "es": "Flexión de brazos con toque de hombro",
+  "method": "override"
+ },
+ {
+  "id": "1774",
+  "en": "side bridge hip abduction",
+  "es": "Puente lateral con abducción de cadera",
+  "method": "override"
+ },
+ {
+  "id": "0705",
+  "en": "side bridge v. 2",
+  "es": "Puente lateral (v2)",
+  "method": "override"
+ },
+ {
+  "id": "0709",
+  "en": "side hip (on parallel bars)",
+  "es": "Elevación lateral de cadera (en paralelas)",
+  "method": "override"
+ },
+ {
+  "id": "0710",
+  "en": "side hip abduction",
+  "es": "Abducción de cadera lateral",
+  "method": "override"
+ },
+ {
+  "id": "1358",
+  "en": "side lying floor stretch",
+  "es": "Estiramiento acostado de lado en el piso",
+  "method": "override"
+ },
+ {
+  "id": "3667",
+  "en": "side lying hip adduction (male)",
+  "es": "Aducción de cadera acostado de lado",
+  "method": "override"
+ },
+ {
+  "id": "1775",
+  "en": "side plank hip adduction",
+  "es": "Plancha lateral con aducción de cadera",
+  "method": "override"
+ },
+ {
+  "id": "0716",
+  "en": "side push neck stretch",
+  "es": "Estiramiento lateral de cuello con empuje",
+  "method": "override"
+ },
+ {
+  "id": "0717",
+  "en": "side push-up",
+  "es": "Flexión de brazos lateral",
+  "method": "override"
+ },
+ {
+  "id": "0721",
+  "en": "side wrist pull stretch",
+  "es": "Estiramiento lateral de muñeca",
+  "method": "override"
+ },
+ {
+  "id": "0720",
+  "en": "side-to-side chin",
+  "es": "Dominada lado a lado",
+  "method": "override"
+ },
+ {
+  "id": "3213",
+  "en": "side-to-side toe touch (male)",
+  "es": "Toque de puntas de pie lado a lado",
+  "method": "override"
+ },
+ {
+  "id": "0725",
+  "en": "single arm push-up",
+  "es": "Flexión de brazos a un brazo",
+  "method": "phrase"
+ },
+ {
+  "id": "3645",
+  "en": "single leg bridge with outstretched leg",
+  "es": "Puente a una pierna con pierna extendida",
+  "method": "override"
+ },
+ {
+  "id": "0727",
+  "en": "single leg calf raise (on a dumbbell)",
+  "es": "Elevación de talones a una pierna (sobre mancuerna)",
+  "method": "override"
+ },
+ {
+  "id": "0730",
+  "en": "single leg platform slide",
+  "es": "Deslizamiento a una pierna en plataforma",
+  "method": "override"
+ },
+ {
+  "id": "1759",
+  "en": "single leg squat (pistol) male",
+  "es": "Sentadilla pistol a una pierna",
+  "method": "override"
+ },
+ {
+  "id": "1489",
+  "en": "sissy squat",
+  "es": "Sentadilla sissy",
+  "method": "phrase"
+ },
+ {
+  "id": "0735",
+  "en": "sit-up v. 2",
+  "es": "Abdominal completo (sit-up) (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "3679",
+  "en": "sit-up with arms on chest",
+  "es": "Abdominal completo con brazos sobre el pecho",
+  "method": "override"
+ },
+ {
+  "id": "3361",
+  "en": "skater hops",
+  "es": "Saltos de patinador",
+  "method": "override"
+ },
+ {
+  "id": "2142",
+  "en": "ski ergometer",
+  "es": "Ergómetro de esquí (SkiErg)",
+  "method": "override"
+ },
+ {
+  "id": "3671",
+  "en": "ski step",
+  "es": "Paso de esquí",
+  "method": "override"
+ },
+ {
+  "id": "3304",
+  "en": "skin the cat",
+  "es": "Skin the cat (rotación colgado)",
+  "method": "override"
+ },
+ {
+  "id": "1425",
+  "en": "sled 45 degrees one leg press",
+  "es": "Prensa a 45° a una pierna",
+  "method": "override"
+ },
+ {
+  "id": "0738",
+  "en": "sled 45в° calf press",
+  "es": "45° empuje de pantorrillas en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "0739",
+  "en": "sled 45в° leg press",
+  "es": "45° prensa de piernas en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "1464",
+  "en": "sled 45в° leg press (back pov)",
+  "es": "45° prensa de piernas en prensa (vista trasera)",
+  "method": "phrase"
+ },
+ {
+  "id": "1463",
+  "en": "sled 45° leg press (side pov)",
+  "es": "45° prensa de piernas en prensa (vista lateral)",
+  "method": "phrase"
+ },
+ {
+  "id": "0740",
+  "en": "sled 45в° leg wide press",
+  "es": "Prensa de piernas 45° con piernas anchas",
+  "method": "override"
+ },
+ {
+  "id": "1391",
+  "en": "sled calf press on leg press",
+  "es": "Empuje de pantorrillas sobre prensa de piernas en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "0741",
+  "en": "sled closer hack squat",
+  "es": "Sentadilla hack en prensa (pies juntos)",
+  "method": "override"
+ },
+ {
+  "id": "0742",
+  "en": "sled forward angled calf raise",
+  "es": "Elevación de talones inclinada hacia adelante en prensa",
+  "method": "override"
+ },
+ {
+  "id": "0743",
+  "en": "sled hack squat",
+  "es": "Sentadilla hack en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "2334",
+  "en": "sled lying calf press",
+  "es": "Empuje de pantorrillas acostado en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "0744",
+  "en": "sled lying squat",
+  "es": "Sentadilla acostado en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "1392",
+  "en": "sled one leg calf press on leg press",
+  "es": "Empuje de pantorrillas sobre prensa de piernas a una pierna en prensa",
+  "method": "phrase"
+ },
+ {
+  "id": "1496",
+  "en": "sledge hammer",
+  "es": "Golpe de masa (sledge hammer)",
+  "method": "override"
+ },
+ {
+  "id": "0746",
+  "en": "smith back shrug",
+  "es": "Encogimiento de hombros por detrás de la espalda en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0747",
+  "en": "smith behind neck press",
+  "es": "Press por detrás de la nuca en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0748",
+  "en": "smith bench press",
+  "es": "Press de banca en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0749",
+  "en": "smith bent knee good morning",
+  "es": "Buenos días (bisagra de cadera) con rodillas flexionadas en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1359",
+  "en": "smith bent over row",
+  "es": "Remo inclinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0750",
+  "en": "smith chair squat",
+  "es": "Sentadilla a la silla en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0751",
+  "en": "smith close-grip bench press",
+  "es": "Press de banca con agarre cerrado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0752",
+  "en": "smith deadlift",
+  "es": "Peso muerto en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0753",
+  "en": "smith decline bench press",
+  "es": "Press de banca en banco declinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0754",
+  "en": "smith decline reverse-grip press",
+  "es": "Press con agarre invertido en banco declinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1433",
+  "en": "smith front squat (clean grip)",
+  "es": "Sentadilla frontal en máquina Smith (agarre de cargada)",
+  "method": "override"
+ },
+ {
+  "id": "3281",
+  "en": "smith full squat",
+  "es": "Sentadilla profunda en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0755",
+  "en": "smith hack squat",
+  "es": "Sentadilla hack en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0756",
+  "en": "smith hip raise",
+  "es": "Elevación de cadera en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0757",
+  "en": "smith incline bench press",
+  "es": "Press de banca en banco inclinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0758",
+  "en": "smith incline reverse-grip press",
+  "es": "Press con agarre invertido en banco inclinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0759",
+  "en": "smith incline shoulder raises",
+  "es": "Elevación de hombros en banco inclinado en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0760",
+  "en": "smith leg press",
+  "es": "Prensa de piernas en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1434",
+  "en": "smith low bar squat",
+  "es": "Sentadilla barra baja en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1683",
+  "en": "smith machine bicep curl",
+  "es": "Curl de bíceps en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1625",
+  "en": "smith machine decline close grip bench press",
+  "es": "Press de banca con agarre cerrado en banco declinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1752",
+  "en": "smith machine incline tricep extension",
+  "es": "Extensión de tríceps en banco inclinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1626",
+  "en": "smith machine reverse decline close grip bench press",
+  "es": "Press de banca con agarre cerrado invertido en banco declinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0761",
+  "en": "smith narrow row",
+  "es": "Remo cerrado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1360",
+  "en": "smith one arm row",
+  "es": "Remo a un brazo en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1393",
+  "en": "smith one leg floor calf raise",
+  "es": "Elevación de talones a una pierna en el piso en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0762",
+  "en": "smith rear delt row",
+  "es": "Remo para deltoides posterior en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0763",
+  "en": "smith reverse calf raises",
+  "es": "Elevación de talones invertida en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "1394",
+  "en": "smith reverse calf raises",
+  "es": "Elevación de talones invertida en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "1361",
+  "en": "smith reverse grip bent over row",
+  "es": "Remo inclinado con agarre invertido en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0764",
+  "en": "smith reverse-grip press",
+  "es": "Press con agarre invertido en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1395",
+  "en": "smith seated one leg calf raise",
+  "es": "Elevación de talones a una pierna sentado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0765",
+  "en": "smith seated shoulder press",
+  "es": "Press de hombros sentado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1426",
+  "en": "smith seated wrist curl",
+  "es": "Curl de muñeca sentado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0766",
+  "en": "smith shoulder press",
+  "es": "Press de hombros en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0767",
+  "en": "smith shrug",
+  "es": "Encogimiento de hombros en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0768",
+  "en": "smith single leg split squat",
+  "es": "Sentadilla split a una pierna en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0769",
+  "en": "smith sprint lunge",
+  "es": "Sprint estocada en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0770",
+  "en": "smith squat",
+  "es": "Sentadilla en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0771",
+  "en": "smith standing back wrist curl",
+  "es": "Curl de muñeca por detrás de la espalda de pie en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0772",
+  "en": "smith standing behind head military press",
+  "es": "Press militar por detrás de la cabeza de pie en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0773",
+  "en": "smith standing leg calf raise",
+  "es": "Elevación de talones de pie en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0774",
+  "en": "smith standing military press",
+  "es": "Press militar de pie en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "3142",
+  "en": "smith sumo squat",
+  "es": "Sentadilla sumo en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1396",
+  "en": "smith toe raise",
+  "es": "Elevación de puntas de pie en máquina Smith",
+  "method": "override"
+ },
+ {
+  "id": "0775",
+  "en": "smith upright row",
+  "es": "Remo al mentón en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1308",
+  "en": "smith wide grip bench press",
+  "es": "Press de banca con agarre ancho en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "1309",
+  "en": "smith wide grip decline bench press",
+  "es": "Press de banca con agarre ancho en banco declinado en máquina Smith",
+  "method": "phrase"
+ },
+ {
+  "id": "0776",
+  "en": "snatch pull",
+  "es": "Tirón de arranque",
+  "method": "override"
+ },
+ {
+  "id": "0777",
+  "en": "spell caster",
+  "es": "Spell caster (giro con mancuernas)",
+  "method": "override"
+ },
+ {
+  "id": "1362",
+  "en": "sphinx",
+  "es": "Esfinge",
+  "method": "override"
+ },
+ {
+  "id": "0778",
+  "en": "spider crawl push up",
+  "es": "Caminata de araña con flexión de brazos",
+  "method": "override"
+ },
+ {
+  "id": "1363",
+  "en": "spine stretch",
+  "es": "Estiramiento de columna",
+  "method": "phrase"
+ },
+ {
+  "id": "2329",
+  "en": "spine twist",
+  "es": "Giro de columna",
+  "method": "override"
+ },
+ {
+  "id": "2368",
+  "en": "split squats",
+  "es": "Sentadillas split",
+  "method": "override"
+ },
+ {
+  "id": "0786",
+  "en": "squat jerk",
+  "es": "Envión con sentadilla (squat jerk)",
+  "method": "override"
+ },
+ {
+  "id": "1705",
+  "en": "squat on bosu ball",
+  "es": "Sentadilla sobre bosu",
+  "method": "override"
+ },
+ {
+  "id": "1685",
+  "en": "squat to overhead reach",
+  "es": "Sentadilla con alcance sobre la cabeza",
+  "method": "override"
+ },
+ {
+  "id": "1686",
+  "en": "squat to overhead reach with twist",
+  "es": "Sentadilla con alcance sobre la cabeza y giro",
+  "method": "override"
+ },
+ {
+  "id": "2297",
+  "en": "stability ball crunch (full range hands behind head)",
+  "es": "Crunch con pelota de estabilidad (rango completo, manos detrás de la cabeza)",
+  "method": "override"
+ },
+ {
+  "id": "3291",
+  "en": "stalder press",
+  "es": "Stalder press (calistenia)",
+  "method": "override"
+ },
+ {
+  "id": "3669",
+  "en": "standing archer",
+  "es": "Arquero de pie",
+  "method": "override"
+ },
+ {
+  "id": "0788",
+  "en": "standing behind neck press",
+  "es": "Press por detrás de la nuca de pie",
+  "method": "phrase"
+ },
+ {
+  "id": "1490",
+  "en": "standing calf raise (on a staircase)",
+  "es": "Elevación de talones de pie (en escalera)",
+  "method": "override"
+ },
+ {
+  "id": "1397",
+  "en": "standing calves",
+  "es": "Pantorrillas de pie (estiramiento)",
+  "method": "override"
+ },
+ {
+  "id": "1398",
+  "en": "standing calves calf stretch",
+  "es": "Estiramiento de pantorrillas de pie",
+  "method": "override"
+ },
+ {
+  "id": "1599",
+  "en": "standing hamstring and calf stretch with strap",
+  "es": "Estiramiento de isquiotibiales y pantorrilla con correa de pie",
+  "method": "override"
+ },
+ {
+  "id": "0794",
+  "en": "standing lateral stretch",
+  "es": "Estiramiento lateral de pie",
+  "method": "override"
+ },
+ {
+  "id": "1364",
+  "en": "standing pelvic tilt",
+  "es": "Báscula pélvica de pie",
+  "method": "phrase"
+ },
+ {
+  "id": "0795",
+  "en": "standing single leg curl",
+  "es": "Curl femoral a una pierna de pie",
+  "method": "override"
+ },
+ {
+  "id": "0796",
+  "en": "standing wheel rollerout",
+  "es": "Rollout con rueda abdominal de pie",
+  "method": "phrase"
+ },
+ {
+  "id": "3223",
+  "en": "star jump (male)",
+  "es": "Salto estrella",
+  "method": "override"
+ },
+ {
+  "id": "2138",
+  "en": "stationary bike run v. 3",
+  "es": "Bicicleta fija (v3)",
+  "method": "override"
+ },
+ {
+  "id": "0798",
+  "en": "stationary bike walk",
+  "es": "Caminata en bicicleta fija",
+  "method": "override"
+ },
+ {
+  "id": "3314",
+  "en": "straddle maltese",
+  "es": "Maltese abierto (straddle)",
+  "method": "override"
+ },
+ {
+  "id": "3298",
+  "en": "straddle planche",
+  "es": "Planche abierta (straddle)",
+  "method": "override"
+ },
+ {
+  "id": "1427",
+  "en": "straight leg outer hip abductor",
+  "es": "Abducción de cadera con piernas rectas",
+  "method": "override"
+ },
+ {
+  "id": "0803",
+  "en": "superman push-up",
+  "es": "Flexión de brazos superman",
+  "method": "override"
+ },
+ {
+  "id": "0805",
+  "en": "suspended abdominal fallout",
+  "es": "Fallout abdominal en suspensión (TRX)",
+  "method": "override"
+ },
+ {
+  "id": "0806",
+  "en": "suspended push-up",
+  "es": "Flexión de brazos en suspensión (TRX)",
+  "method": "phrase"
+ },
+ {
+  "id": "0807",
+  "en": "suspended reverse crunch",
+  "es": "Crunch abdominal invertido en suspensión (TRX)",
+  "method": "phrase"
+ },
+ {
+  "id": "0808",
+  "en": "suspended row",
+  "es": "Remo en suspensión (TRX)",
+  "method": "phrase"
+ },
+ {
+  "id": "0809",
+  "en": "suspended split squat",
+  "es": "Sentadilla split en suspensión (TRX)",
+  "method": "phrase"
+ },
+ {
+  "id": "3433",
+  "en": "swimmer kicks v. 2 (male)",
+  "es": "Patadas de nadador (demo hombre, v2)",
+  "method": "override"
+ },
+ {
+  "id": "3318",
+  "en": "swing 360",
+  "es": "Giro 360 colgado",
+  "method": "override"
+ },
+ {
+  "id": "1753",
+  "en": "three bench dip",
+  "es": "Fondos entre tres bancos",
+  "method": "override"
+ },
+ {
+  "id": "2459",
+  "en": "tire flip",
+  "es": "Volteo de neumático",
+  "method": "override"
+ },
+ {
+  "id": "0811",
+  "en": "trap bar deadlift",
+  "es": "Peso muerto con barra hexagonal",
+  "method": "phrase"
+ },
+ {
+  "id": "0814",
+  "en": "triceps dip",
+  "es": "Fondos de tríceps",
+  "method": "phrase"
+ },
+ {
+  "id": "0812",
+  "en": "triceps dip (bench leg)",
+  "es": "Fondos de tríceps (piernas en banco)",
+  "method": "override"
+ },
+ {
+  "id": "0813",
+  "en": "triceps dip (between benches)",
+  "es": "Fondos de tríceps (entre bancos)",
+  "method": "override"
+ },
+ {
+  "id": "0815",
+  "en": "triceps dips floor",
+  "es": "Fondos de tríceps en el piso",
+  "method": "override"
+ },
+ {
+  "id": "0816",
+  "en": "triceps press",
+  "es": "Press de tríceps",
+  "method": "phrase"
+ },
+ {
+  "id": "0817",
+  "en": "triceps stretch",
+  "es": "Estiramiento de tríceps",
+  "method": "phrase"
+ },
+ {
+  "id": "0871",
+  "en": "tuck crunch",
+  "es": "Crunch con rodillas al pecho",
+  "method": "override"
+ },
+ {
+  "id": "0818",
+  "en": "twin handle parallel grip lat pulldown",
+  "es": "Jalón al pecho con agarre paralelo (doble manija)",
+  "method": "override"
+ },
+ {
+  "id": "1466",
+  "en": "twist hip lift",
+  "es": "Elevación de cadera con giro",
+  "method": "override"
+ },
+ {
+  "id": "2802",
+  "en": "twisted leg raise",
+  "es": "Elevación de piernas con giro",
+  "method": "override"
+ },
+ {
+  "id": "2801",
+  "en": "twisted leg raise (female)",
+  "es": "Elevación de piernas con giro (demo mujer)",
+  "method": "override"
+ },
+ {
+  "id": "3231",
+  "en": "two toe touch (male)",
+  "es": "Toque de puntas de pie doble",
+  "method": "override"
+ },
+ {
+  "id": "1365",
+  "en": "upper back stretch",
+  "es": "Estiramiento de espalda alta",
+  "method": "override"
+ },
+ {
+  "id": "1366",
+  "en": "upward facing dog",
+  "es": "Perro boca arriba (yoga)",
+  "method": "override"
+ },
+ {
+  "id": "3420",
+  "en": "v-sit on floor",
+  "es": "V-sit en el piso",
+  "method": "phrase"
+ },
+ {
+  "id": "0826",
+  "en": "vertical leg raise (on parallel bars)",
+  "es": "Elevación de piernas vertical (en paralelas)",
+  "method": "override"
+ },
+ {
+  "id": "2141",
+  "en": "walk elliptical cross trainer",
+  "es": "Caminata en elíptico",
+  "method": "override"
+ },
+ {
+  "id": "3655",
+  "en": "walking high knees lunge",
+  "es": "Estocada caminando con rodillas altas",
+  "method": "override"
+ },
+ {
+  "id": "1460",
+  "en": "walking lunge",
+  "es": "Estocada caminando",
+  "method": "phrase"
+ },
+ {
+  "id": "3666",
+  "en": "walking on incline treadmill",
+  "es": "Caminata en cinta inclinada",
+  "method": "override"
+ },
+ {
+  "id": "2311",
+  "en": "walking on stepmill",
+  "es": "Caminata en escalador",
+  "method": "override"
+ },
+ {
+  "id": "0830",
+  "en": "weighted bench dip",
+  "es": "Fondos en banco con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "2987",
+  "en": "weighted close grip chin-up on dip cage",
+  "es": "Dominada supina con agarre cerrado con peso extra (en jaula de fondos)",
+  "method": "override"
+ },
+ {
+  "id": "3643",
+  "en": "weighted cossack squats (male)",
+  "es": "Sentadillas cossack con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0832",
+  "en": "weighted crunch",
+  "es": "Crunch abdominal con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "3670",
+  "en": "weighted decline sit-up",
+  "es": "Abdominal completo (sit-up) en banco declinado con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0833",
+  "en": "weighted donkey calf raise",
+  "es": "Elevación de talones estilo burro con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "1310",
+  "en": "weighted drop push up",
+  "es": "Flexión de brazos con caída con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "2135",
+  "en": "weighted front plank",
+  "es": "Plancha al frente con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0834",
+  "en": "weighted front raise",
+  "es": "Elevación frontal con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0866",
+  "en": "weighted hanging leg-hip raise",
+  "es": "Elevación de piernas y cadera colgado con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0835",
+  "en": "weighted hyperextension (on stability ball)",
+  "es": "Hiperextensión con peso extra (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "3641",
+  "en": "weighted kneeling step with swing",
+  "es": "Paso de rodillas con swing con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "3644",
+  "en": "weighted lunge with swing",
+  "es": "Estocada con swing con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "3286",
+  "en": "weighted muscle up",
+  "es": "Muscle up con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "3312",
+  "en": "weighted muscle up (on bar)",
+  "es": "Muscle up con peso extra (en barra)",
+  "method": "override"
+ },
+ {
+  "id": "3290",
+  "en": "weighted one hand pull up",
+  "es": "Dominada a una mano con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0840",
+  "en": "weighted overhead crunch (on stability ball)",
+  "es": "Crunch abdominal sobre la cabeza con peso extra (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0841",
+  "en": "weighted pull-up",
+  "es": "Dominada con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0844",
+  "en": "weighted round arm",
+  "es": "Círculos de brazos con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0846",
+  "en": "weighted russian twist",
+  "es": "Giro ruso con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0845",
+  "en": "weighted russian twist (legs up)",
+  "es": "Giro ruso con peso extra (piernas elevadas)",
+  "method": "override"
+ },
+ {
+  "id": "2371",
+  "en": "weighted russian twist v. 2",
+  "es": "Giro ruso con peso extra (v2)",
+  "method": "phrase"
+ },
+ {
+  "id": "0847",
+  "en": "weighted seated bicep curl (on stability ball)",
+  "es": "Curl de bíceps sentado con peso extra (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0849",
+  "en": "weighted seated twist (on stability ball)",
+  "es": "Giro de torso sentado con peso extra (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0850",
+  "en": "weighted side bend (on stability ball)",
+  "es": "Flexión lateral de torso con peso extra (sobre pelota de estabilidad)",
+  "method": "phrase"
+ },
+ {
+  "id": "0851",
+  "en": "weighted sissy squat",
+  "es": "Sentadilla sissy con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0852",
+  "en": "weighted squat",
+  "es": "Sentadilla con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0853",
+  "en": "weighted standing curl",
+  "es": "Curl de pie con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "0854",
+  "en": "weighted standing hand squeeze",
+  "es": "Apriete de mano de pie con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "3313",
+  "en": "weighted straight bar dip",
+  "es": "Fondos en barra recta con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "3642",
+  "en": "weighted stretch lunge",
+  "es": "Estocada con estiramiento con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0856",
+  "en": "weighted svend press",
+  "es": "Press Svend con peso extra",
+  "method": "phrase"
+ },
+ {
+  "id": "1754",
+  "en": "weighted three bench dips",
+  "es": "Fondos entre tres bancos con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "1755",
+  "en": "weighted tricep dips",
+  "es": "Fondos de tríceps con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "1767",
+  "en": "weighted triceps dip on high parallel bars",
+  "es": "Fondos de tríceps en paralelas altas con peso extra",
+  "method": "override"
+ },
+ {
+  "id": "0857",
+  "en": "wheel rollerout",
+  "es": "Rollout con rueda abdominal",
+  "method": "phrase"
+ },
+ {
+  "id": "3637",
+  "en": "wheel run",
+  "es": "Carrera con rueda abdominal",
+  "method": "phrase"
+ },
+ {
+  "id": "1429",
+  "en": "wide grip pull-up",
+  "es": "Dominada con agarre ancho",
+  "method": "phrase"
+ },
+ {
+  "id": "1367",
+  "en": "wide grip rear pull-up",
+  "es": "Dominada posterior con agarre ancho",
+  "method": "override"
+ },
+ {
+  "id": "1311",
+  "en": "wide hand push up",
+  "es": "Flexión de brazos con manos anchas",
+  "method": "override"
+ },
+ {
+  "id": "2363",
+  "en": "wide-grip chest dip on high parallel bars",
+  "es": "Fondos para pecho con agarre ancho en paralelas altas",
+  "method": "override"
+ },
+ {
+  "id": "0858",
+  "en": "wind sprints",
+  "es": "Sprints con viento (wind sprints)",
+  "method": "override"
+ },
+ {
+  "id": "1604",
+  "en": "world greatest stretch",
+  "es": "El mejor estiramiento del mundo",
+  "method": "override"
+ },
+ {
+  "id": "1428",
+  "en": "wrist circles",
+  "es": "Círculos de muñeca",
+  "method": "override"
+ },
+ {
+  "id": "0859",
+  "en": "wrist rollerer",
+  "es": "Rodillo de muñeca",
+  "method": "override"
+ }
+]
