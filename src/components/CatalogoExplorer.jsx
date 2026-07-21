@@ -37,6 +37,7 @@ import {
   subirVideo,
   validarCodigoDisponible,
   renombrarCodigoEjercicio,
+  renombrarCategoriaCatalogo,
   crearEjercicioCatalogo,
   crearPlanPredeterminado,
 } from "../../services/supabase.js";
@@ -46,6 +47,28 @@ const PAGE = 60;
 const labelCat = (v) => labels.categoria[v] || v;
 const labelEq = (v) => labels.equipment[v] || v;
 const labelTg = (v) => labels.target[v] || v;
+
+// Ronda 17 (punto 3) — BUG REAL encontrado investigando "sigue andando muy
+// mal": el filtro "★ Principales DI" solo chequeaba `!!e.codigo_di` (tener
+// ALGÚN código). Eso funcionaba cuando codigo_di solo existía en los ~50
+// ejercicios curados a mano por Lucas (ronda 13) — pero la migración 020
+// (ronda "cont.5", mismo día) le puso código a TODO el catálogo (1.343
+// filas) y, peor, REUTILIZÓ los mismos 7 prefijos curados (PH/RO/PE/CA/
+// JA/GL/CO) para el backfill mecánico del resto (ver
+// data/catalogo-codigos-prefijos.md). Resultado verificado en Supabase:
+// el filtro dejaba pasar 1.334 de 1.343 ejercicios como "Principales DI"
+// — el filtro curado quedó roto, indistinguible de "todo el catálogo".
+// Fix: los ~50 reales son SOLO los rangos numéricos originales documentados
+// en catalogo-codigos-prefijos.md (ej. GL001-GL007, no GL008-GL142 que son
+// backfill). Hardcodeado a propósito: es un rango histórico congelado, "el
+// backfill nunca pisa estos códigos" — no depende de datos que cambien.
+const RANGOS_PRINCIPALES_DI = { PH: 9, RO: 9, PE: 5, CA: 7, JA: 6, GL: 7, CO: 7 };
+const esPrincipalDI = (e) => {
+  const m = (e.codigo_di || "").match(/^([A-Z]{2})(\d{3})$/);
+  if (!m) return false;
+  const max = RANGOS_PRINCIPALES_DI[m[1]];
+  return !!max && parseInt(m[2], 10) <= max;
+};
 
 function Chip({ activo, onClick, children }) {
   return (
@@ -68,7 +91,13 @@ function Chip({ activo, onClick, children }) {
   );
 }
 
-function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe }) {
+// Ronda 17 (punto 3): `onRename(valorViejo)` opcional — SOLO se pasa para
+// el filtro de Categoría. Cuando está, cada chip suma un lápiz chico al
+// lado para renombrar esa categoría (propaga a TODOS los ejercicios que la
+// tengan — ver renombrarCategoriaCatalogo). Equipamiento/Músculo/Código NO
+// lo reciben: esos valores vienen del dataset y no tiene sentido
+// renombrarlos en masa desde acá.
+function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename }) {
   const [expandido, setExpandido] = useState(false);
   const LIMITE = 12;
   const mostrar = expandido ? valores : valores.slice(0, LIMITE);
@@ -78,11 +107,26 @@ function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe }) {
         {titulo}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-        {mostrar.map((v) => (
-          <Chip key={v} activo={seleccion.has(v)} onClick={() => onToggle(v)}>
-            {labelDe(v)}
-          </Chip>
-        ))}
+        {mostrar.map((v) =>
+          onRename ? (
+            <span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+              <Chip activo={seleccion.has(v)} onClick={() => onToggle(v)}>
+                {labelDe(v)}
+              </Chip>
+              <button
+                onClick={() => onRename(v)}
+                title={`Renombrar categoría "${labelDe(v)}"`}
+                style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", fontSize: 11, padding: "0 2px", lineHeight: 1 }}
+              >
+                ✎
+              </button>
+            </span>
+          ) : (
+            <Chip key={v} activo={seleccion.has(v)} onClick={() => onToggle(v)}>
+              {labelDe(v)}
+            </Chip>
+          )
+        )}
         {valores.length > LIMITE && !expandido && (
           <Chip activo={false} onClick={() => setExpandido(true)}>
             +{valores.length - LIMITE} más
@@ -216,6 +260,7 @@ export default function CatalogoExplorer({
   const [fCat, setFCat] = useState(new Set());
   const [fEq, setFEq] = useState(new Set());
   const [fTg, setFTg] = useState(new Set());
+  const [fPre, setFPre] = useState(new Set()); // ronda 17: filtro por prefijo de código (GL/PH/RO/...)
   const [soloDI, setSoloDI] = useState(false);
   const [visibles, setVisibles] = useState(PAGE);
   const [hoverId, setHoverId] = useState(null);
@@ -253,6 +298,13 @@ export default function CatalogoExplorer({
   const categorias = useMemo(() => [...new Set((cat || []).map((e) => e.categoria).filter(Boolean))].sort((a, b) => labelCat(a).localeCompare(labelCat(b))), [cat]);
   const equipos = useMemo(() => [...new Set((cat || []).map((e) => e.equipment).filter(Boolean))].sort((a, b) => labelEq(a).localeCompare(labelEq(b))), [cat]);
   const targets = useMemo(() => [...new Set((cat || []).map((e) => e.target).filter(Boolean))].sort((a, b) => labelTg(a).localeCompare(labelTg(b))), [cat]);
+  // Ronda 17 (punto 3): prefijo de código = letras iniciales de codigo_di
+  // (ej. "GL007" → "GL"). Derivado dinámicamente de la tabla real, no
+  // hardcodeado — cubre tanto los ~50 Principales DI (PH/RO/PE/CA/JA/GL/CO)
+  // como los prefijos mecánicos que se aplicaron a todo el resto del
+  // catálogo (BI/TR/PA/AN/CD/CL/TZ/AD/SE/CU, ver ronda 16 punto 9).
+  const prefijoDe = (e) => (e.codigo_di || "").match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || "";
+  const prefijos = useMemo(() => [...new Set((cat || []).map(prefijoDe).filter(Boolean))].sort(), [cat]);
 
   const filtrados = useMemo(() => {
     if (!cat) return [];
@@ -261,20 +313,24 @@ export default function CatalogoExplorer({
       // Punto 4: en Principales (★ Principales DI) solo se listan los que
       // tienen media real (gif o video propio) — el resto queda en el
       // catálogo general pero no como opción utilizable para armar planes.
-      if (soloDI && !e.codigo_di) return false;
+      // Ronda 17 (punto 3): FIX — antes usaba !!e.codigo_di, que dejaba
+      // pasar 1.334/1.343 ejercicios (ver esPrincipalDI arriba). Ahora usa
+      // el rango curado real (los ~50 de la ronda 13).
+      if (soloDI && !esPrincipalDI(e)) return false;
       if (soloDI && !e.gif_url && !e.video) return false;
       if (fCat.size && !fCat.has(e.categoria)) return false;
       if (fEq.size && !fEq.has(e.equipment)) return false;
       if (fTg.size && !fTg.has(e.target)) return false;
+      if (fPre.size && !fPre.has(prefijoDe(e))) return false;
       if (qq) {
         const idx = `${e.nombre_es} ${e.nombre_en || ""} ${e.target_es || ""} ${e.equipment_es || ""} ${e.codigo_di || ""}`.toLowerCase();
         if (!idx.includes(qq)) return false;
       }
       return true;
     });
-  }, [cat, q, fCat, fEq, fTg, soloDI]);
+  }, [cat, q, fCat, fEq, fTg, fPre, soloDI]);
 
-  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, soloDI]);
+  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, soloDI]);
 
   const toggle = (setter) => (v) =>
     setter((prev) => {
@@ -287,8 +343,41 @@ export default function CatalogoExplorer({
     ...[...fCat].map((v) => ({ v, l: labelCat(v), del: () => toggle(setFCat)(v) })),
     ...[...fEq].map((v) => ({ v, l: labelEq(v), del: () => toggle(setFEq)(v) })),
     ...[...fTg].map((v) => ({ v, l: labelTg(v), del: () => toggle(setFTg)(v) })),
+    ...[...fPre].map((v) => ({ v, l: "Código " + v, del: () => toggle(setFPre)(v) })),
     ...(soloDI ? [{ v: "di", l: "Principales DI", del: () => setSoloDI(false) }] : []),
   ];
+
+  // Ronda 17 (punto 3): "Todos los ejercicios" — resetea TODOS los filtros
+  // (categoría/equipo/músculo/código/★ Principales DI/búsqueda) para
+  // mostrar el catálogo completo sin acotar. Antes el único control
+  // parecido en la sidebar era "🧘 Rutinas propias (movilidad/elástico/
+  // calor)", que en realidad abre una biblioteca SEPARADA (movilidad/
+  // calor, tabla distinta) — no "todo el catálogo". Se deja ese botón con
+  // un nombre que describe lo que hace de verdad y se agrega este chip
+  // nuevo para lo que Lucas pidió literalmente.
+  const hayFiltrosActivos = fCat.size > 0 || fEq.size > 0 || fTg.size > 0 || fPre.size > 0 || soloDI || q.trim() !== "";
+  const limpiarFiltros = () => {
+    setFCat(new Set()); setFEq(new Set()); setFTg(new Set()); setFPre(new Set()); setSoloDI(false); setQ("");
+  };
+
+  // Ronda 17 (punto 3): renombrar una categoría — se propaga en la base a
+  // TODOS los ejercicios que la tenían (mass UPDATE), y acá en memoria
+  // también, así el grid/sidebar quedan en sync sin recargar todo el
+  // catálogo (1.344 filas).
+  const renombrarCategoria = async (vieja) => {
+    const actual = labelCat(vieja);
+    const nueva = window.prompt(`Nuevo nombre para la categoría "${actual}" (se aplica a TODOS los ejercicios que la tengan):`, actual);
+    if (!nueva || !nueva.trim() || nueva.trim() === actual) return;
+    const nuevaLimpia = nueva.trim();
+    const ok = await renombrarCategoriaCatalogo(vieja, nuevaLimpia);
+    if (!ok) { showToast && showToast("Error renombrando la categoría — revisá la consola"); return; }
+    setCat((prev) => (prev || []).map((e) => (e.categoria === vieja ? { ...e, categoria: nuevaLimpia, editado: true } : e)));
+    setFCat((prev) => {
+      if (!prev.has(vieja)) return prev;
+      const s = new Set(prev); s.delete(vieja); s.add(nuevaLimpia); return s;
+    });
+    showToast && showToast(`Categoría renombrada a "${nuevaLimpia}" ✓`);
+  };
 
   // Punto 4: músculos/tags editables con "predeterminado". Si el ejercicio
   // todavía no tiene las columnas nuevas (musculos/tags, migración 017)
@@ -308,6 +397,14 @@ export default function CatalogoExplorer({
       instrucciones_es: e.instrucciones_es || "",
       video: e.video || "",
       codigo_di: e.codigo_di || "",
+      // Ronda 17 (punto 3): antes no era editable. Se muestra la ETIQUETA
+      // en español (ej. "Cintura / Core"), no el valor crudo del dataset
+      // (ej. "waist") — guardarDetalle compara contra categoria_original
+      // para no reescribir 158 filas con "waist" a "Cintura / Core" solo
+      // por abrir y guardar sin tocar este campo (fragmentaría el filtro
+      // en dos chips que en realidad son la misma categoría).
+      categoria: labelCat(e.categoria || ""),
+      categoria_original: e.categoria || "",
       musculos: musculosIniciales,
       musculo_default: e.musculo_default || e.target_es || musculosIniciales[0] || "",
       tags: tagsIniciales,
@@ -322,7 +419,7 @@ export default function CatalogoExplorer({
   const abrirNuevo = () => {
     setCreando(true);
     setDetalle({ id: null, custom: true });
-    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", musculos: [], musculo_default: "", tags: [], tag_default: "" });
+    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", categoria: "", musculos: [], musculo_default: "", tags: [], tag_default: "" });
     setCodigoError("");
   };
 
@@ -340,6 +437,17 @@ export default function CatalogoExplorer({
     }
     setCodigoError("");
     setGuardando(true);
+    // Ronda 17 (punto 3): el input de categoría muestra la ETIQUETA en
+    // español (labelCat), no el valor crudo. Si Lucas no tocó el campo,
+    // el texto sigue siendo exactamente labelCat(categoria_original) —
+    // en ese caso se guarda el valor crudo de siempre (ej. "waist"), no
+    // la etiqueta, para no fragmentar la categoría en dos chips distintos
+    // que en el fondo son lo mismo. Si sí la cambió, se guarda el texto
+    // tal cual como la nueva categoría cruda de ESTE ejercicio (no se
+    // propaga a otros — para eso está "renombrar categoría" en el sidebar).
+    const categoriaTexto = (form.categoria || "").trim();
+    const categoriaSinTocar = categoriaTexto === labelCat(form.categoria_original || "");
+    const categoriaFinal = categoriaSinTocar ? (form.categoria_original || null) : (categoriaTexto || null);
     // target_es/equipment_es (los campos que usa la card del grid y el
     // dataset original) se mantienen en sync con el músculo/tag
     // predeterminado — así la tarjeta no queda mostrando un dato viejo
@@ -348,6 +456,7 @@ export default function CatalogoExplorer({
       nombre_es: form.nombre_es.trim(),
       instrucciones_es: form.instrucciones_es,
       codigo_di: codigoLimpio || null,
+      categoria: categoriaFinal, // ronda 17 (punto 3)
       musculos: form.musculos,
       musculo_default: form.musculo_default,
       tags: form.tags,
@@ -460,31 +569,55 @@ export default function CatalogoExplorer({
           </button>
         )}
       </div>
-      <div style={{ marginBottom: 14 }}>
+      {/* Ronda 17 (punto 3): "Todos los ejercicios" — resetea todos los
+          filtros y muestra el catálogo completo (1.344) sin acotar. Antes
+          Lucas confundía esto con el botón "Rutinas propias (movilidad)"
+          de más abajo, que en realidad abre otra biblioteca separada. */}
+      <div style={{ marginBottom: 14, display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <Chip activo={!hayFiltrosActivos} onClick={limpiarFiltros}>Todos los ejercicios</Chip>
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
       </div>
       {/* Punto 4: único lugar donde se sube media propia — crear un
           ejercicio nuevo, no editar uno existente. Al lado, el botón que
           reemplaza a la vieja pantalla "Armador" — abre el carrito lateral
-          sin salir de la Biblioteca. */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), flex: 1, fontWeight: 800 }}>
+          sin salir de la Biblioteca.
+          Ronda 17 (punto 3): se solapaban — smallBtn() fuerza
+          whiteSpace:"nowrap" y flex:1 con contenido nowrap NO se achica
+          por debajo de su ancho natural (min-width:auto por default en
+          flex items), así que el segundo botón desbordaba el contenedor y
+          quedaba tapado/cortado en vez de compartir la fila. Fix: minWidth:0
+          para que sí puedan achicarse, texto que puede wrappear
+          (whiteSpace:"normal") como red de seguridad, y flexWrap en el
+          contenedor — si de verdad no entran lado a lado, se apilan en dos
+          líneas en vez de solaparse. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+        <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), flex: "1 1 140px", minWidth: 0, whiteSpace: "normal", textAlign: "center", fontWeight: 800 }}>
           ＋ Crear ejercicio nuevo
         </button>
         <button
           onClick={() => setArmadorAbierto(true)}
           disabled={armadorAbierto}
-          style={{ ...smallBtn(armadorAbierto ? S.green : S.white), flex: 1, fontWeight: 800, opacity: armadorAbierto ? 0.6 : 1, cursor: armadorAbierto ? "default" : "pointer" }}
+          style={{ ...smallBtn(armadorAbierto ? S.green : S.white), flex: "1 1 140px", minWidth: 0, whiteSpace: "normal", textAlign: "center", fontWeight: 800, opacity: armadorAbierto ? 0.6 : 1, cursor: armadorAbierto ? "default" : "pointer" }}
         >
           {armadorAbierto ? "✓ Armando plan" : "＋ Crear plan de entrenamiento"}
         </button>
       </div>
-      <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} />
+      <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} onRename={renombrarCategoria} />
       <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} />
       <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} />
+      {/* Ronda 17 (punto 3): filtro nuevo por prefijo de código (GL/PH/RO/
+          BI/TR/...), derivado dinámicamente de codigo_di — no hardcodeado. */}
+      <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} />
+      {/* Ronda 17 (punto 3): renombrado — este botón NO es un filtro del
+          catálogo, abre una biblioteca completamente aparte (movilidad /
+          activación con elástico / entrada en calor, tabla
+          biblioteca_ejercicios) — el nombre viejo ("Rutinas propias
+          (movilidad)") se prestaba a confundirlo con un filtro "mostrar
+          todo". El filtro real "mostrar todo" es el chip "Todos los
+          ejercicios" de arriba. */}
       {onAbrirPropia && (
         <button onClick={onAbrirPropia} style={{ ...smallBtn(S.gray), width: "100%", marginTop: 8 }}>
-          🧘 Rutinas propias (movilidad / elástico / calor)
+          🧘 Otra biblioteca: Movilidad / Elástico / Calor
         </button>
       )}
     </div>
@@ -688,6 +821,23 @@ export default function CatalogoExplorer({
             {detalle.nombre_en && (
               <div style={{ fontSize: 10, color: S.lgray, marginTop: -6, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
             )}
+            {/* Ronda 17 (punto 3): categoría editable — antes NO existía en
+                este form, así que era imposible cambiarla desde acá. Con
+                datalist de sugerencias (categorías ya existentes) pero
+                texto libre: escribir una categoría nueva alcanza para que
+                aparezca sola en el filtro del sidebar (derivado
+                dinámicamente de los valores distintos en la tabla). */}
+            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Categoría</div>
+            <input
+              value={form.categoria}
+              onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
+              placeholder="ej. Espalda, Pecho, Core…"
+              list="di-catalogo-categorias"
+              style={{ ...inp, marginBottom: 10 }}
+            />
+            <datalist id="di-catalogo-categorias">
+              {categorias.map((v) => <option key={v} value={labelCat(v)} />)}
+            </datalist>
             <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
             <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 12, lineHeight: 1.45 }} />
             {/* músculos editables, con ★ predeterminado (punto 4) */}

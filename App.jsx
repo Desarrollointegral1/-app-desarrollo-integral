@@ -130,36 +130,45 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
       style={{
         display: "flex",
         alignItems: "center",
+        // Ronda 17 (punto 4): ícono+wordmark quedan como grupo propio a la
+        // izquierda, tema+Salir como grupo propio — justifyContent
+        // space-between los separa y empuja el segundo grupo al borde
+        // derecho real (antes quedaban pegados al wordmark, con "aire
+        // muerto" entre ellos y el borde de la pantalla).
+        justifyContent: "space-between",
         gap: "clamp(3px, 1.5vw, 8px)",
-        padding: "3px 8px 3px 2px",
+        padding: "3px 4px 3px 2px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 10,
       }}
     >
-      {/* 1) Ícono, pegado arriba/izquierda */}
-      <img
-        src={ICON}
-        alt="DI"
-        style={{ flexShrink: 0, marginLeft: -2, width: "clamp(72px, 22vw, 110px)", height: "auto", display: "block" }}
-      />
-      {/* 2) "DESARROLLO INTEGRAL" */}
-      <DIWordmark
-        soloDesarrollo
-        width={200}
-        style={{ color: S.white, width: "clamp(70px, 26vw, 200px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
-      />
-      {/* 3) Modo · 4) Salir — pegados a continuación del título, sin
-          empujarse al borde derecho (nada de marginLeft:auto). */}
-      <button
-        onClick={toggleTheme}
-        title={darkMode ? "Modo claro" : "Modo oscuro"}
-        style={{ ...btnBase, padding: "5px 8px", fontSize: 12 }}
-      >
-        {darkMode ? "☀️" : "🌙"}
-      </button>
-      <button onClick={onSalir} style={{ ...btnBase, padding: "5px 9px", fontSize: 10 }}>
-        {salirLabel}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1.5vw, 8px)", minWidth: 0, flex: 1 }}>
+        {/* 1) Ícono, pegado arriba/izquierda — ronda 17: +30% (110→143) */}
+        <img
+          src={ICON}
+          alt="DI"
+          style={{ flexShrink: 0, marginLeft: -2, width: "clamp(94px, 28.6vw, 143px)", height: "auto", display: "block" }}
+        />
+        {/* 2) "DESARROLLO INTEGRAL" — ronda 17: +30% (200→260) */}
+        <DIWordmark
+          soloDesarrollo
+          width={260}
+          style={{ color: S.white, width: "clamp(91px, 34vw, 260px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
+        />
+      </div>
+      {/* 3) Modo · 4) Salir — grupo pegado al borde derecho (ronda 17). */}
+      <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1.5vw, 8px)", flexShrink: 0 }}>
+        <button
+          onClick={toggleTheme}
+          title={darkMode ? "Modo claro" : "Modo oscuro"}
+          style={{ ...btnBase, padding: "5px 8px", fontSize: 12 }}
+        >
+          {darkMode ? "☀️" : "🌙"}
+        </button>
+        <button onClick={onSalir} style={{ ...btnBase, padding: "5px 9px", fontSize: 10 }}>
+          {salirLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1901,8 +1910,16 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
   );
 }
 // ── DIARIO ────────────────────────────────────────────────────────────
-function Diario({ entradas, onAdd }) {
+// Ronda 17 (punto 4): las entradas ahora son editables — texto Y fecha (no
+// solo el texto). `onEdit(idxOriginal, patch)` recibe el índice de la
+// entrada en el array SIN ordenar (se conserva al ordenar acá abajo con
+// .map antes del .sort, así el índice sigue apuntando a la entrada
+// correcta en al.diario del lado de App()).
+function Diario({ entradas, onAdd, onEdit }) {
   const [texto, setTexto] = useState("");
+  const [editIdx, setEditIdx] = useState(null);
+  const [editFecha, setEditFecha] = useState("");
+  const [editTexto, setEditTexto] = useState("");
   const MAX = 140;
   const guardar = () => {
     if (!texto.trim()) return;
@@ -1913,6 +1930,19 @@ function Diario({ entradas, onAdd }) {
     const conHora = `${hoy()} ${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
     onAdd({ fecha: conHora, texto: texto.trim() });
     setTexto("");
+  };
+  const empezarEdicion = (idxOriginal, entrada) => {
+    setEditIdx(idxOriginal);
+    setEditFecha((entrada.fecha || hoy()).slice(0, 10));
+    setEditTexto(entrada.texto || "");
+  };
+  const guardarEdicion = () => {
+    if (editIdx == null || !editTexto.trim() || !onEdit) return;
+    const original = entradas[editIdx] || {};
+    // Conserva la hora original si la tenía (solo se edita la fecha/texto).
+    const hora = original.fecha && String(original.fecha).length > 10 ? String(original.fecha).slice(10) : "";
+    onEdit(editIdx, { fecha: (editFecha || hoy()) + hora, texto: editTexto.trim() });
+    setEditIdx(null);
   };
   return (
     <div>
@@ -1957,24 +1987,69 @@ function Diario({ entradas, onAdd }) {
           <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavia</div>
         </div>
       ) : (
-        [...entradas]
-          .sort((a, b) => b.fecha.localeCompare(a.fecha))
-          .map((e, i) => (
-            <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-              {" "}
-              <div style={{ color: S.lgray, fontSize: 11, marginBottom: 4 }}>
-                {e.fecha.slice(0, 10)}
-                {e.fecha.length > 10 && <span style={{ color: S.green, fontWeight: 700 }}> · {e.fecha.slice(11)} hs</span>}
-              </div>{" "}
-              <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
-              {e.respuesta && (
-                <div style={{ marginTop: 8, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
-                  <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
-                  <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{e.respuesta}</div>
+        entradas
+          .map((e, i) => ({ e, i })) // conserva el índice ORIGINAL antes de ordenar
+          .sort((a, b) => b.e.fecha.localeCompare(a.e.fecha))
+          .map(({ e, i }) =>
+            editIdx === i ? (
+              <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
+                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Fecha</div>
+                <input
+                  type="date"
+                  value={editFecha}
+                  max={hoy()}
+                  onChange={(ev) => setEditFecha(ev.target.value)}
+                  style={{ ...inp, marginBottom: 8, width: "auto" }}
+                />
+                <textarea
+                  value={editTexto}
+                  onChange={(ev) => setEditTexto(ev.target.value.slice(0, MAX))}
+                  rows={3}
+                  style={{ ...inp, resize: "none", marginBottom: 6 }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 11, color: editTexto.length > 120 ? S.red : S.lgray }}>{editTexto.length}/{MAX}</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setEditIdx(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={guardarEdicion}
+                      disabled={!editTexto.trim()}
+                      style={{ background: editTexto.trim() ? S.white : S.card2, color: editTexto.trim() ? S.bg : S.lgray, border: "none", borderRadius: 6, padding: "7px 14px", fontWeight: 900, fontSize: 12, cursor: editTexto.trim() ? "pointer" : "default" }}
+                    >
+                      Guardar
+                    </button>
+                  </div>
                 </div>
-              )}{" "}
-            </div>
-          ))
+              </div>
+            ) : (
+              <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
+                {" "}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                  <div style={{ color: S.lgray, fontSize: 11 }}>
+                    {e.fecha.slice(0, 10)}
+                    {e.fecha.length > 10 && <span style={{ color: S.green, fontWeight: 700 }}> · {e.fecha.slice(11)} hs</span>}
+                  </div>
+                  {onEdit && (
+                    <button
+                      onClick={() => empezarEdicion(i, e)}
+                      style={{ background: "transparent", border: "none", color: S.gray, fontSize: 11, cursor: "pointer", textDecoration: "underline", padding: 0, flexShrink: 0 }}
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>{" "}
+                <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
+                {e.respuesta && (
+                  <div style={{ marginTop: 8, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
+                    <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
+                    <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{e.respuesta}</div>
+                  </div>
+                )}{" "}
+              </div>
+            )
+          )
       )}{" "}
     </div>
   );
@@ -3798,25 +3873,22 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           Fila 1: logo + título, todo en una sola línea horizontal.
           Fila 2 (renglón propio): los botones de acción (4 desde la
           ronda 16, punto 4 — se sacó "🖥 Armador" del header). */}
-      <div style={{ padding: "16px 16px 0", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, minWidth: 0 }}>
-          <img src={ICON} width={24} height={24} alt="DI" style={{ opacity: 0.85, flexShrink: 0 }} />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 6,
-              minWidth: 0,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ color: S.white, fontWeight: 800, fontSize: "clamp(11px, 3.4vw, 14px)", letterSpacing: 1.2, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
+      {/* Ronda 17 (punto 2): "DESARROLLO INTEGRAL" pasa a ser la pieza
+          protagonista del header (antes era "Panel Admin" el texto grande y
+          el wordmark quedaba chico, gris, sin la fuente de marca) — mismo
+          criterio tipográfico que el login/header del alumno: FONT_DISPLAY
+          para el wordmark, ícono más grande (24→32). "Panel Admin" pasa a
+          ser el eyebrow chico arriba. */}
+      <div style={{ padding: "16px 16px 0", marginBottom: 14, borderBottom: "1px solid " + S.border, paddingBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, minWidth: 0 }}>
+          <img src={ICON} width={32} height={32} alt="DI" style={{ opacity: 0.9, flexShrink: 0 }} />
+          <div style={{ minWidth: 0, overflow: "hidden" }}>
+            <div style={{ color: S.gray, fontWeight: 700, fontSize: "clamp(9px, 2.4vw, 11px)", letterSpacing: 1.5, textTransform: "uppercase" }}>
               Panel Admin
-            </span>
-            <span style={{ color: S.gray, fontSize: "clamp(9px, 2.6vw, 11px)", letterSpacing: 1, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis" }}>
-              · Desarrollo Integral
-            </span>
+            </div>
+            <div style={{ color: S.white, fontWeight: 800, fontSize: "clamp(15px, 4.6vw, 20px)", letterSpacing: 0.8, textTransform: "uppercase", fontFamily: FONT_DISPLAY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.15 }}>
+              Desarrollo Integral
+            </div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
@@ -3840,7 +3912,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               textOverflow: "ellipsis",
             }}
           >
-            🏋️ Entrenador
+            🏋 Modo Entrenador
           </button>
           {/* Ronda 16 (punto 4): el botón "🖥 Armador" (pantalla aparte) se
               sacó — esa función ahora vive DENTRO de "📚 Biblioteca de
@@ -3907,28 +3979,31 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           Configuración — Lucas marcó que aparecía mezclado arriba de
           "Crear admin | Comunicados". Se excluye igual que los 3 tabs de
           abajo. */}
+      {/* Ronda 17 (punto 2): el header, la navegación (Biblioteca +
+          Dashboard/Alumno) y el buscador quedaban visualmente pegados, como
+          un solo bloque confuso — cada uno pasa a ser un "módulo" separado
+          con su propia card (fondo + borde), no solo texto suelto sobre el
+          fondo de la pantalla. El header ya tiene su borderBottom (arriba). */}
       {sec !== "config" && (
-      <div style={{ padding: "0 16px", marginBottom: 14 }}>
+      <div style={{ margin: "0 16px 14px", background: S.card2, border: "1px solid " + S.border, borderRadius: 10, padding: 10 }}>
         <button
           onClick={() => setShowCatalogo(true)}
-          style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer" }}
+          style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 8 }}
         >
           📚 Biblioteca de ejercicios
         </button>
-      </div>
-      )}{" "}
-      {/* 1) Pestañas principales */}
-      {sec !== "config" && (
-      <div style={{ display: "flex", gap: 4, padding: "0 16px", marginBottom: 10 }}>
-        {secBtn("Dashboard", "dashboard")}
-        {secBtn("Alumno", "alumnos")}
+        <div style={{ display: "flex", gap: 4 }}>
+          {secBtn("Dashboard", "dashboard")}
+          {secBtn("Alumno", "alumnos")}
+        </div>
       </div>
       )}{" "}
       {/* 2) Selector de alumno — SOLO en el Dashboard (2026-07-21): adentro
           de la ficha el buscador y la fila con el nombre quedaban duplicados;
-          para cambiar de alumno se vuelve al Dashboard. */}
+          para cambiar de alumno se vuelve al Dashboard. Módulo propio
+          (ronda 17, punto 2) separado del bloque de navegación de arriba. */}
       {sec === "dashboard" && (
-        <div style={{ padding: "0 16px" }}>
+        <div style={{ margin: "0 16px 14px", background: S.card, border: "1px solid " + S.border, borderRadius: 10, padding: 10 }}>
           <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
         </div>
       )}{" "}
@@ -5207,7 +5282,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         <CatalogoExplorer
           onClose={() => setShowCatalogo(false)}
           showToast={showToast}
-          onAbrirPropia={() => { setShowCatalogo(false); setShowBiblioteca(true); }}
+          // Ronda 17 (punto 3, navegación): antes cerraba el catálogo
+          // (setShowCatalogo(false)) al abrir la biblioteca propia — al
+          // cerrar esta última, el usuario caía en el Dashboard (home) en
+          // vez de volver al catálogo de donde vino. El catálogo queda
+          // MONTADO debajo (su z-index es 100, el de BibliotecaScreen es
+          // 220 — ya se ve por encima sin pisarlo) y reaparece solo al
+          // cerrar BibliotecaScreen, respetando la pantalla anterior.
+          onAbrirPropia={() => setShowBiblioteca(true)}
         />
       )}
     </div>
@@ -5259,8 +5341,10 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         // Ronda 16 (punto 1): Lucas marcó que quedaba mucho aire muerto
         // arriba del logo — bajado de 8vh a un tope chico con clamp para
         // que no vuelva a crecer en pantallas altas.
+        // Ronda 17 (punto 1): Lucas insistió — todavía quedaba mucho aire
+        // arriba del logo. Bajado al mínimo real (casi pegado al borde).
         justifyContent: "flex-start",
-        paddingTop: "clamp(12px, 2.5vh, 28px)",
+        paddingTop: "clamp(2px, 0.8vh, 10px)",
         paddingLeft: 24,
         paddingRight: 24,
         paddingBottom: 24,
@@ -5298,12 +5382,14 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           (soloDesarrollo) y el subtítulo se arma como texto HTML aparte,
           con PP Formula (ya cargada globalmente en index.html) en bold
           condensado imitando el tracking de marca. */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 28 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 16 }}>
         <Logo3D size={600} />
+        {/* Ronda 17 (punto 1): gap logo→wordmark bajado de 10 a 2 — Lucas
+            pidió sacar el aire "entre el logo y DESARROLLO INTEGRAL". */}
         <DIWordmark
           soloDesarrollo
           width={480}
-          style={{ color: S.white, marginTop: 10, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
+          style={{ color: S.white, marginTop: 2, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
         />
         <div
           style={{
@@ -5745,6 +5831,16 @@ export default function App() {
   const [tab, setTab] = useState("Movilidad");
   const [tabGroup, setTabGroup] = useState("entrenamiento");
   const [diaIdx, setDiaIdx] = useState(0);
+  // Ronda 17 (punto 4): pills de días (debajo del nombre del alumno)
+  // clickeables → saltan directo a Entrenamiento → Principales con el día
+  // tocado. Token simple (se incrementa en cada click) para que
+  // PlanDelDia detecte el pedido vía useEffect y fuerce seccion="principales"
+  // (su propio estado interno, no controlado desde acá).
+  const [irPrincipalesToken, setIrPrincipalesToken] = useState(0);
+  // Ronda 17 (punto 4): fecha editable en "Marcar presente" — antes
+  // forzaba siempre hoy(); ahora hay un selector con hoy como default,
+  // para poder cargar una asistencia de un día anterior que se olvidó.
+  const [fechaAsistencia, setFechaAsistencia] = useState(hoy());
   const [pesos, setPesos] = useState({});
   const [historiales, setHistoriales] = useState({});
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -5921,6 +6017,17 @@ export default function App() {
   };
   const addDiario = (entrada) => {
     const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, diario: [...(a.diario || []), entrada] } : a));
+    setAlumnos(u);
+    setAlumno(u.find((a) => a.id === alumno.id));
+  };
+  // Ronda 17 (punto 4): editar una entrada de diario ya escrita (texto Y
+  // fecha, no solo el texto). Identifica la entrada por su índice en el
+  // array SIN ordenar (Diario.jsx ordena para mostrar, pero manda el
+  // índice real de al.diario junto con el patch).
+  const editarDiario = (idx, patch) => {
+    const u = alumnos.map((a) =>
+      a.id === alumno.id ? { ...a, diario: (a.diario || []).map((e, i) => (i === idx ? { ...e, ...patch } : e)) } : a
+    );
     setAlumnos(u);
     setAlumno(u.find((a) => a.id === alumno.id));
   };
@@ -6145,21 +6252,43 @@ export default function App() {
               <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>{" "}
               {al.horarios && al.horarios.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
-                  {al.horarios.map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        background: S.card2,
-                        border: "1px solid " + S.border,
-                        borderRadius: 5,
-                        padding: "2px 8px",
-                        fontSize: 10,
-                        color: S.gray,
-                      }}
-                    >
-                      <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
-                    </div>
-                  ))}
+                  {al.horarios.map((h, i) => {
+                    // Ronda 17 (punto 4): pill clickeable → mismo atajo que
+                    // elegir el día a mano en el selector de Principales:
+                    // busca el día del plan cuyo nombre matchea el horario,
+                    // lo selecciona (diaIdx) y salta a Entrenamiento →
+                    // Principales (irPrincipalesToken, ver PlanDelDia).
+                    const idxPlan = planValido
+                      ? plan.dias.findIndex((d) => (d.dia || "").trim().toLowerCase() === (h.dia || "").trim().toLowerCase())
+                      : -1;
+                    const clickeable = idxPlan >= 0;
+                    return (
+                      <div
+                        key={i}
+                        onClick={
+                          clickeable
+                            ? () => {
+                                setDiaIdx(idxPlan);
+                                setTabGroup("entrenamiento");
+                                setIrPrincipalesToken((t) => t + 1);
+                              }
+                            : undefined
+                        }
+                        title={clickeable ? `Ver ${h.dia} en Principales` : undefined}
+                        style={{
+                          background: S.card2,
+                          border: "1px solid " + S.border,
+                          borderRadius: 5,
+                          padding: "2px 8px",
+                          fontSize: 10,
+                          color: S.gray,
+                          cursor: clickeable ? "pointer" : "default",
+                        }}
+                      >
+                        <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
+                      </div>
+                    );
+                  })}
                 </div>
               )}{" "}
             </div>{" "}
@@ -6291,6 +6420,7 @@ export default function App() {
               onRegistrarDia={() => registrarDia(dia?.ejercicios || [])}
               diaRegistrado={diaRegistrado === hoy() + ":" + al.id}
               registrandoDia={registrandoDia}
+              irAPrincipales={irPrincipalesToken}
             />
           )}
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
@@ -6333,33 +6463,46 @@ export default function App() {
                   </div>
                 );
               })()}
-              {/* Asistencia de hoy */}
+              {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy como
+                  default (antes forzaba siempre hoy()). */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                  ✓ Asistencia — {hoy()}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                  ✓ Asistencia
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="date"
+                    value={fechaAsistencia}
+                    max={hoy()}
+                    onChange={(e) => setFechaAsistencia(e.target.value || hoy())}
+                    style={{ ...inp, width: "auto", textAlign: "center", padding: "6px 10px", fontSize: 13 }}
+                  />
+                  {fechaAsistencia !== hoy() && (
+                    <button onClick={() => setFechaAsistencia(hoy())} style={smallBtn(S.gray)}>Hoy</button>
+                  )}
                 </div>
                 <button
                   onClick={() => {
-                    if (al.asistencia?.some((a) => a.slice(0, 10) === hoy())) {
+                    if (al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)) {
                       const u = alumnos.map((a) =>
                         a.id === al.id
-                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha.slice(0, 10) !== hoy()) }
+                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha.slice(0, 10) !== fechaAsistencia) }
                           : a
                       );
                       setAlumnos(u);
                       setAlumno(u.find((a) => a.id === al.id));
                       showToast && showToast("Asistencia removida");
                     } else {
-                      saveDailyAttendance(al.id, hoy(), true).then(() => {
-                        marcarAsistencia(hoy());
+                      saveDailyAttendance(al.id, fechaAsistencia, true).then(() => {
+                        marcarAsistencia(fechaAsistencia);
                         showToast && showToast("¡Asistencia marcada! ✓");
                       });
                     }
                   }}
                   style={{
                     width: "100%",
-                    background: al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? S.green : S.white,
-                    color: al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? "#fff" : S.bg,
+                    background: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? S.green : S.white,
+                    color: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? "#fff" : S.bg,
                     border: "none",
                     borderRadius: 12,
                     padding: "15px 24px",
@@ -6371,11 +6514,13 @@ export default function App() {
                     transition: "all 0.3s",
                   }}
                 >
-                  {al.asistencia?.some((a) => a.slice(0, 10) === hoy()) ? "✅ Presente hoy" : "Marcar presente"}
+                  {al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)
+                    ? (fechaAsistencia === hoy() ? "✅ Presente hoy" : "✅ Presente ese día")
+                    : "Marcar presente"}
                 </button>
               </div>
               {/* Cómo estuvo el día */}
-              <Diario entradas={al.diario || []} onAdd={addDiario} />
+              <Diario entradas={al.diario || []} onEdit={editarDiario} onAdd={addDiario} />
           </div>
           )}{" "}
         </div>{" "}
