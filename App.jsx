@@ -2168,60 +2168,28 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
   );
   const plan = planes.find((p) => p.id === selPlanId) || planes[0];
 
-  // ── Propagación a días hermanos (bug Vic, 2026-07-21) ──
-  // El mismo plan asignado a varios días (ej. "Hipertrofia Avanzado" en
-  // Lunes/Jueves/Sábado) son COPIAS independientes en alumno_planes. Editar
-  // un ejercicio con el chip de Lunes seleccionado solo tocaba la copia del
-  // Lunes: el alumno abría la app otro día y seguía viendo el ejercicio
-  // viejo. Ahora el cambio se aplica también a los otros días que tengan un
-  // plan con el MISMO nombre, reusando los ids de ejercicios existentes de
-  // cada copia (match por código, si no por nombre) para no romper el
-  // historial de pesos (registros_diarios está keyeado por ejercicio_id).
-  const _diasParaHermano = (hermano, nuevosDias) => {
-    const pool = [];
-    (hermano.dias || []).forEach((d) => (d.ejercicios || []).forEach((e) => pool.push({ ...e })));
-    const tomar = (ej) => {
-      let i = pool.findIndex((p) => ej.codigo && p.codigo === ej.codigo);
-      if (i < 0) i = pool.findIndex((p) => p.nombre === ej.nombre);
-      if (i < 0) return null;
-      return pool.splice(i, 1)[0];
-    };
-    return nuevosDias.map((d) => ({
-      ...d,
-      ejercicios: (d.ejercicios || []).map((ej) => {
-        const previo = tomar(ej);
-        return { ...ej, id: previo ? previo.id : uid() };
-      }),
-    }));
-  };
-
+  // ── Edición por día específico (punto 1, ronda 2026-07-21) ──
+  // La ronda anterior (bug Vic) había hecho que editar un ejercicio con el
+  // chip de un día seleccionado propagara automáticamente a TODOS los otros
+  // días del mismo alumno que compartieran el nombre de plan. Lucas pidió
+  // revertir eso: quiere poder tener un ejercicio distinto un día y otro
+  // distinto otro día, aunque el plan se llame igual. Ahora el guardado
+  // afecta SOLO el día que se está editando. Para replicar un cambio a
+  // TODOS los alumnos que tengan ese ejercicio (por código), sigue existiendo
+  // el botón explícito "Guardar para todos" (onGuardarParaTodos más abajo,
+  // que llama a propagarEjercicioATodos — mecanismo aparte, no tocado).
   const guardarDias = (nuevosDias) => {
     if (!plan) return;
-    // Días hermanos: mismo alumno, plan real con el mismo nombre.
-    const hermanos = plan._sintetico ? [] : planes.filter(
-      (p) => p.id !== plan.id && !p._sintetico && (p.nombre || "") === (plan.nombre || ""),
-    );
-    const diasPorHermano = new Map(hermanos.map((h) => [h.id, _diasParaHermano(h, nuevosDias)]));
     onUpdate(alumnos.map((a) => a.id === al.id
       ? {
           ...a,
-          planes: (a.planes || []).map((p) =>
-            p.id === plan.id
-              ? { ...p, dias: nuevosDias }
-              : diasPorHermano.has(p.id)
-                ? { ...p, dias: diasPorHermano.get(p.id) }
-                : p),
+          planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, dias: nuevosDias } : p)),
           // El plan sintético "Fijo" (sin fila en alumno_planes) se persiste
           // por el camino viejo: al.plan.dias → _guardarAlumno → plan_dias.
           plan: plan._sintetico ? { ...a.plan, dias: nuevosDias } : a.plan,
         }
       : a));
     if (!plan._sintetico) {
-      diasPorHermano.forEach((dias, hermanoId) => {
-        actualizarPlanAlumnoDias(hermanoId, dias).then((ok) => {
-          if (!ok) showToast && showToast("No se pudo actualizar uno de los otros días — reintentá");
-        });
-      });
       actualizarPlanAlumnoDias(plan.id, nuevosDias).then(async (ok) => {
         if (ok) return;
         // El plan pudo haber sido reemplazado/borrado desde otra sesión (id
