@@ -1,4 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
+// Mapa nombre→código oficial (M/E/C/P), fuente de verdad en planTemplates.js.
+// Se usa en propagarEjercicioATodos para asignarle código en el momento a un
+// ejercicio viejo que todavía no lo tiene, SI su nombre matchea uno oficial.
+import { CODIGOS_EJERCICIO } from "../src/utils/planTemplates.js";
+const _codigoOficialPorNombre = (nombre) => {
+  for (const key of Object.keys(CODIGOS_EJERCICIO)) {
+    if (key.slice(key.indexOf("|") + 1) === nombre) return CODIGOS_EJERCICIO[key];
+  }
+  return null;
+};
 
 // ── CONFIGURACION ──────────────────────────────────────────────────────
 const SUPABASE_URL      = "https://tlxkghpytznkxgqslqzj.supabase.co";
@@ -437,6 +447,7 @@ export async function getPlanDias(alumno_id) {
         nombre:     e.nombre      || "",
         desc:       e.descripcion || "",
         video:      e.video       || "",
+        codigo:     e.codigo      || "",
         mediaLocal: "",
         historial:  [],
       })),
@@ -480,6 +491,7 @@ export async function getPlanEjercicios(plan_dia_id) {
     nombre:     e.nombre      || "",
     desc:       e.descripcion || "",
     video:      e.video       || "",
+    codigo:     e.codigo      || "",
     mediaLocal: "",
     historial:  [],
   }));
@@ -575,6 +587,7 @@ export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
         nombre:     e.nombre      || "",
         desc:       e.descripcion || "",
         video:      e.video       || "",
+        codigo:     e.codigo      || "",
         mediaLocal: "",
         historial:  [],
       })),
@@ -727,6 +740,7 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
         nombre:      ej.nombre      || "",
         descripcion: ej.desc        || "",
         video:       ej.video       || "",
+        codigo:      ej.codigo      || null,
         orden:       j,
       };
       let { error: ejErr } = await supabase.from("plan_ejercicios").insert(row);
@@ -1234,6 +1248,104 @@ export async function guardarEjercicioBiblioteca(ej) {
 export async function eliminarEjercicioBiblioteca(id) {
   const { error } = await supabase.from("biblioteca_ejercicios").delete().eq("id", id);
   if (error) { ERR("eliminarEjercicioBiblioteca", error.message, error); throw error; }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// "GUARDAR PARA TODOS" (ronda 11)
+// ──────────────────────────────────────────────────────────────────────
+// Al editar un ejercicio desde el admin para UN alumno puntual, "Guardar"
+// (de siempre) solo toca la copia de ESE alumno. "Guardar para todos"
+// además:
+//   1) actualiza el maestro en biblioteca_ejercicios (matched por código,
+//      o por nombre exacto si el ejercicio es viejo y no tiene código —
+//      en ese caso le pone el código en el momento);
+//   2) propaga nombre/descripción/video a la copia de TODOS los alumnos
+//      que tengan ese mismo ejercicio:
+//      - Principales (categoria="principales"): están en la tabla
+//        normalizada plan_ejercicios, así que un solo UPDATE con
+//        .eq("codigo", codigo) (o .eq("nombre", nombreOriginal) si no
+//        tiene código) toca TODAS las filas de TODOS los alumnos de una.
+//      - Movilidad/Act. Elástico/Entrada en calor (categoria="movilidad"
+//        |"calor"|"activacion"): son un array jsonb por alumno
+//        (alumnos.plan_movilidad/plan_calor/plan_activacion). PostgREST
+//        no soporta "actualizar el elemento N de un array jsonb" de forma
+//        declarativa, así que se trae esa columna de TODOS los alumnos,
+//        se parchea en JS el ejercicio que matchea (por código o nombre)
+//        y se reescribe la columna completa SOLO en los alumnos que
+//        tenían ese ejercicio.
+export async function propagarEjercicioATodos({ categoria, codigo, nombreOriginal, form }) {
+  const cambios = { nombre: (form.nombre || "").trim(), desc: form.desc || "", video: form.video || "" };
+  // Si no traía código, pero su nombre matchea uno oficial de
+  // planTemplates.js, se lo asignamos en este mismo momento (pedido
+  // explícito: "asignale código en el momento").
+  const codigoAAsignar = codigo || (nombreOriginal ? _codigoOficialPorNombre(nombreOriginal) : null);
+  LOG("propagarEjercicioATodos", `⏳ Propagando "${cambios.nombre}" (categoria=${categoria}, codigo=${codigo || "sin código"}${!codigo && codigoAAsignar ? `, asignando ${codigoAAsignar} ahora` : ""})`);
+  let alumnosActualizados = 0;
+  let ejerciciosActualizados = 0;
+
+  try {
+    if (categoria === "principales") {
+      // plan_ejercicios: una tabla normalizada, un solo UPDATE masivo.
+      const patch = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video };
+      if (!codigo && codigoAAsignar) patch.codigo = codigoAAsignar;
+      let query = supabase.from("plan_ejercicios").update(patch);
+      query = codigo ? query.eq("codigo", codigo) : query.eq("nombre", nombreOriginal);
+      const { data, error } = await query.select("id");
+      if (error) ERR("propagarEjercicioATodos", "Error actualizando plan_ejercicios", error);
+      else ejerciciosActualizados = (data || []).length;
+    } else if (["movilidad", "calor", "activacion"].includes(categoria)) {
+      const col = "plan_" + categoria;
+      const { data: filas, error } = await supabase.from("alumnos").select("id," + col);
+      if (error) {
+        ERR("propagarEjercicioATodos", `Error leyendo ${col} de alumnos`, error);
+      } else {
+        for (const fila of filas || []) {
+          const arr = fila[col];
+          if (!Array.isArray(arr) || arr.length === 0) continue;
+          let cambio = false;
+          const nuevo = arr.map((e) => {
+            const matchCodigo = codigo && e.codigo === codigo;
+            const matchNombre = !codigo && nombreOriginal && e.nombre === nombreOriginal;
+            if (matchCodigo || matchNombre) {
+              cambio = true;
+              return { ...e, nombre: cambios.nombre, desc: cambios.desc, video: cambios.video, codigo: e.codigo || codigoAAsignar || null };
+            }
+            return e;
+          });
+          if (cambio) {
+            const { error: upErr } = await supabase.from("alumnos").update({ [col]: nuevo }).eq("id", fila.id);
+            if (upErr) ERR("propagarEjercicioATodos", `Error escribiendo ${col} del alumno ${fila.id}`, upErr);
+            else alumnosActualizados++;
+          }
+        }
+      }
+    }
+
+    // Maestro: biblioteca_ejercicios (matched por código, o por nombre exacto
+    // — y si no tenía código, se lo asigna en este mismo momento).
+    if (codigo) {
+      const { error } = await supabase
+        .from("biblioteca_ejercicios")
+        .update({ nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, actualizado_en: new Date().toISOString() })
+        .eq("codigo", codigo);
+      if (error) ERR("propagarEjercicioATodos", "Error actualizando biblioteca_ejercicios por código", error);
+    } else if (nombreOriginal) {
+      const patchBiblio = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, actualizado_en: new Date().toISOString() };
+      if (codigoAAsignar) patchBiblio.codigo = codigoAAsignar;
+      const { error } = await supabase
+        .from("biblioteca_ejercicios")
+        .update(patchBiblio)
+        .ilike("nombre", nombreOriginal);
+      if (error) ERR("propagarEjercicioATodos", "Error actualizando biblioteca_ejercicios por nombre", error);
+    }
+
+    const total = categoria === "principales" ? ejerciciosActualizados : alumnosActualizados;
+    LOG("propagarEjercicioATodos", `✅ Propagado — ${total} destino(s) actualizado(s)`);
+    return { ok: true, ejerciciosActualizados, alumnosActualizados, total };
+  } catch (e) {
+    ERR("propagarEjercicioATodos", "Error propagando ejercicio", e);
+    return { ok: false, error: e, total: 0 };
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────
