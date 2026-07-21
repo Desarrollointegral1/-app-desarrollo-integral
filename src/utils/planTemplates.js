@@ -340,6 +340,67 @@ export const PLANTILLAS=[
   { id:"fuerza-avanzado",          nombre:"Fuerza Avanzado",          descripcion:"5x5 a 5x1, 75-92,5%, los grandes con barra.",  plan:PLAN_FUERZA_AVANZADO },
 ];
 
+// ── CÓDIGOS DE EJERCICIO (ronda 11, 2026-07-21) ─────────────────────────
+// Cada ejercicio de la biblioteca/templates tiene un código ESTABLE,
+// prefijado por categoría y numerado creciente por dificultad/orden de
+// aparición: M=Movilidad, E=Act. Elástico, C=Entrada en calor/activación
+// con peso, P=Principales. Se asignan UNA sola vez acá (fuente de verdad),
+// por nombre EXACTO — si el mismo nombre aparece de nuevo (ej. Movilidad
+// Corta reusa nombres de la Completa) reutiliza el mismo código en vez de
+// generar uno nuevo. Es la base para el backfill de biblioteca_ejercicios
+// (migración 011) y para "Guardar para todos" (match por código).
+const _codCounters = { M: 0, E: 0, C: 0, P: 0 };
+const _codMap = {};
+function _codigo(cat, nombre) {
+  const key = cat + "|" + nombre;
+  if (_codMap[key]) return _codMap[key];
+  _codCounters[cat]++;
+  const c = cat + String(_codCounters[cat]).padStart(2, "0");
+  _codMap[key] = c;
+  return c;
+}
+function _asignar(cat, arr) {
+  (arr || []).forEach((e) => {
+    if (e && e.nombre) e.codigo = _codigo(cat, e.nombre);
+  });
+  return arr;
+}
+
+// M — Movilidad: orden = versión Completa (piso/sentado → cuadrupedia →
+// dinámica, la progresión que ya tenía el archivo), después el set aparte
+// de Articulaciones (usado como "Entrada en calor superrápida").
+_asignar("M", MOVILIDAD_COMPLETA);
+_asignar("M", MOVILIDAD_CORTA); // mismos nombres que Completa → reusa códigos
+_asignar("M", MOVILIDAD_ARTICULACIONES);
+
+// E — Act. Elástico
+_asignar("E", CALOR_BANDA);
+
+// C — Entrada en calor / activación con peso (disco/mancuerna/katana)
+_asignar("C", ACTIVACION_BASE);
+_asignar("C", CALOR_PESO);
+_asignar("C", CALOR_MANCUERNA);
+
+// P — Principales: primero el plan Básico, después lo que se agrega en el
+// plan Complejo (Bilateral) que no estaba en Básico, sin reiniciar la
+// numeración; después el resto de planes de compatibilidad, en el orden
+// en que aparecen en el archivo (mismo criterio: nombre exacto = mismo código).
+_asignar("P", PLAN_BASICO.dias[0].ejercicios);
+_asignar("P", PLAN_BILATERAL.dias[0].ejercicios);
+_asignar("P", PLAN_UNILATERAL.dias[0].ejercicios);
+_asignar("P", PLAN_ACOND_PRINCIPIANTE.dias[0].ejercicios);
+_asignar("P", PLAN_ACOND_AVANZADO.dias[0].ejercicios);
+_asignar("P", PLAN_PF_PRINCIPIANTE.dias[0].ejercicios);
+_asignar("P", PLAN_PF_AVANZADO.dias[0].ejercicios);
+PLAN_PPL.dias.forEach((d) => _asignar("P", d.ejercicios));
+_asignar("P", PLAN_HIPERTROFIA_PRINCIPIANTE.dias[0].ejercicios);
+_asignar("P", PLAN_HIPERTROFIA_AVANZADO.dias[0].ejercicios);
+_asignar("P", PLAN_FUERZA_PRINCIPIANTE.dias[0].ejercicios);
+_asignar("P", PLAN_FUERZA_AVANZADO.dias[0].ejercicios);
+
+// Mapa nombre→código completo, para backfill/depuración.
+export const CODIGOS_EJERCICIO = _codMap;
+
 export const getPlantilla=(id)=>PLANTILLAS.find(p=>p.id===id)||PLANTILLAS[0];
 
 // Bloques sueltos para armar planes a medida desde el admin
