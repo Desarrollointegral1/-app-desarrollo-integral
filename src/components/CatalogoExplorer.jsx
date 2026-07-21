@@ -31,12 +31,10 @@ import {
   guardarEjercicioCatalogo,
   agregarCatalogoABiblioteca,
   subirVideo,
-  crearPlanAlumno,
-  actualizarPlanAlumnoDias,
-  cargarPlanesXDia,
   validarCodigoDisponible,
   renombrarCodigoEjercicio,
   crearEjercicioCatalogo,
+  crearPlanPredeterminado,
 } from "../../services/supabase.js";
 
 const PAGE = 60;
@@ -227,12 +225,11 @@ export default function CatalogoExplorer({
   const [creando, setCreando] = useState(false); // true = flujo "Crear ejercicio nuevo" (punto 4)
   const [codigoError, setCodigoError] = useState(""); // validación de código duplicado (punto 5)
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  // carrito (modo armador)
+  // carrito (modo armador) — punto 6: ya no maneja alumno/destino/día,
+  // solo arma la plantilla (nombre + grupo).
   const [carrito, setCarrito] = useState([]);
-  const [alumnoSel, setAlumnoSel] = useState("");
-  const [destino, setDestino] = useState("nuevo");
-  const [diaSemana, setDiaSemana] = useState("Lunes");
   const [nombrePlan, setNombrePlan] = useState("");
+  const [grupoPlan, setGrupoPlan] = useState("");
   const [guardandoPlan, setGuardandoPlan] = useState(false);
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 900);
 
@@ -393,11 +390,13 @@ export default function CatalogoExplorer({
     });
   };
 
-  const alumnoActual = alumnos.find((a) => a.id === alumnoSel);
-  const planesDestino = (alumnoActual?.planes || []).filter((p) => !p._sintetico);
-
+  // Punto 6 (2026-07-21): el Armador deja de asignar directo a un alumno
+  // — ahora solo crea/edita PLANTILLAS (planes_predeterminados), sin
+  // ligar a nadie. La asignación a un alumno puntual se mudó a Admin →
+  // Alumno → "Asignar plan" (ver AsignarPlanModal en App.jsx), que copia
+  // la plantilla con asignarPlanPredeterminado().
   const guardarPlan = async () => {
-    if (!alumnoActual) { showToast && showToast("Elegí un alumno"); return; }
+    if (!nombrePlan.trim()) { showToast && showToast("Ponele un nombre al plan"); return; }
     if (carrito.length === 0) { showToast && showToast("El plan está vacío"); return; }
     setGuardandoPlan(true);
     try {
@@ -416,27 +415,12 @@ export default function CatalogoExplorer({
           unidad: "reps",
         });
       }
-      if (destino === "nuevo") {
-        const r = await crearPlanAlumno(alumnoActual.id, diaSemana, {
-          nombre: nombrePlan.trim() || "Plan",
-          dias: [{ dia: "Sesion", subtitulo: "", ejercicios }],
-        });
-        if (!r.ok) throw new Error("No se pudo crear el plan");
-      } else {
-        const plan = planesDestino.find((p) => p.id === destino);
-        if (!plan) throw new Error("El plan destino ya no existe — recargá");
-        const dias = (plan.dias && plan.dias.length > 0)
-          ? plan.dias.map((d, i) => (i === 0 ? { ...d, ejercicios: [...(d.ejercicios || []), ...ejercicios] } : d))
-          : [{ dia: "Sesion", subtitulo: "", ejercicios }];
-        const ok = await actualizarPlanAlumnoDias(plan.id, dias);
-        if (!ok) throw new Error("No se pudo actualizar el plan");
-      }
-      const planesFrescos = await cargarPlanesXDia(alumnoActual.id, alumnoActual);
-      onAlumnosUpdate && onAlumnosUpdate((prev) => (Array.isArray(prev) ? prev : []).map((a) =>
-        a.id === alumnoActual.id ? { ...a, planes: planesFrescos } : a));
-      showToast && showToast(`Plan guardado para ${alumnoActual.nombre} ✓`);
+      const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }]);
+      if (!creado) throw new Error("No se pudo crear la plantilla");
+      showToast && showToast(`Plantilla "${nombrePlan.trim()}" guardada ✓`);
       setCarrito([]);
       setNombrePlan("");
+      setGrupoPlan("");
     } catch (e) {
       console.error("[Armador]", e);
       showToast && showToast("Error: " + e.message);
@@ -569,33 +553,17 @@ export default function CatalogoExplorer({
     </div>
   );
 
+  // Punto 6: el Armador ya NO elige alumno/día — solo arma la PLANTILLA
+  // (nombre + grupo opcional, ej. "Básico"/"Intermedio"/"Avanzado", para
+  // agruparlas). Asignarla a un alumno puntual se hace aparte, desde
+  // Admin → Alumno → "Asignar plan".
   const carritoPanel = modo === "armador" && (
     <div style={{ width: isWide ? 290 : "auto", flexShrink: 0, borderLeft: isWide ? "1px solid " + S.border : "none", borderTop: isWide ? "none" : "1px solid " + S.border, paddingLeft: isWide ? 14 : 0, paddingTop: isWide ? 0 : 12, display: "flex", flexDirection: "column", maxHeight: isWide ? "none" : "40vh", overflowY: "auto" }}>
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
         Plan en construcción ({carrito.length})
       </div>
-      <select value={alumnoSel} onChange={(e) => setAlumnoSel(e.target.value)} style={{ ...inp, marginBottom: 8 }}>
-        <option value="">— Elegí alumno —</option>
-        {alumnos.map((a) => (
-          <option key={a.id} value={a.id}>{a.nombre}</option>
-        ))}
-      </select>
-      {alumnoActual && (
-        <select value={destino} onChange={(e) => setDestino(e.target.value)} style={{ ...inp, marginBottom: 8 }}>
-          <option value="nuevo">➕ Día nuevo…</option>
-          {planesDestino.map((p) => (
-            <option key={p.id} value={p.id}>Agregar a: {p.dia_semana} · {p.nombre || "Plan"}</option>
-          ))}
-        </select>
-      )}
-      {alumnoActual && destino === "nuevo" && (
-        <>
-          <select value={diaSemana} onChange={(e) => setDiaSemana(e.target.value)} style={{ ...inp, marginBottom: 8 }}>
-            {DIAS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan (ej. Full Body)" style={{ ...inp, marginBottom: 8 }} />
-        </>
-      )}
+      <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan (ej. Hipertrofia Avanzado V2)" style={{ ...inp, marginBottom: 8 }} />
+      <input value={grupoPlan} onChange={(e) => setGrupoPlan(e.target.value)} placeholder="Grupo (opcional — ej. Básico, Intermedio, Avanzado)" style={{ ...inp, marginBottom: 8 }} />
       <div style={{ flex: 1, overflowY: "auto", minHeight: 60 }}>
         {carrito.length === 0 ? (
           <div style={{ color: S.gray, fontSize: 12, padding: "14px 4px" }}>
@@ -617,10 +585,10 @@ export default function CatalogoExplorer({
       </div>
       <button
         onClick={guardarPlan}
-        disabled={guardandoPlan || carrito.length === 0 || !alumnoActual}
-        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !alumnoActual ? 0.5 : 1 }}
+        disabled={guardandoPlan || carrito.length === 0 || !nombrePlan.trim()}
+        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !nombrePlan.trim() ? 0.5 : 1 }}
       >
-        {guardandoPlan ? "GUARDANDO..." : "GUARDAR PLAN"}
+        {guardandoPlan ? "GUARDANDO..." : "GUARDAR PLANTILLA"}
       </button>
     </div>
   );

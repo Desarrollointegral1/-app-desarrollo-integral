@@ -624,7 +624,7 @@ export async function eliminarPlanDia(alumno_id, dia_semana) {
   return true;
 }
 
-export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
+export async function crearPlanAlumno(alumno_id, dia_semana, plan_template, origen) {
   LOG("crearPlanAlumno", `⏳ Creando plan para ${dia_semana} de ${alumno_id}`);
 
   try {
@@ -650,13 +650,18 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
       .eq("dia_semana", dia_semana);
     if (delErr) ERR("crearPlanAlumno", `No se pudo borrar el plan previo de ${dia_semana}`, delErr);
 
+    // origen (punto 6, migración 018): 'catalogo_v2' cuando viene de una
+    // plantilla del Armador/asignarPlanPredeterminado — sin pasar nada acá
+    // (llamadas viejas) queda null, que es justamente lo que el punto 6
+    // pide para poder filtrar "planes viejos, pre-catálogo".
     const { data: nuevoAlPlan, error } = await supabase
       .from("alumno_planes")
       .insert({
         alumno_id,
         nombre,
         dia_semana,
-        estado: 'activo'
+        estado: 'activo',
+        ...(origen ? { origen } : {}),
       })
       .select()
       .single();
@@ -677,6 +682,59 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
     ERR("crearPlanAlumno", "Error creando plan", e);
     return { ok: false, error: e };
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PLANES PREDETERMINADOS — plantillas del Armador, NO ligadas a un alumno
+// (punto 6, migración 018). El Armador solo crea/edita estas; la
+// asignación a un alumno puntual es un paso aparte (asignarPlanPredeterminado).
+// ══════════════════════════════════════════════════════════════════════
+
+export async function listarPlanesPredeterminados() {
+  LOG("listarPlanesPredeterminados", "⏳ Listando plantillas...");
+  const { data, error } = await supabase
+    .from("planes_predeterminados")
+    .select("*")
+    .order("grupo")
+    .order("nombre");
+  if (error) { ERR("listarPlanesPredeterminados", "Error listando plantillas", error); return []; }
+  LOG("listarPlanesPredeterminados", `✅ ${(data || []).length} plantilla(s)`);
+  return data || [];
+}
+
+export async function crearPlanPredeterminado(nombre, grupo, dias) {
+  LOG("crearPlanPredeterminado", `⏳ Creando plantilla "${nombre}"...`);
+  const { data, error } = await supabase
+    .from("planes_predeterminados")
+    .insert({ nombre, grupo: grupo || "", dias: dias || [] })
+    .select()
+    .single();
+  if (error) { ERR("crearPlanPredeterminado", "Error creando plantilla", error); return null; }
+  LOG("crearPlanPredeterminado", `✅ Plantilla "${nombre}" creada.`);
+  return data;
+}
+
+export async function eliminarPlanPredeterminado(id) {
+  const { error } = await supabase.from("planes_predeterminados").delete().eq("id", id);
+  if (error) { ERR("eliminarPlanPredeterminado", "Error eliminando plantilla", error); return false; }
+  return true;
+}
+
+// Copia una plantilla a una fila REAL de alumno_planes para un alumno y
+// día puntuales — mismo camino que crearPlanAlumno (reemplaza lo que
+// hubiera ese día), pero con origen='catalogo_v2' y con ids NUEVOS en
+// cada ejercicio (_savePlanDias los genera si no son uuid válidos) para
+// que la plantilla y la instancia queden totalmente desacopladas: editar
+// después el plan de ESTE alumno no toca la plantilla ni a otros alumnos
+// que usen la misma plantilla.
+export async function asignarPlanPredeterminado(alumno_id, dia_semana, plantilla) {
+  LOG("asignarPlanPredeterminado", `⏳ Asignando "${plantilla.nombre}" a ${alumno_id} (${dia_semana})...`);
+  const diasCopia = (plantilla.dias || []).map((d) => ({
+    dia: d.dia || "Sesion",
+    subtitulo: d.subtitulo || "",
+    ejercicios: (d.ejercicios || []).map((ej) => ({ ...ej, id: undefined })),
+  }));
+  return crearPlanAlumno(alumno_id, dia_semana, { nombre: plantilla.nombre, dias: diasCopia }, "catalogo_v2");
 }
 
 // Reescribe los días+ejercicios de un plan por día (fila real de alumno_planes).
