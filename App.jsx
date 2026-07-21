@@ -5486,6 +5486,19 @@ export default function App() {
     try { return localStorage.getItem("di_dia_registrado") || null; } catch (e) { return null; }
   });
   const [registrandoDia, setRegistrandoDia] = useState(false);
+  // Bioimpedancia más reciente (punto 10, 2026-07-21): peso/altura de la
+  // ficha del alumno se sincronizan con el último registro de
+  // bioimpedancia si existe (fallback al campo estático si nunca tuvo).
+  // Hook declarado ANTES de cualquier return condicional (regla de hooks).
+  const [bioUltimo, setBioUltimo] = useState(null);
+  useEffect(() => {
+    if (!alumno?.id) { setBioUltimo(null); return; }
+    let vivo = true;
+    cargarBioimpedanciaCompleta(alumno.id, 1).then((rows) => {
+      if (vivo) setBioUltimo((rows && rows[0]) || null);
+    });
+    return () => { vivo = false; };
+  }, [alumno?.id]);
   const registrarDia = async (ejerciciosHoy) => {
     if (registrandoDia || !alumno) return;
     setRegistrandoDia(true);
@@ -5605,6 +5618,8 @@ export default function App() {
   const sem = (planValido && ((plan.periodizacion || []).find((p) => p.semana === semanaActual) || (plan.periodizacion || [])[0])) || { series: "-", reps: "-", intensidad: "" };
   const prevSem = planValido ? (plan.periodizacion || []).find((p) => p.semana === semanaActual - 1) : null;
   const dia = planValido ? plan.dias[diaIdx] : null;
+  // Modo de etiquetado de días (punto 9): lo elige el admin por alumno.
+  const diasModo = al.rm?.dias_modo === "numerico" ? "numerico" : "nombres";
   if (showBienvenida)
     return (
       <Bienvenida
@@ -5697,19 +5712,69 @@ export default function App() {
               )}{" "}
             </div>{" "}
           </div>{" "}
-          <div style={{ display: "flex", gap: 8 }}>
+          {/* Punto 10 (2026-07-21): esta zona pasa a estar protagonizada por
+              el/los día(s) del plan actual + un selector (si hay más de
+              uno) + una ficha compacta que cambia EN VIVO con el día
+              elegido — mismo estado (diaIdx) que controla Principales más
+              abajo, así ambas partes de la pantalla quedan sincronizadas. */}
+          {planValido && (
+            <div style={{ marginBottom: 10 }}>
+              {plan.dias.length > 1 && (
+                <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                  {plan.dias.map((d, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setDiaIdx(i)}
+                      style={{
+                        flex: 1,
+                        minWidth: 64,
+                        background: diaIdx === i ? S.white : S.card2,
+                        color: diaIdx === i ? S.bg : S.gray,
+                        border: "1px solid " + (diaIdx === i ? S.white : S.border),
+                        borderRadius: 6,
+                        padding: "6px 8px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {diasModo === "numerico" ? `Día ${i + 1}` : d.dia}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, background: S.card2, borderRadius: 8, padding: "8px 6px" }}>
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{sem.series}x{sem.reps}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>SERIES X REPS</div>
+                </div>
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ color: S.green, fontWeight: 700, fontSize: 13 }}>{sem.intensidad || "—"}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>INTENSIDAD</div>
+                </div>
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{(dia?.ejercicios || []).length}</div>
+                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>EJERCICIOS</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Peso/altura/edad: secundario ahora, más chico. Peso y altura se
+              sincronizan con el último registro de bioimpedancia si existe
+              (fallback al campo estático del alumno si nunca tuvo uno). */}
+          <div style={{ display: "flex", gap: 6 }}>
             {" "}
             {[
-              ["PESO", al.peso],
-              ["ALTURA", al.altura],
-              ["EDAD", calcularEdad(al.fecha_nacimiento) || al.edad],
-            ].map(([l, v]) => (
+              ["PESO", (bioUltimo?.peso ?? al.peso), bioUltimo?.peso != null ? "kg · bioimpedancia" : "kg"],
+              ["ALTURA", (bioUltimo?.altura ?? al.altura), bioUltimo?.altura != null ? "cm · bioimpedancia" : "cm"],
+              ["EDAD", calcularEdad(al.fecha_nacimiento) || al.edad, "años"],
+            ].map(([l, v, hint]) => (
               <div
                 key={l}
-                style={{ flex: 1, background: S.card2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}
+                style={{ flex: 1, background: "transparent", border: "1px solid " + S.border, borderRadius: 6, padding: "5px 4px", textAlign: "center" }}
               >
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{v || "—"}</div>
-                <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>{l}</div>
+                <div style={{ color: S.gray, fontWeight: 600, fontSize: 11 }}>{v || "—"}<span style={{ fontSize: 8, fontWeight: 400 }}>{v ? " " + hint.split(" ")[0] : ""}</span></div>
+                <div style={{ color: S.lgray || S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>{l}</div>
               </div>
             ))}{" "}
           </div>{" "}
