@@ -5,6 +5,25 @@ import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
 import ItemCard from "./ItemCard.jsx";
 
+// ── Texto de repeticiones (ronda 12) ────────────────────────────────────
+// Antes cada sección tenía su propio string libre ("6 rep por lado", "5 rep
+// por brazo", "activación express — 5 por lado") con la palabra recortada.
+// Ahora el dato es ESTRUCTURADO ({ prefijo, cantidad, tipo, sufijo }) y este
+// componente lo renderiza siempre con "repeticiones" completo y el número en
+// verde + negrita — los 3 patrones pedidos: "X repeticiones", "X
+// repeticiones por brazo", "X repeticiones por lado".
+function RepsLabel({ prefijo, cantidad, tipo, sufijo }) {
+  const suf = tipo === "lado" ? " por lado" : tipo === "brazo" ? " por brazo" : "";
+  return (
+    <>
+      {prefijo ? prefijo + " " : ""}
+      <span style={{ color: S.green, fontWeight: 800 }}>{cantidad}</span>
+      {" repeticiones" + suf}
+      {sufijo ? " " + sufijo : ""}
+    </>
+  );
+}
+
 // Vista de la sesión del alumno, con DOS tabs del mismo tamaño (pills):
 //   PREPARACIÓN — 3 sub-menús: Movilidad · Activación con elástico · Activación con peso
 //      (al final de Movilidad, los videos de la rutina completa: corta/larga)
@@ -102,9 +121,9 @@ export default function PlanDelDia({
   // Las 3 versiones de movilidad (CEREBRO-ENTRENAMIENTO 3.1 y 3.5): el alumno
   // elige según el tiempo que tiene; cada una con sus ejercicios y su video.
   const MOVI_VERSIONES = [
-    { id: "superrapida", label: "Superrápida", detalle: "activación express — 5 por lado", items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
-    { id: "corta", label: "Corta", detalle: "6 rep por lado — versión corta", items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
-    { id: "completa", label: "Completa", detalle: "6 rep por lado", items: movilidad, video: videos.larga, videoDur: "15+ min" },
+    { id: "superrapida", label: "Superrápida", detalle: { prefijo: "activación express —", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
+    { id: "corta", label: "Corta", detalle: { cantidad: 6, tipo: "lado", sufijo: "— versión corta" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
+    { id: "completa", label: "Completa", detalle: { cantidad: 6, tipo: "lado" }, items: movilidad, video: videos.larga, videoDur: "15+ min" },
   ];
   const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];
 
@@ -113,8 +132,8 @@ export default function PlanDelDia({
   // rm.secciones_config = { orden: ["movilidad","banda","peso"], ocultas: [] }.
   const PREP_TABS_BASE = [
     { id: "movilidad", label: "Movilidad", detalle: moviActiva.detalle, items: moviActiva.items },
-    { id: "banda", label: "Act. Elástico", detalle: "5 rep por brazo", items: calor },
-    { id: "peso", label: "Entrada en calor", detalle: "5 repeticiones", items: activacion },
+    { id: "banda", label: "Act. Elástico", detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
+    { id: "peso", label: "Entrada en calor", detalle: { cantidad: 5, tipo: null }, items: activacion },
   ];
   const cfg = rm?.secciones_config || {};
   const ordenCfg = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => PREP_TABS_BASE.some((t) => t.id === id));
@@ -182,7 +201,9 @@ export default function PlanDelDia({
               ))}
             </div>
           )}
-          <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>{prepActiva.detalle}</div>
+          <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
+            <RepsLabel {...prepActiva.detalle} />
+          </div>
           {prepActiva.items.length === 0 ? (
             <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
               Sin ejercicios en esta parte
@@ -196,6 +217,7 @@ export default function PlanDelDia({
                 desc={ej.desc}
                 video={ej.video}
                 mediaLocal={ej.mediaLocal}
+                gif={ej.gif}
               />
             ))
           )}
@@ -258,6 +280,7 @@ export default function PlanDelDia({
                 desc={ej.desc}
                 video={ej.video}
                 mediaLocal={ej.mediaLocal}
+                gif={ej.gif}
                 showPeso
                 semana={sem}
                 peso={pesos[ej.id] || 0}

@@ -448,6 +448,7 @@ export async function getPlanDias(alumno_id) {
         desc:       e.descripcion || "",
         video:      e.video       || "",
         codigo:     e.codigo      || "",
+        gif:        e.gif         || "",
         mediaLocal: "",
         historial:  [],
       })),
@@ -492,6 +493,7 @@ export async function getPlanEjercicios(plan_dia_id) {
     desc:       e.descripcion || "",
     video:      e.video       || "",
     codigo:     e.codigo      || "",
+    gif:        e.gif         || "",
     mediaLocal: "",
     historial:  [],
   }));
@@ -588,6 +590,7 @@ export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
         desc:       e.descripcion || "",
         video:      e.video       || "",
         codigo:     e.codigo      || "",
+        gif:        e.gif         || "",
         mediaLocal: "",
         historial:  [],
       })),
@@ -595,6 +598,22 @@ export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
 
   LOG("getPlanDiasPorAlumnoPlan", `✅ ${result.length} día(s)`);
   return result;
+}
+
+// Borra DIRECTAMENTE el plan de un día de semana (ronda 12, punto 7): a
+// diferencia de crearPlanAlumno (que borra-y-reemplaza), esto borra sin
+// crear nada nuevo — el día deja de existir para el alumno (no queda ni
+// "Sin plan"). ON DELETE CASCADE se lleva plan_dias/plan_ejercicios.
+export async function eliminarPlanDia(alumno_id, dia_semana) {
+  LOG("eliminarPlanDia", `⏳ Borrando plan de ${dia_semana} de ${alumno_id}`);
+  const { error } = await supabase
+    .from("alumno_planes")
+    .delete()
+    .eq("alumno_id", alumno_id)
+    .eq("dia_semana", dia_semana);
+  if (error) { ERR("eliminarPlanDia", `No se pudo borrar el plan de ${dia_semana}`, error); return false; }
+  LOG("eliminarPlanDia", `✅ Plan de ${dia_semana} borrado`);
+  return true;
 }
 
 export async function crearPlanAlumno(alumno_id, dia_semana, plan_template) {
@@ -741,6 +760,7 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
         descripcion: ej.desc        || "",
         video:       ej.video       || "",
         codigo:      ej.codigo      || null,
+        gif:         ej.gif         || null,
         orden:       j,
       };
       let { error: ejErr } = await supabase.from("plan_ejercicios").insert(row);
@@ -1230,6 +1250,7 @@ export async function guardarEjercicioBiblioteca(ej) {
     const update = {};
     if (ej.desc) update.descripcion = ej.desc;
     if (ej.video) update.video = ej.video;
+    if (ej.gif) update.gif = ej.gif;
     update.usos = (existente.usos || 0) + 1;
     update.actualizado_en = new Date().toISOString();
     const { error } = await supabase.from("biblioteca_ejercicios").update(update).eq("id", existente.id);
@@ -1239,6 +1260,7 @@ export async function guardarEjercicioBiblioteca(ej) {
       nombre: nombreNorm,
       descripcion: ej.desc || "",
       video: ej.video || "",
+      gif: ej.gif || null,
       usos: 1,
     }]);
     if (error) ERR("guardarEjercicioBiblioteca:insert", error.message, error);
@@ -1248,6 +1270,23 @@ export async function guardarEjercicioBiblioteca(ej) {
 export async function eliminarEjercicioBiblioteca(id) {
   const { error } = await supabase.from("biblioteca_ejercicios").delete().eq("id", id);
   if (error) { ERR("eliminarEjercicioBiblioteca", error.message, error); throw error; }
+}
+
+// Edición DIRECTA por id — a diferencia de guardarEjercicioBiblioteca (que
+// matchea/crea por nombre, pensado para el autoguardado desde Principales),
+// esta es la que usa la pantalla Biblioteca (punto 8/9, ronda 12): ahí se
+// edita un ejercicio puntual ya existente (nombre, descripción, video y/o
+// GIF manual) sin ambigüedad de "a cuál le pega por nombre".
+export async function actualizarEjercicioBibliotecaPorId(id, patch) {
+  const update = { actualizado_en: new Date().toISOString() };
+  if (patch.nombre !== undefined) update.nombre = patch.nombre;
+  if (patch.desc !== undefined) update.descripcion = patch.desc;
+  if (patch.video !== undefined) update.video = patch.video;
+  if (patch.gif !== undefined) update.gif = patch.gif || null;
+  const { error } = await supabase.from("biblioteca_ejercicios").update(update).eq("id", id);
+  if (error) { ERR("actualizarEjercicioBibliotecaPorId", error.message, error); return false; }
+  LOG("actualizarEjercicioBibliotecaPorId", `✅ Actualizado ${id}`, update);
+  return true;
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -1274,7 +1313,7 @@ export async function eliminarEjercicioBiblioteca(id) {
 //        y se reescribe la columna completa SOLO en los alumnos que
 //        tenían ese ejercicio.
 export async function propagarEjercicioATodos({ categoria, codigo, nombreOriginal, form }) {
-  const cambios = { nombre: (form.nombre || "").trim(), desc: form.desc || "", video: form.video || "" };
+  const cambios = { nombre: (form.nombre || "").trim(), desc: form.desc || "", video: form.video || "", gif: form.gif || "" };
   // Si no traía código, pero su nombre matchea uno oficial de
   // planTemplates.js, se lo asignamos en este mismo momento (pedido
   // explícito: "asignale código en el momento").
@@ -1286,7 +1325,7 @@ export async function propagarEjercicioATodos({ categoria, codigo, nombreOrigina
   try {
     if (categoria === "principales") {
       // plan_ejercicios: una tabla normalizada, un solo UPDATE masivo.
-      const patch = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video };
+      const patch = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, gif: cambios.gif || null };
       if (!codigo && codigoAAsignar) patch.codigo = codigoAAsignar;
       let query = supabase.from("plan_ejercicios").update(patch);
       query = codigo ? query.eq("codigo", codigo) : query.eq("nombre", nombreOriginal);
@@ -1308,7 +1347,7 @@ export async function propagarEjercicioATodos({ categoria, codigo, nombreOrigina
             const matchNombre = !codigo && nombreOriginal && e.nombre === nombreOriginal;
             if (matchCodigo || matchNombre) {
               cambio = true;
-              return { ...e, nombre: cambios.nombre, desc: cambios.desc, video: cambios.video, codigo: e.codigo || codigoAAsignar || null };
+              return { ...e, nombre: cambios.nombre, desc: cambios.desc, video: cambios.video, gif: cambios.gif || e.gif || "", codigo: e.codigo || codigoAAsignar || null };
             }
             return e;
           });
@@ -1326,11 +1365,11 @@ export async function propagarEjercicioATodos({ categoria, codigo, nombreOrigina
     if (codigo) {
       const { error } = await supabase
         .from("biblioteca_ejercicios")
-        .update({ nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, actualizado_en: new Date().toISOString() })
+        .update({ nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, gif: cambios.gif || null, actualizado_en: new Date().toISOString() })
         .eq("codigo", codigo);
       if (error) ERR("propagarEjercicioATodos", "Error actualizando biblioteca_ejercicios por código", error);
     } else if (nombreOriginal) {
-      const patchBiblio = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, actualizado_en: new Date().toISOString() };
+      const patchBiblio = { nombre: cambios.nombre, descripcion: cambios.desc, video: cambios.video, gif: cambios.gif || null, actualizado_en: new Date().toISOString() };
       if (codigoAAsignar) patchBiblio.codigo = codigoAAsignar;
       const { error } = await supabase
         .from("biblioteca_ejercicios")
