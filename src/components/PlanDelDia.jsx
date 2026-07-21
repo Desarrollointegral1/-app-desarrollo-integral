@@ -43,6 +43,7 @@ export default function PlanDelDia({
   onRegistrarDia,
   diaRegistrado,
   registrandoDia,
+  irAPrincipales,
 }) {
   // null = "la primera sección visible según el orden del admin" (ronda 9)
   const [prep, setPrep] = useState(null);
@@ -60,6 +61,14 @@ export default function PlanDelDia({
   useEffect(() => {
     getAppConfig("videos_movilidad").then(setVideosGlobal);
   }, []);
+
+  // Ronda 17 (punto 4): atajo desde las pills de día de la ficha del
+  // alumno — "irAPrincipales" es un token que se incrementa en cada click
+  // (no un booleano) para poder disparar el salto aunque el alumno ya esté
+  // en Principales cuando toca otra pill de nuevo.
+  useEffect(() => {
+    if (irAPrincipales) setSeccion("principales");
+  }, [irAPrincipales]);
 
   const movilidad = plan?.movilidad || [];
   const calor = plan?.calor || [];

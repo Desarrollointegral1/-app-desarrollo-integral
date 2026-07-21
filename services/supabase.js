@@ -2045,6 +2045,22 @@ export async function validarCodigoDisponible(codigo, idExcluir) {
   return !(data && data.length > 0);
 }
 
+// Ronda 17 (punto 3): renombrar una categoría del catálogo — update masivo
+// en catalogo_ejercicios, se propaga a TODOS los ejercicios que tenían esa
+// categoría (a diferencia de codigo_di, acá no hace falta chequear
+// duplicados: dos ejercicios pueden compartir categoría sin problema).
+export async function renombrarCategoriaCatalogo(oldCategoria, newCategoria) {
+  if (!oldCategoria || !newCategoria || oldCategoria === newCategoria) return true;
+  LOG("renombrarCategoriaCatalogo", `⏳ "${oldCategoria}" → "${newCategoria}"...`);
+  const { error, count } = await supabase
+    .from("catalogo_ejercicios")
+    .update({ categoria: newCategoria, editado: true }, { count: "exact" })
+    .eq("categoria", oldCategoria);
+  if (error) { ERR("renombrarCategoriaCatalogo", "Error renombrando categoría", error); return false; }
+  LOG("renombrarCategoriaCatalogo", `✅ ${count ?? "?"} ejercicio(s) actualizados.`);
+  return true;
+}
+
 export async function renombrarCodigoEjercicio(oldCode, newCode) {
   if (!oldCode || !newCode || oldCode === newCode) return true;
   LOG("renombrarCodigoEjercicio", `⏳ ${oldCode} → ${newCode} en plan_ejercicios y biblioteca_ejercicios...`);
