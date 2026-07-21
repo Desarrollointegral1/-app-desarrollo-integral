@@ -1,0 +1,43 @@
+{
+  "_doc": "Matcheo taxonomía DI (50 principales) ↔ dataset ExerciseDB (1.324). 'dataset_id' = id del dataset que hereda codigo_di + nombre ES de Lucas. 'aprox': el dataset no tiene la variante exacta pero el movimiento/media es correcto. Los códigos en 'custom' no existen en el dataset y se agregan al catálogo como filas DI-<codigo> (custom=true) con los datos de biblioteca_ejercicios.",
+  "matches": {
+    "PH001": { "dataset_id": "0405", "dataset_name": "dumbbell seated shoulder press" },
+    "PH003": { "dataset_id": "0426", "dataset_name": "dumbbell standing overhead press" },
+    "PH004": { "dataset_id": "0361", "dataset_name": "dumbbell one arm shoulder press" },
+    "PH005": { "dataset_id": "1457", "dataset_name": "barbell standing wide military press", "aprox": true },
+    "RO001": { "dataset_id": "3119", "dataset_name": "potty squat", "aprox": true },
+    "RO003": { "dataset_id": "1760", "dataset_name": "dumbbell goblet squat" },
+    "RO004": { "dataset_id": "0042", "dataset_name": "barbell front squat" },
+    "RO005": { "dataset_id": "0043", "dataset_name": "barbell full squat" },
+    "RO007": { "dataset_id": "3470", "dataset_name": "forward lunge (male)" },
+    "RO008": { "dataset_id": "0410", "dataset_name": "dumbbell single leg split squat", "aprox": true },
+    "RO009": { "dataset_id": "0431", "dataset_name": "dumbbell step-up", "aprox": true },
+    "PE001": { "dataset_id": "0493", "dataset_name": "incline push-up" },
+    "PE002": { "dataset_id": "0025", "dataset_name": "barbell bench press" },
+    "PE003": { "dataset_id": "0289", "dataset_name": "dumbbell bench press" },
+    "PE004": { "dataset_id": "0314", "dataset_name": "dumbbell incline bench press" },
+    "PE005": { "dataset_id": "0047", "dataset_name": "barbell incline bench press" },
+    "CA005": { "dataset_id": "0032", "dataset_name": "barbell deadlift" },
+    "CA006": { "dataset_id": "0811", "dataset_name": "trap bar deadlift" },
+    "CA007": { "dataset_id": "1757", "dataset_name": "dumbbell single leg deadlift" },
+    "JA001": { "dataset_id": "0974", "dataset_name": "band close-grip pulldown", "aprox": true },
+    "JA002": { "dataset_id": "0983", "dataset_name": "band kneeling one arm pulldown", "aprox": true },
+    "JA003": { "dataset_id": "0808", "dataset_name": "suspended row" },
+    "JA004": { "dataset_id": "0292", "dataset_name": "dumbbell one arm bent-over row" },
+    "JA006": { "dataset_id": "0652", "dataset_name": "pull-up" },
+    "GL001": { "dataset_id": "3013", "dataset_name": "low glute bridge on floor", "aprox": true },
+    "GL003": { "dataset_id": "1409", "dataset_name": "barbell glute bridge", "aprox": true },
+    "CO001": { "dataset_id": "0276", "dataset_name": "dead bug" },
+    "CO003": { "dataset_id": "0274", "dataset_name": "crunch floor" },
+    "CO005": { "dataset_id": "0857", "dataset_name": "wheel rollerout" },
+    "CO007": { "dataset_id": "0562", "dataset_name": "landmine 180" }
+  },
+  "custom": [
+    "PH002", "PH006", "PH007", "PH008", "PH009",
+    "RO002", "RO006",
+    "CA001", "CA002", "CA003", "CA004",
+    "JA005",
+    "GL002", "GL004", "GL005", "GL006", "GL007",
+    "CO002", "CO004", "CO006"
+  ]
+}
