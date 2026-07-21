@@ -2266,7 +2266,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
             <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>Cargando plantillas…</div>
           ) : plantillas.length === 0 ? (
             <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>
-              Todavía no hay plantillas — creá una desde 🖥 Armador.
+              Todavía no hay plantillas — creá una desde 📚 Biblioteca → + Crear plan de entrenamiento.
             </div>
           ) : (
             grupos.map((g) => (
@@ -3313,11 +3313,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [showCrearAlumno, setShowCrearAlumno] = useState(false);
   const [showAsignarPlan, setShowAsignarPlan] = useState(false); // punto 6: asignar una plantilla a este alumno
   const [showBiblioteca, setShowBiblioteca] = useState(false); // biblioteca PROPIA (movilidad/elástico/calor + GIFs)
-  // Ronda 14: la Biblioteca principal ahora es el catálogo completo
-  // (dataset ExerciseDB + custom DI); el Armador es la vista desktop para
-  // armar planes desde el mismo catálogo.
+  // Ronda 14: la Biblioteca principal es el catálogo completo (dataset
+  // ExerciseDB + custom DI). Ronda 16 (punto 4): el "Armador" dejó de ser
+  // una pantalla separada — ahora es un toggle DENTRO de CatalogoExplorer
+  // (botón "+ Crear plan de entrenamiento"), así que ya no hace falta un
+  // segundo estado/instancia acá.
   const [showCatalogo, setShowCatalogo] = useState(false);
-  const [showArmador, setShowArmador] = useState(false);
   // Visor "Todos los planes" (ronda 9): plantilla abierta en modal de lectura
   const [planVisor, setPlanVisor] = useState(null);
   const [editPin, setEditPin] = useState("");
@@ -3723,9 +3724,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           de mobile: antes título + botones compartían un renglón con
           justify-content:space-between y "Panel Admin"/"Desarrollo Integral"
           apilados verticalmente — en 375px el título se partía en 2 líneas
-          y los 5 botones se apretaban/desbordaban contra él).
+          y los botones se apretaban/desbordaban contra él).
           Fila 1: logo + título, todo en una sola línea horizontal.
-          Fila 2 (renglón propio): los 5 botones de acción. */}
+          Fila 2 (renglón propio): los botones de acción (4 desde la
+          ronda 16, punto 4 — se sacó "🖥 Armador" del header). */}
       <div style={{ padding: "16px 16px 0", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, minWidth: 0 }}>
           <img src={ICON} width={24} height={24} alt="DI" style={{ opacity: 0.85, flexShrink: 0 }} />
@@ -3770,29 +3772,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           >
             🏋️ Entrenador
           </button>
-          {/* Armador de planes (ronda 14) — vista web desktop del catálogo
-              con carrito para armar planes por alumno/día */}
-          <button
-            onClick={() => setShowArmador(true)}
-            title="Armador de planes: catálogo completo con carrito, pensado para computadora"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: "transparent",
-              color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "6px 4px",
-              fontSize: "clamp(9px, 2.4vw, 11px)",
-              fontWeight: 700,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            🖥 Armador
-          </button>
+          {/* Ronda 16 (punto 4): el botón "🖥 Armador" (pantalla aparte) se
+              sacó — esa función ahora vive DENTRO de "📚 Biblioteca de
+              ejercicios" (botón "+ Crear plan de entrenamiento"). */}
           <button
             onClick={onToggleTheme}
             title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -5051,23 +5033,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         )}{" "}
       </div>{" "}
       {/* Ronda 14: Biblioteca = catálogo completo (dataset + custom DI).
-          Desde adentro se puede saltar a la biblioteca propia (M/E/C). */}
+          Desde adentro se puede saltar a la biblioteca propia (M/E/C).
+          Ronda 16 (punto 4): el Armador se fusionó ACÁ ADENTRO — ya no es
+          una segunda instancia de CatalogoExplorer, es un toggle interno
+          del componente (botón "+ Crear plan de entrenamiento"). */}
       {showCatalogo && (
         <CatalogoExplorer
-          modo="biblioteca"
           onClose={() => setShowCatalogo(false)}
           showToast={showToast}
           onAbrirPropia={() => { setShowCatalogo(false); setShowBiblioteca(true); }}
-        />
-      )}
-      {/* Armador de planes — versión web desktop */}
-      {showArmador && (
-        <CatalogoExplorer
-          modo="armador"
-          onClose={() => setShowArmador(false)}
-          showToast={showToast}
-          alumnos={alumnos}
-          onAlumnosUpdate={onUpdate}
         />
       )}
     </div>

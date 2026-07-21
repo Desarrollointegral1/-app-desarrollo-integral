@@ -1,22 +1,26 @@
 // ══════════════════════════════════════════════════════════════════════
-// CATÁLOGO DE EJERCICIOS — explorador estilo index del dataset ExerciseDB
-// (sidebar de filtros + grid de cards + detalle), EN ESPAÑOL y con la
-// estética DI. La organización replica la del dataset a pedido de Lucas:
-// filtros por Categoría / Equipamiento / Músculo objetivo como chips
-// multi-select, badges de filtros activos con ✕, contador "X de Y
-// ejercicios", cards con imagen (lazy) que pasan a GIF en hover.
+// CATÁLOGO DE EJERCICIOS / BIBLIOTECA — explorador estilo index del
+// dataset ExerciseDB (sidebar de filtros + grid de cards + detalle), EN
+// ESPAÑOL y con la estética DI. La organización replica la del dataset a
+// pedido de Lucas: filtros por Categoría / Equipamiento / Músculo
+// objetivo como chips multi-select, badges de filtros activos con ✕,
+// contador "X de Y ejercicios", cards con imagen (lazy) que pasan a GIF
+// en hover.
 //
-// Dos modos:
-//   · "biblioteca": pantalla Biblioteca del admin (mobile-first). Click en
-//     una card abre el detalle con nombre/instrucciones EDITABLES, video
-//     propio (bucket ejercicios-videos) y chips de músculos. Guardar marca
-//     editado=true en catalogo_ejercicios.
-//   · "armador": versión web desktop para ARMAR PLANES — sidebar +
-//     grid + panel derecho (carrito): elegís alumno y destino (día nuevo
-//     o plan existente), agregás con ＋, reordenás, y GUARDAR persiste en
-//     alumno_planes/plan_dias/plan_ejercicios como cualquier plan. Cada
-//     ejercicio elegido se agrega además a biblioteca_ejercicios si no
-//     estaba (código DI o próximo X## libre).
+// Ronda 16 (punto 4): "el Armador y la Biblioteca son lo mismo" — se
+// fusionaron en UNA sola pantalla. Antes eran dos `modo`s separados
+// (biblioteca/armador) invocados como dos pantallas distintas desde
+// AdminPanel; ahora es siempre la Biblioteca, con un toggle interno
+// (`armadorAbierto`, botón "+ Crear plan de entrenamiento" al lado de
+// "+ Crear ejercicio nuevo") que abre el panel lateral del carrito SIN
+// salir de la pantalla — se sigue buscando/filtrando en la misma grilla
+// de siempre (con el filtro rápido ★ Principales DI intacto) y cada
+// "＋ Agregar" suma el ejercicio al plan en construcción. Guardar sigue
+// creando una plantilla en planes_predeterminados (fusión de UI, no de
+// datos — igual que antes de esta ronda).
+// Click en una card SIEMPRE abre el detalle editable (nombre/
+// instrucciones, video propio, chips de músculos) — eso no cambió, es
+// independiente de si el carrito está abierto o no.
 //
 // Performance: render incremental de a 60 con "Cargar más" + loading lazy
 // de imágenes — pensado para no explotar el celular con 1.344 items.
@@ -38,7 +42,6 @@ import {
 } from "../../services/supabase.js";
 
 const PAGE = 60;
-const DIAS = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
 const labelCat = (v) => labels.categoria[v] || v;
 const labelEq = (v) => labels.equipment[v] || v;
@@ -204,11 +207,8 @@ function SubirVideoInline({ onUrl, showToast }) {
 }
 
 export default function CatalogoExplorer({
-  modo = "biblioteca",
   onClose,
   showToast,
-  alumnos = [],
-  onAlumnosUpdate,
   onAbrirPropia,
 }) {
   const [cat, setCat] = useState(null); // null = cargando
@@ -225,8 +225,13 @@ export default function CatalogoExplorer({
   const [creando, setCreando] = useState(false); // true = flujo "Crear ejercicio nuevo" (punto 4)
   const [codigoError, setCodigoError] = useState(""); // validación de código duplicado (punto 5)
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  // carrito (modo armador) — punto 6: ya no maneja alumno/destino/día,
-  // solo arma la plantilla (nombre + grupo).
+  // Ronda 16 (punto 4): el "Armador" ya no es una pantalla aparte — es
+  // este toggle. false = solo Biblioteca (buscar/editar ejercicios).
+  // true = además se muestra el panel lateral del carrito y el botón
+  // "＋" en cada card para ir sumando ejercicios al plan en construcción.
+  const [armadorAbierto, setArmadorAbierto] = useState(false);
+  // carrito (armador) — punto 6 de la ronda anterior: ya no maneja
+  // alumno/destino/día, solo arma la plantilla (nombre + grupo).
   const [carrito, setCarrito] = useState([]);
   const [nombrePlan, setNombrePlan] = useState("");
   const [grupoPlan, setGrupoPlan] = useState("");
@@ -421,12 +426,23 @@ export default function CatalogoExplorer({
       setCarrito([]);
       setNombrePlan("");
       setGrupoPlan("");
+      setArmadorAbierto(false);
     } catch (e) {
       console.error("[Armador]", e);
       showToast && showToast("Error: " + e.message);
     } finally {
       setGuardandoPlan(false);
     }
+  };
+
+  // Cerrar el panel del carrito sin guardar (punto 4): si hay ejercicios
+  // sumados, confirma antes de descartarlos.
+  const cerrarArmador = () => {
+    if (carrito.length > 0 && !window.confirm("¿Cerrar el plan en construcción? Se pierden los ejercicios que sumaste.")) return;
+    setArmadorAbierto(false);
+    setCarrito([]);
+    setNombrePlan("");
+    setGrupoPlan("");
   };
 
   const sidebar = (
@@ -448,14 +464,25 @@ export default function CatalogoExplorer({
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
       </div>
       {/* Punto 4: único lugar donde se sube media propia — crear un
-          ejercicio nuevo, no editar uno existente. */}
-      <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), width: "100%", marginBottom: 14, fontWeight: 800 }}>
-        ＋ Crear ejercicio nuevo
-      </button>
+          ejercicio nuevo, no editar uno existente. Al lado, el botón que
+          reemplaza a la vieja pantalla "Armador" — abre el carrito lateral
+          sin salir de la Biblioteca. */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), flex: 1, fontWeight: 800 }}>
+          ＋ Crear ejercicio nuevo
+        </button>
+        <button
+          onClick={() => setArmadorAbierto(true)}
+          disabled={armadorAbierto}
+          style={{ ...smallBtn(armadorAbierto ? S.green : S.white), flex: 1, fontWeight: 800, opacity: armadorAbierto ? 0.6 : 1, cursor: armadorAbierto ? "default" : "pointer" }}
+        >
+          {armadorAbierto ? "✓ Armando plan" : "＋ Crear plan de entrenamiento"}
+        </button>
+      </div>
       <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} />
       <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} />
       <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} />
-      {modo === "biblioteca" && onAbrirPropia && (
+      {onAbrirPropia && (
         <button onClick={onAbrirPropia} style={{ ...smallBtn(S.gray), width: "100%", marginTop: 8 }}>
           🧘 Rutinas propias (movilidad / elástico / calor)
         </button>
@@ -513,11 +540,11 @@ export default function CatalogoExplorer({
                       </span>
                     )}
                     {e.editado && (
-                      <span style={{ position: "absolute", top: 6, right: modo === "armador" ? 34 : 6, background: S.bg, color: S.green, border: "1px solid " + S.border, borderRadius: 4, fontSize: 9, fontWeight: 800, padding: "1px 5px" }}>
+                      <span style={{ position: "absolute", top: 6, right: armadorAbierto ? 34 : 6, background: S.bg, color: S.green, border: "1px solid " + S.border, borderRadius: 4, fontSize: 9, fontWeight: 800, padding: "1px 5px" }}>
                         ✎
                       </span>
                     )}
-                    {modo === "armador" && (
+                    {armadorAbierto && (
                       <button
                         onClick={(ev) => { ev.stopPropagation(); agregarAlCarrito(e); }}
                         title="Agregar al plan"
@@ -557,10 +584,13 @@ export default function CatalogoExplorer({
   // (nombre + grupo opcional, ej. "Básico"/"Intermedio"/"Avanzado", para
   // agruparlas). Asignarla a un alumno puntual se hace aparte, desde
   // Admin → Alumno → "Asignar plan".
-  const carritoPanel = modo === "armador" && (
+  const carritoPanel = armadorAbierto && (
     <div style={{ width: isWide ? 290 : "auto", flexShrink: 0, borderLeft: isWide ? "1px solid " + S.border : "none", borderTop: isWide ? "none" : "1px solid " + S.border, paddingLeft: isWide ? 14 : 0, paddingTop: isWide ? 0 : 12, display: "flex", flexDirection: "column", maxHeight: isWide ? "none" : "40vh", overflowY: "auto" }}>
-      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
-        Plan en construcción ({carrito.length})
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase" }}>
+          Plan en construcción ({carrito.length})
+        </div>
+        <button onClick={cerrarArmador} title="Cerrar sin guardar" style={{ background: "transparent", border: "none", color: S.gray, fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>✕</button>
       </div>
       <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan (ej. Hipertrofia Avanzado V2)" style={{ ...inp, marginBottom: 8 }} />
       <input value={grupoPlan} onChange={(e) => setGrupoPlan(e.target.value)} placeholder="Grupo (opcional — ej. Básico, Intermedio, Avanzado)" style={{ ...inp, marginBottom: 8 }} />
@@ -598,7 +628,7 @@ export default function CatalogoExplorer({
       {/* header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
-          {modo === "armador" ? "🖥 Armador de planes" : "📚 Biblioteca de ejercicios"}
+          📚 Biblioteca de ejercicios
         </div>
         {/* Punto 4 (2026-07-21): se saca el crédito "© Gym visual —
             gymvisual.com" de la UI visible al usuario (acá y en el detalle
@@ -693,7 +723,7 @@ export default function CatalogoExplorer({
               </>
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              {modo === "armador" && !creando && (
+              {armadorAbierto && !creando && (
                 <button
                   onClick={() => { agregarAlCarrito(detalle); setDetalle(null); }}
                   style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: 11, fontSize: 12, fontWeight: 800, cursor: "pointer" }}
