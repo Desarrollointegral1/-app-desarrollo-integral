@@ -1098,20 +1098,21 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
   }
 }
 
-export async function crearAdmin(nombre, codigo, pin, email) {
+export async function crearAdmin(nombre, codigo, pin, email, rol) {
   LOG("crearAdmin", `⏳ Creando admin ${codigo}...`);
 
   try {
     // La tabla admins tiene RLS sin policies (nadie la toca directo con la
     // anon key) — el INSERT directo fallaba con 42501 y el admin nunca se
-    // creaba. El alta corre server-side en crear_admin_rpc (migración 014),
-    // mismo patrón que login_admin_rpc.
+    // creaba. El alta corre server-side en crear_admin_rpc (migración 014,
+    // rol agregado en 016), mismo patrón que login_admin_rpc.
     const pinHash = await hashearPIN(pin);
     const { data: admin, error } = await supabase.rpc("crear_admin_rpc", {
       p_nombre: nombre,
       p_codigo: codigo,
       p_pin_hash: pinHash,
       p_email: email || "",
+      p_rol: rol === "kinesiologa" ? "kinesiologa" : "entrenador",
     });
 
     if (error || !admin) {
@@ -1123,6 +1124,38 @@ export async function crearAdmin(nombre, codigo, pin, email) {
   } catch (e) {
     ERR("crearAdmin", e.message, e);
     throw e;
+  }
+}
+
+// Gestión de administradores con rol (punto 12, ronda 2026-07-21). La
+// tabla admins sigue sin policies para anon — ambas funciones pasan por
+// RPC SECURITY DEFINER (migración 016), nunca exponen pin_hash.
+export async function listarAdmins() {
+  LOG("listarAdmins", "⏳ Listando admins...");
+  try {
+    const { data, error } = await supabase.rpc("listar_admins_rpc");
+    if (error) throw error;
+    LOG("listarAdmins", `✅ ${(data || []).length} admin(s)`);
+    return data || [];
+  } catch (e) {
+    ERR("listarAdmins", e.message, e);
+    return [];
+  }
+}
+
+export async function actualizarRolAdmin(id, rol) {
+  LOG("actualizarRolAdmin", `⏳ Actualizando rol de ${id} a ${rol}...`);
+  try {
+    const { data, error } = await supabase.rpc("actualizar_rol_admin_rpc", {
+      p_id: id,
+      p_rol: rol,
+    });
+    if (error) throw error;
+    LOG("actualizarRolAdmin", "✅ Rol actualizado");
+    return data;
+  } catch (e) {
+    ERR("actualizarRolAdmin", e.message, e);
+    return null;
   }
 }
 
