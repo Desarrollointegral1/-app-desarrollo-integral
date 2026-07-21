@@ -275,7 +275,7 @@ export class BrainFactory {
 
       const successRate =
         queries && queries.length > 0
-          ? queries.filter((q) => !q.has_gap).length / queries.length
+          ? queries.filter((q) => !q.hasGap).length / queries.length
           : 0;
 
       return {
@@ -311,12 +311,12 @@ export class BrainFactory {
 
       const { data: queries } = await this.supabase
         .from('brain_queries')
-        .select('id, confidence, has_gap')
+        .select('id, confidence, "hasGap"')
         .eq('brainId', brainId);
 
       const successRate =
         queries && queries.length > 0
-          ? queries.filter((q) => !q.has_gap).length / queries.length
+          ? queries.filter((q) => !q.hasGap).length / queries.length
           : 0;
 
       await this.supabase
