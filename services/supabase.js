@@ -1905,7 +1905,7 @@ export async function cargarCatalogo() {
   for (let desde = 0; ; desde += PAGE) {
     const { data, error } = await supabase
       .from("catalogo_ejercicios")
-      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution")
+      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution,musculos,musculo_default,tags,tag_default")
       .order("nombre_es")
       .range(desde, desde + PAGE - 1);
     if (error) { ERR("cargarCatalogo", "Error cargando catálogo", error); return all; }
@@ -1927,6 +1927,68 @@ export async function guardarEjercicioCatalogo(id, patch) {
   if (error) { ERR("guardarEjercicioCatalogo", "Error guardando", error); return false; }
   LOG("guardarEjercicioCatalogo", `✅ ${id} guardado.`);
   return true;
+}
+
+// Punto 5 (2026-07-21): código editable a mano desde la Biblioteca, CON
+// validación de duplicados (no hay auto-reordenamiento de todo el grupo
+// muscular — si Lucas quiere intercambiar dos códigos, edita cada uno por
+// separado; el chequeo de duplicado evita que dos ejercicios compartan
+// código sin querer). Si el ejercicio ya estaba asignado en planes de
+// alumnos con el código viejo, esos planes se actualizan para seguir
+// apuntando al ejercicio correcto (mismo criterio que
+// propagarEjercicioATodos: UPDATE directo por código en plan_ejercicios).
+export async function validarCodigoDisponible(codigo, idExcluir) {
+  if (!codigo) return true;
+  const { data, error } = await supabase
+    .from("catalogo_ejercicios")
+    .select("id")
+    .eq("codigo_di", codigo)
+    .neq("id", idExcluir || "")
+    .limit(1);
+  if (error) { ERR("validarCodigoDisponible", "Error validando código", error); return false; }
+  return !(data && data.length > 0);
+}
+
+export async function renombrarCodigoEjercicio(oldCode, newCode) {
+  if (!oldCode || !newCode || oldCode === newCode) return true;
+  LOG("renombrarCodigoEjercicio", `⏳ ${oldCode} → ${newCode} en plan_ejercicios y biblioteca_ejercicios...`);
+  const { error: e1 } = await supabase.from("plan_ejercicios").update({ codigo: newCode }).eq("codigo", oldCode);
+  if (e1) { ERR("renombrarCodigoEjercicio", "Error actualizando plan_ejercicios", e1); return false; }
+  const { error: e2 } = await supabase.from("biblioteca_ejercicios").update({ codigo: newCode }).eq("codigo", oldCode);
+  if (e2) { ERR("renombrarCodigoEjercicio", "Error actualizando biblioteca_ejercicios", e2); return false; }
+  LOG("renombrarCodigoEjercicio", "✅ Código renombrado en las referencias existentes.");
+  return true;
+}
+
+// Punto 4: flujo "Crear ejercicio nuevo" — el único lugar donde se sube
+// media propia para un ejercicio del catálogo (editar uno existente NO
+// permite reemplazar su media, ver CatalogoExplorer.jsx). Id custom con
+// prefijo DI- para distinguirlo del dataset (mismo criterio que ronda 14).
+export async function crearEjercicioCatalogo(payload) {
+  const id = "DI-CUSTOM-" + Date.now().toString(36).toUpperCase();
+  LOG("crearEjercicioCatalogo", `⏳ Creando ${id}...`, payload);
+  const row = {
+    id,
+    nombre_es: payload.nombre_es,
+    instrucciones_es: payload.instrucciones_es || "",
+    categoria: payload.categoria || "waist",
+    equipment_es: payload.tag_default || (payload.tags || [])[0] || "",
+    target_es: payload.musculo_default || (payload.musculos || [])[0] || "",
+    secondary_muscles_es: (payload.musculos || []).filter((m) => m !== payload.musculo_default),
+    musculos: payload.musculos || [],
+    musculo_default: payload.musculo_default || "",
+    tags: payload.tags || [],
+    tag_default: payload.tag_default || "",
+    video: payload.video || "",
+    codigo_di: payload.codigo_di || null,
+    grupo_di: payload.grupo_di || null,
+    custom: true,
+    editado: true,
+  };
+  const { data, error } = await supabase.from("catalogo_ejercicios").insert(row).select().single();
+  if (error) { ERR("crearEjercicioCatalogo", "Error creando ejercicio", error); return null; }
+  LOG("crearEjercicioCatalogo", `✅ ${id} creado.`);
+  return data;
 }
 
 // B5: al elegir un ejercicio del catálogo para un plan, si no existe en
