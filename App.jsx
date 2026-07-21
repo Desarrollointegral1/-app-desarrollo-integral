@@ -102,20 +102,14 @@ let ICON = ICON_WHITE;
 // (spacer | lockup flex:1 centrado | bloque real) y el punto medio del
 // lockup cae exactamente en total/2, para cualquier ancho de pantalla y
 // cualquier ancho que terminen ocupando los botones de tema/Salir.
-// Header del alumno — rediseño 2026-07-21 (pedido de Lucas con screenshot):
-//   · ícono al DOBLE (66 → 132) pegado al borde IZQUIERDO (margen mínimo,
-//     centrado vertical, fuera del flujo)
-//   · wordmark "DESARROLLO INTEGRAL" al doble, centrado en el ANCHO TOTAL
-//     de la pantalla (los laterales son position:absolute, así el centrado
-//     es real, no "centrado en el espacio sobrante")
-//   · debajo, "APP DE ENTRENAMIENTO" como texto HTML en PP Formula (misma
-//     solución del login: el SVG con soloDesarrollo recorta el "CENTRO DE
-//     ENTRENAMIENTO" quemado en paths)
-//   · tema + Salir arriba a la derecha, nunca pisados por el wordmark
-// Tope real documentado: el "doble" literal (wordmark 390px / ícono 132px)
-// entra recién desde ~900px de ancho; en celular el wordmark se acota a
-// clamp(150px, 48vw - 40px, 390px) y el ícono a clamp(88px, 26vw, 132px)
-// para que el centrado real no pise el ícono a 375px (gap medido ~11px).
+// Header del alumno — AJUSTE 2026-07-21 (vuelve a una sola línea):
+// la ronda anterior había puesto el wordmark al doble centrado en el ancho
+// total, en su PROPIO renglón debajo de los botones (2 pisos, tapándose en
+// mobile). Lucas pidió volver a una única fila horizontal: ícono (mismo
+// tamaño de antes, solo un poco más pegado al borde) + wordmark (más chico
+// que la ronda pasada) + tema/Salir, todo en el mismo renglón, sin la
+// franja de subtítulo "App de entrenamiento" (se saca para que entre todo
+// en una línea — ya se sobreentiende que es la app de entrenamiento).
 function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) {
   const btnBase = {
     background: "transparent",
@@ -128,21 +122,29 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
   return (
     <div
       style={{
-        position: "relative",
-        padding: "10px 8px 12px",
+        display: "flex",
+        alignItems: "center",
+        gap: "clamp(4px, 2vw, 12px)",
+        padding: "8px 8px 8px 4px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
-        minHeight: "calc(clamp(88px, 26vw, 132px) + 22px)",
       }}
     >
-      {/* Ícono doble, casi tocando el borde izquierdo */}
+      {/* Ícono: mismo tamaño de la ronda anterior, apenas más pegado al borde */}
       <img
         src={ICON}
         alt="DI"
-        style={{ position: "absolute", left: 4, top: "50%", transform: "translateY(-50%)", width: "clamp(88px, 26vw, 132px)", height: "auto", display: "block" }}
+        style={{ flexShrink: 0, marginLeft: -2, width: "clamp(88px, 26vw, 132px)", height: "auto", display: "block" }}
       />
-      {/* Tema + Salir arriba a la derecha */}
-      <div style={{ position: "absolute", top: 8, right: 8, display: "flex", alignItems: "center", gap: 6 }}>
+      {/* Wordmark, más chico que la ronda pasada para entrar en la misma
+          fila que los botones — deja de estar centrado en el ancho total */}
+      <DIWordmark
+        soloDesarrollo
+        width={220}
+        style={{ color: S.white, width: "clamp(80px, 30vw, 220px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
+      />
+      {/* Tema + Salir, empujados al borde derecho */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexShrink: 0 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -153,17 +155,6 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) 
         <button onClick={onSalir} style={{ ...btnBase, padding: "5px 10px", fontSize: 11 }}>
           {salirLabel}
         </button>
-      </div>
-      {/* Wordmark + subtítulo centrados en el ancho total */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 34 }}>
-        <DIWordmark
-          soloDesarrollo
-          width={390}
-          style={{ color: S.white, width: "clamp(150px, calc(48vw - 40px), 390px)", maxWidth: "100%", height: "auto" }}
-        />
-        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 5, textAlign: "center" }}>
-          App de entrenamiento
-        </div>
       </div>
     </div>
   );
