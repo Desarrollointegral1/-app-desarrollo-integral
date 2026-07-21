@@ -5844,6 +5844,43 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
+              {/* Card de gamificación (punto 11, 2026-07-21): cuántas veces
+                  entrenó este mes vs. un objetivo calculado. Objetivo =
+                  días/semana asignados (al.horarios, o distintos
+                  dia_semana de al.planes si no hay horarios, con 3 como
+                  último fallback) × semanas transcurridas del mes (día
+                  actual del mes / 7, redondeado para arriba — documentado
+                  acá porque no hay otro lugar mejor: es una aproximación
+                  simple, no cuenta semanas calendario reales). */}
+              {(() => {
+                const diasPorSemana =
+                  (al.horarios || []).length ||
+                  new Set((al.planes || []).map((p) => p.dia_semana).filter((d) => d && d !== "Fijo")).size ||
+                  3;
+                const semanasTranscurridas = Math.max(1, Math.ceil(new Date().getDate() / 7));
+                const objetivo = diasPorSemana * semanasTranscurridas;
+                const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
+                const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
+                return (
+                  <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                      <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                        Tu mes
+                      </div>
+                      <div style={{ color: S.red, fontWeight: 900, fontSize: 15 }}>{pct}%</div>
+                    </div>
+                    <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
+                      Entrenaste <span style={{ color: S.red }}>{entrenosMes}</span> de {objetivo} veces este mes
+                    </div>
+                    <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
+                    </div>
+                    <div style={{ color: S.gray, fontSize: 10, marginTop: 8 }}>
+                      {pct >= 100 ? "🔥 ¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien — no aflojes." : "Dale que se puede — cada entreno suma."}
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Asistencia de hoy */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
