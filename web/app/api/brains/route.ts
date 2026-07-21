@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBrainFactory } from '@/lib/brain-factory';
+import { requireApiKey } from '@/lib/api-auth';
 import type { BrainDomain } from '@/lib/brain-factory/types';
 
 /**
  * GET /api/brains - Listar todos los brains
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   try {
     const factory = getBrainFactory();
     const brains = await factory.listBrains();
@@ -31,6 +35,9 @@ export async function GET() {
  * Body: { name, domain, description, config? }
  */
 export async function POST(request: NextRequest) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { name, domain, description, config } = body;

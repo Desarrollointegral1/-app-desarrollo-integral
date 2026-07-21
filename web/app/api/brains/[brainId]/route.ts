@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBrainFactory } from '@/lib/brain-factory';
+import { requireApiKey } from '@/lib/api-auth';
 
 /**
  * GET /api/brains/[brainId] - Obtener un brain específico
@@ -8,6 +9,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ brainId: string }> }
 ) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   try {
     const factory = getBrainFactory();
     const resolvedParams = await params;
@@ -49,6 +53,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ brainId: string }> }
 ) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { title, content, source, sourceUrl } = body;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBrainFactory } from '@/lib/brain-factory';
+import { requireApiKey } from '@/lib/api-auth';
 
 /**
  * POST /api/brains/[brainId]/query - Consultar un brain
@@ -9,6 +10,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ brainId: string }> }
 ) {
+  const denied = requireApiKey(request);
+  if (denied) return denied;
+
   try {
     const body = await request.json();
     const { question } = body;
