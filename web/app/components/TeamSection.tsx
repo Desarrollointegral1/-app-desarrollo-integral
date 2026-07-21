@@ -25,7 +25,7 @@ export function TeamSection() {
       >
         <div className="ariel-photo-wrap">
           <img
-            src="/equipo/ariel.jpg"
+            src="/web/equipo/ariel.jpg"
             alt="Ariel Rebisberger — Coach y entrenador de movimiento"
             className="ariel-photo"
             loading="lazy"

@@ -5,9 +5,9 @@ export default function About() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="font-bold text-xl">Desarrollo Integral</div>
           <div className="flex gap-6">
-            <a href="/" className="hover:text-gray-300">Inicio</a>
-            <a href="/about" className="hover:text-gray-300">Nosotros</a>
-            <a href="/contact" className="hover:text-gray-300">Contacto</a>
+            <a href="/web" className="hover:text-gray-300">Inicio</a>
+            <a href="/web/about" className="hover:text-gray-300">Nosotros</a>
+            <a href="/web/contact" className="hover:text-gray-300">Contacto</a>
           </div>
         </div>
       </nav>

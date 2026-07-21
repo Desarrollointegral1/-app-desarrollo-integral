@@ -71,7 +71,7 @@ export function HeroSection() {
       {/* Background Media: Poster eager-loaded, Video lazy on desktop only */}
       <div className="hero-video-wrap" aria-hidden="true">
         <img 
-          src="/espacio/gym.jpg" 
+          src="/web/espacio/gym.jpg" 
           alt=""
           className="hero-poster"
           fetchPriority="high"
@@ -86,8 +86,8 @@ export function HeroSection() {
             loop
             preload="none"
           >
-            <source src="/espacio/video.webm" type="video/webm" />
-            <source src="/espacio/video.mp4" type="video/mp4" />
+            <source src="/web/espacio/video.webm" type="video/webm" />
+            <source src="/web/espacio/video.mp4" type="video/mp4" />
           </video>
         )}
         <div className="hero-video-overlay" />

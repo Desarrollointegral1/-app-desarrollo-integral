@@ -27,7 +27,7 @@ import {
 function LogoMark({ h = 44, opacity = 0.9 }: { h?: number; opacity?: number }) {
   return (
     <img
-      src="/logos/logo-blanco.svg"
+      src="/web/logos/logo-blanco.svg"
       alt="Desarrollo Integral"
       style={{ height: h, width: "auto", display: "block", opacity }}
     />
