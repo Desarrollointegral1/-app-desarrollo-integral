@@ -82,6 +82,7 @@ import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
 import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
+import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
@@ -4134,7 +4135,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           Configuración porque la condición solo excluía "dashboard". */}
       {sec !== "dashboard" && sec !== "config" && (
       <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
-        {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"]].map(([l, k]) => (
+        {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"], ["Evaluación", "evaluacion"]].map(([l, k]) => (
           <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
             {l}
           </button>
@@ -5066,6 +5067,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               Bioimpedancia — {al.nombre}
             </div>
             <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
+          </div>
+        )}{" "}
+        {sec === "evaluacion" && al && (
+          <div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+              Protocolo de evaluación — {al.nombre}
+            </div>
+            <ProtocoloEvaluacionSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
           </div>
         )}{" "}
         {sec === "reportes" && repTab === "asistencia" && al && (() => {
