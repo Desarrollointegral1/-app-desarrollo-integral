@@ -152,29 +152,35 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
     <div
       style={{
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "center",
         gap: "clamp(8px, 2.5vw, 14px)",
         padding: "10px 16px 12px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
       }}
     >
-      {/* 1) Logo — recortado, bien visible, click → pantalla inicial */}
-      <img
-        src={ICON_CROP}
-        alt="DI"
+      {/* 1) Logo — animado igual que el de bienvenida (Logo3D), un poco más
+             chico que antes, click → pantalla inicial. Ronda 2026-07-22:
+             Lucas pidió que el logo del header tenga el MISMO movimiento
+             que el de la pantalla de login (péndulo constante). */}
+      <div
         onClick={onLogoClick}
         title="Ir al inicio"
-        style={{ flexShrink: 0, width: "clamp(52px, 15vw, 68px)", height: "auto", display: "block", cursor: onLogoClick ? "pointer" : "default" }}
-      />
-      {/* 2) Marca protagonista: wordmark GRANDE + subtítulo chico debajo */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", paddingTop: 2 }}>
+        style={{ flexShrink: 0, cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
+      >
+        <Logo3D size={48} />
+      </div>
+      {/* 2) Marca protagonista: wordmark GRANDE + "APP DE ENTRENAMIENTO"
+             CENTRADA justo debajo. El logo quedó más chico, así que el bloque
+             de marca ocupa el espacio libre y queda centrado (pedido de Lucas
+             2026-07-22). */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <DIWordmark
           soloDesarrollo
           width={300}
           style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
         />
-        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 3.5, textTransform: "uppercase", marginTop: 3, fontFamily: FONT_BRAND, whiteSpace: "nowrap" }}>
+        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 3.5, textTransform: "uppercase", marginTop: 4, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
           App de entrenamiento
         </div>
       </div>
@@ -300,7 +306,7 @@ function FechaRapida({ value, onChange }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(52deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-52deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 5s cubic-bezier(0.45,0,0.55,1) infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(52deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-52deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 6s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -5439,7 +5445,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         // Ronda 17 (punto 1): Lucas insistió — todavía quedaba mucho aire
         // arriba del logo. Bajado al mínimo real (casi pegado al borde).
         justifyContent: "flex-start",
-        paddingTop: "clamp(2px, 0.8vh, 10px)",
+        paddingTop: "clamp(16px, 4vh, 40px)",
         paddingLeft: 24,
         paddingRight: 24,
         paddingBottom: 24,
@@ -5487,7 +5493,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         <DIWordmark
           soloDesarrollo
           width={480}
-          style={{ color: S.white, marginTop: 4, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
+          style={{ color: S.white, marginTop: 16, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
         />
         <div
           style={{
@@ -6297,7 +6303,7 @@ export default function App() {
     <>
       {" "}
       <GlobalStyles /> <Toast msg={toastMsg} />{" "}
-      <CoachFlotante alumno={al} iconUrl={ICON_WHITE} S={S} />{" "}
+      <CoachFlotante alumno={al} iconWhite={ICON_WHITE_CROP} iconBlack={ICON_BLACK_CROP} darkMode={darkMode} S={S} />{" "}
       {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}{" "}
       <div
         style={{
