@@ -80,6 +80,7 @@ import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
+import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
@@ -6296,6 +6297,7 @@ export default function App() {
     <>
       {" "}
       <GlobalStyles /> <Toast msg={toastMsg} />{" "}
+      <CoachFlotante alumno={al} iconUrl={ICON_WHITE} S={S} />{" "}
       {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}{" "}
       <div
         style={{
