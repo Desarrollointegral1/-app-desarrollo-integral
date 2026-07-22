@@ -716,16 +716,30 @@ export async function listarPlanesPredeterminados() {
   return data || [];
 }
 
-export async function crearPlanPredeterminado(nombre, grupo, dias) {
+export async function crearPlanPredeterminado(nombre, grupo, dias, nivel) {
   LOG("crearPlanPredeterminado", `⏳ Creando plantilla "${nombre}"...`);
   const { data, error } = await supabase
     .from("planes_predeterminados")
-    .insert({ nombre, grupo: grupo || "", dias: dias || [] })
+    .insert({ nombre, grupo: grupo || "", dias: dias || [], nivel: nivel || null })
     .select()
     .single();
   if (error) { ERR("crearPlanPredeterminado", "Error creando plantilla", error); return null; }
   LOG("crearPlanPredeterminado", `✅ Plantilla "${nombre}" creada.`);
   return data;
+}
+
+// Ronda 18: editar una plantilla existente desde "Ver todos los planes"
+// (renombrar, cambiar categoría/nivel, editar ejercicios). Patch parcial:
+// solo pisa las claves presentes ({ nombre, grupo, nivel, dias }).
+export async function actualizarPlanPredeterminado(id, patch) {
+  LOG("actualizarPlanPredeterminado", `⏳ Actualizando plantilla ${id}...`, patch);
+  const { error } = await supabase
+    .from("planes_predeterminados")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) { ERR("actualizarPlanPredeterminado", "Error actualizando plantilla", error); return false; }
+  LOG("actualizarPlanPredeterminado", `✅ Plantilla ${id} actualizada.`);
+  return true;
 }
 
 export async function eliminarPlanPredeterminado(id) {
@@ -2001,7 +2015,7 @@ export async function cargarCatalogo() {
   for (let desde = 0; ; desde += PAGE) {
     const { data, error } = await supabase
       .from("catalogo_ejercicios")
-      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution,musculos,musculo_default,tags,tag_default")
+      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution,musculos,musculo_default,tags,tag_default,archivado,nivel")
       .order("nombre_es")
       .range(desde, desde + PAGE - 1);
     if (error) { ERR("cargarCatalogo", "Error cargando catálogo", error); return all; }
@@ -2094,6 +2108,7 @@ export async function crearEjercicioCatalogo(payload) {
     video: payload.video || "",
     codigo_di: payload.codigo_di || null,
     grupo_di: payload.grupo_di || null,
+    nivel: payload.nivel || null,
     custom: true,
     editado: true,
   };

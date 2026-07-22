@@ -26,7 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef } from "react";
-import { S, card, inp, smallBtn, FONT_DISPLAY } from "../utils/theme.js";
+import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
 import {
@@ -40,7 +40,18 @@ import {
   renombrarCategoriaCatalogo,
   crearEjercicioCatalogo,
   crearPlanPredeterminado,
+  listarPlanesPredeterminados,
+  actualizarPlanPredeterminado,
+  eliminarPlanPredeterminado,
 } from "../../services/supabase.js";
+
+// Niveles asignables a un ejercicio o a una plantilla de plan (ronda 18).
+const NIVELES = [
+  ["inicial", "Inicial"],
+  ["intermedio", "Intermedio"],
+  ["avanzado", "Avanzado"],
+];
+const labelNivel = (v) => (NIVELES.find(([id]) => id === v) || [null, v])[1];
 
 const PAGE = 60;
 
@@ -270,18 +281,36 @@ export default function CatalogoExplorer({
   const [creando, setCreando] = useState(false); // true = flujo "Crear ejercicio nuevo" (punto 4)
   const [codigoError, setCodigoError] = useState(""); // validación de código duplicado (punto 5)
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  // Ronda 16 (punto 4): el "Armador" ya no es una pantalla aparte — es
-  // este toggle. false = solo Biblioteca (buscar/editar ejercicios).
-  // true = además se muestra el panel lateral del carrito y el botón
-  // "＋" en cada card para ir sumando ejercicios al plan en construcción.
-  const [armadorAbierto, setArmadorAbierto] = useState(false);
-  // carrito (armador) — punto 6 de la ronda anterior: ya no maneja
-  // alumno/destino/día, solo arma la plantilla (nombre + grupo).
+  // Ronda 18: navegación por PANTALLAS (menú a menú, siempre con volver):
+  //   · "biblioteca" — el catálogo de siempre (buscar/filtrar/editar).
+  //   · "armador"    — pantalla DEDICADA "Plan de Entrenamiento" (Lucas
+  //     pidió que crear un plan lleve a OTRA pantalla, no a un panel
+  //     sobre la misma): búsqueda + lista + plan en construcción.
+  //   · "planes"     — "Ver todos los planes": listar/renombrar/editar/
+  //     eliminar las plantillas existentes.
+  const [pantalla, setPantalla] = useState("biblioteca");
+  const armadorAbierto = pantalla === "armador";
+  // carrito (armador): arma la plantilla (nombre + categoría + nivel).
   const [carrito, setCarrito] = useState([]);
   const [nombrePlan, setNombrePlan] = useState("");
   const [grupoPlan, setGrupoPlan] = useState("");
+  const [nivelPlan, setNivelPlan] = useState("");
   const [guardandoPlan, setGuardandoPlan] = useState(false);
+  // Ronda 18: archivados (ocultos por default, chip "Archivados" para
+  // verlos/recuperarlos) + filtro por nivel del ejercicio.
+  const [verArchivados, setVerArchivados] = useState(false);
+  const [fNivel, setFNivel] = useState(new Set());
+  // "Ver todos los planes": lista + plantilla abierta en edición.
+  const [plantillas, setPlantillas] = useState(null);
+  const [planSel, setPlanSel] = useState(null); // plantilla en edición
+  const [planForm, setPlanForm] = useState(null); // { nombre, grupo, nivel, dias }
+  const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
+  const [qPlanAdd, setQPlanAdd] = useState(""); // buscador p/ agregar ejercicios a la plantilla
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 900);
+
+  useEffect(() => {
+    if (pantalla === "planes") listarPlanesPredeterminados().then(setPlantillas);
+  }, [pantalla]);
 
   useEffect(() => {
     const onR = () => setIsWide(window.innerWidth >= 900);
@@ -316,21 +345,25 @@ export default function CatalogoExplorer({
       // Ronda 17 (punto 3): FIX — antes usaba !!e.codigo_di, que dejaba
       // pasar 1.334/1.343 ejercicios (ver esPrincipalDI arriba). Ahora usa
       // el rango curado real (los ~50 de la ronda 13).
+      // Ronda 18: los archivados no aparecen en listados/búsquedas; el
+      // chip "Archivados" invierte la vista para recuperarlos.
+      if (verArchivados ? !e.archivado : e.archivado) return false;
       if (soloDI && !esPrincipalDI(e)) return false;
       if (soloDI && !e.gif_url && !e.video) return false;
       if (fCat.size && !fCat.has(e.categoria)) return false;
       if (fEq.size && !fEq.has(e.equipment)) return false;
       if (fTg.size && !fTg.has(e.target)) return false;
       if (fPre.size && !fPre.has(prefijoDe(e))) return false;
+      if (fNivel.size && !fNivel.has(e.nivel || "")) return false;
       if (qq) {
         const idx = `${e.nombre_es} ${e.nombre_en || ""} ${e.target_es || ""} ${e.equipment_es || ""} ${e.codigo_di || ""}`.toLowerCase();
         if (!idx.includes(qq)) return false;
       }
       return true;
     });
-  }, [cat, q, fCat, fEq, fTg, fPre, soloDI]);
+  }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados]);
 
-  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, soloDI]);
+  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados]);
 
   const toggle = (setter) => (v) =>
     setter((prev) => {
@@ -344,7 +377,9 @@ export default function CatalogoExplorer({
     ...[...fEq].map((v) => ({ v, l: labelEq(v), del: () => toggle(setFEq)(v) })),
     ...[...fTg].map((v) => ({ v, l: labelTg(v), del: () => toggle(setFTg)(v) })),
     ...[...fPre].map((v) => ({ v, l: "Código " + v, del: () => toggle(setFPre)(v) })),
+    ...[...fNivel].map((v) => ({ v, l: "Nivel: " + (labelNivel(v) || "sin nivel"), del: () => toggle(setFNivel)(v) })),
     ...(soloDI ? [{ v: "di", l: "Principales DI", del: () => setSoloDI(false) }] : []),
+    ...(verArchivados ? [{ v: "arch", l: "🗄 Archivados", del: () => setVerArchivados(false) }] : []),
   ];
 
   // Ronda 17 (punto 3): "Todos los ejercicios" — resetea TODOS los filtros
@@ -355,9 +390,9 @@ export default function CatalogoExplorer({
   // calor, tabla distinta) — no "todo el catálogo". Se deja ese botón con
   // un nombre que describe lo que hace de verdad y se agrega este chip
   // nuevo para lo que Lucas pidió literalmente.
-  const hayFiltrosActivos = fCat.size > 0 || fEq.size > 0 || fTg.size > 0 || fPre.size > 0 || soloDI || q.trim() !== "";
+  const hayFiltrosActivos = fCat.size > 0 || fEq.size > 0 || fTg.size > 0 || fPre.size > 0 || fNivel.size > 0 || soloDI || verArchivados || q.trim() !== "";
   const limpiarFiltros = () => {
-    setFCat(new Set()); setFEq(new Set()); setFTg(new Set()); setFPre(new Set()); setSoloDI(false); setQ("");
+    setFCat(new Set()); setFEq(new Set()); setFTg(new Set()); setFPre(new Set()); setFNivel(new Set()); setSoloDI(false); setVerArchivados(false); setQ("");
   };
 
   // Ronda 17 (punto 3): renombrar una categoría — se propaga en la base a
@@ -409,8 +444,21 @@ export default function CatalogoExplorer({
       musculo_default: e.musculo_default || e.target_es || musculosIniciales[0] || "",
       tags: tagsIniciales,
       tag_default: e.tag_default || e.equipment_es || tagsIniciales[0] || "",
+      nivel: e.nivel || "",
     });
     setCodigoError("");
+  };
+
+  // Ronda 18: archivar/desarchivar — un archivado desaparece de listados y
+  // búsquedas (se recupera con el chip "Archivados" del sidebar).
+  const toggleArchivado = async (e) => {
+    const nuevo = !e.archivado;
+    const ok = await guardarEjercicioCatalogo(e.id, { archivado: nuevo });
+    if (!ok) { showToast && showToast("Error archivando — revisá la consola"); return; }
+    setCat((prev) => (prev || []).map((x) => (x.id === e.id ? { ...x, archivado: nuevo, editado: true } : x)));
+    setDetalle(null);
+    setCreando(false);
+    showToast && showToast(nuevo ? "Ejercicio archivado 🗄 (se oculta de los listados)" : "Ejercicio recuperado ✓");
   };
 
   // Flujo "Crear ejercicio nuevo" (punto 4): único lugar donde se sube
@@ -419,7 +467,7 @@ export default function CatalogoExplorer({
   const abrirNuevo = () => {
     setCreando(true);
     setDetalle({ id: null, custom: true });
-    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", categoria: "", musculos: [], musculo_default: "", tags: [], tag_default: "" });
+    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", categoria: "", musculos: [], musculo_default: "", tags: [], tag_default: "", nivel: "" });
     setCodigoError("");
   };
 
@@ -461,6 +509,7 @@ export default function CatalogoExplorer({
       musculo_default: form.musculo_default,
       tags: form.tags,
       tag_default: form.tag_default,
+      nivel: form.nivel || null, // ronda 18: Inicial/Intermedio/Avanzado
       target_es: form.musculo_default || form.musculos[0] || "",
       secondary_muscles_es: form.musculos.filter((m) => m !== form.musculo_default),
       equipment_es: form.tag_default || form.tags[0] || "",
@@ -529,13 +578,14 @@ export default function CatalogoExplorer({
           unidad: "reps",
         });
       }
-      const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }]);
+      const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }], nivelPlan);
       if (!creado) throw new Error("No se pudo crear la plantilla");
-      showToast && showToast(`Plantilla "${nombrePlan.trim()}" guardada ✓`);
+      showToast && showToast(`Plan "${nombrePlan.trim()}" guardado ✓`);
       setCarrito([]);
       setNombrePlan("");
       setGrupoPlan("");
-      setArmadorAbierto(false);
+      setNivelPlan("");
+      setPantalla("biblioteca");
     } catch (e) {
       console.error("[Armador]", e);
       showToast && showToast("Error: " + e.message);
@@ -544,14 +594,16 @@ export default function CatalogoExplorer({
     }
   };
 
-  // Cerrar el panel del carrito sin guardar (punto 4): si hay ejercicios
-  // sumados, confirma antes de descartarlos.
+  // Volver de la pantalla de armado sin guardar: si hay ejercicios
+  // sumados, confirma antes de descartarlos. Vuelve a la Biblioteca
+  // (menú anterior), nunca al home.
   const cerrarArmador = () => {
-    if (carrito.length > 0 && !window.confirm("¿Cerrar el plan en construcción? Se pierden los ejercicios que sumaste.")) return;
-    setArmadorAbierto(false);
+    if (carrito.length > 0 && !window.confirm("¿Salir del plan en construcción? Se pierden los ejercicios que sumaste.")) return;
+    setPantalla("biblioteca");
     setCarrito([]);
     setNombrePlan("");
     setGrupoPlan("");
+    setNivelPlan("");
   };
 
   const sidebar = (
@@ -576,55 +628,42 @@ export default function CatalogoExplorer({
       <div style={{ marginBottom: 14, display: "flex", flexWrap: "wrap", gap: 6 }}>
         <Chip activo={!hayFiltrosActivos} onClick={limpiarFiltros}>Todos los ejercicios</Chip>
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
+        {/* Ronda 18: ver/recuperar archivados */}
+        <Chip activo={verArchivados} onClick={() => setVerArchivados((v) => !v)}>🗄 Archivados</Chip>
       </div>
-      {/* Punto 4: único lugar donde se sube media propia — crear un
-          ejercicio nuevo, no editar uno existente. Al lado, el botón que
-          reemplaza a la vieja pantalla "Armador" — abre el carrito lateral
-          sin salir de la Biblioteca.
-          Ronda 17 (punto 3): se solapaban — smallBtn() fuerza
-          whiteSpace:"nowrap" y flex:1 con contenido nowrap NO se achica
-          por debajo de su ancho natural (min-width:auto por default en
-          flex items), así que el segundo botón desbordaba el contenedor y
-          quedaba tapado/cortado en vez de compartir la fila. Fix: minWidth:0
-          para que sí puedan achicarse, texto que puede wrappear
-          (whiteSpace:"normal") como red de seguridad, y flexWrap en el
-          contenedor — si de verdad no entran lado a lado, se apilan en dos
-          líneas en vez de solaparse. */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-        <button onClick={abrirNuevo} style={{ ...smallBtn(S.white), flex: "1 1 140px", minWidth: 0, whiteSpace: "normal", textAlign: "center", fontWeight: 800 }}>
-          ＋ Crear ejercicio nuevo
-        </button>
-        <button
-          onClick={() => setArmadorAbierto(true)}
-          disabled={armadorAbierto}
-          style={{ ...smallBtn(armadorAbierto ? S.green : S.white), flex: "1 1 140px", minWidth: 0, whiteSpace: "normal", textAlign: "center", fontWeight: 800, opacity: armadorAbierto ? 0.6 : 1, cursor: armadorAbierto ? "default" : "pointer" }}
-        >
-          {armadorAbierto ? "✓ Armando plan" : "＋ Crear plan de entrenamiento"}
-        </button>
-      </div>
+      {/* Ronda 18: los botones de crear (ejercicio / plan) se MUDARON a la
+          barra de acciones principal de la pantalla — no van dentro del
+          panel de filtros. */}
       <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} onRename={renombrarCategoria} />
+      <FiltroSeccion titulo="Nivel" valores={NIVELES.map(([id]) => id)} seleccion={fNivel} onToggle={toggle(setFNivel)} labelDe={labelNivel} />
       <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} />
       <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} />
-      {/* Ronda 17 (punto 3): filtro nuevo por prefijo de código (GL/PH/RO/
-          BI/TR/...), derivado dinámicamente de codigo_di — no hardcodeado. */}
+      {/* Ronda 17 (punto 3): filtro por prefijo de código, derivado
+          dinámicamente de codigo_di. */}
       <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} />
-      {/* Ronda 17 (punto 3): renombrado — este botón NO es un filtro del
-          catálogo, abre una biblioteca completamente aparte (movilidad /
-          activación con elástico / entrada en calor, tabla
-          biblioteca_ejercicios) — el nombre viejo ("Rutinas propias
-          (movilidad)") se prestaba a confundirlo con un filtro "mostrar
-          todo". El filtro real "mostrar todo" es el chip "Todos los
-          ejercicios" de arriba. */}
+      {/* Ronda 18: renombrado a "Biblioteca completa" (pedido de Lucas) y
+          con estilo de botón nivel 3 del sistema — abre la biblioteca
+          propia (movilidad / elástico / entrada en calor). */}
       {onAbrirPropia && (
-        <button onClick={onAbrirPropia} style={{ ...smallBtn(S.gray), width: "100%", marginTop: 8 }}>
-          🧘 Otra biblioteca: Movilidad / Elástico / Calor
+        <button
+          onClick={onAbrirPropia}
+          style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          🧘 Biblioteca completa
         </button>
       )}
     </div>
   );
 
   const grid = (
-    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+    // Ronda 18 — FIX del scroll roto en mobile: este wrapper vive en un
+    // flex COLUMN (viewport fijo) y sin minHeight:0 un flex item nunca se
+    // achica por debajo de su contenido (min-height:auto) — el grid crecía
+    // más alto que la pantalla, el overflowY:auto interno nunca se
+    // activaba y el root (position:fixed sin overflow) tampoco scrolleaba:
+    // resultado, lista congelada en el celular. Con minHeight:0 el área de
+    // la lista se acota al alto disponible y su scroll interno funciona.
+    <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* barra de resultados + filtros activos */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         {badgesActivos.map((b) => (
@@ -637,7 +676,7 @@ export default function CatalogoExplorer({
           {cat ? `${filtrados.length} de ${cat.length} ejercicios` : "Cargando catálogo…"}
         </span>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {!cat ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
             {Array.from({ length: 12 }).map((_, i) => (
@@ -691,8 +730,19 @@ export default function CatalogoExplorer({
                         {e.nombre_es}
                       </div>
                       <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 9, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.target_es}</span>
-                        <span style={{ fontSize: 9, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.equipment_es}</span>
+                        <span style={{ fontSize: 11, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.target_es}</span>
+                        <span style={{ fontSize: 11, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.equipment_es}</span>
+                        {/* Ronda 18: badge de nivel + marca de archivado */}
+                        {e.nivel && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: S.white, background: S.card3, border: "1px solid " + S.border2, borderRadius: 4, padding: "1px 6px" }}>
+                            {labelNivel(e.nivel)}
+                          </span>
+                        )}
+                        {e.archivado && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>
+                            🗄 Archivado
+                          </span>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -713,35 +763,53 @@ export default function CatalogoExplorer({
     </div>
   );
 
-  // Punto 6: el Armador ya NO elige alumno/día — solo arma la PLANTILLA
-  // (nombre + grupo opcional, ej. "Básico"/"Intermedio"/"Avanzado", para
-  // agruparlas). Asignarla a un alumno puntual se hace aparte, desde
-  // Admin → Alumno → "Asignar plan".
-  const carritoPanel = armadorAbierto && (
-    <div style={{ width: isWide ? 290 : "auto", flexShrink: 0, borderLeft: isWide ? "1px solid " + S.border : "none", borderTop: isWide ? "none" : "1px solid " + S.border, paddingLeft: isWide ? 14 : 0, paddingTop: isWide ? 0 : 12, display: "flex", flexDirection: "column", maxHeight: isWide ? "none" : "40vh", overflowY: "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase" }}>
-          Plan en construcción ({carrito.length})
-        </div>
-        <button onClick={cerrarArmador} title="Cerrar sin guardar" style={{ background: "transparent", border: "none", color: S.gray, fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>✕</button>
+
+  // Chips de nivel reutilizables (armador + edición de plantilla).
+  const nivelChips = (valor, onSet) => (
+    <div style={{ display: "flex", gap: 6 }}>
+      {NIVELES.map(([id, l]) => (
+        <button
+          key={id}
+          onClick={() => onSet(valor === id ? "" : id)}
+          style={{ flex: 1, background: valor === id ? S.white : S.card3, color: valor === id ? S.bg : S.gray, border: "1px solid " + (valor === id ? S.white : S.border2), borderRadius: 8, padding: "8px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+
+  const labelCampo = { fontSize: 11, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700, marginBottom: 4, fontFamily: FONT_BODY };
+
+  // ── Panel "Plan de Entrenamiento" (pantalla de armado) ──────────────
+  // Ronda 18: título correcto + campos Nombre del Plan / Categoría / Nivel
+  // (antes decía "Plan en construcción (N)" y solo tenía nombre y grupo).
+  const planPanel = armadorAbierto && (
+    <div style={{ ...card, width: isWide ? 300 : "auto", flexShrink: 0, padding: 12, display: "flex", flexDirection: "column", maxHeight: isWide ? "none" : "48vh", minHeight: 0 }}>
+      <div style={{ ...eyebrow, marginBottom: 8 }}>
+        Plan de Entrenamiento {carrito.length > 0 ? `· ${carrito.length} ejercicio(s)` : ""}
       </div>
-      <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan (ej. Hipertrofia Avanzado V2)" style={{ ...inp, marginBottom: 8 }} />
-      <input value={grupoPlan} onChange={(e) => setGrupoPlan(e.target.value)} placeholder="Grupo (opcional — ej. Básico, Intermedio, Avanzado)" style={{ ...inp, marginBottom: 8 }} />
-      <div style={{ flex: 1, overflowY: "auto", minHeight: 60 }}>
+      <div style={labelCampo}>Nombre del Plan</div>
+      <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="ej. Hipertrofia V2" style={{ ...inp, marginBottom: 8 }} />
+      <div style={labelCampo}>Categoría</div>
+      <input value={grupoPlan} onChange={(e) => setGrupoPlan(e.target.value)} placeholder="ej. Hipertrofia, Fuerza, Básico…" style={{ ...inp, marginBottom: 8 }} />
+      <div style={labelCampo}>Nivel</div>
+      <div style={{ marginBottom: 10 }}>{nivelChips(nivelPlan, setNivelPlan)}</div>
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", minHeight: 60 }}>
         {carrito.length === 0 ? (
-          <div style={{ color: S.gray, fontSize: 12, padding: "14px 4px" }}>
-            Clickeá ＋ en las cards para ir armando el plan.
+          <div style={{ color: S.gray, fontSize: 13, padding: "14px 4px", lineHeight: 1.5 }}>
+            Tocá ＋ en los ejercicios de la lista para ir armando el plan.
           </div>
         ) : (
           carrito.map((it, i) => (
-            <div key={it.id} style={{ ...card, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ color: S.gray, fontSize: 10, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
-              <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div key={it.id} style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ color: S.gray, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {it.nombre_es}
               </span>
-              <button onClick={() => moverCarrito(i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 6px" }}>▲</button>
-              <button onClick={() => moverCarrito(i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 6px" }}>▼</button>
-              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} style={{ ...smallBtn(S.red), padding: "2px 6px" }}>✕</button>
+              <button onClick={() => moverCarrito(i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
+              <button onClick={() => moverCarrito(i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
+              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} style={{ ...smallBtn(S.red), padding: "2px 7px" }}>✕</button>
             </div>
           ))
         )}
@@ -749,44 +817,266 @@ export default function CatalogoExplorer({
       <button
         onClick={guardarPlan}
         disabled={guardandoPlan || carrito.length === 0 || !nombrePlan.trim()}
-        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !nombrePlan.trim() ? 0.5 : 1 }}
+        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, fontSize: 13, fontWeight: 900, letterSpacing: 0.8, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !nombrePlan.trim() ? 0.5 : 1, fontFamily: FONT_BODY }}
       >
-        {guardandoPlan ? "GUARDANDO..." : "GUARDAR PLANTILLA"}
+        {guardandoPlan ? "GUARDANDO..." : "GUARDAR PLAN"}
       </button>
     </div>
   );
 
-  return (
-    <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: "14px 16px" }}>
-      {/* header */}
+  // ── Pantalla "Todos los planes" (ronda 18) ──────────────────────────
+  // Listar / renombrar / editar ejercicios / eliminar las plantillas.
+  // Navegación menú a menú: lista → detalle → volver a la lista → volver
+  // a la Biblioteca (nunca salta al home).
+  const abrirPlantilla = (p) => {
+    setPlanSel(p);
+    setPlanForm({
+      nombre: p.nombre || "",
+      grupo: p.grupo || "",
+      nivel: p.nivel || "",
+      dias: JSON.parse(JSON.stringify(p.dias || [])),
+    });
+    setQPlanAdd("");
+  };
+  const moverEjPlantilla = (di, i, dir) => {
+    setPlanForm((f) => {
+      const dias = f.dias.map((d) => ({ ...d, ejercicios: [...(d.ejercicios || [])] }));
+      const arr = dias[di].ejercicios;
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return f;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return { ...f, dias };
+    });
+  };
+  const quitarEjPlantilla = (di, i) => {
+    setPlanForm((f) => {
+      const dias = f.dias.map((d) => ({ ...d, ejercicios: [...(d.ejercicios || [])] }));
+      dias[di].ejercicios.splice(i, 1);
+      return { ...f, dias };
+    });
+  };
+  const agregarEjPlantilla = async (it) => {
+    const codigo = await agregarCatalogoABiblioteca(it);
+    setPlanForm((f) => {
+      const dias = f.dias.length > 0 ? f.dias.map((d) => ({ ...d, ejercicios: [...(d.ejercicios || [])] })) : [{ dia: "Sesion", subtitulo: "", ejercicios: [] }];
+      dias[0].ejercicios.push({
+        id: uid(),
+        nombre: it.nombre_es,
+        desc: it.instrucciones_es || "",
+        video: it.video || "",
+        codigo: codigo || null,
+        gif: catalogoMediaUrl(it.gif_url || ""),
+        unidad: "reps",
+      });
+      return { ...f, dias };
+    });
+    setQPlanAdd("");
+  };
+  const guardarPlantilla = async () => {
+    if (!planSel || !planForm || !planForm.nombre.trim()) { showToast && showToast("El plan necesita un nombre"); return; }
+    setGuardandoPlantilla(true);
+    const ok = await actualizarPlanPredeterminado(planSel.id, {
+      nombre: planForm.nombre.trim(),
+      grupo: planForm.grupo.trim(),
+      nivel: planForm.nivel || null,
+      dias: planForm.dias,
+    });
+    setGuardandoPlantilla(false);
+    if (!ok) { showToast && showToast("Error guardando el plan — revisá la consola"); return; }
+    showToast && showToast(`Plan "${planForm.nombre.trim()}" actualizado ✓`);
+    setPlanSel(null);
+    setPlanForm(null);
+    listarPlanesPredeterminados().then(setPlantillas);
+  };
+  const eliminarPlantilla = async (p) => {
+    if (!window.confirm(`¿Eliminar el plan "${p.nombre}"? Los alumnos que ya lo tienen asignado conservan su copia.`)) return;
+    const ok = await eliminarPlanPredeterminado(p.id);
+    if (!ok) { showToast && showToast("Error eliminando — revisá la consola"); return; }
+    showToast && showToast(`Plan "${p.nombre}" eliminado ✓`);
+    if (planSel && planSel.id === p.id) { setPlanSel(null); setPlanForm(null); }
+    listarPlanesPredeterminados().then(setPlantillas);
+  };
+  const sugerenciasPlanAdd = qPlanAdd.trim().length >= 2 && cat
+    ? cat.filter((e) => !e.archivado && `${e.nombre_es} ${e.codigo_di || ""}`.toLowerCase().includes(qPlanAdd.trim().toLowerCase())).slice(0, 8)
+    : [];
+
+  const pantallaPlanes = (
+    <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+        <button
+          onClick={() => {
+            if (planSel) { setPlanSel(null); setPlanForm(null); }
+            else setPantalla("biblioteca");
+          }}
+          style={{ ...smallBtn(S.gray), fontSize: 13, padding: "8px 12px" }}
+        >
+          ← Volver
+        </button>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+          {planSel ? "Editar plan" : "Todos los planes"}
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        {!planSel ? (
+          !plantillas ? (
+            <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 30 }}>Cargando planes…</div>
+          ) : plantillas.length === 0 ? (
+            <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>
+              Todavía no hay planes guardados — crealos con "＋ Crear plan de entrenamiento".
+            </div>
+          ) : (
+            plantillas.map((p) => (
+              <div key={p.id} style={{ ...card, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => abrirPlantilla(p)}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nombre}</div>
+                  <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>
+                    {[p.grupo, labelNivel(p.nivel), `${(p.dias || []).reduce((n, d) => n + (d.ejercicios || []).length, 0)} ejercicio(s)`].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+                <button onClick={() => abrirPlantilla(p)} style={{ ...smallBtn(S.white), padding: "6px 12px", flexShrink: 0 }}>✎ Editar</button>
+                <button onClick={() => eliminarPlantilla(p)} style={{ ...smallBtn(S.red), padding: "6px 10px", flexShrink: 0 }}>🗑</button>
+              </div>
+            ))
+          )
+        ) : (
+          planForm && (
+            <div style={{ maxWidth: 560 }}>
+              <div style={labelCampo}>Nombre del Plan</div>
+              <input value={planForm.nombre} onChange={(e) => setPlanForm((f) => ({ ...f, nombre: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
+              <div style={labelCampo}>Categoría</div>
+              <input value={planForm.grupo} onChange={(e) => setPlanForm((f) => ({ ...f, grupo: e.target.value }))} placeholder="ej. Hipertrofia, Fuerza, Básico…" style={{ ...inp, marginBottom: 8 }} />
+              <div style={labelCampo}>Nivel</div>
+              <div style={{ marginBottom: 12 }}>{nivelChips(planForm.nivel, (v) => setPlanForm((f) => ({ ...f, nivel: v })))}</div>
+              {planForm.dias.map((d, di) => (
+                <div key={di} style={{ ...card, padding: 12, marginBottom: 10 }}>
+                  {planForm.dias.length > 1 && <div style={{ ...eyebrow, marginBottom: 8 }}>{d.dia || `Día ${di + 1}`}</div>}
+                  {(d.ejercicios || []).length === 0 && (
+                    <div style={{ color: S.gray, fontSize: 13, padding: "6px 2px" }}>Sin ejercicios en este día.</div>
+                  )}
+                  {(d.ejercicios || []).map((ej, i) => (
+                    <div key={ej.id || i} style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ color: S.gray, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                      <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.nombre}</span>
+                      <button onClick={() => moverEjPlantilla(di, i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
+                      <button onClick={() => moverEjPlantilla(di, i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
+                      <button onClick={() => quitarEjPlantilla(di, i)} style={{ ...smallBtn(S.red), padding: "2px 7px" }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ ...card, padding: 12, marginBottom: 12 }}>
+                <div style={{ ...eyebrow, marginBottom: 8 }}>Agregar ejercicio</div>
+                <input value={qPlanAdd} onChange={(e) => setQPlanAdd(e.target.value)} placeholder="Buscar en el catálogo…" style={inp} />
+                {sugerenciasPlanAdd.map((e) => (
+                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", borderBottom: "1px solid " + S.border }}>
+                    <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {e.codigo_di ? e.codigo_di + " · " : ""}{e.nombre_es}
+                    </span>
+                    <button onClick={() => agregarEjPlantilla(e)} style={{ ...smallBtn(S.white), padding: "3px 10px" }}>＋</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                <button onClick={() => { setPlanSel(null); setPlanForm(null); }} style={{ ...smallBtn(S.gray), padding: "12px 16px", fontSize: 13 }}>
+                  Cancelar
+                </button>
+                <button
+                  onClick={guardarPlantilla}
+                  disabled={guardandoPlantilla}
+                  style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: guardandoPlantilla ? 0.6 : 1, fontFamily: FONT_BODY }}
+                >
+                  {guardandoPlantilla ? "GUARDANDO..." : "GUARDAR CAMBIOS"}
+                </button>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    </>
+  );
+
+  // ── Pantalla de armado ("Plan de Entrenamiento") — ronda 18 ─────────
+  // Pantalla DEDICADA (no un drawer sobre la Biblioteca): volver arriba,
+  // búsqueda + lista con ＋, y el plan en construcción con sus campos.
+  const pantallaArmador = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={cerrarArmador} style={{ ...smallBtn(S.gray), fontSize: 13, padding: "8px 12px" }}>
+          ← Volver
+        </button>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+          Plan de Entrenamiento
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar ejercicios para el plan…"
+            style={{ ...inp, marginBottom: 10 }}
+          />
+          {grid}
+        </div>
+        {planPanel}
+      </div>
+    </>
+  );
+
+  // ── Pantalla Biblioteca (default) ───────────────────────────────────
+  const pantallaBiblioteca = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
           📚 Biblioteca de ejercicios
         </div>
-        {/* Punto 4 (2026-07-21): se saca el crédito "© Gym visual —
-            gymvisual.com" de la UI visible al usuario (acá y en el detalle
-            del ejercicio, más abajo). Los términos de licencia siguen
-            documentados en NOTICE.md, solo se deja de mostrar en pantalla. */}
         {!isWide && (
-          <button onClick={() => setMostrarFiltros((v) => !v)} style={smallBtn(S.gray)}>
+          <button onClick={() => setMostrarFiltros((v) => !v)} style={{ ...smallBtn(S.gray), fontSize: 13 }}>
             {mostrarFiltros ? "Ocultar filtros" : "Filtros"}
           </button>
         )}
-        <button onClick={onClose} style={smallBtn(S.gray)}>✕ Cerrar</button>
+        <button onClick={onClose} style={{ ...smallBtn(S.gray), fontSize: 13 }}>✕ Cerrar</button>
       </div>
-      {/* cuerpo */}
+      {/* Ronda 18: barra de ACCIONES principal — los botones de crear
+          salieron del panel de filtros y viven acá arriba, junto con
+          "Ver todos los planes". */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={abrirNuevo}
+          style={{ flex: "1 1 150px", minWidth: 0, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          ＋ Crear ejercicio nuevo
+        </button>
+        <button
+          onClick={() => setPantalla("armador")}
+          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          ＋ Crear plan de entrenamiento
+        </button>
+        <button
+          onClick={() => setPantalla("planes")}
+          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          🗂 Ver todos los planes
+        </button>
+      </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
         {(isWide || mostrarFiltros) && sidebar}
         {grid}
-        {carritoPanel}
       </div>
+    </>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: "14px 16px", overflow: "hidden" }}>
+      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantallaBiblioteca}
 
       {/* detalle */}
       {detalle && form && (
         <div onClick={() => { setDetalle(null); setCreando(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ color: S.white, fontWeight: 800, fontSize: 13, letterSpacing: 1, textTransform: "uppercase" }}>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
                 {creando ? "＋ Crear ejercicio nuevo" : "Editar ejercicio"}
               </div>
               <button onClick={() => { setDetalle(null); setCreando(false); }} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 18, cursor: "pointer" }}>✕</button>
@@ -796,7 +1086,7 @@ export default function CatalogoExplorer({
                 (punto 4). Para uno existente se ve la media actual de solo
                 lectura arriba, sin uploader. */}
             {!creando && (
-              <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", marginBottom: 12, display: "flex", justifyContent: "center" }}>
+              <div style={{ background: "#fff", borderRadius: 10, overflow: "hidden", marginBottom: 12, display: "flex", justifyContent: "center" }}>
                 {detalle.gif_url ? (
                   <img src={catalogoMediaUrl(detalle.gif_url)} alt={form.nombre_es} style={{ maxWidth: "100%", maxHeight: 240, objectFit: "contain" }} />
                 ) : detalle.image ? (
@@ -808,26 +1098,21 @@ export default function CatalogoExplorer({
                 )}
               </div>
             )}
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Código</div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Código</div>
             <input
               value={form.codigo_di}
               onChange={(e) => { setForm((f) => ({ ...f, codigo_di: e.target.value.toUpperCase() })); setCodigoError(""); }}
               placeholder="ej. CO006 (dejar vacío = sin código)"
               style={{ ...inp, marginBottom: codigoError ? 4 : 10, fontWeight: 700, borderColor: codigoError ? S.red : undefined }}
             />
-            {codigoError && <div style={{ fontSize: 11, color: S.red, marginBottom: 10 }}>{codigoError}</div>}
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nombre</div>
+            {codigoError && <div style={{ fontSize: 12, color: S.red, marginBottom: 10 }}>{codigoError}</div>}
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nombre</div>
             <input value={form.nombre_es} onChange={(e) => setForm((f) => ({ ...f, nombre_es: e.target.value }))} style={{ ...inp, marginBottom: 10, fontWeight: 700 }} />
             {detalle.nombre_en && (
-              <div style={{ fontSize: 10, color: S.lgray, marginTop: -6, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
+              <div style={{ fontSize: 11, color: S.lgray, marginTop: -6, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
             )}
-            {/* Ronda 17 (punto 3): categoría editable — antes NO existía en
-                este form, así que era imposible cambiarla desde acá. Con
-                datalist de sugerencias (categorías ya existentes) pero
-                texto libre: escribir una categoría nueva alcanza para que
-                aparezca sola en el filtro del sidebar (derivado
-                dinámicamente de los valores distintos en la tabla). */}
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Categoría</div>
+            {/* Ronda 17 (punto 3): categoría editable con datalist. */}
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Categoría</div>
             <input
               value={form.categoria}
               onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
@@ -838,10 +1123,14 @@ export default function CatalogoExplorer({
             <datalist id="di-catalogo-categorias">
               {categorias.map((v) => <option key={v} value={labelCat(v)} />)}
             </datalist>
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
+            {/* Ronda 18: nivel del ejercicio — Inicial/Intermedio/Avanzado,
+                visible como badge en la card y filtrable en el sidebar. */}
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nivel</div>
+            <div style={{ marginBottom: 10 }}>{nivelChips(form.nivel, (v) => setForm((f) => ({ ...f, nivel: v })))}</div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
             <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 12, lineHeight: 1.45 }} />
             {/* músculos editables, con ★ predeterminado (punto 4) */}
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Músculos trabajados</div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Músculos trabajados</div>
             <div style={{ marginBottom: 12 }}>
               <TagsEditor
                 items={form.musculos}
@@ -852,7 +1141,7 @@ export default function CatalogoExplorer({
               />
             </div>
             {/* tags editables, con ★ predeterminado (punto 4) */}
-            <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tags (equipamiento y otros)</div>
+            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tags (equipamiento y otros)</div>
             <div style={{ marginBottom: 12 }}>
               <TagsEditor
                 items={form.tags}
@@ -865,18 +1154,27 @@ export default function CatalogoExplorer({
             {/* video/gif propio: SOLO en el flujo de crear nuevo */}
             {creando && (
               <>
-                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
+                <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
                 <input value={form.video} onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))} placeholder="https://…" style={{ ...inp, marginBottom: 8 }} />
                 <div style={{ marginBottom: 12 }}>
                   <SubirVideoInline onUrl={(url) => setForm((f) => ({ ...f, video: url }))} showToast={showToast} />
                 </div>
               </>
             )}
+            {/* Ronda 18: archivar/desarchivar (solo ejercicios existentes) */}
+            {!creando && detalle.id && (
+              <button
+                onClick={() => toggleArchivado(detalle)}
+                style={{ width: "100%", marginBottom: 10, background: "transparent", color: detalle.archivado ? S.green : S.yellow, border: "1px solid " + (detalle.archivado ? S.green : S.yellow), borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+              >
+                {detalle.archivado ? "♻ Recuperar (sacar del archivo)" : "🗄 Archivar (ocultar de los listados)"}
+              </button>
+            )}
             <div style={{ display: "flex", gap: 8 }}>
               {armadorAbierto && !creando && (
                 <button
                   onClick={() => { agregarAlCarrito(detalle); setDetalle(null); }}
-                  style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: 11, fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                  style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
                 >
                   ＋ AGREGAR AL PLAN
                 </button>
@@ -884,7 +1182,7 @@ export default function CatalogoExplorer({
               <button
                 onClick={guardarDetalle}
                 disabled={guardando}
-                style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 11, fontSize: 12, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1 }}
+                style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1, fontFamily: FONT_BODY }}
               >
                 {guardando ? "GUARDANDO..." : creando ? "CREAR" : "GUARDAR"}
               </button>

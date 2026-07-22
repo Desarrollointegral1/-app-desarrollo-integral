@@ -93,9 +93,12 @@ export default function ItemCard({
     if (gifResuelto)
       return (
         <div style={{ background: "#fff", borderRadius: 8, marginBottom: 12, padding: "10px 0 4px", textAlign: "center" }}>
+          {/* Ronda 18: loading lazy — el GIF solo se baja al abrir la
+              tarjeta y entrar en viewport (además el SW lo cachea). */}
           <img
             src={gifResuelto}
             alt={nombre}
+            loading="lazy"
             style={{ width: 180, height: 180, objectFit: "contain" }}
           />
           <div style={{ color: "#999", fontSize: 8, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
