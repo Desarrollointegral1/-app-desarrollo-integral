@@ -74,7 +74,7 @@ import {
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, inp, tabBtn, smallBtn, tabN1, tabN2, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY } from "./src/utils/theme.js";
+import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
@@ -85,17 +85,28 @@ import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 // ── LOGO ──────────────────────────────────────────────────────────────
-const ICON_WHITE =
+// Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
+// interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
+// Ese padding quemado en el vector era la causa real del "aire muerto"
+// que Lucas venía marcando alrededor del logo (login/headers): aunque el
+// contenedor tuviera padding 0, el dibujo flotaba lejos de los bordes.
+// Se generan DOS variantes por color: la completa (cuadrada, para donde
+// el aspecto 1:1 importa, ej. PDF/reportes) y la RECORTADA (viewBox
+// ajustado al dibujo real) que usan login, headers y pantalla de carga.
+const _ICON_PATHS = (fill) => {
+  const f = fill ? ` fill="${fill}"` : "";
+  return `<g><path d="M749.86,1171.008v9.548s-.04-1.818-.16-5.254c.04-1.238.1-2.657.16-4.295Z"${f}/><g><path d="M1100.176,457.931c-1.646,2.291-66.952,91.918-156.767,161.748-43.672,33.954-80.83,75.699-107.653,124.079-17.779,32.068-34.14,70.471-44.945,115.028-31.642,130.562-39.392,274.368-40.95,312.222-.06,1.638-.12,3.056-.16,4.295-.06-1.238-.12-2.657-.18-4.295-1.558-37.854-9.309-181.66-40.95-312.222-11.623-47.953-29.689-88.78-49.034-122.25-26.185-45.303-61.486-84.632-102.803-116.74-89.891-69.855-155.269-159.576-156.909-161.865,3.036,2.697,197.94,176.187,350.116,176.287h.12c152.176-.1,347.08-173.59,350.116-176.287Z"${f}/><path d="M749.7,1175.303c-.14,3.436-.18,5.254-.18,5.254v-9.548c.06,1.638.12,3.056.18,4.295Z"${f}/></g></g><circle cx="750.001" cy="508.788" r="69.377"${f}/><path d="M689.368,1062.142s-6.193-178.398-52.626-271.706c-60.339-121.251-203.315-204.621-203.315-204.621,0,0,97.15,96.045,163.424,228.592,66.274,132.547,92.518,247.736,92.518,247.736Z"${f}/><path d="M810.874,1062.142s6.193-178.398,52.626-271.706c60.339-121.251,203.315-204.621,203.315-204.621,0,0-97.15,96.045-163.424,228.592-66.274,132.547-92.518,247.736-92.518,247.736Z"${f}/>`;
+};
+const _iconSvg = (fill, viewBox, w, h) =>
   "data:image/svg+xml," +
-  encodeURIComponent(
-    '<svg id="a" xmlns="http://www.w3.org/2000/svg" width="1500" height="1500" viewBox="0 0 1500 1500"><g><path d="M749.86,1171.008v9.548s-.04-1.818-.16-5.254c.04-1.238.1-2.657.16-4.295Z" fill="#fff"/><g><path d="M1100.176,457.931c-1.646,2.291-66.952,91.918-156.767,161.748-43.672,33.954-80.83,75.699-107.653,124.079-17.779,32.068-34.14,70.471-44.945,115.028-31.642,130.562-39.392,274.368-40.95,312.222-.06,1.638-.12,3.056-.16,4.295-.06-1.238-.12-2.657-.18-4.295-1.558-37.854-9.309-181.66-40.95-312.222-11.623-47.953-29.689-88.78-49.034-122.25-26.185-45.303-61.486-84.632-102.803-116.74-89.891-69.855-155.269-159.576-156.909-161.865,3.036,2.697,197.94,176.187,350.116,176.287h.12c152.176-.1,347.08-173.59,350.116-176.287Z" fill="#fff"/><path d="M749.7,1175.303c-.14,3.436-.18,5.254-.18,5.254v-9.548c.06,1.638.12,3.056.18,4.295Z" fill="#fff"/></g></g><circle cx="750.001" cy="508.788" r="69.377" fill="#fff"/><path d="M689.368,1062.142s-6.193-178.398-52.626-271.706c-60.339-121.251-203.315-204.621-203.315-204.621,0,0,97.15,96.045,163.424,228.592,66.274,132.547,92.518,247.736,92.518,247.736Z" fill="#fff"/><path d="M810.874,1062.142s6.193-178.398,52.626-271.706c60.339-121.251,203.315-204.621,203.315-204.621,0,0-97.15,96.045-163.424,228.592-66.274,132.547-92.518,247.736-92.518,247.736Z" fill="#fff"/></svg>',
-  );
-const ICON_BLACK =
-  "data:image/svg+xml," +
-  encodeURIComponent(
-    '<svg id="a" xmlns="http://www.w3.org/2000/svg" width="1500" height="1500" viewBox="0 0 1500 1500"><g><path d="M749.86,1171.008v9.548s-.04-1.818-.16-5.254c.04-1.238.1-2.657.16-4.295Z"/><g><path d="M1100.176,457.931c-1.646,2.291-66.952,91.918-156.767,161.748-43.672,33.954-80.83,75.699-107.653,124.079-17.779,32.068-34.14,70.471-44.945,115.028-31.642,130.562-39.392,274.368-40.95,312.222-.06,1.638-.12,3.056-.16,4.295-.06-1.238-.12-2.657-.18-4.295-1.558-37.854-9.309-181.66-40.95-312.222-11.623-47.953-29.689-88.78-49.034-122.25-26.185-45.303-61.486-84.632-102.803-116.74-89.891-69.855-155.269-159.576-156.909-161.865,3.036,2.697,197.94,176.187,350.116,176.287h.12c152.176-.1,347.08-173.59,350.116-176.287Z"/><path d="M749.7,1175.303c-.14,3.436-.18,5.254-.18,5.254v-9.548c.06,1.638.12,3.056.18,4.295Z"/></g></g><circle cx="750.001" cy="508.788" r="69.377"/><path d="M689.368,1062.142s-6.193-178.398-52.626-271.706c-60.339-121.251-203.315-204.621-203.315-204.621,0,0,97.15,96.045,163.424,228.592,66.274,132.547,92.518,247.736,92.518,247.736Z"/><path d="M810.874,1062.142s6.193-178.398,52.626-271.706c60.339-121.251,203.315-204.621,203.315-204.621,0,0-97.15,96.045-163.424,228.592-66.274,132.547-92.518,247.736-92.518,247.736Z"/></svg>',
-  );
+  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${viewBox}">${_ICON_PATHS(fill)}</svg>`);
+const ICON_WHITE = _iconSvg("#fff", "0 0 1500 1500", 1500, 1500);
+const ICON_BLACK = _iconSvg(null, "0 0 1500 1500", 1500, 1500);
+// Recortadas al dibujo real (x 370-1130, y 410-1200 con margen mínimo):
+const ICON_WHITE_CROP = _iconSvg("#fff", "370 410 760 790", 760, 790);
+const ICON_BLACK_CROP = _iconSvg(null, "370 410 760 790", 760, 790);
 let ICON = ICON_WHITE;
+let ICON_CROP = ICON_WHITE_CROP;
 
 // ── HEADER DEL ALUMNO (ícono + wordmark + tema/Salir) ──────────────────
 // Ronda 12: el centrado de ronda 11 (flex:1 solo del lado izquierdo) SIGUE
@@ -116,56 +127,66 @@ let ICON = ICON_WHITE;
 // apretado, pegado arriba, orden izquierda→derecha fijo:
 // ícono → "DESARROLLO INTEGRAL" → botón de modo → "Salir" — un cluster
 // compacto, sin estirarse a lo ancho de la pantalla.
-function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir" }) {
+// Ronda 18 — REHECHO (4to intento, estructura definitiva):
+//   [logo bien visible] [DESARROLLO INTEGRAL grande / APP DE ENTRENAMIENTO
+//   chico debajo] ................ [tema] [Salir] (arriba a la derecha)
+// · Alineado al margen normal del contenido (16px, igual que las cards de
+//   abajo) — antes tenía su propio padding de 2-4px y quedaba "fuera del
+//   margen".
+// · Usa ICON_CROP (el SVG recortado al dibujo real): el logo ocupa de
+//   verdad el espacio que se le da, sin el 30% de aire interno del vector
+//   original — más grande visualmente en menos altura de header.
+// · El logo es clickeable → pantalla inicial (onLogoClick).
+function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", onLogoClick }) {
   const btnBase = {
     background: "transparent",
     color: S.gray,
-    border: "1px solid " + S.border,
-    borderRadius: 6,
+    border: "1px solid " + S.border2,
+    borderRadius: 8,
     cursor: "pointer",
     flexShrink: 0,
+    fontFamily: FONT_BODY,
   };
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "center",
-        // Ronda 17 (punto 4): ícono+wordmark quedan como grupo propio a la
-        // izquierda, tema+Salir como grupo propio — justifyContent
-        // space-between los separa y empuja el segundo grupo al borde
-        // derecho real (antes quedaban pegados al wordmark, con "aire
-        // muerto" entre ellos y el borde de la pantalla).
-        justifyContent: "space-between",
-        gap: "clamp(3px, 1.5vw, 8px)",
-        padding: "3px 4px 3px 2px",
+        alignItems: "flex-start",
+        gap: "clamp(8px, 2.5vw, 14px)",
+        padding: "10px 16px 12px",
         borderBottom: "1px solid " + S.border,
-        marginBottom: 10,
+        marginBottom: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1.5vw, 8px)", minWidth: 0, flex: 1 }}>
-        {/* 1) Ícono, pegado arriba/izquierda — ronda 17: +30% (110→143) */}
-        <img
-          src={ICON}
-          alt="DI"
-          style={{ flexShrink: 0, marginLeft: -2, width: "clamp(94px, 28.6vw, 143px)", height: "auto", display: "block" }}
-        />
-        {/* 2) "DESARROLLO INTEGRAL" — ronda 17: +30% (200→260) */}
+      {/* 1) Logo — recortado, bien visible, click → pantalla inicial */}
+      <img
+        src={ICON_CROP}
+        alt="DI"
+        onClick={onLogoClick}
+        title="Ir al inicio"
+        style={{ flexShrink: 0, width: "clamp(52px, 15vw, 68px)", height: "auto", display: "block", cursor: onLogoClick ? "pointer" : "default" }}
+      />
+      {/* 2) Marca protagonista: wordmark GRANDE + subtítulo chico debajo */}
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", paddingTop: 2 }}>
         <DIWordmark
           soloDesarrollo
-          width={260}
-          style={{ color: S.white, width: "clamp(91px, 34vw, 260px)", maxWidth: "100%", height: "auto", flexShrink: 1, minWidth: 0 }}
+          width={300}
+          style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
         />
+        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 3.5, textTransform: "uppercase", marginTop: 3, fontFamily: FONT_BRAND, whiteSpace: "nowrap" }}>
+          App de entrenamiento
+        </div>
       </div>
-      {/* 3) Modo · 4) Salir — grupo pegado al borde derecho (ronda 17). */}
-      <div style={{ display: "flex", alignItems: "center", gap: "clamp(3px, 1.5vw, 8px)", flexShrink: 0 }}>
+      {/* 3) Tema · Salir — arriba a la derecha, sin margen extra */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
-          style={{ ...btnBase, padding: "5px 8px", fontSize: 12 }}
+          style={{ ...btnBase, padding: "6px 9px", fontSize: 13 }}
         >
           {darkMode ? "☀️" : "🌙"}
         </button>
-        <button onClick={onSalir} style={{ ...btnBase, padding: "5px 9px", fontSize: 10 }}>
+        <button onClick={onSalir} style={{ ...btnBase, padding: "6px 10px", fontSize: 12, fontWeight: 600 }}>
           {salirLabel}
         </button>
       </div>
@@ -230,10 +251,55 @@ function Toast({ msg }) {
     </div>
   );
 }
+// ── SELECTOR DE FECHA SIN POPUP NATIVO (ronda 18) ─────────────────────
+// A Lucas no le cierra el date picker nativo del sistema (asistencia y
+// diario). Reemplazo: chips rápidos "Hoy / Ayer / Otro día" — "Otro día"
+// despliega una lista inline de los últimos 14 días como pills verticales
+// tocables. Sin <input type="date">, sin popup del sistema.
+function FechaRapida({ value, onChange }) {
+  const [abierto, setAbierto] = useState(false);
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const offset = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
+  const hoyStr = offset(0), ayerStr = offset(1);
+  const DIAS_L = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const label = (f) => {
+    const [y, m, dd] = (f || "").split("-").map(Number);
+    if (!y) return f;
+    const d = new Date(y, m - 1, dd);
+    return `${DIAS_L[d.getDay()]} ${String(dd).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+  };
+  const labelCorto = (f) => label(f).slice(0, 3) + label(f).slice(label(f).indexOf(" "));
+  const esOtro = value !== hoyStr && value !== ayerStr;
+  const chip = (activo) => ({ flex: 1, background: activo ? S.white : S.card3, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border2), borderRadius: 8, padding: "10px 6px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 });
+  return (
+    <div style={{ width: "100%" }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={() => { onChange(hoyStr); setAbierto(false); }} style={chip(value === hoyStr && !abierto)}>Hoy</button>
+        <button onClick={() => { onChange(ayerStr); setAbierto(false); }} style={chip(value === ayerStr && !abierto)}>Ayer</button>
+        <button onClick={() => setAbierto((v) => !v)} style={chip(esOtro || abierto)}>
+          {esOtro ? labelCorto(value) : "Otro día"}
+        </button>
+      </div>
+      {abierto && (
+        <div className="di-slide" style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, marginTop: 8, padding: 6, maxHeight: 224, overflowY: "auto" }}>
+          {Array.from({ length: 14 }, (_, i) => offset(i)).map((f) => (
+            <button
+              key={f}
+              onClick={() => { onChange(f); setAbierto(false); }}
+              style={{ display: "block", width: "100%", textAlign: "left", background: value === f ? S.white : "transparent", color: value === f ? S.bg : S.white, border: "none", borderRadius: 6, padding: "10px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT_BODY }}
+            >
+              {f === hoyStr ? "Hoy — " + label(f) : f === ayerStr ? "Ayer — " + label(f) : label(f)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(28deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-28deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 8s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(52deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-52deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 5s cubic-bezier(0.45,0,0.55,1) infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -251,8 +317,11 @@ function GlobalStyles() {
 // (~90°-270°), donde al ser planos 2D apilados se ven como líneas finas
 // superpuestas y, del otro lado, el ícono espejado por backface-visibility.
 // Fix: en vez de rotar 360° completo, el logo ahora OSCILA tipo péndulo
-// (0° → 28° → 0° → -28° → 0°, ease-in-out) — nunca llega a los ángulos
-// donde se ve el artefacto.
+// — nunca llega a los ángulos donde se ve el artefacto.
+// Ronda 18: Lucas pidió que gire MÁS (el swing de 28° era muy tímido):
+// ahora ±52° en 5s (antes 8s), sigue lejos del rango 90°-270° del
+// artefacto. Además usa ICON_CROP (SVG recortado al dibujo real): el logo
+// llena el box de verdad, sin el ~30% de aire interno del vector viejo.
 function Logo3D({ size = 230 }) {
   const depth = Math.max(10, Math.round(size * 0.07));
   const zs = [-depth, -depth / 2, 0, depth / 2];
@@ -266,7 +335,7 @@ function Logo3D({ size = 230 }) {
         {zs.map((z, i) => (
           <img
             key={z}
-            src={ICON}
+            src={ICON_CROP}
             alt={i === zs.length - 1 ? "DI" : ""}
             style={{
               position: "absolute",
@@ -1462,15 +1531,14 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
       a.codigo.toLowerCase().includes(q.toLowerCase()) ||
       (a.username || "").toLowerCase().includes(q.toLowerCase()),
   );
-  const al = alumnos.find((a) => a.id === selId);
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div>
       {" "}
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Buscar por nombre o username..."
-        style={{ ...inp, marginBottom: 8 }}
+        style={{ ...inp, marginBottom: q ? 8 : 0 }}
       />{" "}
       {q && filtrados.length > 0 && (
         <div style={{ ...card, borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
@@ -1506,16 +1574,10 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
           ))}{" "}
         </div>
       )}{" "}
-      {al && !q && (
-        <div style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-          <FotoAlumno foto={al.foto} size={32} />
-          <div style={{ flex: 1 }}>
-            <span style={{ color: S.white, fontWeight: 700 }}>{al.nombre}</span>
-            <span style={{ color: S.gray, fontSize: 11, marginLeft: 8 }}>{al.username || al.codigo}</span>
-          </div>
-          <div style={{ color: S.green, fontSize: 11 }}>✓</div>
-        </div>
-      )}{" "}
+      {/* Ronda 18: la card del alumno seleccionado abajo del buscador se
+          SACÓ (quedaba duplicada con la lista de "Todos los alumnos") —
+          el seleccionado ahora aparece PRIMERO en esa lista (ver
+          Dashboard) con el borde resaltado. */}
     </div>
   );
 }
@@ -1993,14 +2055,11 @@ function Diario({ entradas, onAdd, onEdit }) {
           .map(({ e, i }) =>
             editIdx === i ? (
               <div key={i} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Fecha</div>
-                <input
-                  type="date"
-                  value={editFecha}
-                  max={hoy()}
-                  onChange={(ev) => setEditFecha(ev.target.value)}
-                  style={{ ...inp, marginBottom: 8, width: "auto" }}
-                />
+                <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Fecha</div>
+                {/* Ronda 18: sin date picker nativo — chips Hoy/Ayer/Otro día */}
+                <div style={{ marginBottom: 8 }}>
+                  <FechaRapida value={editFecha} onChange={setEditFecha} />
+                </div>
                 <textarea
                   value={editTexto}
                   onChange={(ev) => setEditTexto(ev.target.value.slice(0, MAX))}
@@ -2299,10 +2358,19 @@ const DIAS_ASIGNAR = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Saba
 function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTodos, showToast, onClose, onAsignado }) {
   const [plantillas, setPlantillas] = useState(null); // null = cargando
   const [plantillaSel, setPlantillaSel] = useState(null);
-  const [diaSemana, setDiaSemana] = useState("Lunes");
+  // Ronda 18: MULTI-SELECT de días — se pueden elegir varios (ej. Lunes +
+  // Miércoles + Viernes) y al confirmar se asigna la misma plantilla como
+  // copias INDEPENDIENTES a cada día elegido, en una sola pasada.
+  const [diasSel, setDiasSel] = useState(new Set(["Lunes"]));
   const [nombreInstancia, setNombreInstancia] = useState("");
   const [diasEditables, setDiasEditables] = useState(null); // paso 2: copia editable
   const [guardando, setGuardando] = useState(false);
+  const toggleDia = (d) =>
+    setDiasSel((prev) => {
+      const s = new Set(prev);
+      s.has(d) ? s.delete(d) : s.add(d);
+      return s;
+    });
 
   useEffect(() => {
     listarPlanesPredeterminados().then(setPlantillas);
@@ -2324,10 +2392,21 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
 
   const confirmarAsignacion = async () => {
     if (!diasEditables) return;
+    const dias = DIAS_ASIGNAR.filter((d) => diasSel.has(d));
+    if (dias.length === 0) { showToast && showToast("Elegí al menos un día"); return; }
     setGuardando(true);
     try {
-      const r = await crearPlanAlumno(al.id, diaSemana, { nombre: nombreInstancia.trim() || "Plan", dias: diasEditables }, "catalogo_v2");
-      if (!r.ok) throw new Error("No se pudo asignar el plan");
+      // Una copia INDEPENDIENTE por día: ids de ejercicio nuevos en cada
+      // día para que editar el plan de un día no toque el de otro.
+      for (const diaSemana of dias) {
+        const copiaDia = diasEditables.map((d) => ({
+          ...d,
+          ejercicios: (d.ejercicios || []).map((ej) => ({ ...ej, id: uid() })),
+        }));
+        const r = await crearPlanAlumno(al.id, diaSemana, { nombre: nombreInstancia.trim() || "Plan", dias: copiaDia }, "catalogo_v2");
+        if (!r.ok) throw new Error(`No se pudo asignar el plan al día ${diaSemana}`);
+      }
+      showToast && showToast(dias.length > 1 ? `Plan asignado a ${dias.length} días ✓` : "Plan asignado ✓");
       onAsignado && onAsignado();
     } catch (e) {
       showToast && showToast("Error: " + e.message);
@@ -2379,17 +2458,22 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
           // Paso 2: preview editable antes de confirmar
           <>
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Día de la semana</div>
+              <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>
+                Días de la semana <span style={{ color: S.lgray, textTransform: "none", letterSpacing: 0 }}>(podés elegir varios)</span>
+              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {DIAS_ASIGNAR.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDiaSemana(d)}
-                    style={{ background: diaSemana === d ? S.white : S.card2, color: diaSemana === d ? S.bg : S.gray, border: "1px solid " + (diaSemana === d ? S.white : S.border), borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    {d}
-                  </button>
-                ))}
+                {DIAS_ASIGNAR.map((d) => {
+                  const on = diasSel.has(d);
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => toggleDia(d)}
+                      style={{ background: on ? S.white : S.card2, color: on ? S.bg : S.gray, border: "1px solid " + (on ? S.white : S.border2), borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      {on ? "✓ " : ""}{d}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
@@ -2928,7 +3012,9 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
         Todos los alumnos ({alumnos.length})
       </div>
 
-      {alumnos.map((al) => {
+      {/* Ronda 18: el alumno seleccionado va PRIMERO en la lista (la card
+          duplicada que aparecía abajo del buscador se eliminó). */}
+      {[...alumnos].sort((a, b) => (a.id === selId ? -1 : 0) - (b.id === selId ? -1 : 0)).map((al) => {
         const asistSemana = (al.asistencia || []).filter((d) => d >= lunesStr).length;
         const asistMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
         const ultimaAsist = ([...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0] || "").slice(0, 10) || undefined;
@@ -3831,28 +3917,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     setSelectedDia(null);
     showToast && showToast(`Plan de "${dia}" eliminado ✓`);
   };
-  const secBtn = (l, k) => (
-    <button
-      key={k}
-      onClick={() => {
-        setSec(k);
-        setForm(null);
-      }}
-      style={{
-        background: sec === k ? S.white : S.card,
-        color: sec === k ? S.bg : S.gray,
-        border: "1px solid " + (sec === k ? S.white : S.border),
-        borderRadius: 8,
-        padding: "7px 10px",
-        fontSize: 10,
-        fontWeight: 700,
-        cursor: "pointer",
-        flex: 1,
-      }}
-    >
-      {l}
-    </button>
-  );
   return (
     <div
       style={{
@@ -3879,19 +3943,29 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           criterio tipográfico que el login/header del alumno: FONT_DISPLAY
           para el wordmark, ícono más grande (24→32). "Panel Admin" pasa a
           ser el eyebrow chico arriba. */}
-      <div style={{ padding: "16px 16px 0", marginBottom: 14, borderBottom: "1px solid " + S.border, paddingBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, minWidth: 0 }}>
-          <img src={ICON} width={32} height={32} alt="DI" style={{ opacity: 0.9, flexShrink: 0 }} />
-          <div style={{ minWidth: 0, overflow: "hidden" }}>
-            <div style={{ color: S.gray, fontWeight: 700, fontSize: "clamp(9px, 2.4vw, 11px)", letterSpacing: 1.5, textTransform: "uppercase" }}>
-              Panel Admin
-            </div>
-            <div style={{ color: S.white, fontWeight: 800, fontSize: "clamp(15px, 4.6vw, 20px)", letterSpacing: 0.8, textTransform: "uppercase", fontFamily: FONT_DISPLAY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.15 }}>
+      {/* Ronda 18: logo al DOBLE (32→64, y encima ICON_CROP sin aire
+          interno — visualmente mucho más grande), clickeable → Dashboard
+          (pantalla inicial del admin). "DESARROLLO INTEGRAL" centrado en
+          el medio real del header (el logo va absolute a la izquierda, el
+          texto se centra sobre el ancho total). */}
+      <div style={{ padding: "14px 16px 0", marginBottom: 14, borderBottom: "1px solid " + S.border, paddingBottom: 14 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 62, marginBottom: 12 }}>
+          <img
+            src={ICON_CROP}
+            width={62}
+            alt="DI"
+            title="Ir al Dashboard"
+            onClick={() => { setSec("dashboard"); setForm(null); }}
+            style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", height: "auto", cursor: "pointer" }}
+          />
+          <div style={{ textAlign: "center", minWidth: 0, padding: "0 68px" }}>
+            <div style={{ ...eyebrow, fontSize: 10 }}>Panel Admin</div>
+            <div style={{ color: S.white, fontWeight: 800, fontSize: "clamp(16px, 5vw, 22px)", letterSpacing: 0.8, textTransform: "uppercase", fontFamily: FONT_DISPLAY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.15 }}>
               Desarrollo Integral
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {/* Modo entrenador (ronda 9) — al lado del toggle de tema */}
           <button
             onClick={onModoEntrenador}
@@ -3899,12 +3973,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             style={{
               flex: 1,
               minWidth: 0,
-              background: "transparent",
-              color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "6px 4px",
-              fontSize: "clamp(9px, 2.4vw, 11px)",
+              background: S.card3,
+              color: S.white,
+              border: "1px solid " + S.border2,
+              borderRadius: 8,
+              padding: "8px 6px",
+              fontSize: "clamp(11px, 3vw, 13px)",
               fontWeight: 700,
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -3925,10 +3999,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               flexShrink: 0,
               background: "transparent",
               color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "6px 9px",
-              fontSize: 12,
+              border: "1px solid " + S.border2,
+              borderRadius: 8,
+              padding: "8px 10px",
+              fontSize: 13,
               cursor: "pointer",
               lineHeight: 1,
             }}
@@ -3942,10 +4016,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               flexShrink: 0,
               background: sec === "config" ? S.white : "transparent",
               color: sec === "config" ? S.bg : S.gray,
-              border: "1px solid " + (sec === "config" ? S.white : S.border),
-              borderRadius: 6,
-              padding: "6px 9px",
-              fontSize: 12,
+              border: "1px solid " + (sec === "config" ? S.white : S.border2),
+              borderRadius: 8,
+              padding: "8px 10px",
+              fontSize: 13,
               fontWeight: 700,
               cursor: "pointer",
             }}
@@ -3958,10 +4032,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               flexShrink: 0,
               background: "transparent",
               color: S.gray,
-              border: "1px solid " + S.border,
-              borderRadius: 6,
-              padding: "6px 8px",
-              fontSize: "clamp(9px, 2.4vw, 11px)",
+              border: "1px solid " + S.border2,
+              borderRadius: 8,
+              padding: "8px 10px",
+              fontSize: 12,
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -3984,18 +4058,28 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           un solo bloque confuso — cada uno pasa a ser un "módulo" separado
           con su propia card (fondo + borde), no solo texto suelto sobre el
           fondo de la pantalla. El header ya tiene su borderBottom (arriba). */}
+      {/* Ronda 18 — MÓDULO DE NAVEGACIÓN: card nivel 1 con eyebrow, el
+          switch Dashboard/Alumno como segmented control (labels 13px
+          legibles) y la Biblioteca como botón propio nivel 3. Se distingue
+          a simple vista del header (arriba, sin card) y del buscador
+          (abajo, otra card con su propio eyebrow). */}
       {sec !== "config" && (
-      <div style={{ margin: "0 16px 14px", background: S.card2, border: "1px solid " + S.border, borderRadius: 10, padding: 10 }}>
+      <div style={{ ...card, margin: "0 16px 14px", padding: 12 }}>
+        <div style={{ ...eyebrow, marginBottom: 8 }}>Navegación</div>
+        <div style={segTrack()}>
+          <button onClick={() => { setSec("dashboard"); setForm(null); }} style={{ ...segChip(sec === "dashboard"), fontSize: 13, padding: "10px 4px" }}>
+            Dashboard
+          </button>
+          <button onClick={() => { setSec("alumnos"); setForm(null); }} style={{ ...segChip(sec !== "dashboard"), fontSize: 13, padding: "10px 4px" }}>
+            Alumno
+          </button>
+        </div>
         <button
           onClick={() => setShowCatalogo(true)}
-          style={{ width: "100%", background: "transparent", color: S.white, border: "1px solid " + S.border, borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 8 }}
+          style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", fontWeight: 800, fontSize: 13, letterSpacing: 0.8, textTransform: "uppercase", cursor: "pointer", fontFamily: FONT_BODY }}
         >
           📚 Biblioteca de ejercicios
         </button>
-        <div style={{ display: "flex", gap: 4 }}>
-          {secBtn("Dashboard", "dashboard")}
-          {secBtn("Alumno", "alumnos")}
-        </div>
       </div>
       )}{" "}
       {/* 2) Selector de alumno — SOLO en el Dashboard (2026-07-21): adentro
@@ -4003,7 +4087,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           para cambiar de alumno se vuelve al Dashboard. Módulo propio
           (ronda 17, punto 2) separado del bloque de navegación de arriba. */}
       {sec === "dashboard" && (
-        <div style={{ margin: "0 16px 14px", background: S.card, border: "1px solid " + S.border, borderRadius: 10, padding: 10 }}>
+        <div style={{ ...card, margin: "0 16px 14px", padding: 12 }}>
+          <div style={{ ...eyebrow, marginBottom: 8 }}>Buscar alumno</div>
           <AlumnoBuscador alumnos={alumnos} selId={selId} onSelect={(id) => { setSelId(id); setForm(null); }} />
         </div>
       )}{" "}
@@ -5067,6 +5152,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         })()}{" "}
         {sec === "config" && (
           <div>
+            {/* Ronda 18: Configuración no tenía forma de volver al menú
+                anterior — botón Volver explícito (además el click en el
+                logo del header también vuelve al Dashboard). */}
+            <button
+              onClick={() => setSec("dashboard")}
+              style={{ ...smallBtn(S.gray), marginBottom: 12, fontSize: 13, padding: "8px 14px" }}
+            >
+              ← Volver al panel
+            </button>
             {/* Sub-tabs */}
             <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
               {/* Ronda 16 (punto 2): "Crear admin" renombrado a "Configuración"
@@ -5382,14 +5476,17 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           (soloDesarrollo) y el subtítulo se arma como texto HTML aparte,
           con PP Formula (ya cargada globalmente en index.html) en bold
           condensado imitando el tracking de marca. */}
+      {/* Ronda 18: el aire arriba del logo y entre logo y wordmark NO era
+          del layout — era el ~30% de padding interno del SVG original.
+          Logo3D ahora usa ICON_CROP (recortado al dibujo real), así que el
+          dibujo arranca de verdad donde arranca el contenedor: logo casi
+          tocando el borde superior y wordmark pegado al logo. */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 16 }}>
-        <Logo3D size={600} />
-        {/* Ronda 17 (punto 1): gap logo→wordmark bajado de 10 a 2 — Lucas
-            pidió sacar el aire "entre el logo y DESARROLLO INTEGRAL". */}
+        <Logo3D size={310} />
         <DIWordmark
           soloDesarrollo
           width={480}
-          style={{ color: S.white, marginTop: 2, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
+          style={{ color: S.white, marginTop: 4, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
         />
         <div
           style={{
@@ -5400,7 +5497,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
             textTransform: "uppercase",
             marginTop: 6,
             textAlign: "center",
-            fontFamily: FONT_BODY,
+            fontFamily: FONT_BRAND,
           }}
         >
           App de entrenamiento
@@ -5860,6 +5957,7 @@ export default function App() {
     const next = !darkMode;
     applyTheme(next);
     ICON = next ? ICON_WHITE : ICON_BLACK;
+    ICON_CROP = next ? ICON_WHITE_CROP : ICON_BLACK_CROP;
     setDarkMode(next);
     try {
       localStorage.setItem("di_theme", next ? "dark" : "light");
@@ -5868,6 +5966,7 @@ export default function App() {
   const isRehabMode = alumno && alumno.tipo === "rehabilitacion";
   applyTheme(isRehabMode ? false : darkMode);
   ICON = (isRehabMode ? false : darkMode) ? ICON_WHITE : ICON_BLACK;
+  ICON_CROP = (isRehabMode ? false : darkMode) ? ICON_WHITE_CROP : ICON_BLACK_CROP;
   // Arranque: carga desde Supabase. Fallback [] = nunca usa datos locales.
   useEffect(() => {
     console.log("%c[APP] Iniciando → cargarDatos desde Supabase...", "color:#6ee7b7;font-weight:bold");
@@ -6045,19 +6144,9 @@ export default function App() {
     try { return localStorage.getItem("di_dia_registrado") || null; } catch (e) { return null; }
   });
   const [registrandoDia, setRegistrandoDia] = useState(false);
-  // Bioimpedancia más reciente (punto 10, 2026-07-21): peso/altura de la
-  // ficha del alumno se sincronizan con el último registro de
-  // bioimpedancia si existe (fallback al campo estático si nunca tuvo).
-  // Hook declarado ANTES de cualquier return condicional (regla de hooks).
-  const [bioUltimo, setBioUltimo] = useState(null);
-  useEffect(() => {
-    if (!alumno?.id) { setBioUltimo(null); return; }
-    let vivo = true;
-    cargarBioimpedanciaCompleta(alumno.id, 1).then((rows) => {
-      if (vivo) setBioUltimo((rows && rows[0]) || null);
-    });
-    return () => { vivo = false; };
-  }, [alumno?.id]);
+  // (Ronda 18: el estado bioUltimo se eliminó junto con los tiles de
+  // peso/altura/edad de la vista del alumno — esos datos quedaron solo en
+  // la ficha del admin.)
   const registrarDia = async (ejerciciosHoy) => {
     if (registrandoDia || !alumno) return;
     setRegistrandoDia(true);
@@ -6103,7 +6192,7 @@ export default function App() {
             justifyContent: "center",
           }}
         >
-          <Logo3D size={320} />
+          <Logo3D size={190} />
         </div>
       </>
     );
@@ -6230,7 +6319,17 @@ export default function App() {
         )}{" "}
         {/* Header — ronda 12: ver HeaderAlumno arriba del componente App para
             el detalle del fix de centrado (spacer simétrico medido en vivo). */}
-        <HeaderAlumno darkMode={darkMode} toggleTheme={toggleTheme} onSalir={modoEntrenador ? salirModoEntrenador : logout} />{" "}
+        <HeaderAlumno
+          darkMode={darkMode}
+          toggleTheme={toggleTheme}
+          onSalir={modoEntrenador ? salirModoEntrenador : logout}
+          onLogoClick={() => {
+            // Ronda 18: click en el logo → pantalla inicial del alumno
+            // (Entrenamiento, arriba de todo).
+            setTabGroup("entrenamiento");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />{" "}
         {/* Perfil */}{" "}
         <div className="di-pop" style={{ margin: "0 16px 12px", ...card, padding: "13px 16px" }}>
           {" "}
@@ -6253,36 +6352,39 @@ export default function App() {
               {al.horarios && al.horarios.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
                   {al.horarios.map((h, i) => {
-                    // Ronda 17 (punto 4): pill clickeable → mismo atajo que
-                    // elegir el día a mano en el selector de Principales:
-                    // busca el día del plan cuyo nombre matchea el horario,
-                    // lo selecciona (diaIdx) y salta a Entrenamiento →
-                    // Principales (irPrincipalesToken, ver PlanDelDia).
-                    const idxPlan = planValido
-                      ? plan.dias.findIndex((d) => (d.dia || "").trim().toLowerCase() === (h.dia || "").trim().toLowerCase())
-                      : -1;
-                    const clickeable = idxPlan >= 0;
+                    // Ronda 17 (punto 4): pill clickeable → salta a
+                    // Entrenamiento → Principales con ese día.
+                    // Ronda 18 (FIX del "no funciona"): el matching era por
+                    // igualdad exacta lowercase — "Miércoles" (con tilde,
+                    // como puede venir en horarios) nunca matcheaba
+                    // "Miercoles" (sin tilde, como guarda el plan) y la
+                    // pill quedaba muerta sin feedback. Ahora se normalizan
+                    // los acentos de los dos lados; y si igual no hay día
+                    // exacto, la pill lleva a Principales con el día actual
+                    // (siempre navega, nunca queda muerta).
+                    const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+                    const idxPlan = planValido ? plan.dias.findIndex((d) => norm(d.dia) === norm(h.dia)) : -1;
                     return (
                       <div
                         key={i}
                         onClick={
-                          clickeable
+                          planValido
                             ? () => {
-                                setDiaIdx(idxPlan);
+                                if (idxPlan >= 0) setDiaIdx(idxPlan);
                                 setTabGroup("entrenamiento");
                                 setIrPrincipalesToken((t) => t + 1);
                               }
                             : undefined
                         }
-                        title={clickeable ? `Ver ${h.dia} en Principales` : undefined}
+                        title={planValido ? `Ver ${h.dia} en Principales` : undefined}
                         style={{
                           background: S.card2,
-                          border: "1px solid " + S.border,
-                          borderRadius: 5,
-                          padding: "2px 8px",
-                          fontSize: 10,
+                          border: "1px solid " + S.border2,
+                          borderRadius: 6,
+                          padding: "4px 10px",
+                          fontSize: 12,
                           color: S.gray,
-                          cursor: clickeable ? "pointer" : "default",
+                          cursor: planValido ? "pointer" : "default",
                         }}
                       >
                         <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
@@ -6340,25 +6442,10 @@ export default function App() {
               </div>
             </div>
           )}
-          {/* Peso/altura/edad: secundario ahora, más chico. Peso y altura se
-              sincronizan con el último registro de bioimpedancia si existe
-              (fallback al campo estático del alumno si nunca tuvo uno). */}
-          <div style={{ display: "flex", gap: 6 }}>
-            {" "}
-            {[
-              ["PESO", (bioUltimo?.peso ?? al.peso), bioUltimo?.peso != null ? "kg · bioimpedancia" : "kg"],
-              ["ALTURA", (bioUltimo?.altura ?? al.altura), bioUltimo?.altura != null ? "cm · bioimpedancia" : "cm"],
-              ["EDAD", calcularEdad(al.fecha_nacimiento) || al.edad, "años"],
-            ].map(([l, v, hint]) => (
-              <div
-                key={l}
-                style={{ flex: 1, background: "transparent", border: "1px solid " + S.border, borderRadius: 6, padding: "5px 4px", textAlign: "center" }}
-              >
-                <div style={{ color: S.gray, fontWeight: 600, fontSize: 11 }}>{v || "—"}<span style={{ fontSize: 8, fontWeight: 400 }}>{v ? " " + hint.split(" ")[0] : ""}</span></div>
-                <div style={{ color: S.lgray || S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>{l}</div>
-              </div>
-            ))}{" "}
-          </div>{" "}
+          {/* Ronda 18: peso/altura/edad SE SACARON de la vista del alumno
+              (pedido explícito de Lucas: "sirve para el sistema, para mí
+              como admin, no para el usuario"). Esos datos siguen visibles
+              solo en la ficha del alumno del Panel Admin. */}
           {al.rm && Object.values(al.rm).some((r) => r.peso > 0) && (
             <div style={{ marginTop: 10, borderTop: "1px solid " + S.border, paddingTop: 10 }}>
               {" "}
@@ -6469,17 +6556,10 @@ export default function App() {
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   ✓ Asistencia
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 }}>
-                  <input
-                    type="date"
-                    value={fechaAsistencia}
-                    max={hoy()}
-                    onChange={(e) => setFechaAsistencia(e.target.value || hoy())}
-                    style={{ ...inp, width: "auto", textAlign: "center", padding: "6px 10px", fontSize: 13 }}
-                  />
-                  {fechaAsistencia !== hoy() && (
-                    <button onClick={() => setFechaAsistencia(hoy())} style={smallBtn(S.gray)}>Hoy</button>
-                  )}
+                {/* Ronda 18: date picker nativo reemplazado por chips
+                    Hoy/Ayer/Otro día (lista inline de 14 días). */}
+                <div style={{ marginBottom: 12 }}>
+                  <FechaRapida value={fechaAsistencia} onChange={setFechaAsistencia} />
                 </div>
                 <button
                   onClick={() => {

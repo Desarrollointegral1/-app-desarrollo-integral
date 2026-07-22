@@ -67,7 +67,16 @@ export default function PlanDelDia({
   // (no un booleano) para poder disparar el salto aunque el alumno ya esté
   // en Principales cuando toca otra pill de nuevo.
   useEffect(() => {
-    if (irAPrincipales) setSeccion("principales");
+    if (irAPrincipales) {
+      setSeccion("principales");
+      // Ronda 18: además de activar la sección, scrollear hasta ella —
+      // sin esto el usuario quedaba mirando la ficha de arriba y parecía
+      // que el click en la pill "no hacía nada".
+      setTimeout(() => {
+        const el = document.getElementById("di-plan-seccion");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
   }, [irAPrincipales]);
 
   const movilidad = plan?.movilidad || [];
@@ -172,7 +181,7 @@ export default function PlanDelDia({
     ) : null;
 
   return (
-    <div>
+    <div id="di-plan-seccion">
       {/* ── Tabs nivel 2: PREPARACIÓN | PRINCIPALES — activo con borde blanco
           + fondo card, sin invertir (jerarquía visual ronda 6) ── */}
       <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
