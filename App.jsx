@@ -153,22 +153,22 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "clamp(8px, 2.5vw, 14px)",
-        padding: "10px 16px 12px",
+        gap: "clamp(6px, 2vw, 10px)",
+        padding: "8px 14px 10px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
       }}
     >
-      {/* 1) Logo — animado igual que el de bienvenida (Logo3D), un poco más
-             chico que antes, click → pantalla inicial. Ronda 2026-07-22:
-             Lucas pidió que el logo del header tenga el MISMO movimiento
-             que el de la pantalla de login (péndulo constante). */}
+      {/* 1) Logo — animado igual que el de bienvenida (Logo3D, giro 360°
+             continuo), más chico, click → pantalla inicial. Ronda 2026-07-22
+             (2º ajuste de Lucas): logo más chico todavía y sin espacio
+             sobrante alrededor. */}
       <div
         onClick={onLogoClick}
         title="Ir al inicio"
         style={{ flexShrink: 0, cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
       >
-        <Logo3D size={48} />
+        <Logo3D size={40} />
       </div>
       {/* 2) Marca protagonista: wordmark GRANDE + "APP DE ENTRENAMIENTO"
              CENTRADA justo debajo. El logo quedó más chico, así que el bloque
@@ -306,7 +306,7 @@ function FechaRapida({ value, onChange }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinY {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(52deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-52deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSpinY 6s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinFull {        from { transform:rotateY(0deg); }        to { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinFull 10s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -330,7 +330,12 @@ function GlobalStyles() {
 // artefacto. Además usa ICON_CROP (SVG recortado al dibujo real): el logo
 // llena el box de verdad, sin el ~30% de aire interno del vector viejo.
 function Logo3D({ size = 230 }) {
-  const depth = Math.max(10, Math.round(size * 0.07));
+  // Profundidad reducida (2026-07-22): con el giro 360° continuo, un depth
+  // grande hacía que las 4 capas se vieran como líneas separadas de canto a
+  // ~90°/270° (el "fantasma" que en su momento obligó a oscilar). Con un
+  // depth chico las capas casi coinciden en el canto → giro limpio, y sigue
+  // habiendo una pizca de volumen 3D de frente.
+  const depth = Math.max(4, Math.round(size * 0.03));
   const zs = [-depth, -depth / 2, 0, depth / 2];
   // Ronda 11: el box se limita a 82vw además del `size` pedido — así un size
   // grande (login, carga) nunca desborda el ancho de pantalla en celular; en
@@ -5489,7 +5494,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           dibujo arranca de verdad donde arranca el contenedor: logo casi
           tocando el borde superior y wordmark pegado al logo. */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 16 }}>
-        <Logo3D size={310} />
+        <Logo3D size={260} />
         <DIWordmark
           soloDesarrollo
           width={480}
