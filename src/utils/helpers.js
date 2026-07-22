@@ -1,6 +1,10 @@
 export const RM_EJS = ["Press Militar","Sentadilla","Pecho Plano","Peso Muerto","Remo / Dominadas","Hip Thrust"];
 
-export const hoy = () => new Date().toISOString().split("T")[0];
+// Ronda 18 — FIX de fecha: antes usaba toISOString() (UTC). En Argentina
+// (UTC-3), entre las 21:00 y las 23:59 devolvía la fecha de MAÑANA:
+// asistencias, pesos y diario cargados de noche quedaban con el día
+// corrido. Ahora es SIEMPRE la fecha local del dispositivo.
+export const hoy = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 export const mesActual = () => { const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1).toString().padStart(2,"0"); };
 export const mk = (n,d,v="") => ({nombre:n,desc:d,video:v,mediaLocal:""});
 export const emptyRM = () => { const r={}; RM_EJS.forEach(e=>{r[e]={peso:0,fecha:""}}); return r; };

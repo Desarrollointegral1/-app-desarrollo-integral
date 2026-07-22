@@ -5934,6 +5934,12 @@ export default function App() {
   // PlanDelDia detecte el pedido vía useEffect y fuerce seccion="principales"
   // (su propio estado interno, no controlado desde acá).
   const [irPrincipalesToken, setIrPrincipalesToken] = useState(0);
+  // Ronda 18: día de la semana FOCADO por la pill de la ficha. Con la
+  // estructura actual cada día de la semana es un alumno_plan SEPARADO
+  // (dia_semana propio, con un único sub-día "Sesion"): las pills tienen
+  // que poder cambiar QUÉ plan se muestra, no solo el sub-día. null =
+  // comportamiento normal (plan de hoy).
+  const [diaSemanaFoco, setDiaSemanaFoco] = useState(null);
   // Ronda 17 (punto 4): fecha editable en "Marcar presente" — antes
   // forzaba siempre hoy(); ahora hay un selector con hoy como default,
   // para poder cargar una asistencia de un día anterior que se olvidó.
@@ -6053,6 +6059,7 @@ export default function App() {
     const guardado = await cargarPesos(f.id, null);
     setPesos(guardado ? guardado.pesos : initPesos(f.plan));
     setHistoriales(guardado ? guardado.historiales : initH(f.plan));
+    setDiaSemanaFoco(null);
     setAlumno(f);
     setShowBienvenida(true);
     setTabGroup("entrenamiento");
@@ -6066,6 +6073,7 @@ export default function App() {
   };
   const logout = () => {
     try { localStorage.removeItem("di_session"); } catch (e) {}
+    setDiaSemanaFoco(null);
     setAlumno(null);
     setAdminMode(false);
     setModoEntrenador(false);
@@ -6079,6 +6087,7 @@ export default function App() {
     const guardado = await cargarPesos(f.id, null);
     setPesos(guardado ? guardado.pesos : initPesos(f.plan));
     setHistoriales(guardado ? guardado.historiales : initH(f.plan));
+    setDiaSemanaFoco(null);
     setAlumno(f);
     setModoEntrenador(true);
     setSelectorEntrenador(false);
@@ -6088,6 +6097,7 @@ export default function App() {
     setDiaIdx(0);
   };
   const salirModoEntrenador = () => {
+    setDiaSemanaFoco(null);
     setModoEntrenador(false);
     setAlumno(null);
   };
@@ -6251,7 +6261,11 @@ export default function App() {
     .filter((p) => p && Array.isArray(p.dias) && p.dias.length > 0)
     .sort((a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9));
   const _hoyOrden = ORDEN_DIAS[hoyTexto] || 0;
+  // Ronda 18: normalización sin acentos para comparar días ("Miércoles"
+  // de horarios vs "Miercoles" de la base).
+  const _normDia = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const planHoy =
+    (diaSemanaFoco && _planesOrdenados.find((p) => _normDia(p.dia_semana) === _normDia(diaSemanaFoco))) ||
     _planesOrdenados.find((p) => p.dia_semana === hoyTexto) ||
     _planesOrdenados.find((p) => p.dia_semana === "Fijo") ||
     _planesOrdenados.find((p) => (ORDEN_DIAS[p.dia_semana] || 9) > _hoyOrden) ||
@@ -6367,16 +6381,23 @@ export default function App() {
                     return (
                       <div
                         key={i}
-                        onClick={
-                          planValido
-                            ? () => {
-                                if (idxPlan >= 0) setDiaIdx(idxPlan);
-                                setTabGroup("entrenamiento");
-                                setIrPrincipalesToken((t) => t + 1);
-                              }
-                            : undefined
-                        }
-                        title={planValido ? `Ver ${h.dia} en Principales` : undefined}
+                        onClick={() => {
+                          if (idxPlan >= 0) {
+                            // el día es un sub-día del plan visible
+                            setDiaIdx(idxPlan);
+                          } else {
+                            // Ronda 18: cada día de la semana puede ser un
+                            // alumno_plan SEPARADO — la pill enfoca ese plan.
+                            const planDia = (al.planes || []).find((p) => norm(p.dia_semana) === norm(h.dia));
+                            if (planDia) {
+                              setDiaSemanaFoco(h.dia);
+                              setDiaIdx(0);
+                            }
+                          }
+                          setTabGroup("entrenamiento");
+                          setIrPrincipalesToken((t) => t + 1);
+                        }}
+                        title={`Ver ${h.dia} en Principales`}
                         style={{
                           background: S.card2,
                           border: "1px solid " + S.border2,
@@ -6384,7 +6405,7 @@ export default function App() {
                           padding: "4px 10px",
                           fontSize: 12,
                           color: S.gray,
-                          cursor: planValido ? "pointer" : "default",
+                          cursor: "pointer",
                         }}
                       >
                         <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
