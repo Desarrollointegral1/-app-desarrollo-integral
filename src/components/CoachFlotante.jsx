@@ -44,12 +44,20 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const [enviando, setEnviando] = useState(false);
   const [pos, setPos] = useState(null); // {x, y} del botón; null hasta montar
   const [habilitado, setHabilitado] = useState(false); // flag beta (ver abajo)
-  const [escuchando, setEscuchando] = useState(false); // micrófono activo
+  const [escuchando, setEscuchando] = useState(false); // micrófono activo (chat)
   const [leerVoz, setLeerVoz] = useState(false); // leer las respuestas en voz alta
+  const [modoVoz, setModoVoz] = useState(false); // modo voz inmersivo (manos libres)
+  const [vozEstado, setVozEstadoRaw] = useState("idle"); // hablando|escuchando|pensando|pausado|idle
   const dragRef = useRef({ dragging: false, moved: false, dx: 0, dy: 0 });
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const modoVozRef = useRef(false);
+  const vozEstadoRef = useRef("idle");
+  const reintentoRef = useRef(0);
+  const transcriptRef = useRef(null);
+  // Setter que mantiene el ref en sync (para leer el estado en callbacks async).
+  const setVozEstado = (e) => { vozEstadoRef.current = e; setVozEstadoRaw(e); };
 
   // ¿El navegador soporta dictado por voz? (Chrome/Edge sí; Safari iOS parcial)
   const SR =
@@ -100,9 +108,21 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     }
   }, [abierto, mensajes.length, alumno]);
 
-  // Al minimizar/cerrar: cortar la voz y el micrófono.
+  // Autoscroll de la transcripción en modo voz.
   useEffect(() => {
-    if (!abierto) {
+    if (transcriptRef.current) transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+  }, [mensajes, modoVoz, vozEstado]);
+
+  // Al desmontar: cortar voz y micrófono.
+  useEffect(() => () => {
+    modoVozRef.current = false;
+    try { window.speechSynthesis?.cancel(); } catch {}
+    try { recognitionRef.current?.stop(); } catch {}
+  }, []);
+
+  // Al minimizar/cerrar el chat (no en modo voz): cortar la voz y el micrófono.
+  useEffect(() => {
+    if (!abierto && !modoVozRef.current) {
       try { window.speechSynthesis?.cancel(); } catch {}
       try { recognitionRef.current?.stop(); } catch {}
       setEscuchando(false);
@@ -147,8 +167,10 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   }, []);
 
   // Lee un texto en voz alta (voz en español si hay). Limpia el markdown.
-  function hablar(texto) {
-    if (!soportaLectura) return;
+  // Habla un texto en voz alta. `alTerminar` se llama al terminar (para
+  // encadenar el modo voz: hablar → escuchar).
+  function hablar(texto, alTerminar) {
+    if (!soportaLectura) { alTerminar && alTerminar(); return; }
     const limpio = texto.replace(/[*#>_`]/g, "");
     const u = new SpeechSynthesisUtterance(limpio);
     u.lang = "es-AR";
@@ -156,16 +178,19 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     const es = voces.find((v) => v.lang && v.lang.toLowerCase().startsWith("es"));
     if (es) u.voice = es;
     u.rate = 0.97;
+    if (alTerminar) {
+      u.onend = alTerminar;
+      u.onerror = alTerminar;
+    }
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   }
 
-  async function enviarMensaje(texto, porVoz = false) {
-    texto = (texto || "").trim();
-    if (!texto || enviando || !alumno?.id) return;
-    setInput("");
+  // Núcleo: registra el turno del alumno, pide la respuesta al coach, la
+  // registra y la devuelve. La transcripción ES `mensajes` (se guarda en el
+  // backend en coach_conversaciones automáticamente).
+  async function consultarCoach(texto) {
     setMensajes((m) => [...m, { rol: "user", texto }]);
-    setEnviando(true);
     let respuesta;
     try {
       const r = await fetch("/web/api/coach", {
@@ -182,6 +207,15 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
       respuesta = "No me pude conectar. Fijate la conexión y probá de nuevo.";
     }
     setMensajes((m) => [...m, { rol: "assistant", texto: respuesta }]);
+    return respuesta;
+  }
+
+  async function enviarMensaje(texto, porVoz = false) {
+    texto = (texto || "").trim();
+    if (!texto || enviando || !alumno?.id) return;
+    setInput("");
+    setEnviando(true);
+    const respuesta = await consultarCoach(texto);
     if (leerVoz || porVoz) hablar(respuesta);
     setEnviando(false);
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -226,6 +260,82 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     }
   }
 
+  // ── MODO VOZ INMERSIVO (manos libres, tipo ChatGPT) ──────────────────
+  // Loop continuo: Luqui habla → escucha tu respuesta → consulta → habla →
+  // vuelve a escuchar. Toda la charla queda escrita en la transcripción
+  // (mensajes) y guardada en el backend.
+
+  function iniciarModoVoz() {
+    if (!SR || !soportaLectura) return;
+    modoVozRef.current = true;
+    reintentoRef.current = 0;
+    setModoVoz(true);
+    const nombre = (alumno?.nombre || "").split(" ")[0];
+    const saludo = `Dale${nombre ? " " + nombre : ""}, activé el modo voz. Entrenamos juntos: yo te voy guiando y vos me hablás cuando quieras. Contame, ¿qué querés hacer hoy?`;
+    setMensajes((m) => [...m, { rol: "assistant", texto: saludo }]);
+    setVozEstado("hablando");
+    hablar(saludo, escucharVoz);
+  }
+
+  function escucharVoz() {
+    if (!modoVozRef.current || !SR) return;
+    setVozEstado("escuchando");
+    const rec = new SR();
+    rec.lang = "es-AR";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    let capturado = false;
+    rec.onresult = (e) => {
+      capturado = true;
+      const dicho = e.results?.[0]?.[0]?.transcript || "";
+      if (dicho.trim()) turnoVoz(dicho);
+      else reintentarEscucha();
+    };
+    rec.onerror = () => { if (modoVozRef.current) reintentarEscucha(); };
+    rec.onend = () => {
+      if (!capturado && modoVozRef.current && vozEstadoRef.current === "escuchando") {
+        reintentarEscucha();
+      }
+    };
+    recognitionRef.current = rec;
+    try { rec.start(); } catch { reintentarEscucha(); }
+  }
+
+  function reintentarEscucha() {
+    if (!modoVozRef.current) return;
+    reintentoRef.current += 1;
+    if (reintentoRef.current > 6) { pausarVoz(); return; } // silencio largo → pausa
+    setTimeout(() => { if (modoVozRef.current && vozEstadoRef.current !== "pausado") escucharVoz(); }, 450);
+  }
+
+  async function turnoVoz(texto) {
+    reintentoRef.current = 0;
+    setVozEstado("pensando");
+    const respuesta = await consultarCoach(texto);
+    if (!modoVozRef.current) return;
+    setVozEstado("hablando");
+    hablar(respuesta, escucharVoz);
+  }
+
+  function pausarVoz() {
+    setVozEstado("pausado"); // primero el estado, así el onend no re-escucha
+    try { window.speechSynthesis?.cancel(); } catch {}
+    try { recognitionRef.current?.stop(); } catch {}
+  }
+
+  function reanudarVoz() {
+    reintentoRef.current = 0;
+    escucharVoz();
+  }
+
+  function terminarModoVoz() {
+    modoVozRef.current = false;
+    try { window.speechSynthesis?.cancel(); } catch {}
+    try { recognitionRef.current?.stop(); } catch {}
+    setVozEstado("idle");
+    setModoVoz(false);
+  }
+
   if (!habilitado || !alumno?.id || !pos) return null;
 
   const RED = S?.red || "#e5484d";
@@ -235,6 +345,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const BORDER = S?.border || "#242424";
   const TEXT = S?.white || "#f2f2f2";
   const GRAY = S?.gray || "#9a9a9a";
+  const GREEN = S?.green || "#46a758";
   // Logo b&w según el modo: en dark → círculo claro + logo negro; en light →
   // círculo oscuro + logo blanco (S.white es el color de texto, que se invierte
   // con el tema, así que sirve de fondo del círculo). Recortado como el de bienvenida.
@@ -244,7 +355,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   return (
     <>
       {/* Animación del logo: péndulo 3D, igual que el de bienvenida. */}
-      <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}`}</style>
+      <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}@keyframes coachRing{0%,100%{box-shadow:0 0 0 0 rgba(70,167,88,0.5)}50%{box-shadow:0 0 0 18px rgba(70,167,88,0)}}`}</style>
 
       {/* Botón flotante (logo arrastrable) */}
       <button
@@ -350,6 +461,23 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
               <div style={{ color: TEXT, fontWeight: 700, fontSize: 15, lineHeight: 1.1 }}>Coach</div>
               <div style={{ color: GRAY, fontSize: 11 }}>Desarrollo Integral</div>
             </div>
+            {soportaVoz && soportaLectura && (
+              <button
+                aria-label="Entrenar en modo voz"
+                title="Modo voz — entrená con Luqui hablándote"
+                onClick={(e) => { e.stopPropagation(); iniciarModoVoz(); }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 18,
+                  padding: 4,
+                  color: GRAY,
+                }}
+              >
+                🎧
+              </button>
+            )}
             {soportaLectura && (
               <button
                 aria-label={leerVoz ? "Desactivar lectura en voz" : "Leer respuestas en voz alta"}
@@ -499,6 +627,178 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
               }}
             >
               ↑
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PANTALLA MODO VOZ (inmersiva, manos libres) ── */}
+      {modoVoz && (
+        <div
+          role="dialog"
+          aria-label="Modo voz"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: BG,
+            zIndex: 2147483003,
+            display: "flex",
+            flexDirection: "column",
+            fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", padding: "16px 18px" }}>
+            <div style={{ flex: 1, color: TEXT, fontWeight: 700, fontSize: 17 }}>
+              Entrenando con Luqui
+            </div>
+            <button
+              aria-label="Terminar modo voz"
+              onClick={terminarModoVoz}
+              style={{
+                background: "transparent",
+                border: `1px solid ${BORDER}`,
+                color: GRAY,
+                borderRadius: 20,
+                padding: "6px 14px",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Terminar
+            </button>
+          </div>
+
+          {/* Centro: logo grande + estado */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 22,
+              minHeight: 0,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: 170,
+                height: 170,
+                borderRadius: "50%",
+                background: CIRCULO,
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                overflow: "hidden",
+                perspective: "600px",
+                boxShadow:
+                  vozEstado === "hablando"
+                    ? `0 0 34px 6px ${RED}66`
+                    : vozEstado === "pensando"
+                    ? "0 0 22px 2px rgba(0,0,0,0.5)"
+                    : "0 0 22px 2px rgba(0,0,0,0.5)",
+                animation: vozEstado === "escuchando" ? "coachRing 1.5s ease infinite" : "none",
+              }}
+            >
+              <img
+                src={LOGO}
+                alt=""
+                style={{
+                  width: 128,
+                  height: 128,
+                  marginBottom: 8,
+                  animation: "coachLogoSpin 6s ease-in-out infinite",
+                }}
+              />
+            </div>
+            <div style={{ color: TEXT, fontSize: 17, fontWeight: 600, textAlign: "center" }}>
+              {vozEstado === "hablando"
+                ? "Luqui está hablando…"
+                : vozEstado === "escuchando"
+                ? "Escuchando… hablá"
+                : vozEstado === "pensando"
+                ? "Pensando…"
+                : vozEstado === "pausado"
+                ? "En pausa"
+                : ""}
+            </div>
+          </div>
+
+          {/* Transcripción en vivo */}
+          <div
+            ref={transcriptRef}
+            style={{
+              maxHeight: "32%",
+              overflowY: "auto",
+              padding: "0 18px 8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {mensajes.map((m, i) => (
+              <div key={i} style={{ fontSize: 13, lineHeight: 1.4 }}>
+                <span style={{ color: m.rol === "user" ? RED : GRAY, fontWeight: 700 }}>
+                  {m.rol === "user" ? "Vos: " : "Luqui: "}
+                </span>
+                <span style={{ color: m.rol === "user" ? TEXT : GRAY }}>
+                  {m.texto.replace(/[*#>_`]/g, "")}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Controles */}
+          <div style={{ display: "flex", gap: 12, padding: "12px 18px 22px", justifyContent: "center" }}>
+            {vozEstado === "pausado" ? (
+              <button
+                onClick={reanudarVoz}
+                style={{
+                  background: GREEN,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 26,
+                  padding: "13px 28px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                ▶ Reanudar
+              </button>
+            ) : (
+              <button
+                onClick={pausarVoz}
+                style={{
+                  background: CARD2,
+                  color: TEXT,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 26,
+                  padding: "13px 28px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                ⏸ Pausar
+              </button>
+            )}
+            <button
+              onClick={terminarModoVoz}
+              style={{
+                background: RED,
+                color: "#fff",
+                border: "none",
+                borderRadius: 26,
+                padding: "13px 28px",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Terminar
             </button>
           </div>
         </div>
