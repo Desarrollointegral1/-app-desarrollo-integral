@@ -4480,6 +4480,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       </div>
                     ))}
                   </div>
+                  {/* Botón para entrar a la pantalla de evaluación de este alumno */}
+                  <button
+                    onClick={() => { setSec("evaluacion"); setForm(null); }}
+                    style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 10, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  >
+                    📋 Evaluar
+                  </button>
                   {al.modalidad && (
                     <div style={{ marginBottom: 10 }}>
                       <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 12px", fontSize: 11, color: S.white, fontWeight: 600 }}>
