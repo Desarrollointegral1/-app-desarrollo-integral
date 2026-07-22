@@ -154,7 +154,10 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         display: "flex",
         alignItems: "center",
         gap: "clamp(6px, 2vw, 10px)",
-        padding: "8px 14px 10px",
+        // Ronda 2026-07-22 (ajuste Lucas): el header quedaba pegado al borde
+        // de arriba de la pantalla. Se le da aire arriba (margen de encabezado)
+        // sin agrandar de más el resto.
+        padding: "24px 14px 14px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
       }}
@@ -183,7 +186,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
           width={300}
           style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
         />
-        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 3.5, textTransform: "uppercase", marginTop: 4, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
+        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
           App de entrenamiento
         </div>
       </div>
