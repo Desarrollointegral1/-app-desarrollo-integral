@@ -3469,6 +3469,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // (asistencia · historial · bioimpedancia). Subtabs de cada grupo:
   const [planesTab, setPlanesTab] = useState("periodizacion");
   const [repTab, setRepTab] = useState("asistencia");
+  // Módulo Evaluación (accesible por el botón "Evaluar" de la ficha): dos
+  // sub-módulos — "integral" (protocolo de escalas 1-5) y "bio" (bioimpedancia,
+  // antes vivía en Reportes).
+  const [evalTab, setEvalTab] = useState("integral");
   const [selectedDia, setSelectedDia] = useState(null);
   // Punto 8 (ronda 16): "Plan x día" reorganizado — en vez de los 7 días
   // fijos siempre visibles, solo se muestran los días que la persona
@@ -4482,7 +4486,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   </div>
                   {/* Botón para entrar a la pantalla de evaluación de este alumno */}
                   <button
-                    onClick={() => { setSec("evaluacion"); setForm(null); }}
+                    onClick={() => { setSec("evaluacion"); setEvalTab("integral"); setForm(null); }}
                     style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 10, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                   >
                     📋 Evaluar
@@ -5038,13 +5042,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
           </div>
         )}{" "}
-        {/* ── Grupo REPORTES: Asistencia · Historial · Bioimpedancia ── */}
+        {/* ── Grupo REPORTES: Asistencia · Historial ──
+             (Bioimpedancia se movió al módulo Evaluación) */}
         {sec === "reportes" && (
           <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
             {[
               ["Asistencia", "asistencia"],
               ["Historial", "historial"],
-              ["Bioimpedancia", "bioimpedancia"],
             ].map(([l, k]) => (
               <button
                 key={k}
@@ -5068,20 +5072,35 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         )}{" "}
         {sec === "reportes" && repTab === "historial" && <HistorialAdmin al={al} />}{" "}
         {sec === "diario" && <DiarioAdmin alumnos={alumnos} onUpdate={onUpdate} showToast={showToast} />}{" "}
-        {sec === "reportes" && repTab === "bioimpedancia" && al && (
-          <div>
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-              Bioimpedancia — {al.nombre}
-            </div>
-            <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
-          </div>
-        )}{" "}
         {sec === "evaluacion" && al && (
           <div>
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-              Protocolo de evaluación — {al.nombre}
+              Evaluación — {al.nombre}
             </div>
-            <ProtocoloEvaluacionSeccion alumnoId={al.id} alumno={al} showToast={showToast} />
+            {/* Sub-módulos: Evaluación integral · Bioimpedancia */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+              {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"]].map(([l, k]) => (
+                <button
+                  key={k}
+                  onClick={() => setEvalTab(k)}
+                  style={{
+                    flex: 1,
+                    background: evalTab === k ? S.white : S.card,
+                    color: evalTab === k ? S.bg : S.gray,
+                    border: "1px solid " + (evalTab === k ? S.white : S.border),
+                    borderRadius: 8,
+                    padding: "8px 4px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            {evalTab === "integral" && <ProtocoloEvaluacionSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
+            {evalTab === "bio" && <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
           </div>
         )}{" "}
         {sec === "reportes" && repTab === "asistencia" && al && (() => {
