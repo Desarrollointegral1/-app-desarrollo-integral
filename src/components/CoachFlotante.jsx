@@ -12,7 +12,9 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
  *
  * Props:
  *   - alumno: objeto del alumno logueado (necesita .id y .nombre)
- *   - iconUrl: data-URI del logo (ICON_WHITE de App.jsx)
+ *   - iconWhite / iconBlack: data-URI del logo RECORTADO en blanco y en negro
+ *     (ICON_WHITE_CROP / ICON_BLACK_CROP de App.jsx)
+ *   - darkMode: para elegir el color del logo según el modo
  *   - S: tokens de tema activos (theme.js) para matchear la estética
  */
 
@@ -35,7 +37,7 @@ function renderTexto(texto) {
   });
 }
 
-export default function CoachFlotante({ alumno, iconUrl, S }) {
+export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, S }) {
   const [abierto, setAbierto] = useState(false);
   const [mensajes, setMensajes] = useState([]);
   const [input, setInput] = useState("");
@@ -169,6 +171,11 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
   const BORDER = S?.border || "#242424";
   const TEXT = S?.white || "#f2f2f2";
   const GRAY = S?.gray || "#9a9a9a";
+  // Logo b&w según el modo: en dark → círculo claro + logo negro; en light →
+  // círculo oscuro + logo blanco (S.white es el color de texto, que se invierte
+  // con el tema, así que sirve de fondo del círculo). Recortado como el de bienvenida.
+  const LOGO = darkMode ? iconBlack : iconWhite;
+  const CIRCULO = TEXT; // near-white en dark, near-negro en light
 
   return (
     <>
@@ -185,8 +192,8 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
           width: 56,
           height: 56,
           borderRadius: "50%",
-          background: RED,
-          border: "none",
+          background: CIRCULO,
+          border: `1px solid ${BORDER}`,
           boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
           cursor: "grab",
           touchAction: "none",
@@ -199,10 +206,10 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
         }}
       >
         <img
-          src={iconUrl}
+          src={LOGO}
           alt=""
           draggable={false}
-          style={{ width: 34, height: 34, pointerEvents: "none", userSelect: "none" }}
+          style={{ width: 40, height: 40, pointerEvents: "none", userSelect: "none" }}
         />
       </button>
 
@@ -228,8 +235,10 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
             fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
           }}
         >
-          {/* Header */}
+          {/* Header — clickeable para minimizar (además del ×) */}
           <div
+            onClick={() => setAbierto(false)}
+            title="Minimizar"
             style={{
               display: "flex",
               alignItems: "center",
@@ -237,6 +246,7 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
               padding: "12px 14px",
               background: CARD,
               borderBottom: `1px solid ${BORDER}`,
+              cursor: "pointer",
             }}
           >
             <div
@@ -244,34 +254,26 @@ export default function CoachFlotante({ alumno, iconUrl, S }) {
                 width: 34,
                 height: 34,
                 borderRadius: "50%",
-                background: RED,
+                background: CIRCULO,
+                border: `1px solid ${BORDER}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <img src={iconUrl} alt="" style={{ width: 20, height: 20 }} />
+              <img src={LOGO} alt="" style={{ width: 24, height: 24 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: TEXT, fontWeight: 700, fontSize: 15, lineHeight: 1.1 }}>Coach</div>
               <div style={{ color: GRAY, fontSize: 11 }}>Desarrollo Integral</div>
             </div>
-            <button
-              aria-label="Cerrar"
-              onClick={() => setAbierto(false)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: GRAY,
-                fontSize: 22,
-                lineHeight: 1,
-                cursor: "pointer",
-                padding: 4,
-              }}
+            <span
+              aria-label="Minimizar"
+              style={{ color: GRAY, fontSize: 22, lineHeight: 1, padding: 4 }}
             >
               ×
-            </button>
+            </span>
           </div>
 
           {/* Mensajes */}

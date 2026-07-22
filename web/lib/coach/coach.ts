@@ -51,6 +51,18 @@ export interface AlumnoCoach {
   diario: unknown;
   asistencia: unknown;
   plan_periodizacion: unknown;
+  plan_movilidad: unknown;
+  plan_calor: unknown;
+  plan_activacion: unknown;
+}
+
+/** Nombres de ejercicios de una rutina (array de {nombre}). "" si no hay. */
+function nombresRutina(arr: unknown): string {
+  if (!Array.isArray(arr)) return "";
+  return arr
+    .map((x) => (x && typeof x === "object" ? (x as { nombre?: string }).nombre : null))
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** Semana actual dentro del ciclo de 8 semanas, calculada desde la asignación del plan. */
@@ -84,12 +96,25 @@ function contextoAlumno(a: AlumnoCoach): string {
     );
   }
 
-  if (a.rm && typeof a.rm === 'object' && Object.keys(a.rm as object).length > 0) {
-    partes.push(`Máximos (RM) por ejercicio: ${JSON.stringify(a.rm)}`);
+  const rm = a.rm as { movilidad_default?: string } | null;
+  if (rm && typeof rm === 'object' && Object.keys(rm).length > 0) {
+    partes.push(`Máximos (RM) por ejercicio: ${JSON.stringify(rm)}`);
+    if (rm.movilidad_default) {
+      partes.push(`Versión de movilidad por defecto de este alumno: ${rm.movilidad_default} (superrapida / corta / completa).`);
+    }
   }
   if (a.plan_periodizacion && typeof a.plan_periodizacion === 'object') {
     partes.push(`Periodización propia cargada: ${JSON.stringify(a.plan_periodizacion)}`);
   }
+
+  // Rutinas cargadas del alumno (lo que ve en la app). La movilidad "completa"
+  // es EXACTAMENTE esta lista — el coach la usa, no una genérica.
+  const movi = nombresRutina(a.plan_movilidad);
+  if (movi) partes.push(`Movilidad cargada (versión COMPLETA de este alumno): ${movi}`);
+  const banda = nombresRutina(a.plan_calor);
+  if (banda) partes.push(`Entrada en calor con banda cargada: ${banda}`);
+  const peso = nombresRutina(a.plan_activacion);
+  if (peso) partes.push(`Entrada en calor con peso cargada: ${peso}`);
 
   // Bioimpedancia: solo la más reciente si es un array.
   if (Array.isArray(a.bioimpedancia) && a.bioimpedancia.length > 0) {
@@ -113,6 +138,7 @@ Cómo respondés:
 - Cercano, argentino, de vos. Corto y claro — es un chat, no un documento. Sin listas largas salvo que el alumno pida un paso a paso.
 - Usás los datos del alumno: su plan, su semana de periodización, sus máximos. Cuando le digas una carga, calculala desde su máximo y el % que le toca esta semana (nunca inventes un peso; si no tenés su máximo de ese ejercicio, decíselo y guialo por sensación de esfuerzo).
 - Modo entrenador en vivo: si te pide arrancar la sesión o "qué me toca hoy", guialo ejercicio por ejercicio siguiendo la estructura fija (movilidad → calor con banda → calor con peso → principales), con el cue principal y los errores a evitar de cada ejercicio.
+- MOVILIDAD: cuando quiera arrancar la movilidad, NO dictes una lista genérica. Primero preguntale qué versión quiere — superrápida (~3'), corta (~8') o completa (~15') — mencionando cuál tiene por defecto. Recién cuando elige, listás los ejercicios de esa versión: la COMPLETA son EXACTAMENTE los ejercicios que tiene cargados en su app (te los paso arriba en "Movilidad cargada"), en ese orden; la corta y la superrápida son las del método. Lo mismo con la entrada en calor: usá las rutinas cargadas del alumno cuando estén (banda / peso).
 - Seguridad primero: si menciona dolor, frenás, le decís que no siga con ese ejercicio y que lo hable con el entrenador (o Griselda si hay lesión). Nunca le digas que aguante el dolor.
 - No cambies el plan que le armó el entrenador. Podés explicar, guiar y motivar, pero si quiere cambiar ejercicios lo derivás a Lucas o Ari.
 - Si no sabés algo de este alumno en particular, decílo con honestidad en vez de inventar.
@@ -165,7 +191,7 @@ export async function traerAlumno(alumnoId: string): Promise<AlumnoCoach | null>
   const { data, error } = await supabase
     .from('alumnos')
     .select(
-      'id, nombre, edad, peso, altura, tipo, modalidad, plan_type, fecha_asignacion_plan, rm, bioimpedancia, diario, asistencia, plan_periodizacion'
+      'id, nombre, edad, peso, altura, tipo, modalidad, plan_type, fecha_asignacion_plan, rm, bioimpedancia, diario, asistencia, plan_periodizacion, plan_movilidad, plan_calor, plan_activacion'
     )
     .eq('id', alumnoId)
     .maybeSingle();

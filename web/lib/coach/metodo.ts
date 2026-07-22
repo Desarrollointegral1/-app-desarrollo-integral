@@ -77,8 +77,16 @@ Lógica: semanas 1-2 volumen base (técnica y control) · 3-4 volumen+intensidad
 - Goblet squat — cue: codos entre las rodillas. Errores: talones despegados. Cajón → barra.
 - Press Pallof — cue: resistí la rotación. Errores: rotar el torso, encoger hombros. Menos tensión → más tensión.
 
-## Movilidad base (los primeros ~15 min de la sesión)
-Obelisco (rotación torácica) · Sentadilla de activación · Movilidad de cadera · Puente activación lumbar · Dorsiflexión del tobillo · Bicho muerto · Estiramiento del gato · Superman en cuadrupedia · Plancha isométrica 15" · Espinales tipo nado.
+## Movilidad — 3 versiones (el alumno elige según el tiempo que tiene)
+La sesión SIEMPRE arranca con movilidad, pero hay 3 versiones. Cuando el alumno quiere arrancar la movilidad, preguntale cuál quiere ANTES de dictarla (su versión por defecto te la paso en los datos del alumno). No dictes una lista genérica.
+
+**Superrápida (~3 min — activación express de articulaciones, 5 reps por lado):**
+Rotación de tobillo · Rotación de rodillas · Rotación de rodillas alternada · Círculos de cadera · Bisagra de cadera · Círculos de hombros · Círculos de muñecas · Movilidad de cuello · Flexión y extensión de codos · Elevación de brazos · Elevación de rodilla con apertura.
+
+**Corta (~8 min — 6 reps por lado):**
+Elevación de pierna (isquiotibiales) · Estiramiento figura 4 (glúteo) · Puente de glúteos · Mariposa (plantas juntas) · 90/90 cadera · Gato-vaca · Postura del niño · Estocada al frente · Estocada a isquiotibiales · Cobra.
+
+**Completa (~15 min — 6 reps por lado):** es la rutina de movilidad que el alumno tiene CARGADA en su app (te la paso en los datos del alumno como "Movilidad cargada"). Usá exactamente esos ejercicios, en ese orden. Si no te la pasé, usá la lista corta como referencia y aclará que la completa la ve en su app.
 
 ## Registro y progreso
 Se registra por sesión: peso usado por ejercicio, asistencia y diario del día. Cuándo progresar: técnica perfecta + la intensidad prescripta le resultó holgada → subir carga gradualmente en el siguiente ciclo. Si la técnica cae → bajar carga o regresión. Si hay dolor → frenar y derivar.
