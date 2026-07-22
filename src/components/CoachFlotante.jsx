@@ -44,9 +44,20 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const [enviando, setEnviando] = useState(false);
   const [pos, setPos] = useState(null); // {x, y} del botón; null hasta montar
   const [habilitado, setHabilitado] = useState(false); // flag beta (ver abajo)
+  const [escuchando, setEscuchando] = useState(false); // micrófono activo
+  const [leerVoz, setLeerVoz] = useState(false); // leer las respuestas en voz alta
   const dragRef = useRef({ dragging: false, moved: false, dx: 0, dy: 0 });
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  // ¿El navegador soporta dictado por voz? (Chrome/Edge sí; Safari iOS parcial)
+  const SR =
+    typeof window !== "undefined"
+      ? window.SpeechRecognition || window.webkitSpeechRecognition
+      : null;
+  const soportaVoz = !!SR;
+  const soportaLectura = typeof window !== "undefined" && !!window.speechSynthesis;
 
   // Posición inicial del botón: abajo a la derecha, arriba de la barra inferior.
   useEffect(() => {
@@ -77,14 +88,26 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   useEffect(() => {
     if (abierto && mensajes.length === 0) {
       const nombre = (alumno?.nombre || "").split(" ")[0];
+      const porVoz = soportaVoz
+        ? " Si te resulta más cómodo, tocá el micrófono y hablame — te escucho y te respondo."
+        : "";
       setMensajes([
         {
           rol: "assistant",
-          texto: `¡Hola${nombre ? " " + nombre : ""}! Soy tu coach. Puedo guiarte la sesión de hoy paso a paso, contarte tips de técnica, o responderte dudas de entrenamiento. ¿Arrancamos?`,
+          texto: `¡Hola${nombre ? " " + nombre : ""}! Soy tu coach. Puedo guiarte la sesión de hoy paso a paso, explicarte cada ejercicio con calma, o responderte cualquier duda.${porVoz} ¿Arrancamos?`,
         },
       ]);
     }
   }, [abierto, mensajes.length, alumno]);
+
+  // Al minimizar/cerrar: cortar la voz y el micrófono.
+  useEffect(() => {
+    if (!abierto) {
+      try { window.speechSynthesis?.cancel(); } catch {}
+      try { recognitionRef.current?.stop(); } catch {}
+      setEscuchando(false);
+    }
+  }, [abierto]);
 
   // ── Arrastre del botón (pointer events) ──────────────────────────────
   const onPointerDown = useCallback((e) => {
@@ -123,12 +146,27 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     if (!d.moved) setAbierto((v) => !v); // fue un tap, no un arrastre
   }, []);
 
-  async function enviar() {
-    const texto = input.trim();
+  // Lee un texto en voz alta (voz en español si hay). Limpia el markdown.
+  function hablar(texto) {
+    if (!soportaLectura) return;
+    const limpio = texto.replace(/[*#>_`]/g, "");
+    const u = new SpeechSynthesisUtterance(limpio);
+    u.lang = "es-AR";
+    const voces = window.speechSynthesis.getVoices();
+    const es = voces.find((v) => v.lang && v.lang.toLowerCase().startsWith("es"));
+    if (es) u.voice = es;
+    u.rate = 0.97;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
+  async function enviarMensaje(texto, porVoz = false) {
+    texto = (texto || "").trim();
     if (!texto || enviando || !alumno?.id) return;
     setInput("");
     setMensajes((m) => [...m, { rol: "user", texto }]);
     setEnviando(true);
+    let respuesta;
     try {
       const r = await fetch("/web/api/coach", {
         method: "POST",
@@ -136,22 +174,48 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
         body: JSON.stringify({ alumnoId: alumno.id, mensaje: texto }),
       });
       const data = await r.json();
-      if (r.ok && data.status === "success") {
-        setMensajes((m) => [...m, { rol: "assistant", texto: data.respuesta }]);
-      } else {
-        setMensajes((m) => [
-          ...m,
-          { rol: "assistant", texto: data.message || "Uy, algo falló. Probá de nuevo en un ratito." },
-        ]);
-      }
+      respuesta =
+        r.ok && data.status === "success"
+          ? data.respuesta
+          : data.message || "Uy, algo falló. Probá de nuevo en un ratito.";
     } catch {
-      setMensajes((m) => [
-        ...m,
-        { rol: "assistant", texto: "No me pude conectar. Fijate la conexión y probá de nuevo." },
-      ]);
-    } finally {
-      setEnviando(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      respuesta = "No me pude conectar. Fijate la conexión y probá de nuevo.";
+    }
+    setMensajes((m) => [...m, { rol: "assistant", texto: respuesta }]);
+    if (leerVoz || porVoz) hablar(respuesta);
+    setEnviando(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  function enviar() {
+    enviarMensaje(input, false);
+  }
+
+  // Micrófono: dicta el mensaje y lo manda solo. Si dictó, lee la respuesta.
+  function toggleEscucha() {
+    if (!SR) return;
+    if (escuchando) {
+      recognitionRef.current?.stop();
+      setEscuchando(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "es-AR";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const dicho = e.results?.[0]?.[0]?.transcript || "";
+      setEscuchando(false);
+      if (dicho.trim()) enviarMensaje(dicho, true); // porVoz → lee la respuesta
+    };
+    rec.onerror = () => setEscuchando(false);
+    rec.onend = () => setEscuchando(false);
+    recognitionRef.current = rec;
+    setEscuchando(true);
+    try {
+      rec.start();
+    } catch {
+      setEscuchando(false);
     }
   }
 
@@ -179,6 +243,9 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
 
   return (
     <>
+      {/* Animación del logo: péndulo 3D, igual que el de bienvenida. */}
+      <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}`}</style>
+
       {/* Botón flotante (logo arrastrable) */}
       <button
         aria-label="Abrir coach"
@@ -198,8 +265,10 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
           cursor: "grab",
           touchAction: "none",
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-end",
           justifyContent: "center",
+          overflow: "hidden",
+          perspective: "220px",
           zIndex: 2147483000,
           padding: 0,
           transition: "transform 0.15s",
@@ -209,7 +278,14 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
           src={LOGO}
           alt=""
           draggable={false}
-          style={{ width: 40, height: 40, pointerEvents: "none", userSelect: "none" }}
+          style={{
+            width: 42,
+            height: 42,
+            marginBottom: 3,
+            pointerEvents: "none",
+            userSelect: "none",
+            animation: "coachLogoSpin 6s ease-in-out infinite",
+          }}
         />
       </button>
 
@@ -257,17 +333,47 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                 background: CIRCULO,
                 border: `1px solid ${BORDER}`,
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-end",
                 justifyContent: "center",
+                overflow: "hidden",
+                perspective: "140px",
                 flexShrink: 0,
               }}
             >
-              <img src={LOGO} alt="" style={{ width: 24, height: 24 }} />
+              <img
+                src={LOGO}
+                alt=""
+                style={{ width: 26, height: 26, marginBottom: 2, animation: "coachLogoSpin 6s ease-in-out infinite" }}
+              />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: TEXT, fontWeight: 700, fontSize: 15, lineHeight: 1.1 }}>Coach</div>
               <div style={{ color: GRAY, fontSize: 11 }}>Desarrollo Integral</div>
             </div>
+            {soportaLectura && (
+              <button
+                aria-label={leerVoz ? "Desactivar lectura en voz" : "Leer respuestas en voz alta"}
+                title={leerVoz ? "Voz activada" : "Leer en voz alta"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (leerVoz) {
+                    try { window.speechSynthesis?.cancel(); } catch {}
+                  }
+                  setLeerVoz((v) => !v);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 18,
+                  padding: 4,
+                  opacity: leerVoz ? 1 : 0.5,
+                  color: leerVoz ? RED : GRAY,
+                }}
+              >
+                {leerVoz ? "🔊" : "🔈"}
+              </button>
+            )}
             <span
               aria-label="Minimizar"
               style={{ color: GRAY, fontSize: 22, lineHeight: 1, padding: 4 }}
@@ -335,12 +441,32 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
               borderTop: `1px solid ${BORDER}`,
             }}
           >
+            {soportaVoz && (
+              <button
+                aria-label={escuchando ? "Dejar de escuchar" : "Hablar por voz"}
+                title="Hablar por voz"
+                onClick={toggleEscucha}
+                style={{
+                  background: escuchando ? RED : CARD2,
+                  color: escuchando ? "#fff" : TEXT,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 12,
+                  width: 44,
+                  fontSize: 18,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  animation: escuchando ? "coachPulse 1.2s ease infinite" : "none",
+                }}
+              >
+                🎤
+              </button>
+            )}
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Escribí tu mensaje…"
+              placeholder={escuchando ? "Escuchando… hablá" : "Escribí tu mensaje…"}
               rows={1}
               style={{
                 flex: 1,
