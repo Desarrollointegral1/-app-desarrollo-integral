@@ -324,16 +324,48 @@ export default function CatalogoExplorer({
     return () => { vivo = false; };
   }, []);
 
-  const categorias = useMemo(() => [...new Set((cat || []).map((e) => e.categoria).filter(Boolean))].sort((a, b) => labelCat(a).localeCompare(labelCat(b))), [cat]);
-  const equipos = useMemo(() => [...new Set((cat || []).map((e) => e.equipment).filter(Boolean))].sort((a, b) => labelEq(a).localeCompare(labelEq(b))), [cat]);
-  const targets = useMemo(() => [...new Set((cat || []).map((e) => e.target).filter(Boolean))].sort((a, b) => labelTg(a).localeCompare(labelTg(b))), [cat]);
   // Ronda 17 (punto 3): prefijo de código = letras iniciales de codigo_di
   // (ej. "GL007" → "GL"). Derivado dinámicamente de la tabla real, no
   // hardcodeado — cubre tanto los ~50 Principales DI (PH/RO/PE/CA/JA/GL/CO)
   // como los prefijos mecánicos que se aplicaron a todo el resto del
   // catálogo (BI/TR/PA/AN/CD/CL/TZ/AD/SE/CU, ver ronda 16 punto 9).
   const prefijoDe = (e) => (e.codigo_di || "").match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || "";
-  const prefijos = useMemo(() => [...new Set((cat || []).map(prefijoDe).filter(Boolean))].sort(), [cat]);
+
+  // FILTRADO FACETADO (pedido de Lucas 2026-07-22): al tildar una opción en
+  // un filtro, los DEMÁS filtros solo muestran las opciones que conviven con
+  // esa selección. Ej.: tildar "Tríceps" en Músculo objetivo deja en
+  // Equipamiento únicamente los equipos usados por ejercicios de tríceps
+  // ("Peso corporal", etc.) — las opciones sin match desaparecen. Al
+  // destildar, vuelven todas. Cada sección calcula sus valores sobre los
+  // ejercicios que pasan TODOS los otros filtros activos (NO el propio, así
+  // se puede seguir multi-seleccionando dentro de la misma sección), y los
+  // valores ya seleccionados quedan siempre visibles para poder destildarlos.
+  const pasaBase = (e, omit) => {
+    if (verArchivados ? !e.archivado : e.archivado) return false;
+    if (soloDI && !esPrincipalDI(e)) return false;
+    if (soloDI && !e.gif_url && !e.video) return false;
+    if (omit !== "cat" && fCat.size && !fCat.has(e.categoria)) return false;
+    if (omit !== "eq" && fEq.size && !fEq.has(e.equipment)) return false;
+    if (omit !== "tg" && fTg.size && !fTg.has(e.target)) return false;
+    if (omit !== "pre" && fPre.size && !fPre.has(prefijoDe(e))) return false;
+    if (omit !== "nivel" && fNivel.size && !fNivel.has(e.nivel || "")) return false;
+    const qq = q.toLowerCase().trim();
+    if (qq) {
+      const idx = `${e.nombre_es} ${e.nombre_en || ""} ${e.target_es || ""} ${e.equipment_es || ""} ${e.codigo_di || ""}`.toLowerCase();
+      if (!idx.includes(qq)) return false;
+    }
+    return true;
+  };
+  const valoresFacet = (campo, omit, seleccion, cmp) => {
+    const disp = new Set((cat || []).filter((e) => pasaBase(e, omit)).map(campo).filter(Boolean));
+    seleccion.forEach((v) => disp.add(v)); // los ya tildados nunca se ocultan
+    return [...disp].sort(cmp);
+  };
+  const facetDeps = [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados];
+  const categorias = useMemo(() => valoresFacet((e) => e.categoria, "cat", fCat, (a, b) => labelCat(a).localeCompare(labelCat(b))), facetDeps);
+  const equipos = useMemo(() => valoresFacet((e) => e.equipment, "eq", fEq, (a, b) => labelEq(a).localeCompare(labelEq(b))), facetDeps);
+  const targets = useMemo(() => valoresFacet((e) => e.target, "tg", fTg, (a, b) => labelTg(a).localeCompare(labelTg(b))), facetDeps);
+  const prefijos = useMemo(() => valoresFacet(prefijoDe, "pre", fPre, undefined), facetDeps);
 
   const filtrados = useMemo(() => {
     if (!cat) return [];
