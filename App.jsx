@@ -163,17 +163,20 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
              continuo), más chico, click → pantalla inicial. Ronda 2026-07-22
              (2º ajuste de Lucas): logo más chico todavía y sin espacio
              sobrante alrededor. */}
+      {/* Lado izquierdo (logo) y lado derecho (botones) del MISMO ancho, así
+          el bloque de marca del medio queda centrado de verdad en pantalla
+          (pedido de Lucas 2026-07-22: "que el título quede más centrado").
+          Los botones van pegados al borde derecho; "Salir" pasó a ícono. */}
       <div
         onClick={onLogoClick}
         title="Ir al inicio"
-        style={{ flexShrink: 0, cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
+        style={{ width: 84, flexShrink: 0, display: "flex", justifyContent: "flex-start", cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
       >
         <Logo3D size={40} />
       </div>
       {/* 2) Marca protagonista: wordmark GRANDE + "APP DE ENTRENAMIENTO"
-             CENTRADA justo debajo. El logo quedó más chico, así que el bloque
-             de marca ocupa el espacio libre y queda centrado (pedido de Lucas
-             2026-07-22). */}
+             CENTRADA justo debajo, centrada en pantalla por el balance de
+             lados. */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <DIWordmark
           soloDesarrollo
@@ -184,17 +187,27 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
           App de entrenamiento
         </div>
       </div>
-      {/* 3) Tema · Salir — arriba a la derecha, sin margen extra */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      {/* 3) Tema · Salir — pegados al borde derecho. Salir es un ícono chico
+             (flecha saliendo de una puerta) — se entiende y ocupa menos. */}
+      <div style={{ width: 84, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
           style={{ ...btnBase, padding: "6px 9px", fontSize: 13 }}
         >
-          {darkMode ? "☀️" : "🌙"}
+          {darkMode ? "🌙" : "☀️"}
         </button>
-        <button onClick={onSalir} style={{ ...btnBase, padding: "6px 10px", fontSize: 12, fontWeight: 600 }}>
-          {salirLabel}
+        <button
+          onClick={onSalir}
+          title={salirLabel}
+          aria-label={salirLabel}
+          style={{ ...btnBase, padding: "7px 8px", display: "flex", alignItems: "center", justifyContent: "center", color: S.gray }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
         </button>
       </div>
     </div>
@@ -306,7 +319,7 @@ function FechaRapida({ value, onChange }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSpinFull {        from { transform:rotateY(0deg); }        to { transform:rotateY(360deg); }      }      .di-logo3d { animation:diSpinFull 10s linear infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -1989,7 +2002,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
 // entrada en el array SIN ordenar (se conserva al ordenar acá abajo con
 // .map antes del .sort, así el índice sigue apuntando a la entrada
 // correcta en al.diario del lado de App()).
-function Diario({ entradas, onAdd, onEdit }) {
+function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
   const [texto, setTexto] = useState("");
   const [editIdx, setEditIdx] = useState(null);
   const [editFecha, setEditFecha] = useState("");
@@ -2055,6 +2068,10 @@ function Diario({ entradas, onAdd, onEdit }) {
           </button>{" "}
         </div>{" "}
       </div>{" "}
+      {/* Slot opcional entre el input y los comentarios guardados (ronda
+          2026-07-22): acá cae el reporte "Tu mes" — Lucas lo quiere abajo,
+          justo antes de los comentarios guardados, no arriba de todo. */}
+      {slotAntesDeEntradas}
       {entradas.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📓</div>
@@ -4019,7 +4036,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               lineHeight: 1,
             }}
           >
-            {darkMode ? "☀️" : "🌙"}
+            {darkMode ? "🌙" : "☀️"}
           </button>
           <button
             onClick={() => { setSec("config"); setForm(null); }}
@@ -5477,7 +5494,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           cursor: "pointer",
         }}
       >
-        {darkMode ? "☀️" : "🌙"}
+        {darkMode ? "🌙" : "☀️"}
       </button>
       {/* Header de marca — ronda 11: ícono y wordmark al DOBLE de tamaño que
           la ronda anterior (600 / 480, con tope responsivo para no desbordar
@@ -6364,7 +6381,7 @@ export default function App() {
             {" "}
             <FotoAlumno
               foto={al.foto}
-              size={52}
+              size={56}
               editable
               onFoto={(foto) => {
                 guardarFotoAlumno(al.id, foto);
@@ -6373,9 +6390,15 @@ export default function App() {
                 setAlumno(u.find((a) => a.id === al.id));
               }}
             />{" "}
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               {" "}
-              <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>{" "}
+              {/* Kicker (tipo de membresía) + nombre grande — jerarquía de
+                  dos líneas (spec Design 2026-07-22): el nombre es el título
+                  real de la pantalla del alumno. */}
+              <div style={{ ...eyebrow, marginBottom: 2 }}>
+                {al.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"}
+              </div>
+              <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>{al.nombre}</div>{" "}
               {al.horarios && al.horarios.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
                   {al.horarios.map((h, i) => {
@@ -6428,6 +6451,52 @@ export default function App() {
                 </div>
               )}{" "}
             </div>{" "}
+            {/* Botón "Presente" del día (pedido de Lucas 2026-07-22): marca
+                la asistencia de HOY desde el mismo módulo del nombre, sin
+                tener que ir al Diario. Reusa la misma lógica de asistencia. */}
+            {(() => {
+              const presente = al.asistencia?.some((a) => a.slice(0, 10) === hoy());
+              return (
+                <button
+                  onClick={() => {
+                    if (presente) {
+                      const u = alumnos.map((a) =>
+                        a.id === al.id
+                          ? { ...a, asistencia: (a.asistencia || []).filter((f) => f.slice(0, 10) !== hoy()) }
+                          : a
+                      );
+                      setAlumnos(u);
+                      setAlumno(u.find((a) => a.id === al.id));
+                      showToast && showToast("Presente removido");
+                    } else {
+                      saveDailyAttendance(al.id, hoy(), true).then(() => {
+                        marcarAsistencia(hoy());
+                        showToast && showToast("¡Presente marcado! ✓");
+                      });
+                    }
+                  }}
+                  title={presente ? "Ya marcaste presente hoy — tocá para deshacer" : "Marcar presente hoy"}
+                  style={{
+                    flexShrink: 0,
+                    alignSelf: "center",
+                    background: presente ? S.green : S.card3,
+                    color: presente ? "#fff" : S.white,
+                    border: "1px solid " + (presente ? S.green : S.border2),
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    fontFamily: FONT_BODY,
+                  }}
+                >
+                  {presente ? "✓ Hoy" : "Presente"}
+                </button>
+              );
+            })()}
           </div>{" "}
           {/* Punto 10 (2026-07-21): esta zona pasa a estar protagonizada por
               el/los día(s) del plan actual + un selector (si hay más de
@@ -6460,18 +6529,21 @@ export default function App() {
                   ))}
                 </div>
               )}
-              <div style={{ display: "flex", gap: 8, background: S.card2, borderRadius: 8, padding: "8px 6px" }}>
+              {/* Ribbon de stats — números grandes en la condensada (spec
+                  Design 2026-07-22): 18px FONT_DISPLAY da el look editorial
+                  tipo Skulpt; micro-labels a 10px (mínimo legible del theme). */}
+              <div style={{ display: "flex", gap: 8, background: S.card2, borderRadius: 8, padding: "10px 6px" }}>
                 <div style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{sem.series}x{sem.reps}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>SERIES X REPS</div>
+                  <div style={{ color: S.white, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.series}x{sem.reps}</div>
+                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>SERIES X REPS</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ color: S.green, fontWeight: 700, fontSize: 13 }}>{sem.intensidad || "—"}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>INTENSIDAD</div>
+                  <div style={{ color: S.green, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.intensidad || "—"}</div>
+                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>INTENSIDAD</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{(dia?.ejercicios || []).length}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>EJERCICIOS</div>
+                  <div style={{ color: S.white, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{(dia?.ejercicios || []).length}</div>
+                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>EJERCICIOS</div>
                 </div>
               </div>
             </div>
@@ -6547,43 +6619,6 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
-              {/* Card de gamificación (punto 11, 2026-07-21): cuántas veces
-                  entrenó este mes vs. un objetivo calculado. Objetivo =
-                  días/semana asignados (al.horarios, o distintos
-                  dia_semana de al.planes si no hay horarios, con 3 como
-                  último fallback) × semanas transcurridas del mes (día
-                  actual del mes / 7, redondeado para arriba — documentado
-                  acá porque no hay otro lugar mejor: es una aproximación
-                  simple, no cuenta semanas calendario reales). */}
-              {(() => {
-                const diasPorSemana =
-                  (al.horarios || []).length ||
-                  new Set((al.planes || []).map((p) => p.dia_semana).filter((d) => d && d !== "Fijo")).size ||
-                  3;
-                const semanasTranscurridas = Math.max(1, Math.ceil(new Date().getDate() / 7));
-                const objetivo = diasPorSemana * semanasTranscurridas;
-                const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
-                const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
-                return (
-                  <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                      <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
-                        Tu mes
-                      </div>
-                      <div style={{ color: S.red, fontWeight: 900, fontSize: 15 }}>{pct}%</div>
-                    </div>
-                    <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
-                      Entrenaste <span style={{ color: S.red }}>{entrenosMes}</span> de {objetivo} veces este mes
-                    </div>
-                    <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
-                    </div>
-                    <div style={{ color: S.gray, fontSize: 10, marginTop: 8 }}>
-                      {pct >= 100 ? "🔥 ¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien — no aflojes." : "Dale que se puede — cada entreno suma."}
-                    </div>
-                  </div>
-                );
-              })()}
               {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy como
                   default (antes forzaba siempre hoy()). */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
@@ -6633,8 +6668,42 @@ export default function App() {
                     : "Marcar presente"}
                 </button>
               </div>
-              {/* Cómo estuvo el día */}
-              <Diario entradas={al.diario || []} onEdit={editarDiario} onAdd={addDiario} />
+              {/* Cómo estuvo el día — el reporte "Tu mes" va como slot,
+                  justo antes de los comentarios guardados (no arriba). */}
+              <Diario
+                entradas={al.diario || []}
+                onEdit={editarDiario}
+                onAdd={addDiario}
+                slotAntesDeEntradas={(() => {
+                  const diasPorSemana =
+                    (al.horarios || []).length ||
+                    new Set((al.planes || []).map((p) => p.dia_semana).filter((d) => d && d !== "Fijo")).size ||
+                    3;
+                  const semanasTranscurridas = Math.max(1, Math.ceil(new Date().getDate() / 7));
+                  const objetivo = diasPorSemana * semanasTranscurridas;
+                  const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
+                  const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
+                  return (
+                    <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                        <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                          Tu mes
+                        </div>
+                        <div style={{ color: S.red, fontWeight: 900, fontSize: 15 }}>{pct}%</div>
+                      </div>
+                      <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
+                        Entrenaste <span style={{ color: S.red }}>{entrenosMes}</span> de {objetivo} veces este mes
+                      </div>
+                      <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
+                      </div>
+                      <div style={{ color: S.gray, fontSize: 10, marginTop: 8 }}>
+                        {pct >= 100 ? "🔥 ¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien — no aflojes." : "Dale que se puede — cada entreno suma."}
+                      </div>
+                    </div>
+                  );
+                })()}
+              />
           </div>
           )}{" "}
         </div>{" "}
