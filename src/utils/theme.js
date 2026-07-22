@@ -91,9 +91,13 @@ export const smallBtn = (color = "#888", bg = "transparent") => ({ background: b
 // ── Jerarquía de tabs del alumno — 3 niveles bien diferenciados ──
 // Nivel 1 (Entrenamiento | Diario): pills grandes, el activo invertido.
 // Usa FONT_DISPLAY — es el nivel de navegación protagonista.
-export const tabN1 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card, color: a ? S.bg : S.gray, border: "1.5px solid " + (a ? S.white : S.border2), borderRadius: 12, padding: "13px 6px", fontSize: 15, fontWeight: 800, cursor: "pointer", letterSpacing: 1.5, textTransform: "uppercase", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_DISPLAY, boxShadow: a ? S.shadow2 : "none" });
+// Ronda 2026-07-22 (spec Design): nav protagonista más grande y con la
+// condensada bien lucida — a 22px con tracking ajustado (0.5) la PP Formula
+// Condensed lidera en vez de competir con los sub-labels. lineHeight:1 saca
+// el aire vertical fantasma de las mayúsculas altas.
+export const tabN1 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card, color: a ? S.bg : S.gray, border: "1.5px solid " + (a ? S.white : S.border2), borderRadius: 12, padding: "16px 10px", fontSize: 22, fontWeight: 800, lineHeight: 1, cursor: "pointer", letterSpacing: 0.5, textTransform: "uppercase", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_DISPLAY, boxShadow: a ? S.shadow2 : "none" });
 // Nivel 2 (Preparación | Principales): tamaño medio, activo con borde claro.
-export const tabN2 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.card2 : "transparent", color: a ? S.white : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 10, padding: "11px 4px", fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: 0.6, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
+export const tabN2 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.card2 : "transparent", color: a ? S.white : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 10, padding: "11px 4px", fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.6, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
 // Nivel 3: segmented control — track nivel 2, segmento activo pastilla clara.
 export const segTrack = () => ({ display: "flex", gap: 3, background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: 3, boxShadow: S.shadow2 });
 export const segChip = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : "transparent", color: a ? S.bg : S.gray, border: "none", borderRadius: 7, padding: "8px 4px", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", boxShadow: a ? "0 1px 3px rgba(0,0,0,0.3)" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: FONT_BODY });
