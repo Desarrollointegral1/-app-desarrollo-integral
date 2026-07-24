@@ -86,6 +86,7 @@ import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 // ── LOGO ──────────────────────────────────────────────────────────────
 // Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
 // interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
@@ -6746,6 +6747,7 @@ export default function App() {
           )}{" "}
         </div>{" "}
       </div>{" "}
+      <SpeedInsights />
     </>
   );
 }
