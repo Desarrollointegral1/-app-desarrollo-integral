@@ -47,6 +47,8 @@ import {
   actualizarAdmin,
   // PLANES PREDETERMINADOS (punto 6)
   listarPlanesPredeterminados,
+  supabase,
+  cerrarSesionAuth,
 } from "./services/supabase.js";
 import {
   RM_EJS,
@@ -6041,23 +6043,15 @@ export default function App() {
   ICON = (isRehabMode ? false : darkMode) ? ICON_WHITE : ICON_BLACK;
   ICON_CROP = (isRehabMode ? false : darkMode) ? ICON_WHITE_CROP : ICON_BLACK_CROP;
   // Arranque: carga desde Supabase. Fallback [] = nunca usa datos locales.
+  // Con la RLS activa, los datos solo se pueden leer con una sesión de Auth.
+  // Al arrancar: si hay sesión (F5 con login vigente) se cargan; si no, se
+  // muestra el login. Post-login, login()/loginAsAdmin() vuelven a cargar.
   useEffect(() => {
-    console.log("%c[APP] Iniciando → cargarDatos desde Supabase...", "color:#6ee7b7;font-weight:bold");
-    cargarDatos(ALUMNOS_INIT).then((data) => {
-      console.log(`%c[APP] ✅ ${data.length} alumno(s) cargados.`, "color:#6ee7b7;font-weight:bold", data.map((a) => a.nombre));
-      setAlumnos(data);
-      setCargado(true);
-      // Las fotos se hidratan aparte para no bloquear el arranque (pueden
-      // pesar megas). Este cambio de estado NO debe disparar un guardado.
-      cargarFotos().then((fotos) => {
-        if (Object.keys(fotos).length === 0) return;
-        _skipNextSave.current = true;
-        setAlumnos((prev) => prev.map((a) => (fotos[a.id] ? { ...a, foto: fotos[a.id] } : a)));
-        setAlumno((prev) => (prev && fotos[prev.id] ? { ...prev, foto: fotos[prev.id] } : prev));
-      });
+    console.log("%c[APP] Iniciando → chequeando sesión...", "color:#6ee7b7;font-weight:bold");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { setCargado(true); return; }
+      recargarDatos().finally(() => setCargado(true));
     });
-    cargarBiblioteca().then(setBiblioteca);
-    cargarNovedades().then(setNovedades);
   }, []);
   const _primeraVez = useRef(true);
   // Flag para cambios de estado que NO deben persistirse (ej. hidratar fotos
@@ -6069,6 +6063,24 @@ export default function App() {
   // borrados desde otro dispositivo y reescribía plan_dias completo al pedo.
   const _snapAlumno = (a) => { const { foto, ...rest } = a; return JSON.stringify(rest); };
   const _ultimoGuardado = useRef(new Map());
+  // Carga (o recarga) todos los datos que la sesión actual puede ver. La RLS
+  // decide el alcance: un alumno ve solo lo suyo, un admin ve todo. Se setea
+  // _primeraVez para que el effect de guardado tome esto como línea base y no
+  // dispare un guardado espurio al poblar el estado.
+  const recargarDatos = async () => {
+    const data = await cargarDatos(ALUMNOS_INIT);
+    _primeraVez.current = true;
+    setAlumnos(data);
+    cargarFotos().then((fotos) => {
+      if (Object.keys(fotos).length === 0) return;
+      _skipNextSave.current = true;
+      setAlumnos((prev) => prev.map((a) => (fotos[a.id] ? { ...a, foto: fotos[a.id] } : a)));
+      setAlumno((prev) => (prev && fotos[prev.id] ? { ...prev, foto: fotos[prev.id] } : prev));
+    });
+    cargarBiblioteca().then(setBiblioteca);
+    cargarNovedades().then(setNovedades);
+    return data;
+  };
   useEffect(() => {
     if (!cargado) return;
     if (_primeraVez.current) {
@@ -6122,6 +6134,7 @@ export default function App() {
     }
   }, [cargado, alumnos]);
   const login = async (a) => {
+    await recargarDatos(); // biblioteca/novedades + datos que la sesión del alumno puede ver
     const f = alumnos.find((x) => x.id === a.id) || a;
     const guardado = await cargarPesos(f.id, null);
     setPesos(guardado ? guardado.pesos : initPesos(f.plan));
@@ -6134,12 +6147,15 @@ export default function App() {
     setDiaIdx(0);
     try { localStorage.setItem("di_session", JSON.stringify({ type: "alumno", id: f.id })); } catch (e) {}
   };
-  const loginAsAdmin = () => {
+  const loginAsAdmin = async () => {
     try { localStorage.setItem("di_session", JSON.stringify({ type: "admin" })); } catch (e) {}
+    await recargarDatos(); // con la sesión admin ya se ven todos los alumnos
     setAdminMode(true);
   };
   const logout = () => {
     try { localStorage.removeItem("di_session"); } catch (e) {}
+    cerrarSesionAuth();
+    setAlumnos([]);
     setDiaSemanaFoco(null);
     setAlumno(null);
     setAdminMode(false);

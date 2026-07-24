@@ -16,6 +16,45 @@ const SUPABASE_ANON_KEY = "sb_publishable_KGJ75gHqy1gnVLpuf-7SyQ_IuByH1G8";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── AUTH SEGURO (Edge Function auth-bridge) ────────────────────────────
+// El login ya no valida el PIN en el cliente (era sha256 reversible y con
+// las políticas abiertas cualquiera bajaba la base). Ahora el PIN se valida
+// server-side (bcrypt + rate-limit) en la Edge Function `auth-bridge`, que
+// devuelve un token con el que el cliente abre una sesión real de Supabase
+// Auth — necesaria para que la RLS por-alumno funcione.
+const AUTH_BRIDGE_URL = `${SUPABASE_URL}/functions/v1/auth-bridge`;
+
+async function establecerSesion(codigo, pin, tipo) {
+  const r = await fetch(AUTH_BRIDGE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ action: "login", codigo: String(codigo).trim(), pin, tipo }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.token_hash) {
+    throw new Error(data.error || (tipo === "admin" ? "Código admin o PIN inválido" : "Código o PIN inválido"));
+  }
+  const { error } = await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" });
+  if (error) throw new Error("No se pudo iniciar sesión: " + error.message);
+}
+
+// Crea (si falta) el usuario de Auth del alumno y le setea el PIN salado.
+// Operación de admin — manda el token de sesión del admin logueado.
+async function provisionAlumno(alumnoId, pin) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY;
+  const r = await fetch(AUTH_BRIDGE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "provision", alumnoId, pin }),
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); ERR("provisionAlumno", d.error || "provision falló", d); }
+}
+
+export async function cerrarSesionAuth() {
+  try { await supabase.auth.signOut(); } catch (e) { ERR("cerrarSesionAuth", "signOut falló", e); }
+}
+
 // ── LOGGING ────────────────────────────────────────────────────────────
 const LOG = (fn, msg, data) =>
   console.log(`%c[SUPABASE:${fn}]`, "color:#6ee7b7;font-weight:bold", msg, data ?? "");
@@ -989,6 +1028,7 @@ export async function cambiarPINAlumno(alumno_id, nuevoPIN) {
     const pin_hash = await hashearPIN(nuevoPIN);
     const { error } = await supabase.from("alumnos").update({ pin_hash }).eq("id", alumno_id);
     if (error) { ERR("cambiarPINAlumno", "No se pudo cambiar el PIN", error); return false; }
+    await provisionAlumno(alumno_id, nuevoPIN); // PIN salado (bcrypt) + usuario de Auth
     LOG("cambiarPINAlumno", `✅ PIN actualizado.`);
     return true;
   } catch (e) {
@@ -1056,27 +1096,18 @@ export async function loginConCodigo(codigo, pin) {
     // guardado el username en la base.
     // Sin "foto": puede pesar megas en base64 y el login no la necesita
     // (la app la hidrata aparte con cargarFotos()).
+    // PIN validado server-side + sesión de Auth abierta acá (reemplaza el
+    // chequeo sha256 del cliente).
+    await establecerSesion(codigo, pin, "alumno");
+
     const { data: alumno, error } = await supabase
       .from("alumnos")
-      .select(COLS_ALUMNO_SIN_FOTO + ",pin_hash")
+      .select(COLS_ALUMNO_SIN_FOTO)
       .ilike("codigo", codigo.trim())
       .single();
 
     if (error || !alumno) {
-      throw new Error("Código inválido");
-    }
-
-    if (!alumno.pin_hash) {
-      throw new Error("PIN no configurado. Contacta al admin.");
-    }
-
-    const pinHash = await hashearPIN(pin);
-    if (pinHash !== alumno.pin_hash) {
-      throw new Error("PIN incorrecto");
-    }
-
-    if (alumno.activo === false) {
-      throw new Error("Cuenta desactivada");
+      throw new Error("No se pudo cargar el alumno");
     }
 
     LOG("loginConCodigo", `✅ Login exitoso para ${alumno.nombre}`);
@@ -1091,6 +1122,8 @@ export async function loginAdmin(codigo, pin) {
   LOG("loginAdmin", `⏳ Validando admin ${codigo}...`);
 
   try {
+    // Valida PIN admin server-side + abre sesión de Auth con rol admin.
+    await establecerSesion(codigo, pin, "admin");
     const pinHash = await hashearPIN(pin);
 
     // La tabla admins ya no se lee directo (services/supabase.js no expone
@@ -1175,6 +1208,10 @@ export async function crearAlumnoConPIN(nombre, codigo, pin, altura, peso, fecha
       }
       throw new Error(error.message || "Error al crear alumno");
     }
+
+    // Crea el usuario de Auth del alumno + PIN salado (necesario para que
+    // pueda loguearse con la RLS activa).
+    if (data?.[0]?.id) await provisionAlumno(data[0].id, pin);
 
     LOG("crearAlumnoConPIN", `✅ Alumno ${nombre} creado exitosamente`, data);
     return data?.[0] || nuevoAlumno;
