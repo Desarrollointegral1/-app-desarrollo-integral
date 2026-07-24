@@ -26,7 +26,7 @@ export default function VideosMovilidadAdmin({ showToast }) {
     setGuardando(true);
     const ok = await setAppConfig("videos_movilidad", videos);
     setGuardando(false);
-    showToast && showToast(ok ? "Videos guardados para todos los alumnos ✓" : "No se pudo guardar — ¿corriste la migración 007?");
+    showToast && showToast(ok ? "Videos guardados para todos los alumnos" : "No se pudo guardar — ¿corriste la migración 007?");
   };
 
   return (

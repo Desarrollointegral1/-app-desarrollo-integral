@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClipboardList, Check } from "lucide-react";
 import { S, card, tabBtn, tabN2, segTrack, segChip, n4Track, chipN4 } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
@@ -120,7 +121,7 @@ export default function PlanDelDia({
   if (!planValido && movilidad.length === 0 && calor.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "40px 20px", color: S.gray }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+        <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}><ClipboardList size={40} strokeWidth={2} /></div>
         <div style={{ color: S.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
           Todavía no tenés plan asignado
         </div>
@@ -340,7 +341,9 @@ export default function PlanDelDia({
                 transition: "all 0.3s",
               }}
             >
-              {registrandoDia ? "REGISTRANDO..." : diaRegistrado ? "✓ DÍA REGISTRADO" : "REGISTRAR DÍA"}
+              {registrandoDia ? "REGISTRANDO..." : diaRegistrado ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} strokeWidth={2} />DÍA REGISTRADO</span>
+              ) : "REGISTRAR DÍA"}
             </button>
           )}
           {onRegistrarDia && (

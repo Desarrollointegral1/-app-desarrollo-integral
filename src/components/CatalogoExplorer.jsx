@@ -26,6 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef } from "react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
@@ -127,9 +128,9 @@ function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename
               <button
                 onClick={() => onRename(v)}
                 title={`Renombrar categoría "${labelDe(v)}"`}
-                style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", fontSize: 11, padding: "0 2px", lineHeight: 1 }}
+                style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", padding: "0 2px", lineHeight: 1, display: "inline-flex", alignItems: "center" }}
               >
-                ✎
+                <Pencil size={14} strokeWidth={2} />
               </button>
             </span>
           ) : (
@@ -200,9 +201,9 @@ function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder
               <button
                 onClick={() => remove(v)}
                 title="Quitar"
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 2px", color: esDefault ? S.bg : S.gray, fontSize: 12, lineHeight: 1 }}
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 2px", color: esDefault ? S.bg : S.gray, lineHeight: 1, display: "inline-flex", alignItems: "center" }}
               >
-                ✕
+                <X size={14} strokeWidth={2} />
               </button>
             </span>
           );
@@ -248,7 +249,7 @@ function SubirVideoInline({ onUrl, showToast }) {
           try {
             const url = await subirVideo(f);
             onUrl(url);
-            showToast && showToast("Video subido ✓");
+            showToast && showToast("Video subido");
           } catch (err) {
             window.alert("No se pudo subir el video: " + (err.message || "error"));
           } finally {
@@ -411,7 +412,7 @@ export default function CatalogoExplorer({
     ...[...fPre].map((v) => ({ v, l: "Código " + v, del: () => toggle(setFPre)(v) })),
     ...[...fNivel].map((v) => ({ v, l: "Nivel: " + (labelNivel(v) || "sin nivel"), del: () => toggle(setFNivel)(v) })),
     ...(soloDI ? [{ v: "di", l: "Principales DI", del: () => setSoloDI(false) }] : []),
-    ...(verArchivados ? [{ v: "arch", l: "🗄 Archivados", del: () => setVerArchivados(false) }] : []),
+    ...(verArchivados ? [{ v: "arch", l: "Archivados", del: () => setVerArchivados(false) }] : []),
   ];
 
   // Ronda 17 (punto 3): "Todos los ejercicios" — resetea TODOS los filtros
@@ -443,7 +444,7 @@ export default function CatalogoExplorer({
       if (!prev.has(vieja)) return prev;
       const s = new Set(prev); s.delete(vieja); s.add(nuevaLimpia); return s;
     });
-    showToast && showToast(`Categoría renombrada a "${nuevaLimpia}" ✓`);
+    showToast && showToast(`Categoría renombrada a "${nuevaLimpia}"`);
   };
 
   // Punto 4: músculos/tags editables con "predeterminado". Si el ejercicio
@@ -490,7 +491,7 @@ export default function CatalogoExplorer({
     setCat((prev) => (prev || []).map((x) => (x.id === e.id ? { ...x, archivado: nuevo, editado: true } : x)));
     setDetalle(null);
     setCreando(false);
-    showToast && showToast(nuevo ? "Ejercicio archivado 🗄 (se oculta de los listados)" : "Ejercicio recuperado ✓");
+    showToast && showToast(nuevo ? "Ejercicio archivado (se oculta de los listados)" : "Ejercicio recuperado");
   };
 
   // Flujo "Crear ejercicio nuevo" (punto 4): único lugar donde se sube
@@ -551,7 +552,7 @@ export default function CatalogoExplorer({
       setGuardando(false);
       if (!creado) { showToast && showToast("Error creando — revisá la consola"); return; }
       setCat((prev) => [...(prev || []), creado]);
-      showToast && showToast("Ejercicio creado ✓");
+      showToast && showToast("Ejercicio creado");
       setDetalle(null);
       setCreando(false);
       return;
@@ -566,7 +567,7 @@ export default function CatalogoExplorer({
     setGuardando(false);
     if (!ok) { showToast && showToast("Error guardando — revisá la consola"); return; }
     setCat((prev) => prev.map((e) => (e.id === detalle.id ? { ...e, ...payload, editado: true } : e)));
-    showToast && showToast("Ejercicio guardado ✓");
+    showToast && showToast("Ejercicio guardado");
     setDetalle(null);
   };
 
@@ -612,7 +613,7 @@ export default function CatalogoExplorer({
       }
       const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }], nivelPlan);
       if (!creado) throw new Error("No se pudo crear la plantilla");
-      showToast && showToast(`Plan "${nombrePlan.trim()}" guardado ✓`);
+      showToast && showToast(`Plan "${nombrePlan.trim()}" guardado`);
       setCarrito([]);
       setNombrePlan("");
       setGrupoPlan("");
@@ -661,7 +662,7 @@ export default function CatalogoExplorer({
         <Chip activo={!hayFiltrosActivos} onClick={limpiarFiltros}>Todos los ejercicios</Chip>
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
         {/* Ronda 18: ver/recuperar archivados */}
-        <Chip activo={verArchivados} onClick={() => setVerArchivados((v) => !v)}>🗄 Archivados</Chip>
+        <Chip activo={verArchivados} onClick={() => setVerArchivados((v) => !v)}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Archive size={14} strokeWidth={2} />Archivados</span></Chip>
       </div>
       {/* Ronda 18: los botones de crear (ejercicio / plan) se MUDARON a la
           barra de acciones principal de la pantalla — no van dentro del
@@ -679,9 +680,9 @@ export default function CatalogoExplorer({
       {onAbrirPropia && (
         <button
           onClick={onAbrirPropia}
-          style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+          style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
-          🧘 Biblioteca completa
+          <Dumbbell size={16} strokeWidth={2} />Biblioteca completa
         </button>
       )}
     </div>
@@ -701,7 +702,7 @@ export default function CatalogoExplorer({
         {badgesActivos.map((b) => (
           <span key={b.l} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "3px 9px", fontSize: 11, color: S.white }}>
             {b.l}
-            <button onClick={b.del} style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1 }}>✕</button>
+            <button onClick={b.del} style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", padding: 0, lineHeight: 1, display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
           </span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: 11, color: S.gray }}>
@@ -716,7 +717,7 @@ export default function CatalogoExplorer({
             ))}
           </div>
         ) : filtrados.length === 0 ? (
-          <div style={{ textAlign: "center", color: S.gray, padding: 40, fontSize: 13 }}>🔍 No se encontraron ejercicios</div>
+          <div style={{ color: S.gray, padding: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Search size={16} strokeWidth={2} />No se encontraron ejercicios</div>
         ) : (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
@@ -735,7 +736,7 @@ export default function CatalogoExplorer({
                       {media ? (
                         <img src={media} alt={e.nombre_es} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                       ) : (
-                        <span style={{ fontSize: 30 }}>🏋️</span>
+                        <Dumbbell size={30} color={S.bg} strokeWidth={2} />
                       )}
                     </div>
                     {e.codigo_di && (
@@ -744,8 +745,8 @@ export default function CatalogoExplorer({
                       </span>
                     )}
                     {e.editado && (
-                      <span style={{ position: "absolute", top: 6, right: armadorAbierto ? 34 : 6, background: S.bg, color: S.green, border: "1px solid " + S.border, borderRadius: 4, fontSize: 9, fontWeight: 800, padding: "1px 5px" }}>
-                        ✎
+                      <span style={{ position: "absolute", top: 6, right: armadorAbierto ? 34 : 6, background: S.bg, color: S.green, border: "1px solid " + S.border, borderRadius: 4, padding: "3px 5px", display: "inline-flex", alignItems: "center" }}>
+                        <Pencil size={12} strokeWidth={2} />
                       </span>
                     )}
                     {armadorAbierto && (
@@ -754,7 +755,7 @@ export default function CatalogoExplorer({
                         title="Agregar al plan"
                         style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", background: enCarrito ? S.green : S.white, color: S.bg, border: "none", fontWeight: 900, fontSize: 14, cursor: "pointer", lineHeight: 1 }}
                       >
-                        {enCarrito ? "✓" : "＋"}
+                        {enCarrito ? <Check size={14} strokeWidth={2} /> : "＋"}
                       </button>
                     )}
                     <div style={{ padding: "8px 10px" }}>
@@ -771,8 +772,8 @@ export default function CatalogoExplorer({
                           </span>
                         )}
                         {e.archivado && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>
-                            🗄 Archivado
+                          <span style={{ fontSize: 11, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Archive size={12} strokeWidth={2} />Archivado
                           </span>
                         )}
                       </div>
@@ -841,7 +842,7 @@ export default function CatalogoExplorer({
               </span>
               <button onClick={() => moverCarrito(i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
               <button onClick={() => moverCarrito(i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
-              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} style={{ ...smallBtn(S.red), padding: "2px 7px" }}>✕</button>
+              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} style={{ ...smallBtn(S.red), padding: "2px 7px", display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
             </div>
           ))
         )}
@@ -915,7 +916,7 @@ export default function CatalogoExplorer({
     });
     setGuardandoPlantilla(false);
     if (!ok) { showToast && showToast("Error guardando el plan — revisá la consola"); return; }
-    showToast && showToast(`Plan "${planForm.nombre.trim()}" actualizado ✓`);
+    showToast && showToast(`Plan "${planForm.nombre.trim()}" actualizado`);
     setPlanSel(null);
     setPlanForm(null);
     listarPlanesPredeterminados().then(setPlantillas);
@@ -924,7 +925,7 @@ export default function CatalogoExplorer({
     if (!window.confirm(`¿Eliminar el plan "${p.nombre}"? Los alumnos que ya lo tienen asignado conservan su copia.`)) return;
     const ok = await eliminarPlanPredeterminado(p.id);
     if (!ok) { showToast && showToast("Error eliminando — revisá la consola"); return; }
-    showToast && showToast(`Plan "${p.nombre}" eliminado ✓`);
+    showToast && showToast(`Plan "${p.nombre}" eliminado`);
     if (planSel && planSel.id === p.id) { setPlanSel(null); setPlanForm(null); }
     listarPlanesPredeterminados().then(setPlantillas);
   };
@@ -965,8 +966,8 @@ export default function CatalogoExplorer({
                     {[p.grupo, labelNivel(p.nivel), `${(p.dias || []).reduce((n, d) => n + (d.ejercicios || []).length, 0)} ejercicio(s)`].filter(Boolean).join(" · ")}
                   </div>
                 </div>
-                <button onClick={() => abrirPlantilla(p)} style={{ ...smallBtn(S.white), padding: "6px 12px", flexShrink: 0 }}>✎ Editar</button>
-                <button onClick={() => eliminarPlantilla(p)} style={{ ...smallBtn(S.red), padding: "6px 10px", flexShrink: 0 }}>🗑</button>
+                <button onClick={() => abrirPlantilla(p)} style={{ ...smallBtn(S.white), padding: "6px 12px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><Pencil size={14} strokeWidth={2} />Editar</button>
+                <button onClick={() => eliminarPlantilla(p)} style={{ ...smallBtn(S.red), padding: "6px 10px", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><Trash2 size={16} strokeWidth={2} /></button>
               </div>
             ))
           )
@@ -991,7 +992,7 @@ export default function CatalogoExplorer({
                       <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.nombre}</span>
                       <button onClick={() => moverEjPlantilla(di, i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
                       <button onClick={() => moverEjPlantilla(di, i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
-                      <button onClick={() => quitarEjPlantilla(di, i)} style={{ ...smallBtn(S.red), padding: "2px 7px" }}>✕</button>
+                      <button onClick={() => quitarEjPlantilla(di, i)} style={{ ...smallBtn(S.red), padding: "2px 7px", display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
                     </div>
                   ))}
                 </div>
@@ -1060,14 +1061,14 @@ export default function CatalogoExplorer({
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
-          📚 Biblioteca de ejercicios
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={18} strokeWidth={2} />Biblioteca de ejercicios</span>
         </div>
         {!isWide && (
           <button onClick={() => setMostrarFiltros((v) => !v)} style={{ ...smallBtn(S.gray), fontSize: 13 }}>
             {mostrarFiltros ? "Ocultar filtros" : "Filtros"}
           </button>
         )}
-        <button onClick={onClose} style={{ ...smallBtn(S.gray), fontSize: 13 }}>✕ Cerrar</button>
+        <button onClick={onClose} style={{ ...smallBtn(S.gray), fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}><X size={14} strokeWidth={2} />Cerrar</button>
       </div>
       {/* Ronda 18: barra de ACCIONES principal — los botones de crear
           salieron del panel de filtros y viven acá arriba, junto con
@@ -1087,9 +1088,9 @@ export default function CatalogoExplorer({
         </button>
         <button
           onClick={() => setPantalla("planes")}
-          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
-          🗂 Ver todos los planes
+          <FolderTree size={16} strokeWidth={2} />Ver todos los planes
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
@@ -1111,7 +1112,7 @@ export default function CatalogoExplorer({
               <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
                 {creando ? "＋ Crear ejercicio nuevo" : "Editar ejercicio"}
               </div>
-              <button onClick={() => { setDetalle(null); setCreando(false); }} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 18, cursor: "pointer" }}>✕</button>
+              <button onClick={() => { setDetalle(null); setCreando(false); }} style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", display: "inline-flex", alignItems: "center" }}><X size={18} strokeWidth={2} /></button>
             </div>
             {/* media: SOLO se muestra/edita en el flujo de crear nuevo — editar
                 un ejercicio existente del catálogo no reemplaza su media
@@ -1126,7 +1127,7 @@ export default function CatalogoExplorer({
                 ) : detalle.video ? (
                   <video src={detalle.video} controls playsInline style={{ width: "100%", maxHeight: 260, background: "#000" }} />
                 ) : (
-                  <div style={{ padding: 40, fontSize: 34 }}>🏋️</div>
+                  <div style={{ padding: 40, display: "flex" }}><Dumbbell size={34} color={S.bg} strokeWidth={2} /></div>
                 )}
               </div>
             )}
@@ -1199,7 +1200,11 @@ export default function CatalogoExplorer({
                 onClick={() => toggleArchivado(detalle)}
                 style={{ width: "100%", marginBottom: 10, background: "transparent", color: detalle.archivado ? S.green : S.yellow, border: "1px solid " + (detalle.archivado ? S.green : S.yellow), borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
               >
-                {detalle.archivado ? "♻ Recuperar (sacar del archivo)" : "🗄 Archivar (ocultar de los listados)"}
+                {detalle.archivado ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RotateCcw size={14} strokeWidth={2} />Recuperar (sacar del archivo)</span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Archive size={14} strokeWidth={2} />Archivar (ocultar de los listados)</span>
+                )}
               </button>
             )}
             <div style={{ display: "flex", gap: 8 }}>
