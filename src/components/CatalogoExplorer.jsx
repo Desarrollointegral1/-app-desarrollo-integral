@@ -674,15 +674,16 @@ export default function CatalogoExplorer({
       {/* Ronda 17 (punto 3): filtro por prefijo de código, derivado
           dinámicamente de codigo_di. */}
       <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} />
-      {/* Ronda 18: renombrado a "Biblioteca completa" (pedido de Lucas) y
-          con estilo de botón nivel 3 del sistema — abre la biblioteca
-          propia (movilidad / elástico / entrada en calor). */}
+      {/* El botón NO abre el catálogo completo: abre la biblioteca PROPIA
+          (movilidad / elástico / entrada en calor), un subconjunto. El nombre
+          "Biblioteca completa" confundía (Lucas se confundió). Renombrado a lo
+          que hace de verdad (auditoría 2026-07-22). */}
       {onAbrirPropia && (
         <button
           onClick={onAbrirPropia}
           style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
-          <Dumbbell size={16} strokeWidth={2} />Biblioteca completa
+          <Dumbbell size={16} strokeWidth={2} />Rutinas propias (movilidad · elástico · calor)
         </button>
       )}
     </div>
