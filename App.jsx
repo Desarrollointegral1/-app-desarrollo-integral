@@ -160,7 +160,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         // Ronda 2026-07-22 (ajuste Lucas): el header quedaba pegado al borde
         // de arriba de la pantalla. Se le da aire arriba (margen de encabezado)
         // sin agrandar de más el resto.
-        padding: "24px 14px 14px",
+        padding: "24px 16px 14px",
         borderBottom: "1px solid " + S.border,
         marginBottom: 12,
       }}
@@ -314,7 +314,7 @@ function FechaRapida({ value, onChange }) {
               onClick={() => { onChange(f); setAbierto(false); }}
               style={{ display: "block", width: "100%", textAlign: "left", background: value === f ? S.white : "transparent", color: value === f ? S.bg : S.white, border: "none", borderRadius: 6, padding: "10px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONT_BODY }}
             >
-              {f === hoyStr ? "Hoy — " + label(f) : f === ayerStr ? "Ayer — " + label(f) : label(f)}
+              {f === hoyStr ? "Hoy · " + label(f) : f === ayerStr ? "Ayer · " + label(f) : label(f)}
             </button>
           ))}
         </div>
@@ -2587,7 +2587,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
         // El plan pudo haber sido reemplazado/borrado desde otra sesión (id
         // stale → FK 23503). Recargar los planes reales de la base para que
         // el estado deje de apuntar a un id muerto.
-        showToast && showToast("Ese plan cambió en otra sesión — recargando planes");
+        showToast && showToast("Ese plan cambió en otra sesión. Recargando planes");
         try {
           const planesFrescos = await cargarPlanesXDia(al.id, al);
           onUpdate((prev) => (Array.isArray(prev) ? prev : []).map((a) =>
@@ -2619,7 +2619,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
       return;
     }
     const ok = await renombrarPlanAlumno(plan.id, nombreLimpio);
-    if (!ok) { showToast && showToast("Error al renombrar — revisá la consola"); return; }
+    if (!ok) { showToast && showToast("Error al renombrar . Revisá la consola"); return; }
     onUpdate(alumnos.map((a) => a.id === al.id
       ? { ...a, planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, nombre: nombreLimpio } : p)) }
       : a));
@@ -2634,7 +2634,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
     if (p._sintetico) return;
     if (!window.confirm(`¿Eliminar el día "${p.dia_semana}" (${p.nombre || "plan"}) de ${al.nombre}? Se pierde el plan asignado ese día.`)) return;
     const ok = await eliminarPlanDia(al.id, p.dia_semana);
-    if (!ok) { showToast && showToast("Error al eliminar el día — revisá la consola"); return; }
+    if (!ok) { showToast && showToast("Error al eliminar el día . Revisá la consola"); return; }
     const restantes = planes.filter((x) => x.id !== p.id);
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes: restantes } : a)));
     if (selPlanId === p.id) setSelPlanId(restantes[0] && restantes[0].id);
@@ -2781,7 +2781,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       : a));
     if (plan && !plan._sintetico) {
       actualizarPlanAlumnoDias(plan.id, nuevosDias).then((ok) => {
-        if (!ok) showToast && showToast("Error guardando el plan — reintentá");
+        if (!ok) showToast && showToast("Error guardando el plan. Reintentá");
       });
     }
   };
@@ -2792,7 +2792,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
     if (!file) return;
     const esVideo = file.type.startsWith("video/");
     if (esVideo && file.size > 50 * 1024 * 1024) {
-      window.alert("El video pesa más de 50MB — grabá un clip más corto (10-20 segundos alcanza para mostrar el ejercicio).");
+      window.alert("El video pesa más de 50MB. Grabá un clip más corto (10-20 segundos alcanza para mostrar el ejercicio).");
       return;
     }
     setSubiendo(true);
@@ -2879,7 +2879,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       {/* capture abre directamente la cámara del celular */}
       <input ref={camRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
       <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
-      <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB — con 10-20 segundos alcanza.</div>
+      <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB. Con 10-20 segundos alcanza.</div>
     </div>
   );
 
@@ -3178,7 +3178,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
       setSel(null);
       setForm(null);
     } else {
-      showToast && showToast("Error al guardar — revisá la consola");
+      showToast && showToast("Error al guardar . Revisá la consola");
     }
   };
 
@@ -3647,7 +3647,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       showToast && showToast(`Propagado a ${r.total} ${categoria === "principales" ? "ejercicio(s)" : "alumno(s)"} ✓`);
       onBibliotecaRefresh && onBibliotecaRefresh();
     } else {
-      showToast && showToast("Error al propagar — revisá la consola");
+      showToast && showToast("Error al propagar . Revisá la consola");
     }
   };
   const guardarRM = () => {
@@ -3950,7 +3950,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     if (!al) return;
     if (!window.confirm(`¿Eliminar el plan de "${dia}" de ${al.nombre}? El día deja de tener plan (distinto de "Sin plan").`)) return;
     const ok = await eliminarPlanDia(al.id, dia);
-    if (!ok) { showToast && showToast("Error al eliminar — revisá la consola"); return; }
+    if (!ok) { showToast && showToast("Error al eliminar . Revisá la consola"); return; }
     const alumnoActualizado = { ...al, planes: await cargarPlanesXDia(al.id, al) };
     onUpdate(alumnos.map((a) => (a.id === al.id ? alumnoActualizado : a)));
     setSelectedDia(null);
@@ -4972,7 +4972,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               </div>
             )}
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-              Peso maximo — {al ? al.nombre : "—"}
+              Peso máximo · {al ? al.nombre : "—"}
             </div>{" "}
             {!al && <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>}{" "}
             {al &&
@@ -6556,7 +6556,7 @@ export default function App() {
                   role="checkbox"
                   aria-checked={presente}
                   aria-label="Marcar asistencia de hoy"
-                  title={presente ? "Asistencia marcada hoy — tocá para deshacer" : "Marcá tu asistencia de hoy"}
+                  title={presente ? "Asistencia marcada hoy. Tocá para deshacer" : "Marcá tu asistencia de hoy"}
                   style={{
                     flexShrink: 0,
                     alignSelf: "center",
@@ -6690,7 +6690,7 @@ export default function App() {
               </div>
             ))}
           {/* ── Nivel 1: ENTRENAMIENTO | DIARIO — pills grandes, activo invertido ── */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
             {[
               ["entrenamiento", "Entrenamiento"],
               ["diario", "Diario"],
@@ -6801,7 +6801,7 @@ export default function App() {
                         <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
                       </div>
                       <div style={{ color: S.gray, fontSize: 10, marginTop: 8 }}>
-                        {pct >= 100 ? "🔥 ¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien — no aflojes." : "Dale que se puede — cada entreno suma."}
+                        {pct >= 100 ? "¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien, no aflojes." : "Dale que se puede: cada entreno suma."}
                       </div>
                     </div>
                   );

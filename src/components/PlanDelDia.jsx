@@ -139,8 +139,8 @@ export default function PlanDelDia({
   // Las 3 versiones de movilidad (CEREBRO-ENTRENAMIENTO 3.1 y 3.5): el alumno
   // elige según el tiempo que tiene; cada una con sus ejercicios y su video.
   const MOVI_VERSIONES = [
-    { id: "superrapida", label: "Superrápida", detalle: { prefijo: "activación express —", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
-    { id: "corta", label: "Corta", detalle: { cantidad: 6, tipo: "lado", sufijo: "— versión corta" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
+    { id: "superrapida", label: "Superrápida", detalle: { prefijo: "activación express:", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
+    { id: "corta", label: "Corta", detalle: { cantidad: 6, tipo: "lado", sufijo: "(versión corta)" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
     { id: "completa", label: "Completa", detalle: { cantidad: 6, tipo: "lado" }, items: movilidad, video: videos.larga, videoDur: "15+ min" },
   ];
   const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];
@@ -197,7 +197,7 @@ export default function PlanDelDia({
 
       {seccion === "preparacion" && (PREP_TABS.length === 0 || !prepActiva ? (
         <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
-          Tu entrenador no habilitó secciones de preparación — pasá directo a Principales.
+          Tu entrenador no habilitó secciones de preparación. Pasá directo a Principales.
         </div>
       ) : (
         <>
@@ -347,7 +347,7 @@ export default function PlanDelDia({
             <div style={{ fontSize: 10, color: S.lgray, textAlign: "center", marginTop: 8 }}>
               {diaRegistrado
                 ? "La sesión de hoy quedó registrada en tu historial. Podés volver a tocar si cambiaste algún peso."
-                : "Tus pesos se van guardando solos — este botón cierra y registra la sesión de hoy."}
+                : "Tus pesos se van guardando solos. Este botón cierra y registra la sesión de hoy."}
             </div>
           )}
         </>
