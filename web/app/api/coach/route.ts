@@ -9,8 +9,8 @@ import {
 
 /**
  * POST /api/coach — Coach IA de la app (widget flotante).
- * Body: { alumnoId: string, mensaje: string }
- * Respuesta: { respuesta: string }
+ * Body: { alumnoId: string, mensaje: string, modoVoz?: boolean }
+ * Respuesta: { respuesta: string, alumnoEmail: string | null }
  *
  * SEGURIDAD (v1): este endpoint lo llama el NAVEGADOR (la app logueada), no un
  * script server-to-server, así que NO usa el gate de BRAIN_API_KEY (un token en
@@ -33,7 +33,11 @@ function esUuid(v: unknown): v is string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { alumnoId, mensaje } = body as { alumnoId?: unknown; mensaje?: unknown };
+    const { alumnoId, mensaje, modoVoz } = body as {
+      alumnoId?: unknown;
+      mensaje?: unknown;
+      modoVoz?: unknown;
+    };
 
     if (!esUuid(alumnoId)) {
       return NextResponse.json(
@@ -76,12 +80,14 @@ export async function POST(request: NextRequest) {
     }
 
     const historial = await traerHistorial(alumnoId);
-    const respuesta = await responderCoach(alumno, historial, mensaje.trim());
+    const respuesta = await responderCoach(alumno, historial, mensaje.trim(), {
+      modoVoz: modoVoz === true,
+    });
 
     // Persistir el turno (no bloquea la respuesta si falla el insert).
     await guardarTurno(alumnoId, mensaje.trim(), respuesta);
 
-    return NextResponse.json({ status: 'success', respuesta });
+    return NextResponse.json({ status: 'success', respuesta, alumnoEmail: alumno.email });
   } catch (error) {
     return NextResponse.json(
       {

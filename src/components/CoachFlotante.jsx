@@ -48,6 +48,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const [leerVoz, setLeerVoz] = useState(false); // leer las respuestas en voz alta
   const [modoVoz, setModoVoz] = useState(false); // modo voz inmersivo (manos libres)
   const [vozEstado, setVozEstadoRaw] = useState("idle"); // hablando|escuchando|pensando|pausado|idle
+  const [alumnoEmail, setAlumnoEmail] = useState(null); // para el botón "enviar por mail"
   const dragRef = useRef({ dragging: false, moved: false, dx: 0, dy: 0 });
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -188,21 +189,23 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
 
   // Núcleo: registra el turno del alumno, pide la respuesta al coach, la
   // registra y la devuelve. La transcripción ES `mensajes` (se guarda en el
-  // backend en coach_conversaciones automáticamente).
-  async function consultarCoach(texto) {
+  // backend en coach_conversaciones automáticamente). En modo voz, el backend
+  // responde corto (2-3 oraciones, sin listas) para que se escuche natural.
+  async function consultarCoach(texto, modoVozActivo = false) {
     setMensajes((m) => [...m, { rol: "user", texto }]);
     let respuesta;
     try {
       const r = await fetch("/web/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alumnoId: alumno.id, mensaje: texto }),
+        body: JSON.stringify({ alumnoId: alumno.id, mensaje: texto, modoVoz: modoVozActivo }),
       });
       const data = await r.json();
       respuesta =
         r.ok && data.status === "success"
           ? data.respuesta
           : data.message || "Uy, algo falló. Probá de nuevo en un ratito.";
+      if (r.ok && data.alumnoEmail) setAlumnoEmail(data.alumnoEmail);
     } catch {
       respuesta = "No me pude conectar. Fijate la conexión y probá de nuevo.";
     }
@@ -271,29 +274,52 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     reintentoRef.current = 0;
     setModoVoz(true);
     const nombre = (alumno?.nombre || "").split(" ")[0];
-    const saludo = `Dale${nombre ? " " + nombre : ""}, activé el modo voz. Entrenamos juntos: yo te voy guiando y vos me hablás cuando quieras. Contame, ¿qué querés hacer hoy?`;
+    const saludo = `Dale${nombre ? " " + nombre : ""}, activé el modo voz. Entrenamos juntos: yo te voy guiando y vos me hablás cuando quieras. Si necesitás algo mientras hablo, decímelo nomás y me corto para escucharte. ¿Qué querés hacer hoy?`;
     setMensajes((m) => [...m, { rol: "assistant", texto: saludo }]);
+    hablarYEscuchar(saludo);
+  }
+
+  // Habla Y escucha AL MISMO TIEMPO desde que arranca (no espera a que Luqui
+  // termine). Si el alumno habla mientras Luqui todavía suena, se corta la
+  // voz de Luqui y se procesa lo que dijo — es la "interrupción" real, el
+  // alumno lidera el diálogo. Si el alumno no dice nada, cuando Luqui termina
+  // de hablar el MISMO reconocedor sigue escuchando (sin reiniciar nada).
+  function hablarYEscuchar(texto) {
+    if (!modoVozRef.current) return;
     setVozEstado("hablando");
-    hablar(saludo, escucharVoz);
+    const limpio = texto.replace(/[*#>_`]/g, "");
+    const u = new SpeechSynthesisUtterance(limpio);
+    u.lang = "es-AR";
+    const voces = window.speechSynthesis.getVoices();
+    const es = voces.find((v) => v.lang && v.lang.toLowerCase().startsWith("es"));
+    if (es) u.voice = es;
+    u.rate = 0.97;
+    u.onend = () => {
+      if (modoVozRef.current && vozEstadoRef.current === "hablando") setVozEstado("escuchando");
+    };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    escucharVoz(); // arranca YA, en paralelo — así puede interrumpir a Luqui
   }
 
   function escucharVoz() {
     if (!modoVozRef.current || !SR) return;
-    setVozEstado("escuchando");
     const rec = new SR();
     rec.lang = "es-AR";
     rec.interimResults = false;
     rec.maxAlternatives = 1;
     let capturado = false;
     rec.onresult = (e) => {
-      capturado = true;
       const dicho = e.results?.[0]?.[0]?.transcript || "";
-      if (dicho.trim()) turnoVoz(dicho);
-      else reintentarEscucha();
+      if (!dicho.trim()) return;
+      capturado = true;
+      window.speechSynthesis.cancel(); // corta a Luqui si todavía estaba hablando
+      try { rec.stop(); } catch {}
+      turnoVoz(dicho);
     };
-    rec.onerror = () => { if (modoVozRef.current) reintentarEscucha(); };
+    rec.onerror = () => { if (!capturado && modoVozRef.current) reintentarEscucha(); };
     rec.onend = () => {
-      if (!capturado && modoVozRef.current && vozEstadoRef.current === "escuchando") {
+      if (!capturado && modoVozRef.current && vozEstadoRef.current !== "pausado" && vozEstadoRef.current !== "pensando") {
         reintentarEscucha();
       }
     };
@@ -305,16 +331,20 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     if (!modoVozRef.current) return;
     reintentoRef.current += 1;
     if (reintentoRef.current > 6) { pausarVoz(); return; } // silencio largo → pausa
-    setTimeout(() => { if (modoVozRef.current && vozEstadoRef.current !== "pausado") escucharVoz(); }, 450);
+    setTimeout(() => {
+      if (modoVozRef.current && vozEstadoRef.current !== "pausado" && vozEstadoRef.current !== "hablando") {
+        setVozEstado("escuchando");
+        escucharVoz();
+      }
+    }, 450);
   }
 
   async function turnoVoz(texto) {
     reintentoRef.current = 0;
     setVozEstado("pensando");
-    const respuesta = await consultarCoach(texto);
+    const respuesta = await consultarCoach(texto, true);
     if (!modoVozRef.current) return;
-    setVozEstado("hablando");
-    hablar(respuesta, escucharVoz);
+    hablarYEscuchar(respuesta);
   }
 
   function pausarVoz() {
@@ -541,6 +571,22 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                 }}
               >
                 {renderTexto(m.texto)}
+                {m.rol === "assistant" && i === mensajes.length - 1 && !enviando && (
+                  <a
+                    href={`mailto:${alumnoEmail || ""}?subject=${encodeURIComponent(
+                      "Tu plan - Desarrollo Integral"
+                    )}&body=${encodeURIComponent(m.texto.replace(/[*#>_`]/g, ""))}`}
+                    style={{
+                      display: "inline-block",
+                      marginTop: 8,
+                      fontSize: 12,
+                      color: GRAY,
+                      textDecoration: "underline",
+                    }}
+                  >
+                    📧 Enviar esto por mail
+                  </a>
+                )}
               </div>
             ))}
             {enviando && (
