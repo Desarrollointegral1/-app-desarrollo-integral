@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Play } from "lucide-react";
 import { S, card } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
@@ -106,7 +107,7 @@ export default function ItemCard({
       );
     return (
       <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center" }}>
-        <div style={{ fontSize: 22, marginBottom: 4 }}>▶</div>
+        <div style={{ marginBottom: 4, display: "flex", justifyContent: "center" }}><Play size={22} color={S.gray} strokeWidth={2} /></div>
         <div style={{ color: S.lgray, fontSize: 12 }}>Video proximamente</div>
       </div>
     );

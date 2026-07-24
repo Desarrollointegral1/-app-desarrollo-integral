@@ -88,6 +88,7 @@ import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
+import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen } from "lucide-react";
 // ── LOGO ──────────────────────────────────────────────────────────────
 // Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
 // interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
@@ -201,7 +202,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
           title={darkMode ? "Modo claro" : "Modo oscuro"}
           style={{ ...btnBase, padding: "6px 9px", fontSize: 13 }}
         >
-          {darkMode ? "🌙" : "☀️"}
+          {darkMode ? <Moon size={16} /> : <Sun size={16} />}
         </button>
         <button
           onClick={onSalir}
@@ -461,7 +462,7 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
           }}
           onClick={() => setMostrarOpciones((v) => !v)}
         >
-          ✎
+          <Pencil size={11} />
         </div>
       )}{" "}
       {editable && mostrarOpciones && (
@@ -485,13 +486,13 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
               onClick={() => { setMostrarOpciones(false); camRef.current.click(); }}
               style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", color: S.white, border: "none", borderBottom: "1px solid " + S.border, padding: "10px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
             >
-              📷 Sacar foto
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Camera size={14} />Sacar foto</span>
             </button>
             <button
               onClick={() => { setMostrarOpciones(false); galRef.current.click(); }}
               style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", color: S.white, border: "none", padding: "10px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
             >
-              🖼 Elegir de galería
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Images size={14} />Elegir de galería</span>
             </button>
           </div>
         </>
@@ -546,7 +547,7 @@ function MediaUploader({ media, onMedia }) {
             />
           )
         ) : (
-          <div style={{ color: S.lgray, fontSize: 12 }}>📎 Foto o video corto (max 8MB)</div>
+          <div style={{ color: S.lgray, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Paperclip size={13} />Foto o video corto (max 8MB)</div>
         )}{" "}
       </div>{" "}
       <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFile} />{" "}
@@ -563,7 +564,7 @@ function MediaUploader({ media, onMedia }) {
             cursor: "pointer",
           }}
         >
-          ✕ Quitar
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={13} />Quitar</span>
         </button>
       )}{" "}
     </div>
@@ -696,7 +697,7 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
                 <div style={{ color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
                 {sug.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
               </div>
-              {sug.video && <div style={{ color: S.green, fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>▶ VIDEO</div>}
+              {sug.video && <div style={{ color: S.green, fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}><Play size={11} />VIDEO</div>}
             </div>
           ))}
         </div>
@@ -1026,14 +1027,14 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   </div>
                 )}{" "}
                 {showVideo && (ej.video || ej.mediaLocal) && (
-                  <div style={{ color: "#4a9eff", fontSize: 10, marginTop: 1 }}>▶ Media asignada</div>
+                  <div style={{ color: "#4a9eff", fontSize: 10, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}><Play size={11} />Media asignada</div>
                 )}{" "}
               </div>{" "}
               <button onClick={() => startEdit(i)} style={smallBtn(S.white)}>
-                ✎
+                <Pencil size={14} />
               </button>{" "}
               <button onClick={() => remove(i)} style={smallBtn(S.red)}>
-                ✕
+                <X size={14} />
               </button>{" "}
             </div>
           )}{" "}
@@ -1247,7 +1248,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
                   opacity: i === dias.length - 1 ? 0.4 : 1,
                 }}
               >
-                ▶
+                <Play size={11} />
               </button>
             )}{" "}
             {dias.length > 1 && (
@@ -1264,7 +1265,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
                   cursor: "pointer",
                 }}
               >
-                ✕
+                <X size={12} />
               </button>
             )}{" "}
           </div>
@@ -1354,7 +1355,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
             }}
             style={smallBtn(S.white)}
           >
-            ✎ Editar
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Pencil size={13} />Editar</span>
           </button>{" "}
         </div>
       ))}{" "}
@@ -1544,7 +1545,7 @@ function PeriodizacionEditor({ data, onChange }) {
                 </div>{" "}
               </div>{" "}
               <button onClick={() => startEdit(i)} style={smallBtn(S.white)}>
-                ✎
+                <Pencil size={14} />
               </button>{" "}
             </div>
           )}{" "}
@@ -1600,7 +1601,7 @@ function AlumnoBuscador({ alumnos, selId, onSelect }) {
                   <div style={{ color: S.gray, fontSize: 11 }}>{a.username || a.codigo}</div>
                 </div>{" "}
               </div>{" "}
-              {selId === a.id && <div style={{ color: S.white, fontSize: 12 }}>✓</div>}{" "}
+              {selId === a.id && <div style={{ color: S.white, fontSize: 12 }}><Check size={14} /></div>}{" "}
             </div>
           ))}{" "}
         </div>
@@ -1695,7 +1696,7 @@ function Asistencia({ asistencia, onMarcar }) {
         }}
       >
         {" "}
-        {yaMarco ? "✓ ASISTENCIA MARCADA HOY" : "MARCAR ASISTENCIA HOY"}{" "}
+        {yaMarco ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />ASISTENCIA MARCADA HOY</span> : "MARCAR ASISTENCIA HOY"}{" "}
       </button>{" "}
       {/* Marcar día anterior */}{" "}
       {!showDiaAnterior ? (
@@ -1760,7 +1761,7 @@ function Asistencia({ asistencia, onMarcar }) {
                 cursor: "pointer",
               }}
             >
-              ✕
+              <X size={16} />
             </button>{" "}
           </div>{" "}
         </div>
@@ -1848,7 +1849,7 @@ function EvolucionCargas({ historiales, plan }) {
       </select>{" "}
       {hist.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📈</div>
+          <TrendingUp size={32} style={{ marginBottom: 8 }} />
           <div style={{ color: S.gray, fontSize: 13 }}>Sin registros para {ej && ej.nombre}</div>
         </div>
       ) : (
@@ -1995,7 +1996,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
       )}{" "}
       {asistMes === 0 && records.length === 0 && (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+          <BarChart3 size={32} style={{ marginBottom: 8 }} />
           <div style={{ color: S.gray, fontSize: 13 }}>Sin actividad este mes todavia</div>
         </div>
       )}{" "}
@@ -2080,7 +2081,7 @@ function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
       {slotAntesDeEntradas}
       {entradas.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📓</div>
+          <NotebookPen size={32} style={{ marginBottom: 8 }} />
           <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavia</div>
         </div>
       ) : (
@@ -2199,7 +2200,7 @@ function TablaPer({ data, semanaActual }) {
                     fontWeight: cur ? 900 : 400,
                   }}
                 >
-                  {cur ? "▶ " : ""}
+                  {cur ? <Play size={11} style={{ verticalAlign: "-1px", marginRight: 2 }} /> : ""}
                   {r.semana}
                 </td>{" "}
                 {r.fecha && (
@@ -2353,7 +2354,7 @@ function HistorialAdmin({ al }) {
                       <tr key={i} style={{ borderBottom: "1px solid " + S.border }}>
                         <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>
                         <td style={{ padding: "6px 10px", color: h.peso === max ? S.green : S.white, fontWeight: 700, textAlign: "right" }}>
-                          {h.peso} kg{h.peso === max ? " 🏆" : ""}
+                          {h.peso} kg{h.peso === max ? <Trophy size={13} style={{ verticalAlign: "-2px", marginLeft: 4 }} /> : ""}
                         </td>
                       </tr>
                     ))}
@@ -2441,7 +2442,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
         const r = await crearPlanAlumno(al.id, diaSemana, { nombre: nombreInstancia.trim() || "Plan", dias: copiaDia }, "catalogo_v2");
         if (!r.ok) throw new Error(`No se pudo asignar el plan al día ${diaSemana}`);
       }
-      showToast && showToast(dias.length > 1 ? `Plan asignado a ${dias.length} días ✓` : "Plan asignado ✓");
+      showToast && showToast(dias.length > 1 ? `Plan asignado a ${dias.length} días` : "Plan asignado");
       onAsignado && onAsignado();
     } catch (e) {
       showToast && showToast("Error: " + e.message);
@@ -2459,7 +2460,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
           <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
             {diasEditables ? `Asignar a ${al.nombre}` : "Elegí una plantilla"}
           </div>
-          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
         </div>
 
         {!diasEditables ? (
@@ -2468,7 +2469,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
             <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>Cargando plantillas…</div>
           ) : plantillas.length === 0 ? (
             <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>
-              Todavía no hay plantillas — creá una desde 📚 Biblioteca → + Crear plan de entrenamiento.
+              Todavía no hay plantillas — creá una desde <BookOpen size={13} style={{ verticalAlign: "-2px" }} /> Biblioteca → + Crear plan de entrenamiento.
             </div>
           ) : (
             grupos.map((g) => (
@@ -2505,7 +2506,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
                       onClick={() => toggleDia(d)}
                       style={{ background: on ? S.white : S.card2, color: on ? S.bg : S.gray, border: "1px solid " + (on ? S.white : S.border2), borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
                     >
-                      {on ? "✓ " : ""}{d}
+                      {on && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{d}
                     </button>
                   );
                 })}
@@ -2615,7 +2616,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
       // camino viejo (al.plan), no hay id para el UPDATE directo.
       onUpdate(alumnos.map((a) => a.id === al.id ? { ...a, plan: { ...a.plan, nombre: nombreLimpio } } : a));
       setRenombrando(false);
-      showToast && showToast("Plan renombrado ✓");
+      showToast && showToast("Plan renombrado");
       return;
     }
     const ok = await renombrarPlanAlumno(plan.id, nombreLimpio);
@@ -2624,7 +2625,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
       ? { ...a, planes: (a.planes || []).map((p) => (p.id === plan.id ? { ...p, nombre: nombreLimpio } : p)) }
       : a));
     setRenombrando(false);
-    showToast && showToast("Plan renombrado ✓");
+    showToast && showToast("Plan renombrado");
   };
 
   // Eliminar directamente un día ya creado, sin pasar por Planificación
@@ -2638,7 +2639,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
     const restantes = planes.filter((x) => x.id !== p.id);
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes: restantes } : a)));
     if (selPlanId === p.id) setSelPlanId(restantes[0] && restantes[0].id);
-    showToast && showToast(`Día "${p.dia_semana}" eliminado ✓`);
+    showToast && showToast(`Día "${p.dia_semana}" eliminado`);
   };
 
   if (planes.length === 0)
@@ -2706,7 +2707,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
                   title={`Eliminar ${p.dia_semana}`}
                   style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: S.red, color: "#fff", border: "none", fontSize: 9, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}
                 >
-                  ✕
+                  <X size={11} />
                 </button>
               )}
             </div>
@@ -2723,7 +2724,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
               {plan.dia_semana === "Fijo" ? "Plan único" : plan.dia_semana} · {plan.nombre || "Plan"}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={abrirRenombrar} style={smallBtn(S.gray)}>✏ Renombrar</button>
+              <button onClick={abrirRenombrar} style={smallBtn(S.gray)}><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Pencil size={13} />Renombrar</span></button>
               <button onClick={onIrPlanDia} style={smallBtn(S.gray)}>Cambiar plan</button>
             </div>
           </div>
@@ -2737,8 +2738,8 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
                 style={{ ...inp, flex: 1 }}
                 autoFocus
               />
-              <button onClick={guardarRenombre} style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "0 14px", fontWeight: 900, cursor: "pointer" }}>✓</button>
-              <button onClick={() => setRenombrando(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "0 14px", cursor: "pointer" }}>✕</button>
+              <button onClick={guardarRenombre} style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "0 14px", fontWeight: 900, cursor: "pointer", display: "inline-flex", alignItems: "center" }}><Check size={16} /></button>
+              <button onClick={() => setRenombrando(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "0 14px", cursor: "pointer" }}><X size={16} /></button>
             </div>
           )}
           <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} ocultarAgregarDia />
@@ -2812,7 +2813,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       }
       const url = await subirMediaRehab(paraSubir);
       setForm((f) => ({ ...f, video: url }));
-      showToast && showToast(esVideo ? "Video subido ✓" : "Foto subida ✓");
+      showToast && showToast(esVideo ? "Video subido" : "Foto subida");
     } catch (e) {
       console.error("[PlanRehabAdmin] upload", e);
       window.alert("No se pudo subir el archivo: " + (e.message || "error desconocido"));
@@ -2836,7 +2837,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       .then(() => onBibliotecaRefresh && onBibliotecaRefresh());
     setEditIdx(null);
     setForm({ nombre: "", desc: "", video: "" });
-    showToast && showToast("Ejercicio guardado ✓");
+    showToast && showToast("Ejercicio guardado");
   };
 
   const removeEjercicio = (i) => {
@@ -2855,7 +2856,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
             <video src={form.video} controls preload="metadata" style={{ width: "100%", maxHeight: 220, borderRadius: 8, display: "block" }} />
           )}
           <button onClick={() => setForm((f) => ({ ...f, video: "" }))} style={{ marginTop: 6, background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
-            ✕ Quitar
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={13} />Quitar</span>
           </button>
         </div>
       ) : (
@@ -2865,14 +2866,14 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
             disabled={subiendo}
             style={{ flex: 1, background: S.card2, color: S.white, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, fontWeight: 700, cursor: subiendo ? "wait" : "pointer" }}
           >
-            {subiendo ? "Subiendo..." : "📷 Sacar foto / grabar"}
+            {subiendo ? "Subiendo..." : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Camera size={14} />Sacar foto / grabar</span>}
           </button>
           <button
             onClick={() => !subiendo && fileRef.current && fileRef.current.click()}
             disabled={subiendo}
             style={{ flex: 1, background: S.card2, color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, cursor: subiendo ? "wait" : "pointer" }}
           >
-            📁 Elegir archivo
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><FolderOpen size={14} />Elegir archivo</span>
           </button>
         </div>
       )}
@@ -2886,7 +2887,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
   return (
     <div>
       <div style={{ fontSize: 11, color: S.green, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
-        🩺 Plan de rehabilitación — {al.nombre}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Stethoscope size={16} />Plan de rehabilitación — {al.nombre}</span>
       </div>
 
       {dias.length === 0 ? (
@@ -2920,7 +2921,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                     }}
                     style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "3px 6px", fontSize: 10, cursor: "pointer" }}
                   >
-                    ✕
+                    <X size={12} />
                   </button>
                 )}
               </div>
@@ -2953,10 +2954,10 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{ej.nombre}</div>
                   {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.desc}</div>}
-                  {ej.video && <div style={{ color: S.green, fontSize: 10, marginTop: 2, fontWeight: 700 }}>{esImagen(ej.video) ? "📷 Foto" : "▶ Video"}</div>}
+                  {ej.video && <div style={{ color: S.green, fontSize: 10, marginTop: 2, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{esImagen(ej.video) ? <><Camera size={11} />Foto</> : <><Play size={11} />Video</>}</div>}
                 </div>
-                <button onClick={() => { setEditIdx(i); setForm({ nombre: ej.nombre, desc: ej.desc || "", video: ej.video || "" }); }} style={smallBtn(S.white)}>✎</button>
-                <button onClick={() => removeEjercicio(i)} style={smallBtn(S.red)}>✕</button>
+                <button onClick={() => { setEditIdx(i); setForm({ nombre: ej.nombre, desc: ej.desc || "", video: ej.video || "" }); }} style={smallBtn(S.white)}><Pencil size={14} /></button>
+                <button onClick={() => removeEjercicio(i)} style={smallBtn(S.red)}><X size={16} /></button>
               </div>
             ),
           )}
@@ -2980,7 +2981,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                           <div style={{ color: S.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
                           {b.descripcion && <div style={{ color: S.gray, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.descripcion}</div>}
                         </div>
-                        {b.video && <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0 }}>{esImagen(b.video) ? "📷" : "▶"} MEDIA</span>}
+                        {b.video && <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>{esImagen(b.video) ? <Camera size={10} /> : <Play size={10} />} MEDIA</span>}
                       </div>
                     ))}
                   </div>
@@ -3072,12 +3073,12 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
                       registro" confundía (la última asistencia ya se ve abajo) */}
                   {entrenoHoy && (
                     <div style={{ background: "#0d1f0d", border: "1px solid " + S.green, borderRadius: 20, padding: "3px 10px", fontSize: 10, color: S.green, fontWeight: 700 }}>
-                      ✓ Entrenó hoy
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={11} />Entrenó hoy</span>
                     </div>
                   )}
                 </div>
                 <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
-                  {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? "🩺 Rehab" : "🏋️ Entreno"}
+                  {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Stethoscope size={12} />Rehab</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Dumbbell size={12} />Entreno</span>}
                 </div>
               </div>
             </div>
@@ -3097,7 +3098,7 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(al.id, al.nombre); }}
                 style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 13, cursor: "pointer", flexShrink: 0 }}
-              >🗑</button>
+              ><Trash2 size={16} /></button>
             </div>
           </div>
         );
@@ -3132,7 +3133,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
     ["C", "Entrada en calor"],
     ["principales", "Principales"],
     ["otros", "Otros"],
-    ["gifs", "🎞 GIFs"],
+    ["gifs", <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Film size={13} />GIFs</span>],
   ];
   const prefijoDe = (b) => (b?.codigo || "").match(/^[A-Z]+/)?.[0] || "";
   // Ronda 16 (punto 3): null-safety defensiva — cualquier fila con nombre/
@@ -3173,7 +3174,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
     const ok = await actualizarEjercicioBibliotecaPorId(sel.id, form);
     setGuardando(false);
     if (ok) {
-      showToast && showToast("Ejercicio actualizado ✓");
+      showToast && showToast("Ejercicio actualizado");
       onGuardado && onGuardado();
       setSel(null);
       setForm(null);
@@ -3187,9 +3188,9 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
       <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div style={{ fontSize: 13, color: S.white, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
-            📚 Biblioteca de ejercicios
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={15} />Biblioteca de ejercicios</span>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 20, cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 20, cursor: "pointer" }}><X size={16} /></button>
         </div>
 
         {sel ? (
@@ -3296,7 +3297,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                 {b.unidad === "segundos" && (
                   <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0 }}>seg</span>
                 )}
-                {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 10, flexShrink: 0 }}>▶</div>}
+                {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 10, flexShrink: 0, display: "flex", alignItems: "center" }}><Play size={12} /></div>}
               </div>
             ))}
             {lista.length === 0 && (
@@ -3367,9 +3368,9 @@ function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
             </div>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
               <button onClick={() => onToggle(n.id, !n.activo)} style={{ ...smallBtn(n.activo ? S.green : S.gray), padding: "4px 8px", fontSize: 10 }}>
-                {n.activo ? "✓ Activa" : "○ Oculta"}
+                {n.activo ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} />Activa</span> : "○ Oculta"}
               </button>
-              <button onClick={() => onEliminar(n.id)} style={{ ...smallBtn(S.red), padding: "4px 8px", fontSize: 10 }}>🗑</button>
+              <button onClick={() => onEliminar(n.id)} style={{ ...smallBtn(S.red), padding: "4px 8px", fontSize: 10 }}><Trash2 size={16} /></button>
             </div>
           </div>
         </div>
@@ -3423,7 +3424,7 @@ function DiarioAdmin({ alumnos, onUpdate, showToast }) {
     if (!al || !onUpdate) return;
     const nuevoDiario = (al.diario || []).map((d) => (d === entrada ? { ...d, respuesta } : d));
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
-    showToast && showToast("Respuesta guardada ✓");
+    showToast && showToast("Respuesta guardada");
   };
 
   return (
@@ -3434,7 +3435,7 @@ function DiarioAdmin({ alumnos, onUpdate, showToast }) {
       </div>
       {entradas.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📓</div>
+          <NotebookPen size={28} style={{ marginBottom: 8 }} />
           <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavía</div>
         </div>
       ) : (
@@ -3512,7 +3513,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     setRm((r) => ({ ...r, [al.id]: { ...r[al.id], fecha_evaluacion: v } }));
     const rmNuevo = { ...(rm[al.id] || al.rm || {}), fecha_evaluacion: v };
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
-    showToast && showToast("Fecha de evaluación guardada ✓");
+    showToast && showToast("Fecha de evaluación guardada");
   };
   // Movilidad PREDETERMINADA por alumno (ronda 5): con cuál de las 3 versiones
   // (superrapida/corta/completa) arranca el alumno al entrar. Vive en el jsonb
@@ -3523,7 +3524,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     setRm((r) => ({ ...r, [al.id]: { ...r[al.id], movilidad_default: v } }));
     const rmNuevo = { ...(rm[al.id] || al.rm || {}), movilidad_default: v };
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
-    showToast && showToast("Movilidad predeterminada guardada ✓");
+    showToast && showToast("Movilidad predeterminada guardada");
   };
   // Secciones visibles y su ORDEN por alumno (ronda 9): qué chips de
   // preparación ve el alumno (Movilidad / Act. Elástico / Entrada en calor)
@@ -3644,7 +3645,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const guardarParaTodos = async (categoria, payload) => {
     const r = await propagarEjercicioATodos({ categoria, ...payload });
     if (r.ok) {
-      showToast && showToast(`Propagado a ${r.total} ${categoria === "principales" ? "ejercicio(s)" : "alumno(s)"} ✓`);
+      showToast && showToast(`Propagado a ${r.total} ${categoria === "principales" ? "ejercicio(s)" : "alumno(s)"}`);
       onBibliotecaRefresh && onBibliotecaRefresh();
     } else {
       showToast && showToast("Error al propagar . Revisá la consola");
@@ -3652,7 +3653,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
   const guardarRM = () => {
     onUpdate(alumnos.map((a) => ({ ...a, rm: rm[a.id] || a.rm })));
-    showToast && showToast("Guardado ✓");
+    showToast && showToast("Guardado");
   };
 
   // ── REPORTE MENSUAL INSTITUCIONAL (ronda 5) ──
@@ -3814,7 +3815,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      showToast && showToast("Reporte exportado ✓");
+      showToast && showToast("Reporte exportado");
     } catch (e) {
       console.error("[exportarReporteMensual]", e);
       showToast && showToast("Error exportando: " + e.message);
@@ -3897,7 +3898,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNtipo("entrenamiento");
       setNtemplate("bilateral");
       setNdias({});
-      showToast && showToast("Alumno creado ✓");
+      showToast && showToast("Alumno creado");
       setSec("dashboard");
       return true;
     } catch (e) {
@@ -3929,7 +3930,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     try {
       const result = await crearPlanAlumno(al.id, dia, { ...tpl, nombre: plantilla.nombre });
       if (result.ok) {
-        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${dia} ✓`);
+        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${dia}`);
         const alumnoActualizado = {
           ...al,
           planes: await cargarPlanesXDia(al.id, al)
@@ -3954,7 +3955,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     const alumnoActualizado = { ...al, planes: await cargarPlanesXDia(al.id, al) };
     onUpdate(alumnos.map((a) => (a.id === al.id ? alumnoActualizado : a)));
     setSelectedDia(null);
-    showToast && showToast(`Plan de "${dia}" eliminado ✓`);
+    showToast && showToast(`Plan de "${dia}" eliminado`);
   };
   return (
     <div
@@ -4025,7 +4026,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               textOverflow: "ellipsis",
             }}
           >
-            🏋 Modo Entrenador
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={15} />Modo Entrenador</span>
           </button>
           {/* Ronda 16 (punto 4): el botón "🖥 Armador" (pantalla aparte) se
               sacó — esa función ahora vive DENTRO de "📚 Biblioteca de
@@ -4046,7 +4047,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               lineHeight: 1,
             }}
           >
-            {darkMode ? "🌙" : "☀️"}
+            {darkMode ? <Moon size={16} /> : <Sun size={16} />}
           </button>
           <button
             onClick={() => { setSec("config"); setForm(null); }}
@@ -4063,7 +4064,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               cursor: "pointer",
             }}
           >
-            ⚙
+            <Settings size={16} />
           </button>
           <button
             onClick={onClose}
@@ -4117,7 +4118,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           onClick={() => setShowCatalogo(true)}
           style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", fontWeight: 800, fontSize: 13, letterSpacing: 0.8, textTransform: "uppercase", cursor: "pointer", fontFamily: FONT_BODY }}
         >
-          📚 Biblioteca de ejercicios
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}><BookOpen size={15} />Biblioteca de ejercicios</span>
         </button>
       </div>
       )}{" "}
@@ -4194,7 +4195,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               <div onClick={(e) => e.stopPropagation()} style={{ ...card, maxWidth: 440, margin: "0 auto", background: S.bg, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
-                  <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                  <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
                 </div>
                 {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 10 }}>
@@ -4224,7 +4225,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           }}
                           style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
                         >
-                          {activa ? "✓ " : ""}{m}
+                          {activa && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{m}
                         </button>
                       );
                     })}
@@ -4245,7 +4246,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           onClick={() => setNgenero(activa ? "" : id)}
                           style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                         >
-                          {activa ? "✓ " : ""}{l}
+                          {activa && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{l}
                         </button>
                       );
                     })}
@@ -4259,7 +4260,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       onClick={() => setNdias((prev) => { const n = { ...prev }; if (n[d]) delete n[d]; else n[d] = ntemplate; return n; })}
                       style={{ flex: 1, textAlign: "left", background: ndias[d] ? S.white : S.card, color: ndias[d] ? S.bg : S.gray, border: "1px solid " + (ndias[d] ? S.white : S.border), borderRadius: 6, padding: "9px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                     >
-                      {ndias[d] ? "✓ " : ""}{d}
+                      {ndias[d] && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{d}
                     </button>
                     {ndias[d] && (
                       <select value={ndias[d]} onChange={(e) => setNdias((prev) => ({ ...prev, [d]: e.target.value }))} style={{ ...inp, width: 140, flex: "none" }}>
@@ -4271,7 +4272,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div style={{ marginBottom: 14 }} />
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                  {[["🏋️ Entrenamiento", "entrenamiento"], ["🩺 Rehabilitación", "rehabilitacion"]].map(([l, k]) => (
+                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stethoscope size={14} />Rehabilitación</span>, "rehabilitacion"]].map(([l, k]) => (
                     <button key={k} onClick={() => {
                       setNtipo(k);
                       // Tipo ↔ modalidad (ronda 7): mantenerlos coherentes
@@ -4287,7 +4288,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá un plan para ver sus ejercicios con las descripciones. La asignación se hace por día, arriba.</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
                   {PLANTILLAS.map((p) => (
-                    <button key={p.id} onClick={() => setPlanVisor(p)} title={p.descripcion} style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre} 👁</button>
+                    <button key={p.id} onClick={() => setPlanVisor(p)} title={p.descripcion} style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre} <Eye size={13} style={{ verticalAlign: "-2px" }} /></button>
                   ))}
                 </div>
                 <button
@@ -4314,7 +4315,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div onClick={(e) => e.stopPropagation()} style={{ ...card, maxWidth: 440, margin: "0 auto", background: S.bg, padding: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                     <div style={{ color: S.white, fontWeight: 800, fontSize: 16 }}>{planVisor.nombre}</div>
-                    <button onClick={() => setPlanVisor(null)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                    <button onClick={() => setPlanVisor(null)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
                   </div>
                   {planVisor.descripcion && <div style={{ color: S.gray, fontSize: 12, marginBottom: 12 }}>{planVisor.descripcion}</div>}
                   {(planVisor.plan.periodizacion || []).length > 0 && (
@@ -4381,7 +4382,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                             onClick={() => setForm((f) => ({ ...f, modalidad: activa ? "" : m }))}
                             style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
                           >
-                            {activa ? "✓ " : ""}{m}
+                            {activa && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{m}
                           </button>
                         );
                       })}
@@ -4401,7 +4402,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                             onClick={() => setForm((f) => ({ ...f, genero: activa ? "" : id }))}
                             style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                           >
-                            {activa ? "✓ " : ""}{l}
+                            {activa && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{l}
                           </button>
                         );
                       })}
@@ -4420,7 +4421,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       style={inp}
                     />
                     {editPin.length > 0 && editPin.length < 4 && <div style={{ fontSize: 11, color: S.red, marginTop: 4 }}>La clave debe ser de 4 dígitos</div>}
-                    {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4 }}>✓ Nueva clave lista para guardar</div>}
+                    {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} />Nueva clave lista para guardar</div>}
                   </div>
 
                   {/* Solo días de entrenamiento — sin hora del día (pedido de Lucas 2026-07-20) */}
@@ -4441,7 +4442,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           }
                           style={{ background: activo ? S.white : S.card2, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 6, padding: "8px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                         >
-                          {activo ? "✓ " : ""}{d}
+                          {activo && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{d}
                         </button>
                       );
                     })}
@@ -4453,7 +4454,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         saveEdit();
                         if (editPin.length === 4) {
                           const ok = await cambiarPINAlumno(al.id, editPin);
-                          showToast && showToast(ok ? "Clave actualizada ✓" : "Error al cambiar la clave");
+                          showToast && showToast(ok ? "Clave actualizada" : "Error al cambiar la clave");
                           setEditPin("");
                         }
                       }}
@@ -4470,12 +4471,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       <div>
                         <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>
                         <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>@{al.username || al.codigo}</div>
-                        <div style={{ color: S.lgray, fontSize: 11, marginTop: 1 }}>{al.tipo === "rehabilitacion" ? "🩺 Rehabilitación" : "🏋️ Entrenamiento"}</div>
+                        <div style={{ color: S.lgray, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>{al.tipo === "rehabilitacion" ? <><Stethoscope size={12} />Rehabilitación</> : <><Dumbbell size={12} />Entrenamiento</>}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={startEdit} style={smallBtn(S.white)}>✎ Editar</button>
-                      <button onClick={eliminarAlumno} style={smallBtn(S.red)}>🗑</button>
+                      <button onClick={startEdit} style={smallBtn(S.white)}><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Pencil size={13} />Editar</span></button>
+                      <button onClick={eliminarAlumno} style={smallBtn(S.red)}><Trash2 size={16} /></button>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -4491,7 +4492,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     onClick={() => { setSec("evaluacion"); setEvalTab("integral"); setForm(null); }}
                     style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 10, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                   >
-                    📋 Evaluar
+                    <ClipboardList size={15} />Evaluar
                   </button>
                   {al.modalidad && (
                     <div style={{ marginBottom: 10 }}>
@@ -4514,7 +4515,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid " + S.border }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                       <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1 }}>
-                        🎯 Planes asignados
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Target size={13} />Planes asignados</span>
                       </div>
                       {/* Punto 6: la asignación de un plan predeterminado a
                           este alumno vive acá, separada del Armador (que
@@ -4549,7 +4550,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 {esHoy && <span style={{ color: S.green, fontSize: 10, fontWeight: 700 }}>● HOY</span>}
-                                <span style={{ color: S.gray, fontSize: 12 }}>✎ ›</span>
+                                <span style={{ color: S.gray, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}><Pencil size={12} /> ›</span>
                               </div>
                             </div>
                           );
@@ -4570,7 +4571,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         setShowAsignarPlan(false);
                         const planesFrescos = await cargarPlanesXDia(al.id, al);
                         onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes: planesFrescos } : a)));
-                        showToast && showToast("Plan asignado ✓");
+                        showToast && showToast("Plan asignado");
                       }}
                     />
                   )}
@@ -4680,7 +4681,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                               padding: 0,
                             }}
                           >
-                            {oculta ? "+" : "✕"}
+                            {oculta ? "+" : <X size={12} />}
                           </button>
                         )}
                       </div>
@@ -4811,7 +4812,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   </div>
                   {diasParaMostrar.length === 0 && (
                     <div style={{ color: S.gray, fontSize: 12, marginBottom: 12 }}>
-                      {al.nombre} todavía no tiene días de entrenamiento configurados. Sumá uno con "+ Agregar día", o configurá sus días fijos en Ejercicios → ✎ Editar.
+                      {al.nombre} todavía no tiene días de entrenamiento configurados. Sumá uno con "+ Agregar día", o configurá sus días fijos en Ejercicios → <Pencil size={12} style={{ verticalAlign: "-2px" }} /> Editar.
                     </div>
                   )}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -4875,7 +4876,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                                   onClick={(e) => { e.stopPropagation(); quitarDia(dia); }}
                                   style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
                                 >
-                                  ✕ Quitar día
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><X size={13} />Quitar día</span>
                                 </button>
                               )}
                             </div>
@@ -4961,7 +4962,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             {al && (
               <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
                 <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-                  📅 Fecha de evaluación de {al.nombre}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Calendar size={13} />Fecha de evaluación de {al.nombre}</span>
                 </div>
                 <input
                   type="date"
@@ -5196,11 +5197,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               )}
               {/* ── DIARIO del alumno — vive acá abajo de la asistencia (ronda 9) ── */}
               <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", margin: "22px 0 12px" }}>
-                📓 Diario — {al.nombre}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><NotebookPen size={14} />Diario — {al.nombre}</span>
               </div>
               {(al.diario || []).length === 0 ? (
                 <div style={{ ...card, padding: 30, textAlign: "center" }}>
-                  <div style={{ fontSize: 26, marginBottom: 8 }}>📓</div>
+                  <NotebookPen size={26} style={{ marginBottom: 8 }} />
                   <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavía</div>
                 </div>
               ) : (
@@ -5211,7 +5212,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     onResponder={(respuesta) => {
                       const nuevoDiario = (al.diario || []).map((d) => (d === e ? { ...d, respuesta } : d));
                       onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, diario: nuevoDiario } : a)));
-                      showToast && showToast("Respuesta guardada ✓");
+                      showToast && showToast("Respuesta guardada");
                     }}
                   />
                 ))
@@ -5234,7 +5235,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
               {/* Ronda 16 (punto 2): "Crear admin" renombrado a "Configuración"
                   — el tab ya incluye crear Y editar admins, no solo alta. */}
-              {[["⚙ Configuración", "admin"], ["📢 Comunicados", "comunicados"]].map(([l, k]) => (
+              {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Settings size={14} />Configuración</span>, "admin"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Megaphone size={14} />Comunicados</span>, "comunicados"]].map(([l, k]) => (
                 <button
                   key={k}
                   onClick={() => setConfigTab(k)}
@@ -5281,7 +5282,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>Rol</div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    {[["entrenador", "🏋️ Entrenador"], ["kinesiologa", "🩺 Kinesióloga"]].map(([id, l]) => (
+                    {[["entrenador", <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenador</span>], ["kinesiologa", <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stethoscope size={14} />Kinesióloga</span>]].map(([id, l]) => (
                       <button
                         key={id}
                         onClick={() => setAdmRol(id)}
@@ -5300,7 +5301,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     }
                     try {
                       await crearAdmin(admNombre, admCodigo, admPin, "", admRol);
-                      showToast && showToast(`Admin "${admNombre}" creado ✓`);
+                      showToast && showToast(`Admin "${admNombre}" creado`);
                       setAdmNombre(""); setAdmCodigo(""); setAdmPin(""); setAdmRol("entrenador");
                       cargarAdminsList();
                     } catch (e) {
@@ -5325,7 +5326,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         <div style={{ color: S.gray, fontSize: 11 }}>@{a.codigo}</div>
                       </div>
                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                        {[["entrenador", "🏋️"], ["kinesiologa", "🩺"]].map(([id, ic]) => (
+                        {[["entrenador", <Dumbbell size={14} />], ["kinesiologa", <Stethoscope size={14} />]].map(([id, ic]) => (
                           <button
                             key={id}
                             title={id === "entrenador" ? "Entrenador" : "Kinesióloga"}
@@ -5351,7 +5352,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           onClick={() => abrirEdicionAdmin(a)}
                           style={{ background: editandoAdminId === a.id ? S.white : "transparent", color: editandoAdminId === a.id ? S.bg : S.gray, border: "1px solid " + (editandoAdminId === a.id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
                         >
-                          ✏
+                          <Pencil size={14} />
                         </button>
                       </div>
                     </div>
@@ -5386,7 +5387,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                               }
                               try {
                                 await actualizarAdmin(a.id, editNombre, editCodigo, editAdminPin);
-                                showToast && showToast(`${editNombre} actualizado ✓`);
+                                showToast && showToast(`${editNombre} actualizado`);
                                 setEditandoAdminId(null);
                                 cargarAdminsList();
                               } catch (e) {
@@ -5418,7 +5419,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   try {
                     const nueva = await crearNovedad(n);
                     onNovedadesChange([nueva, ...novedades]);
-                    showToast && showToast("Comunicado publicado ✓");
+                    showToast && showToast("Comunicado publicado");
                   } catch (e) { showToast && showToast("Error: " + e.message); }
                 }}
                 onToggle={async (id, activo) => {
@@ -5429,7 +5430,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   if (!window.confirm("¿Eliminar este comunicado?")) return;
                   await eliminarNovedad(id);
                   onNovedadesChange(novedades.filter((n) => n.id !== id));
-                  showToast && showToast("Eliminado ✓");
+                  showToast && showToast("Eliminado");
                 }}
               />
             )}
@@ -5534,7 +5535,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           cursor: "pointer",
         }}
       >
-        {darkMode ? "🌙" : "☀️"}
+        {darkMode ? <Moon size={16} /> : <Sun size={16} />}
       </button>
       {/* Header de marca — ronda 11: ícono y wordmark al DOBLE de tamaño que
           la ronda anterior (600 / 480, con tope responsivo para no desbordar
@@ -5650,7 +5651,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         }}
       >
         <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.green : S.lgray, flexShrink: 0 }} />
-        {esAdmin ? "✓ Acceso administrador activado" : "Acceso administrador"}
+        {esAdmin ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Acceso administrador activado</span> : "Acceso administrador"}
       </button>
     </div>
   );
@@ -5706,7 +5707,7 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
           <div>
             {sesiones.length === 0 ? (
               <div style={{ ...card, padding: 40, textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+                <ClipboardList size={32} style={{ marginBottom: 12 }} />
                 <div style={{ color: S.white, fontWeight: 700, marginBottom: 8 }}>Sin sesiones asignadas</div>
                 <div style={{ color: S.gray, fontSize: 13 }}>Tu profesional todavía no cargó ejercicios.</div>
               </div>
@@ -5780,7 +5781,7 @@ function BarraEntrenador({ nombre, onVolver }) {
       }}
     >
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-        🏋️ Modo entrenador — {nombre}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Modo entrenador — {nombre}</span>
       </div>
       <button
         onClick={onVolver}
@@ -5809,8 +5810,8 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
         style={{ maxWidth: 420, margin: "0 auto", background: S.bg, border: "1px solid " + S.border, borderRadius: 14, padding: 16 }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>🏋️ Modo entrenador</div>
-          <button onClick={onCerrar} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+          <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 8 }}><Dumbbell size={16} />Modo entrenador</div>
+          <button onClick={onCerrar} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
         </div>
         <div style={{ color: S.gray, fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
           Elegí el alumno: vas a ver su interfaz tal como la ve él, y los pesos que cargues se guardan en su historial.
@@ -5827,7 +5828,7 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
               <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
               <div style={{ color: S.gray, fontSize: 11 }}>
                 {a.username || a.codigo}
-                {a.tipo === "rehabilitacion" ? " · 🩺 Rehabilitación" : ""}
+                {a.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}> · <Stethoscope size={12} />Rehabilitación</span> : ""}
               </div>
             </div>
             <span style={{ color: S.gray }}>›</span>
@@ -6279,7 +6280,7 @@ export default function App() {
       const marca = f + ":" + alumno.id;
       try { localStorage.setItem("di_dia_registrado", marca); } catch (e) {}
       setDiaRegistrado(marca);
-      showToast("Día registrado ✓");
+      showToast("Día registrado");
     } catch (e) {
       console.error("[registrarDia]", e);
       showToast("Error registrando el día");
@@ -6549,7 +6550,7 @@ export default function App() {
                     } else {
                       saveDailyAttendance(al.id, hoy(), true).then(() => {
                         marcarAsistencia(hoy());
-                        showToast && showToast("¡Asistencia marcada! ✓");
+                        showToast && showToast("¡Asistencia marcada!");
                       });
                     }
                   }}
@@ -6685,7 +6686,7 @@ export default function App() {
             .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
             .map((n) => (
               <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>📢 {n.titulo}</div>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><Megaphone size={14} />{n.titulo}</div>
                 {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
               </div>
             ))}
@@ -6726,7 +6727,7 @@ export default function App() {
                   default (antes forzaba siempre hoy()). */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                  ✓ Asistencia
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Asistencia</span>
                 </div>
                 {/* Ronda 18: date picker nativo reemplazado por chips
                     Hoy/Ayer/Otro día (lista inline de 14 días). */}
@@ -6747,7 +6748,7 @@ export default function App() {
                     } else {
                       saveDailyAttendance(al.id, fechaAsistencia, true).then(() => {
                         marcarAsistencia(fechaAsistencia);
-                        showToast && showToast("¡Asistencia marcada! ✓");
+                        showToast && showToast("¡Asistencia marcada!");
                       });
                     }
                   }}
@@ -6767,7 +6768,7 @@ export default function App() {
                   }}
                 >
                   {al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)
-                    ? (fechaAsistencia === hoy() ? "✅ Presente hoy" : "✅ Presente ese día")
+                    ? (fechaAsistencia === hoy() ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente hoy</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente ese día</span>)
                     : "Marcar presente"}
                 </button>
               </div>

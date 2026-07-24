@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BarChart3, X, Camera, Inbox, Calendar, FileText, Trash2 } from "lucide-react";
 import { S, card, inp } from "../utils/theme.js";
 import { hoy } from "../utils/helpers.js";
 import {
@@ -29,7 +30,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
     try {
       const nuevo = await saveBioimpedanciaCompleta(alumnoId, datos, foto);
       setRegistros((prev) => [nuevo, ...prev]);
-      showToast && showToast("Estudio guardado ✓");
+      showToast && showToast("Estudio guardado");
       return true;
     } catch (e) {
       console.error("[EstudioBio] Error guardando:", e);
@@ -55,7 +56,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
     <div>
       {!readOnly && <EstudioBioForm alumno={alumno} onGuardar={guardar} guardando={guardando} />}
       <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-        📊 Estudios registrados
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><BarChart3 size={16} strokeWidth={2} />Estudios registrados</span>
       </div>
       {cargando ? (
         <div style={{ color: S.gray, fontSize: 12, padding: 16, textAlign: "center" }}>Cargando...</div>
@@ -198,9 +199,9 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
             <img src={fotoPreview} alt="foto estudio" style={{ width: "100%", maxHeight: 260, objectFit: "cover", borderRadius: 8 }} />
             <button
               onClick={() => { setFoto(null); setFotoPreview(null); }}
-              style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}
+              style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              ✕ Quitar
+              <X size={16} strokeWidth={2} />Quitar
             </button>
           </div>
         ) : (
@@ -216,7 +217,7 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
               cursor: "pointer",
             }}
           >
-            📷 Tocar para subir foto
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Camera size={16} strokeWidth={2} />Tocar para subir foto</span>
             <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFoto} />
           </label>
         )}
@@ -253,7 +254,7 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
   if (!registros || registros.length === 0) {
     return (
       <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-        <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+        <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", color: S.gray }}><Inbox size={24} strokeWidth={2} /></div>
         <div style={{ color: S.gray, fontSize: 12 }}>Sin estudios registrados aún</div>
       </div>
     );
@@ -263,27 +264,27 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
       {registros.map((bio) => (
         <div key={bio.id} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: 11, color: S.lgray }}>
-              📅 {bio.fecha} {bio.hora ? `· ${String(bio.hora).slice(0, 5)}` : ""}
+            <div style={{ fontSize: 11, color: S.lgray, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Calendar size={14} strokeWidth={2} />{bio.fecha} {bio.hora ? `· ${String(bio.hora).slice(0, 5)}` : ""}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               {alumnoFlyer && (
                 <button
                   onClick={() => {
                     generarFlyerBio(alumnoFlyer, bio);
-                    showToast && showToast("Flyer generado ✓ — abrilo y guardalo como PDF");
+                    showToast && showToast("Flyer generado — abrilo y guardalo como PDF");
                   }}
-                  style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
                 >
-                  📄 Generar flyer
+                  <FileText size={16} strokeWidth={2} />Generar flyer
                 </button>
               )}
               {onEliminar && (
                 <button
                   onClick={() => onEliminar(bio)}
-                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer" }}
+                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
                 >
-                  🗑
+                  <Trash2 size={16} strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -323,7 +324,7 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
                 src={bio.archivo_url}
                 alt={bio.nombre_archivo || "foto estudio"}
                 style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }}
-                onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">📎 ${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
+                onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
               />
             </a>
           )}

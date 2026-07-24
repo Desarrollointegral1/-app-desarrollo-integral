@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClipboardList, Check, Inbox, Calendar, Trash2 } from "lucide-react";
 import { S, card, inp } from "../utils/theme.js";
 import { hoy } from "../utils/helpers.js";
 import {
@@ -63,7 +64,7 @@ export function ProtocoloEvaluacionSeccion({ alumnoId, alumno, showToast }) {
     try {
       const nuevo = await saveEvaluacion(alumnoId, datos);
       setRegistros((prev) => [nuevo, ...prev]);
-      showToast && showToast("Evaluación guardada ✓");
+      showToast && showToast("Evaluación guardada");
       return true;
     } catch (e) {
       console.error("[ProtocoloEvaluacion] Error guardando:", e);
@@ -89,7 +90,7 @@ export function ProtocoloEvaluacionSeccion({ alumnoId, alumno, showToast }) {
     <div>
       <ProtocoloEvaluacionForm alumno={alumno} onGuardar={guardar} guardando={guardando} />
       <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-        📋 Evaluaciones registradas
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><ClipboardList size={16} strokeWidth={2} />Evaluaciones registradas</span>
       </div>
       {cargando ? (
         <div style={{ color: S.gray, fontSize: 12, padding: 16, textAlign: "center" }}>Cargando...</div>
@@ -283,7 +284,7 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
                 background: activo ? S.white : "transparent",
                 color: S.bg, fontSize: 12, fontWeight: 900,
                 display: "flex", alignItems: "center", justifyContent: "center",
-              }}>{activo ? "✓" : ""}</span>
+              }}>{activo ? <Check size={14} strokeWidth={2} /> : ""}</span>
               <span style={{ fontSize: 12, color: S.white }}>{txt}</span>
             </button>
           );
@@ -349,7 +350,7 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
   if (!registros || registros.length === 0) {
     return (
       <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
-        <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+        <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", color: S.gray }}><Inbox size={24} strokeWidth={2} /></div>
         <div style={{ color: S.gray, fontSize: 12 }}>Sin evaluaciones registradas aún</div>
       </div>
     );
@@ -383,15 +384,15 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
         return (
           <div key={ev.id} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: S.lgray }}>
-                📅 {ev.fecha}{ev.evaluador ? ` · ${ev.evaluador}` : ""}
+              <div style={{ fontSize: 11, color: S.lgray, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Calendar size={14} strokeWidth={2} />{ev.fecha}{ev.evaluador ? ` · ${ev.evaluador}` : ""}
               </div>
               {onEliminar && (
                 <button
                   onClick={() => onEliminar(ev)}
-                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer" }}
+                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
                 >
-                  🗑
+                  <Trash2 size={16} strokeWidth={2} />
                 </button>
               )}
             </div>

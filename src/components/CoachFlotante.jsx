@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Headphones, Volume2, Volume, Mic, Mail, Play, Pause } from "lucide-react";
 
 /**
  * ============================================================
@@ -503,9 +504,11 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                   fontSize: 18,
                   padding: 4,
                   color: GRAY,
+                  display: "inline-flex",
+                  alignItems: "center",
                 }}
               >
-                🎧
+                <Headphones size={18} strokeWidth={2} />
               </button>
             )}
             {soportaLectura && (
@@ -527,9 +530,11 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                   padding: 4,
                   opacity: leerVoz ? 1 : 0.5,
                   color: leerVoz ? RED : GRAY,
+                  display: "inline-flex",
+                  alignItems: "center",
                 }}
               >
-                {leerVoz ? "🔊" : "🔈"}
+                {leerVoz ? <Volume2 size={18} strokeWidth={2} /> : <Volume size={18} strokeWidth={2} />}
               </button>
             )}
             <span
@@ -577,14 +582,16 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                       "Tu plan - Desarrollo Integral"
                     )}&body=${encodeURIComponent(m.texto.replace(/[*#>_`]/g, ""))}`}
                     style={{
-                      display: "inline-block",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
                       marginTop: 8,
                       fontSize: 12,
                       color: GRAY,
                       textDecoration: "underline",
                     }}
                   >
-                    📧 Enviar esto por mail
+                    <Mail size={14} strokeWidth={2} />Enviar esto por mail
                   </a>
                 )}
               </div>
@@ -630,9 +637,12 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                   cursor: "pointer",
                   flexShrink: 0,
                   animation: escuchando ? "coachPulse 1.2s ease infinite" : "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                🎤
+                <Mic size={18} strokeWidth={2} />
               </button>
             )}
             <textarea
@@ -810,9 +820,13 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                   fontSize: 15,
                   fontWeight: 600,
                   cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                ▶ Reanudar
+                <Play size={16} strokeWidth={2} />Reanudar
               </button>
             ) : (
               <button
@@ -826,9 +840,13 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                   fontSize: 15,
                   fontWeight: 600,
                   cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                ⏸ Pausar
+                <Pause size={16} strokeWidth={2} />Pausar
               </button>
             )}
             <button
