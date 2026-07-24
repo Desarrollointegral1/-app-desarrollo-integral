@@ -6184,6 +6184,30 @@ export default function App() {
     setModoEntrenador(false);
     setAlumno(null);
   };
+  // Botón "atrás" del celular/navegador: como la app navega por estado (sin
+  // URLs), un back te sacaba de la app. Ahora, mientras hay sesión, "atrás"
+  // retrocede DENTRO de la app (cierra lo que esté abierto) en vez de salir;
+  // en el login sí deja salir normal. Es lo que hacen las apps de verdad.
+  const _backRef = useRef(() => false);
+  _backRef.current = () => {
+    if (selectorEntrenador) { setSelectorEntrenador(false); return true; }
+    if (modoEntrenador) { salirModoEntrenador(); return true; }
+    if (showBienvenida) { setShowBienvenida(false); return true; }
+    if (tabGroup === "diario") { setTabGroup("entrenamiento"); return true; }
+    if (diaSemanaFoco) { setDiaSemanaFoco(null); return true; }
+    return false; // ya en el inicio: no cerrar la app (se sale con "Salir")
+  };
+  const _logueado = !!alumno || adminMode;
+  useEffect(() => {
+    if (!_logueado) return; // sin sesión, el back se comporta normal
+    window.history.pushState(null, "", window.location.href);
+    const onPop = () => {
+      _backRef.current();
+      window.history.pushState(null, "", window.location.href); // re-armar la trampa
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [_logueado]);
     const handlePeso = (id, val) => {
     const np = { ...pesos, [id]: val };
     const nh = { ...historiales, [id]: [...(historiales[id] || []), { fecha: hoy(), peso: val }] };
@@ -6521,23 +6545,29 @@ export default function App() {
                       );
                       setAlumnos(u);
                       setAlumno(u.find((a) => a.id === al.id));
-                      showToast && showToast("Presente removido");
+                      showToast && showToast("Asistencia borrada");
                     } else {
                       saveDailyAttendance(al.id, hoy(), true).then(() => {
                         marcarAsistencia(hoy());
-                        showToast && showToast("¡Presente marcado! ✓");
+                        showToast && showToast("¡Asistencia marcada! ✓");
                       });
                     }
                   }}
-                  title={presente ? "Ya marcaste presente hoy — tocá para deshacer" : "Marcar presente hoy"}
+                  role="checkbox"
+                  aria-checked={presente}
+                  aria-label="Marcar asistencia de hoy"
+                  title={presente ? "Asistencia marcada hoy — tocá para deshacer" : "Marcá tu asistencia de hoy"}
                   style={{
                     flexShrink: 0,
                     alignSelf: "center",
-                    background: presente ? S.green : S.card3,
-                    color: presente ? "#fff" : S.white,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: presente ? "rgba(76,175,80,0.12)" : S.card3,
+                    color: presente ? S.green : S.white,
                     border: "1px solid " + (presente ? S.green : S.border2),
                     borderRadius: 8,
-                    padding: "8px 14px",
+                    padding: "8px 12px",
                     fontSize: 12,
                     fontWeight: 700,
                     textTransform: "uppercase",
@@ -6547,7 +6577,26 @@ export default function App() {
                     fontFamily: FONT_BODY,
                   }}
                 >
-                  {presente ? "✓ Hoy" : "Presente"}
+                  {/* Casilla — deja claro que se toca acá para marcar */}
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 5,
+                      flexShrink: 0,
+                      border: "2px solid " + (presente ? S.green : S.gray),
+                      background: presente ? S.green : "transparent",
+                      color: "#fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {presente ? "✓" : ""}
+                  </span>
+                  Asistencia
                 </button>
               );
             })()}
