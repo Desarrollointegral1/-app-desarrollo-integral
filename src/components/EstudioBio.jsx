@@ -6,8 +6,29 @@ import {
   saveBioimpedanciaCompleta,
   cargarBioimpedanciaCompleta,
   eliminarBioimpedancia,
+  getSignedUrl,
 } from "../../services/supabase.js";
+import { useSignedUrl } from "../utils/useSignedUrl.js";
 import { generarFlyerBio } from "../utils/flyerBio.js";
+
+const BIO_BUCKET = "bioimpedancia-archivos";
+
+// Foto de un estudio: archivo_url guarda el PATH del objeto (bucket privado),
+// se resuelve a signed URL on-demand. Datos viejos (http/data) pasan tal cual.
+function BioFoto({ bio }) {
+  const url = useSignedUrl(BIO_BUCKET, bio.archivo_url);
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
+      <img
+        src={url}
+        alt={bio.nombre_archivo || "foto estudio"}
+        style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }}
+        onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
+      />
+    </a>
+  );
+}
 
 // Sección completa: formulario + historial, conectada a Supabase.
 // La usan tal cual el panel admin (sección Bioimp.) y la vista del alumno.
@@ -270,8 +291,11 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
             <div style={{ display: "flex", gap: 6 }}>
               {alumnoFlyer && (
                 <button
-                  onClick={() => {
-                    generarFlyerBio(alumnoFlyer, bio);
+                  onClick={async () => {
+                    // El flyer es HTML estático: la foto no puede resolver el
+                    // signed URL sola, se resuelve acá antes de generarlo.
+                    const fotoUrl = await getSignedUrl(BIO_BUCKET, bio.archivo_url);
+                    generarFlyerBio(alumnoFlyer, { ...bio, archivo_url: fotoUrl });
                     showToast && showToast("Flyer generado — abrilo y guardalo como PDF");
                   }}
                   style={{ background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
@@ -318,16 +342,7 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
               <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>{bio.metadata.objetivo}</div>
             </div>
           )}
-          {bio.archivo_url && (
-            <a href={bio.archivo_url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
-              <img
-                src={bio.archivo_url}
-                alt={bio.nombre_archivo || "foto estudio"}
-                style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }}
-                onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
-              />
-            </a>
-          )}
+          {bio.archivo_url && <BioFoto bio={bio} />}
         </div>
       ))}
     </div>
