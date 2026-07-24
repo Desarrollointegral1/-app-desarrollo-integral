@@ -5550,7 +5550,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           Logo3D ahora usa ICON_CROP (recortado al dibujo real), así que el
           dibujo arranca de verdad donde arranca el contenedor: logo casi
           tocando el borde superior y wordmark pegado al logo. */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: "clamp(36px, 8vh, 72px)" }}>
         <Logo3D size={260} />
         <DIWordmark
           soloDesarrollo
