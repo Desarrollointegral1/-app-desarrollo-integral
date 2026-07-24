@@ -3019,7 +3019,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
   );
 }
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
-function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect }) {
+function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect, onToggleAsistencia }) {
   const lunesStr = (() => {
     const d = new Date();
     const l = new Date(d);
@@ -3069,13 +3069,20 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 15 }}>{al.nombre}</div>
-                  {/* Ronda 9: el pill solo aparece si entrenó HOY — el "Sin
-                      registro" confundía (la última asistencia ya se ve abajo) */}
-                  {entrenoHoy && (
-                    <div style={{ background: "#0d1f0d", border: "1px solid " + S.green, borderRadius: 20, padding: "3px 10px", fontSize: 10, color: S.green, fontWeight: 700 }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={11} />Entrenó hoy</span>
-                    </div>
-                  )}
+                  {/* Toggle de asistencia de HOY, desde el mismo listado del
+                      admin (auditoría 2026-07-22: antes había que ir a Modo
+                      Entrenador). Un toque marca/desmarca. */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onToggleAsistencia && onToggleAsistencia(al.id, !entrenoHoy); }}
+                    title={entrenoHoy ? "Asistencia de hoy marcada. Tocá para deshacer" : "Marcar asistencia de hoy"}
+                    aria-label="Marcar asistencia de hoy"
+                    role="checkbox"
+                    aria-checked={entrenoHoy}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: entrenoHoy ? "#0d1f0d" : "transparent", border: "1px solid " + (entrenoHoy ? S.green : S.border2), borderRadius: 20, padding: "3px 10px", fontSize: 10, color: entrenoHoy ? S.green : S.gray, fontWeight: 700, cursor: "pointer", flexShrink: 0, fontFamily: FONT_BODY }}
+                  >
+                    {entrenoHoy ? <Check size={11} /> : <span style={{ width: 11, height: 11, borderRadius: 3, border: "1.5px solid " + S.gray, display: "inline-block" }} />}
+                    {entrenoHoy ? "Entrenó hoy" : "Marcar hoy"}
+                  </button>
                 </div>
                 <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
                   {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Stethoscope size={12} />Rehab</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Dumbbell size={12} />Entreno</span>}
@@ -4172,6 +4179,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               onNuevo={() => setShowCrearAlumno((v) => !v)}
               onBiblioteca={() => setShowCatalogo(true)}
               onDeselect={() => setSelId(null)}
+              onToggleAsistencia={async (id, marcar) => {
+                await saveDailyAttendance(id, hoy(), marcar);
+                const nuevos = alumnos.map((a) => {
+                  if (a.id !== id) return a;
+                  const sinHoy = (a.asistencia || []).filter((f) => f.slice(0, 10) !== hoy());
+                  return { ...a, asistencia: marcar ? [...sinHoy, hoy()] : sinHoy };
+                });
+                onUpdate(nuevos);
+                showToast && showToast(marcar ? "Asistencia marcada" : "Asistencia borrada");
+              }}
             />
 
             {/* Biblioteca PROPIA (movilidad/elástico/calor + GIFs manuales) —
