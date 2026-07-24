@@ -51,6 +51,25 @@ async function provisionAlumno(alumnoId, pin) {
   if (!r.ok) { const d = await r.json().catch(() => ({})); ERR("provisionAlumno", d.error || "provision falló", d); }
 }
 
+// Crea (si falta) el usuario de Auth de un ADMIN + PIN salado. Sin esto, un
+// admin nuevo no puede loguearse (el login busca el usuario de Auth por user_id).
+async function provisionAdmin(adminId, pin) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY;
+  const r = await fetch(AUTH_BRIDGE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: "provision", id: adminId, pin, tipo: "admin" }),
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); ERR("provisionAdmin", d.error || "provision admin falló", d); }
+}
+
+export async function desactivarAdmin(id, activo) {
+  const { data, error } = await supabase.rpc("desactivar_admin_rpc", { p_id: id, p_activo: activo });
+  if (error) { ERR("desactivarAdmin", error.message, error); throw new Error(error.message); }
+  return data;
+}
+
 export async function cerrarSesionAuth() {
   try { await supabase.auth.signOut(); } catch (e) { ERR("cerrarSesionAuth", "signOut falló", e); }
 }
@@ -1242,6 +1261,9 @@ export async function crearAdmin(nombre, codigo, pin, email, rol) {
       throw new Error(error?.message || "Error al crear admin");
     }
 
+    // Crea el usuario de Auth del admin + PIN salado (si no, no puede loguearse).
+    if (admin?.id) await provisionAdmin(admin.id, pin);
+
     LOG("crearAdmin", `✅ Admin ${nombre} creado exitosamente`);
     return admin;
   } catch (e) {
@@ -1298,6 +1320,8 @@ export async function actualizarAdmin(id, nombre, codigo, pin) {
     if (error || !admin) {
       throw new Error(error?.message || "Error al actualizar admin");
     }
+    // Si cambió el PIN, re-salar el bcrypt del admin (lo que valida el login).
+    if (pin && pin.length === 4) await provisionAdmin(id, pin);
     LOG("actualizarAdmin", `✅ Admin ${nombre} actualizado`);
     return admin;
   } catch (e) {
