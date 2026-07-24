@@ -16,16 +16,29 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { METODO_INTEGRAL } from './metodo';
+import { NUTRICION_INTEGRAL } from './nutricion';
+
+// Un solo bloque de conocimiento curado (método + nutrición) — mismo cache_control.
+const CONOCIMIENTO = `${METODO_INTEGRAL}\n\n---\n\n${NUTRICION_INTEGRAL}`;
 
 const MODELO = 'claude-sonnet-5';
 const MAX_HISTORIAL = 20; // últimos turnos que se le pasan como memoria
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Lazy: createClient() tira si la URL viene vacía, y Next la evalúa en build
+// time al "recolectar page data" — con el módulo top-level eso rompía el
+// build entero (`supabaseUrl is required`). Se crea recién en el primer uso.
+let _supabase: SupabaseClient | null = null;
+function supa(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+  }
+  return _supabase;
+}
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -39,6 +52,7 @@ export interface TurnoCoach {
 export interface AlumnoCoach {
   id: string;
   nombre: string | null;
+  email: string | null;
   edad: string | null;
   peso: string | null;
   altura: string | null;
@@ -163,7 +177,8 @@ Cómo respondés — MUY IMPORTANTE:
 export async function responderCoach(
   alumno: AlumnoCoach,
   historial: TurnoCoach[],
-  mensaje: string
+  mensaje: string,
+  opts?: { modoVoz?: boolean }
 ): Promise<string> {
   const messages: Anthropic.MessageParam[] = [];
 
@@ -172,21 +187,25 @@ export async function responderCoach(
     messages.push({ role: t.rol, content: t.mensaje });
   }
 
+  const instruccionVoz = opts?.modoVoz
+    ? '\n\nMODO VOZ: esta charla es hablada en vivo (vos hablás por voz y el alumno te contesta hablando). Respondé CORTO — máximo 2 o 3 oraciones por turno, UNA sola idea o ejercicio a la vez, y después preguntá o esperá antes de seguir. Nada de listas, nada de markdown, nada de números de puntos: es para que se escuche como una charla natural, no como un texto leído.'
+    : '';
+
   // El mensaje nuevo: contexto del alumno + instrucciones + lo que escribió.
   messages.push({
     role: 'user',
-    content: `DATOS DE ESTE ALUMNO:\n${contextoAlumno(alumno)}\n${INSTRUCCIONES_COACH}\n\nMensaje del alumno: ${mensaje}`,
+    content: `DATOS DE ESTE ALUMNO:\n${contextoAlumno(alumno)}\n${INSTRUCCIONES_COACH}${instruccionVoz}\n\nMensaje del alumno: ${mensaje}`,
   });
 
   const response = await anthropic.messages.create({
     model: MODELO,
-    max_tokens: 2000,
+    max_tokens: opts?.modoVoz ? 400 : 2000, // en voz, tope bajo fuerza respuestas cortas
     thinking: { type: 'disabled' }, // chat rápido; el conocimiento ya está en el contexto
     system: [
       {
         type: 'text',
-        text: METODO_INTEGRAL,
-        cache_control: { type: 'ephemeral' }, // el método es estable → se cachea
+        text: CONOCIMIENTO,
+        cache_control: { type: 'ephemeral' }, // el conocimiento es estable → se cachea
       },
     ],
     messages,
@@ -200,10 +219,10 @@ export async function responderCoach(
 
 /** Trae el alumno por id (service_role, del lado del server). null si no existe. */
 export async function traerAlumno(alumnoId: string): Promise<AlumnoCoach | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supa()
     .from('alumnos')
     .select(
-      'id, nombre, edad, peso, altura, tipo, modalidad, plan_type, fecha_asignacion_plan, rm, bioimpedancia, diario, asistencia, plan_periodizacion, plan_movilidad, plan_calor, plan_activacion'
+      'id, nombre, email, edad, peso, altura, tipo, modalidad, plan_type, fecha_asignacion_plan, rm, bioimpedancia, diario, asistencia, plan_periodizacion, plan_movilidad, plan_calor, plan_activacion'
     )
     .eq('id', alumnoId)
     .maybeSingle();
@@ -214,7 +233,7 @@ export async function traerAlumno(alumnoId: string): Promise<AlumnoCoach | null>
 
 /** Historial de la charla de un alumno, cronológico. */
 export async function traerHistorial(alumnoId: string): Promise<TurnoCoach[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supa()
     .from('coach_conversaciones')
     .select('rol, mensaje')
     .eq('alumno_id', alumnoId)
@@ -229,7 +248,7 @@ export async function traerHistorial(alumnoId: string): Promise<TurnoCoach[]> {
 export async function mensajesDeHoy(alumnoId: string): Promise<number> {
   const inicioDia = new Date();
   inicioDia.setHours(0, 0, 0, 0);
-  const { count } = await supabase
+  const { count } = await supa()
     .from('coach_conversaciones')
     .select('*', { count: 'exact', head: true })
     .eq('alumno_id', alumnoId)
@@ -244,7 +263,7 @@ export async function guardarTurno(
   mensajeAlumno: string,
   respuestaCoach: string
 ): Promise<void> {
-  await supabase.from('coach_conversaciones').insert([
+  await supa().from('coach_conversaciones').insert([
     { alumno_id: alumnoId, rol: 'user', mensaje: mensajeAlumno },
     { alumno_id: alumnoId, rol: 'assistant', mensaje: respuestaCoach },
   ]);
