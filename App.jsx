@@ -45,6 +45,7 @@ import {
   listarAdmins,
   actualizarRolAdmin,
   actualizarAdmin,
+  desactivarAdmin,
   // PLANES PREDETERMINADOS (punto 6)
   listarPlanesPredeterminados,
   supabase,
@@ -88,7 +89,7 @@ import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
-import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen } from "lucide-react";
+import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power } from "lucide-react";
 // ── LOGO ──────────────────────────────────────────────────────────────
 // Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
 // interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
@@ -3092,15 +3093,15 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{asistSemana}</div>
-                <div style={{ color: S.gray, fontSize: 9 }}>ESTA SEM.</div>
+                <div style={{ color: S.gray, fontSize: 11 }}>ESTA SEM.</div>
               </div>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{asistMes}</div>
-                <div style={{ color: S.gray, fontSize: 9 }}>ESTE MES</div>
+                <div style={{ color: S.gray, fontSize: 11 }}>ESTE MES</div>
               </div>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{ultimaAsist || "—"}</div>
-                <div style={{ color: S.gray, fontSize: 9 }}>ULTIMA VEZ</div>
+                <div style={{ color: S.gray, fontSize: 11 }}>ULTIMA VEZ</div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(al.id, al.nombre); }}
@@ -4770,26 +4771,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             usar, ya no es alcanzable desde esta fila de tabs. ── */}
         {sec === "planes" && (
           <div>
-            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+            <div style={{ ...segTrack(), marginBottom: 14 }}>
               {[
                 ["Periodización", "periodizacion"],
                 ["Plan x día", "plan-dias"],
               ].map(([l, k]) => (
-                <button
-                  key={k}
-                  onClick={() => setPlanesTab(k)}
-                  style={{
-                    flex: 1,
-                    background: planesTab === k ? S.white : S.card,
-                    color: planesTab === k ? S.bg : S.gray,
-                    border: "1px solid " + (planesTab === k ? S.white : S.border),
-                    borderRadius: 8,
-                    padding: "7px 4px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
+                <button key={k} onClick={() => setPlanesTab(k)} style={segChip(planesTab === k)}>
                   {l}
                 </button>
               ))}
@@ -5065,26 +5052,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {/* ── Grupo REPORTES: Asistencia · Historial ──
              (Bioimpedancia se movió al módulo Evaluación) */}
         {sec === "reportes" && (
-          <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+          <div style={{ ...segTrack(), marginBottom: 14 }}>
             {[
               ["Asistencia", "asistencia"],
               ["Historial", "historial"],
             ].map(([l, k]) => (
-              <button
-                key={k}
-                onClick={() => setRepTab(k)}
-                style={{
-                  flex: 1,
-                  background: repTab === k ? S.white : S.card,
-                  color: repTab === k ? S.bg : S.gray,
-                  border: "1px solid " + (repTab === k ? S.white : S.border),
-                  borderRadius: 8,
-                  padding: "7px 4px",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
+              <button key={k} onClick={() => setRepTab(k)} style={segChip(repTab === k)}>
                 {l}
               </button>
             ))}
@@ -5249,25 +5222,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               ← Volver al panel
             </button>
             {/* Sub-tabs */}
-            <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
-              {/* Ronda 16 (punto 2): "Crear admin" renombrado a "Configuración"
-                  — el tab ya incluye crear Y editar admins, no solo alta. */}
+            <div style={{ ...segTrack(), marginBottom: 16 }}>
+              {/* "Configuración" incluye crear Y editar admins, no solo alta. */}
               {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Settings size={14} />Configuración</span>, "admin"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Megaphone size={14} />Comunicados</span>, "comunicados"]].map(([l, k]) => (
-                <button
-                  key={k}
-                  onClick={() => setConfigTab(k)}
-                  style={{
-                    flex: 1,
-                    background: configTab === k ? S.white : S.card,
-                    color: configTab === k ? S.bg : S.gray,
-                    border: "1px solid " + (configTab === k ? S.white : S.border),
-                    borderRadius: 8,
-                    padding: "8px 4px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
+                <button key={k} onClick={() => setConfigTab(k)} style={segChip(configTab === k)}>
                   {l}
                 </button>
               ))}
@@ -5336,10 +5294,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   Administradores ({adminsList.length})
                 </div>
                 {adminsList.map((a) => (
-                  <div key={a.id} style={{ ...card, padding: "10px 12px", marginBottom: 8 }}>
+                  <div key={a.id} style={{ ...card, padding: "10px 12px", marginBottom: 8, opacity: a.activo === false ? 0.55 : 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                       <div>
-                        <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
+                        <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}{a.activo === false ? " · inactivo" : ""}</div>
                         <div style={{ color: S.gray, fontSize: 11 }}>@{a.codigo}</div>
                       </div>
                       <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
@@ -5370,6 +5328,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           style={{ background: editandoAdminId === a.id ? S.white : "transparent", color: editandoAdminId === a.id ? S.bg : S.gray, border: "1px solid " + (editandoAdminId === a.id ? S.white : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
                         >
                           <Pencil size={14} />
+                        </button>
+                        {/* Desactivar/reactivar admin (auditoría 2026-07-22: no se
+                            podía sacar un admin desde la UI). Un admin inactivo no
+                            puede loguearse (verify_login_pin respeta `activo`). */}
+                        <button
+                          title={a.activo === false ? "Reactivar admin" : "Desactivar admin"}
+                          onClick={async () => {
+                            const reactivar = a.activo === false;
+                            if (!reactivar && !window.confirm(`¿Desactivar a ${a.nombre}? No va a poder entrar hasta que lo reactives.`)) return;
+                            try {
+                              await desactivarAdmin(a.id, reactivar);
+                              setAdminsList((prev) => prev.map((x) => (x.id === a.id ? { ...x, activo: reactivar } : x)));
+                              showToast && showToast(reactivar ? `${a.nombre} reactivado` : `${a.nombre} desactivado`);
+                            } catch (e) { showToast && showToast("No se pudo cambiar el estado"); }
+                          }}
+                          style={{ background: "transparent", color: a.activo === false ? S.green : S.red, border: "1px solid " + (a.activo === false ? S.green : S.border), borderRadius: 6, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}
+                        >
+                          {a.activo === false ? <Power size={14} /> : <Ban size={14} />}
                         </button>
                       </div>
                     </div>
