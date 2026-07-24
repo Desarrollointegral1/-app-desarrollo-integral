@@ -3,6 +3,7 @@ import { Play } from "lucide-react";
 import { S, card } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
+import { useSignedUrl } from "../utils/useSignedUrl.js";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
 // `pesoAnterior` ({peso, fecha}) muestra el último peso registrado en días
@@ -33,6 +34,10 @@ export default function ItemCard({
   const enSegundos = unidad === "segundos" || /^plancha\b/i.test((nombre || "").trim());
   const [open, setOpen] = useState(false);
   const ytId = getYTId(video);
+  // `video` puede ser un path de rehab-media (bucket privado): se resuelve a
+  // signed URL. Si ya es http/data/YouTube, el hook lo devuelve tal cual.
+  const resolvedVideo = useSignedUrl("rehab-media", ytId ? null : video);
+  const mediaPendiente = video && !ytId && !/^(https?:|data:)/i.test(video) && !resolvedVideo;
   const renderMedia = () => {
     if (ytId)
       return (
@@ -55,20 +60,27 @@ export default function ItemCard({
           />
         </div>
       );
-    // URL directa (Storage de Supabase u otra): puede ser FOTO o VIDEO.
+    // Path de rehab-media aún resolviéndose a signed URL: mostrar loading.
+    if (mediaPendiente)
+      return (
+        <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center", color: S.gray, fontSize: 12 }}>
+          Cargando media…
+        </div>
+      );
+    // URL directa (signed URL de Storage u otra): puede ser FOTO o VIDEO.
     // preload="none" para no bajar el video entero al abrir la tarjeta.
-    if (video && /^https?:/i.test(video)) {
-      if (/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(video))
+    if (resolvedVideo && /^https?:/i.test(resolvedVideo)) {
+      if (/\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(resolvedVideo))
         return (
           <img
-            src={video}
+            src={resolvedVideo}
             alt={nombre}
             style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 320, objectFit: "cover" }}
           />
         );
       return (
         <video controls preload="none" style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 300 }}>
-          <source src={video} />
+          <source src={resolvedVideo} />
           Tu navegador no soporta videos
         </video>
       );

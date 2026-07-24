@@ -90,6 +90,18 @@ import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power } from "lucide-react";
+import { useSignedUrl } from "./src/utils/useSignedUrl.js";
+
+// Preview del media de rehab recién subido: `value` es un PATH de rehab-media
+// (bucket privado), se resuelve a signed URL. Datos viejos (http) pasan igual.
+function RehabMediaPreview({ value }) {
+  const url = useSignedUrl("rehab-media", value);
+  const esImg = /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(value || "");
+  if (!url) return <div style={{ color: "#8a8a8a", fontSize: 12, padding: 8 }}>Cargando media…</div>;
+  return esImg
+    ? <img src={url} alt="media" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8, display: "block" }} />
+    : <video src={url} controls preload="metadata" style={{ width: "100%", maxHeight: 220, borderRadius: 8, display: "block" }} />;
+}
 // ── LOGO ──────────────────────────────────────────────────────────────
 // Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
 // interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
@@ -2851,11 +2863,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       <div style={{ fontSize: 11, color: S.gray, marginBottom: 6, textTransform: "uppercase" }}>Foto o video del ejercicio</div>
       {form.video ? (
         <div style={{ marginBottom: 8 }}>
-          {esImagen(form.video) ? (
-            <img src={form.video} alt="media" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8, display: "block" }} />
-          ) : (
-            <video src={form.video} controls preload="metadata" style={{ width: "100%", maxHeight: 220, borderRadius: 8, display: "block" }} />
-          )}
+          <RehabMediaPreview value={form.video} />
           <button onClick={() => setForm((f) => ({ ...f, video: "" }))} style={{ marginTop: 6, background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={13} />Quitar</span>
           </button>

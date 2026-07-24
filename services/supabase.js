@@ -1366,6 +1366,22 @@ export async function subirVideo(archivo) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// STORAGE PRIVADO — URLs firmadas (2026-07-24)
+// Los buckets bioimpedancia-archivos y rehab-media son PRIVADOS. En la base
+// se guarda el PATH del objeto (no una URL pública), y se resuelve una signed
+// URL on-demand al mostrar. Las signed URLs expiran, por eso NUNCA se persisten.
+// ══════════════════════════════════════════════════════════════════════
+
+export async function getSignedUrl(bucket, path, expirySeconds = 3600) {
+  if (!path) return null;
+  // Ya renderizable tal cual: URL externa/YouTube (http) o foto embebida (data:).
+  if (/^(https?:|data:)/i.test(path)) return path;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expirySeconds);
+  if (error) { ERR("getSignedUrl", error.message, error); return null; }
+  return data.signedUrl;
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // BIOIMPEDANCIA (archivos)
 // ══════════════════════════════════════════════════════════════════════
 
@@ -1386,7 +1402,7 @@ async function _fotoADataUrl(file, maxLado = 900, calidad = 0.8) {
 async function _ensureBioBucket() {
   const { data: buckets } = await supabase.storage.listBuckets();
   if (buckets && buckets.find(b => b.name === BIO_BUCKET)) return;
-  await supabase.storage.createBucket(BIO_BUCKET, { public: true });
+  await supabase.storage.createBucket(BIO_BUCKET, { public: false });
 }
 
 export async function cargarBioimpedancia(alumno_id) {
@@ -1412,8 +1428,7 @@ export async function guardarBioimpedancia(alumno_id, datos) {
       .from(BIO_BUCKET)
       .upload(key, datos.archivo, { cacheControl: "3600", upsert: false });
     if (upErr) { ERR("guardarBioimpedancia/upload", upErr.message, upErr); throw upErr; }
-    const { data: urlData } = supabase.storage.from(BIO_BUCKET).getPublicUrl(key);
-    archivo_url = urlData.publicUrl;
+    archivo_url = key; // path del objeto (bucket privado) — signed URL se resuelve al mostrar
     nombre_archivo = datos.archivo.name;
   }
 
@@ -1424,10 +1439,14 @@ export async function guardarBioimpedancia(alumno_id, datos) {
 }
 
 export async function eliminarBioimpedancia(id, archivo_url) {
-  // Eliminar archivo de storage si existe
-  if (archivo_url) {
+  // Eliminar archivo de storage si existe. archivo_url ahora guarda el PATH
+  // directo; se contempla el formato viejo (URL pública) y se saltean las
+  // fotos embebidas (data:), que no tienen objeto en storage.
+  if (archivo_url && !/^data:/i.test(archivo_url)) {
     try {
-      const path = archivo_url.split(`/${BIO_BUCKET}/`)[1];
+      const path = archivo_url.includes(`/${BIO_BUCKET}/`)
+        ? archivo_url.split(`/${BIO_BUCKET}/`)[1].split("?")[0]
+        : archivo_url;
       if (path) await supabase.storage.from(BIO_BUCKET).remove([path]);
     } catch (e) { /* no bloquear si falla el storage */ }
   }
@@ -1665,9 +1684,8 @@ export async function subirMediaRehab(archivo) {
     .from(REHAB_BUCKET)
     .upload(key, archivo, { cacheControl: "3600", upsert: false });
   if (error) { ERR("subirMediaRehab", error.message, error); throw new Error(error.message || "Error al subir"); }
-  const { data } = supabase.storage.from(REHAB_BUCKET).getPublicUrl(key);
   LOG("subirMediaRehab", `✅ Subido: ${key}`);
-  return data.publicUrl;
+  return key; // path del objeto (bucket privado) — signed URL se resuelve al mostrar
 }
 
 // Igual que guardarEjercicioBiblioteca pero en la categoría 'rehab' (los
@@ -1901,8 +1919,7 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
         .from(BIO_BUCKET)
         .upload(key, foto, { cacheControl: "3600", upsert: false });
       if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from(BIO_BUCKET).getPublicUrl(key);
-      archivo_url = urlData.publicUrl;
+      archivo_url = key; // path del objeto (bucket privado) — signed URL al mostrar
       nombre_archivo = foto.name;
     } catch (e) {
       // Storage puede estar bloqueado por RLS (ver migrations/006). Mientras
