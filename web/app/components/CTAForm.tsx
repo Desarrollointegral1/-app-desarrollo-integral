@@ -88,19 +88,13 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
   };
 
   return (
-    <div className="cta-form-wrapper">
-      <motion.form
-        onSubmit={handleSubmit}
-        className="cta-form fade-in"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 90 }}
-        viewport={{ once: true, margin: "-80px" }}
-      >
+    <section id="cierre" className="cta-form-wrapper">
+      <form onSubmit={handleSubmit} className="cta-form fade-in">
         <p className="section-eyebrow" style={{ marginBottom: 12 }}>Evaluación inicial</p>
-        <h3 className="form-title mask-reveal">Comencemos</h3>
+        <h2 className="form-title">Empezá por conocer tu punto de partida</h2>
         <p className="form-desc">
-          Cuéntanos sobre ti y te contactaremos para una evaluación inicial sin costo.
+          La primera evaluación define todo lo que viene después. Contanos tu objetivo
+          y coordinamos.
         </p>
 
         {/* Name */}
@@ -182,7 +176,7 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             name="message"
             value={formData.message}
             onChange={handleChange}
-            placeholder="Cuéntanos sobre tu objetivo..."
+            placeholder="Contanos sobre tu objetivo..."
             rows={4}
             className="form-input form-textarea"
             disabled={isSubmitting}
@@ -210,7 +204,7 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             ? "✓ Enviado correctamente"
             : isSubmitting
               ? "Enviando…"
-              : "Solicitar Evaluación"}
+              : "Solicitar evaluación"}
         </RippleButton>
 
         {/* Status Messages */}
@@ -234,8 +228,8 @@ export function CTAForm({ onSubmit }: CTAFormProps) {
             Hubo un error. Intenta nuevamente.
           </motion.div>
         )}
-      </motion.form>
-    </div>
+      </form>
+    </section>
   );
 }
 

@@ -7,10 +7,9 @@ import { useEffect, useCallback, useRef } from "react";
 // ═══════════════════════════════════════════════════════════════════════════════
 interface NavItem { href: string; label: string; primary?: boolean }
 const VALID_NAVIGATION_ITEMS: NavItem[] = [
-  { href: "#identidad", label: "Identidad" },
   { href: "#metodo",    label: "Método" },
   { href: "#plataforma",label: "Plataforma" },
-  { href: "#form",      label: "Contacto", primary: true },
+  { href: "#cierre",    label: "Contacto", primary: true },
 ];
 
 interface NavDrawerProps {
@@ -131,7 +130,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         className="nav-drawer"
         role="dialog"
         aria-modal="true"
-        aria-label="Mobile navigation menu"
+        aria-label="Menú de navegación móvil"
         aria-hidden={!isOpen}
         style={{
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
@@ -163,7 +162,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
         </button>
 
         {/* Navigation Links */}
-        <nav className="nav-drawer-content" aria-label="Mobile navigation links">
+        <nav className="nav-drawer-content" aria-label="Enlaces de navegación">
           {VALID_NAVIGATION_ITEMS.map((item, index) => {
             const isLast = index === VALID_NAVIGATION_ITEMS.length - 1;
             

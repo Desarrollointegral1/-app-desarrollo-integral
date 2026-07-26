@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import Link from "next/link";
 
 export function GriselidaCrosslink() {
   return (
@@ -9,11 +9,12 @@ export function GriselidaCrosslink() {
       style={{
         borderTop: "1px solid var(--border)",
         background: "var(--bg2)",
-        padding: "80px 0",
+        padding: "var(--section-pad) 0",
       }}
     >
       <div className="container">
         <div
+          className="fade-in"
           style={{
             display: "grid",
             gridTemplateColumns: "auto 1fr",
@@ -22,21 +23,13 @@ export function GriselidaCrosslink() {
           }}
         >
           {/* Image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{
-              type: "spring",
-              damping: 25,
-              stiffness: 100,
-            }}
-            viewport={{ once: true }}
+          <div
             style={{
               width: 96,
               height: 96,
               borderRadius: "50%",
               overflow: "hidden",
-              border: "1px solid var(--gold-border)",
+              border: "1px solid var(--border)",
               flexShrink: 0,
             }}
           >
@@ -50,26 +43,18 @@ export function GriselidaCrosslink() {
                 objectPosition: "center top",
               }}
             />
-          </motion.div>
+          </div>
 
           {/* Content */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{
-              type: "spring",
-              damping: 25,
-              stiffness: 100,
-            }}
-            viewport={{ once: true }}
-          >
+          <div>
             <p
               style={{
-                fontSize: 10,
-                letterSpacing: "0.42em",
+                fontSize: 11,
+                letterSpacing: "0.30em",
                 color: "var(--t3)",
                 textTransform: "uppercase",
                 fontFamily: "var(--sans)",
+                fontWeight: 500,
                 marginBottom: 12,
               }}
             >
@@ -78,12 +63,13 @@ export function GriselidaCrosslink() {
 
             <h2
               style={{
-                fontFamily: "var(--serif)",
-                fontWeight: 700,
+                fontFamily: "var(--sans)",
+                fontWeight: 500,
                 fontSize: "clamp(22px, 3vw, 32px)",
-                color: "rgba(255,255,255,0.9)",
+                color: "var(--t1)",
                 marginBottom: 12,
                 lineHeight: 1.3,
+                letterSpacing: "-0.005em",
               }}
             >
               Griselda Politino — Kinesióloga &amp; Osteópata
@@ -101,28 +87,32 @@ export function GriselidaCrosslink() {
               Kinesióloga (UBA · Mat. 9741), especializada en osteopatía estructural y visceral (EOM, Instituto Barral) y RPG. Trabajamos de manera integrada: entrenamiento y salud como un mismo proceso.
             </p>
 
-            <motion.a
-              href="https://desarrollointegral.vercel.app/osteopatia"
+            <Link
+              href="/osteopatia"
+              className="griselda-link"
               style={{
                 display: "inline-block",
-                border: "1px solid var(--gold-border)",
-                color: "var(--gold)",
+                border: "1px solid rgba(237,235,231,0.25)",
+                color: "var(--t1)",
                 padding: "12px 32px",
                 fontSize: 11,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.18em",
                 textTransform: "uppercase",
                 textDecoration: "none",
                 fontFamily: "var(--sans)",
+                fontWeight: 600,
+                transition: "background 300ms cubic-bezier(0.23,1,0.32,1)",
               }}
-              whileHover={{
-                background: "var(--gold)",
-                color: "#000",
-                transition: { duration: 0.2 },
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(237,235,231,0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
               }}
             >
               Ver consultorio de Griselda →
-            </motion.a>
-          </motion.div>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

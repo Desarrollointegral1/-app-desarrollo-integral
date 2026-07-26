@@ -6,8 +6,8 @@ import HeroSection from "./components/HeroSection";
 import StatsGrid from "./components/StatsGrid";
 import ManifiestoSection from "./components/ManifiestoSection";
 import MethodSection from "./components/MethodSection";
+import ServicesSection from "./components/ServicesSection";
 import PlatformSection from "./components/PlatformSection";
-import { StudiosCTA } from "./components/StudiosCTA";
 import TeamSection from "./components/TeamSection";
 import TestimonialSlider from "./components/TestimonialSlider";
 import CTAForm from "./components/CTAForm";
@@ -16,27 +16,17 @@ import GriselidaCrosslink from "./components/GriselidaCrosslink";
 import Footer from "./components/Footer";
 
 import {
-  APP_URL,
   STATS,
   metodoCards,
+  SERVICES,
   PLATFORM_FEATURES,
   TESTIMONIALS,
   LOCATION,
 } from "./data";
 
-function LogoMark({ h = 44, opacity = 0.9 }: { h?: number; opacity?: number }) {
-  return (
-    <img
-      src="/web/logos/logo-blanco.svg"
-      alt="Desarrollo Integral"
-      style={{ height: h, width: "auto", display: "block", opacity }}
-    />
-  );
-}
-
 export default function Home() {
   useEffect(() => {
-    // IntersectionObserver only for CSS-class-based reveals
+    // IntersectionObserver — .fade-in es el único patrón de entrada
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -48,7 +38,7 @@ export default function Home() {
       },
       { threshold: 0.08, rootMargin: "-32px 0px" }
     );
-    document.querySelectorAll(".fade-in, .blur-reveal, .mask-reveal").forEach((el) => io.observe(el));
+    document.querySelectorAll(".fade-in").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 
@@ -75,11 +65,11 @@ export default function Home() {
         {/* MÉTODO */}
         <MethodSection cards={metodoCards} />
 
+        {/* SERVICIOS */}
+        <ServicesSection services={SERVICES} />
+
         {/* PLATAFORMA */}
         <PlatformSection features={PLATFORM_FEATURES} />
-
-        {/* STUDIOS */}
-        <StudiosCTA />
 
         {/* EQUIPO — Ariel editorial */}
         <TeamSection />
@@ -93,7 +83,7 @@ export default function Home() {
         {/* GRISELDA CROSS-LINK */}
         <GriselidaCrosslink />
 
-        {/* CTA FORM */}
+        {/* CIERRE + CTA FORM (fusionados) */}
         <CTAForm />
 
         {/* FOOTER */}

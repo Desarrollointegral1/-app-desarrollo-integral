@@ -34,8 +34,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-const GOLD = 'var(--gold)';
-const GREEN = 'var(--sage)';
+const GOLD = 'var(--red)';
+const GREEN = '#6B8E71';
 const BORDER = 'var(--border)';
 
 // Funciones de Supabase

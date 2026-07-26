@@ -15,24 +15,24 @@ export function MethodSection({ cards }: MethodSectionProps) {
     setActiveCard((prev) => (prev === num ? null : num));
   };
 
+  const activeDetail = activeCard ? METODO_DETAIL[activeCard] : null;
+
   return (
     <section id="metodo" className="method-section">
       <div className="container">
-        <p className="section-eyebrow blur-reveal">Cómo trabajamos</p>
-        <h2 className="section-h2 mask-reveal">El Método</h2>
+        <p className="section-eyebrow fade-in">Cómo trabajamos</p>
+        <h2 className="section-h2 fade-in">El método</h2>
 
         <div className="method-grid" role="list">
           {cards.map((card) => {
-            const detail = METODO_DETAIL[card.num];
             const isActive = activeCard === card.num;
             const panelId = `method-panel-${card.num}`;
             const headerId = `method-header-${card.num}`;
 
             return (
-              <motion.div
+              <div
                 key={card.num}
                 className={`method-card ${isActive ? "active" : ""}`}
-                layout
                 role="listitem"
               >
                 {/* Accessible accordion trigger */}
@@ -51,7 +51,7 @@ export function MethodSection({ cards }: MethodSectionProps) {
                     padding: 0,
                   }}
                 >
-                  <div className="method-num" aria-hidden="true">{card.num}</div>
+                  <div className="method-num" aria-hidden="true">{card.num}.</div>
                   <h3 className="method-label">{card.label}</h3>
                   <motion.span
                     animate={{ rotate: isActive ? 180 : 0 }}
@@ -64,44 +64,40 @@ export function MethodSection({ cards }: MethodSectionProps) {
                 </button>
 
                 {/* Quick List */}
-                <div className="method-quick" aria-hidden="true">
+                <div className="method-quick">
                   {card.list.map((item, j) => (
                     <div key={j} className="quick-item">— {item}</div>
                   ))}
                 </div>
-
-                {/* Expandable Detail Panel */}
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      id={panelId}
-                      role="region"
-                      aria-labelledby={headerId}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{
-                        type: "spring",
-                        damping: 28,
-                        stiffness: 100,
-                        mass: 0.8,
-                      }}
-                      className="method-detail"
-                      style={{ overflow: "hidden" }}
-                    >
-                      <p className="detail-description">{detail.descripcion}</p>
-                      <ul className="detail-items">
-                        {detail.items.map((item, j) => (
-                          <li key={j}>{item}</li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+              </div>
             );
           })}
         </div>
+
+        {/* Detail panel — full width, debajo de la fila de pilares */}
+        <AnimatePresence mode="wait">
+          {activeCard && activeDetail && (
+            <motion.div
+              key={activeCard}
+              id={`method-panel-${activeCard}`}
+              role="region"
+              aria-labelledby={`method-header-${activeCard}`}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              className="method-detail"
+              style={{ overflow: "hidden" }}
+            >
+              <p className="detail-description">{activeDetail.descripcion}</p>
+              <ul className="detail-items">
+                {activeDetail.items.map((item, j) => (
+                  <li key={j}>{item}</li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

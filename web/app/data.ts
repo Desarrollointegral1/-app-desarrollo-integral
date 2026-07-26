@@ -15,7 +15,7 @@ export type MetodoDetail = {
 export const METODO_DETAIL: Record<string, MetodoDetail> = {
   "01": {
     descripcion:
-      "El proceso comienza con una evaluación exhaustiva del alumno. Sin datos reales no hay punto de partida sólido. Usamos herramientas objetivas para entender el estado actual del cuerpo y definir desde dónde se trabaja.",
+      "Composición corporal, movilidad, fuerza e historial. Sin datos reales no hay punto de partida.",
     items: [
       "Composición corporal por bioimpedancia (masa muscular, grasa, hidratación)",
       "Evaluación de movilidad articular y rangos funcionales",
@@ -26,24 +26,32 @@ export const METODO_DETAIL: Record<string, MetodoDetail> = {
   },
   "02": {
     descripcion:
-      "Con los datos de la evaluación se diseña un plan específico para esa persona. No existe un plan estándar. Cada alumno trabaja con ejercicios, cargas, volumen y progresión pensados para su punto de partida y su objetivo.",
+      "Un plan de entrenamiento diseñado para vos: ejercicios, cargas y progresión según tu evaluación.",
     items: [
       "Selección de ejercicios según movilidad, fuerza y objetivos individuales",
       "Periodización estructurada con ciclos de volumen, fuerza e intensidad",
       "Progresión de cargas basada en datos registrados de cada sesión",
       "Integración de trabajo de movilidad, activación y calentamiento específico",
-      "Ajuste continuo según la respuesta del alumno al entrenamiento",
     ],
   },
   "03": {
     descripcion:
-      "El seguimiento no es una revisión mensual: es parte de cada sesión. Cada dato queda registrado en el aplicativo y permite tomar decisiones con información real, no con suposiciones.",
+      "Cada sesión guiada por un profesional que observa, corrige y ajusta en el momento.",
     items: [
       "Registro de cargas, series y repeticiones en cada entrenamiento",
+      "Corrección técnica en vivo, ejercicio por ejercicio",
+      "Ajuste de cargas e intensidad según cómo llegás a cada sesión",
+      "Comunicación directa entre coach y alumno para ajustes inmediatos",
+    ],
+  },
+  "04": {
+    descripcion:
+      "Cada registro alimenta la próxima decisión. El plan cambia cuando tu cuerpo cambia.",
+    items: [
       "Control periódico de composición corporal (bioimpedancia)",
       "Análisis de evolución en el tiempo con datos históricos",
       "Actualización del plan según progreso real y nuevos objetivos",
-      "Comunicación directa entre coach y alumno para ajustes inmediatos",
+      "Ajuste continuo según la respuesta del alumno al entrenamiento",
     ],
   },
 };
@@ -58,7 +66,7 @@ export type MetodoCard = {
 export const metodoCards: MetodoCard[] = [
   {
     num: "01",
-    label: "Evaluación",
+    label: "Evaluar",
     featured: true,
     list: [
       "Composición corporal (bioimpedancia)",
@@ -69,7 +77,7 @@ export const metodoCards: MetodoCard[] = [
   },
   {
     num: "02",
-    label: "Planificación",
+    label: "Planificar",
     featured: false,
     list: [
       "Plan de entrenamiento personalizado",
@@ -79,9 +87,19 @@ export const metodoCards: MetodoCard[] = [
   },
   {
     num: "03",
-    label: "Seguimiento",
+    label: "Entrenar",
     featured: false,
-    list: ["Ajustes constantes", "Control de evolución", "Actualización del plan"],
+    list: [
+      "Sesiones guiadas por un profesional",
+      "Corrección técnica en el momento",
+      "Cargas registradas en cada sesión",
+    ],
+  },
+  {
+    num: "04",
+    label: "Evolucionar",
+    featured: false,
+    list: ["Control de evolución", "Actualización del plan", "Decisiones con datos"],
   },
 ];
 
@@ -92,10 +110,10 @@ export type Stat = {
 };
 
 export const STATS: Stat[] = [
-  { value: "30+", label: "años de experiencia en movimiento" },
-  { value: "100%", label: "planes personalizados para cada alumno" },
-  { value: "Datos reales", label: "cada decisión se toma con evidencia" },
-  { value: "Proceso medido", label: "evolución continua verificable" },
+  { value: "30+", label: "años de experiencia de nuestro head coach" },
+  { value: "1 a 1", label: "cada plan se diseña desde una evaluación individual" },
+  { value: "Cada sesión", label: "queda registrada: cargas, series y mediciones" },
+  { value: "4 pasos", label: "evaluar, planificar, entrenar, evolucionar" },
 ];
 
 // FEATURES - Plataforma
@@ -147,19 +165,20 @@ export type Service = {
 
 export const SERVICES: Service[] = [
   {
-    title: "Entrenamiento",
-    desc: "Planes personalizados de fuerza, hipertrofia y rendimiento. Cada programa se adapta a objetivos, disponibilidad y limitaciones físicas individuales.",
-    icon: "💪",
+    title: "Entrenamiento personal",
+    desc: "Para quienes buscan progresar con guía directa. Sesiones uno a uno con plan propio, corrección técnica y cargas registradas en cada entrenamiento.",
   },
   {
-    title: "Deporte de combate",
-    desc: "Entrenamiento especializado para boxeo, kickboxing y MMA. Desarrollo de potencia, explosividad y resistencia específica del deporte.",
-    icon: "🥊",
+    title: "Preparación física",
+    desc: "Para deportistas que necesitan rendir en su disciplina. Fuerza, potencia y resistencia específicas, planificadas por ciclos según tu calendario.",
   },
   {
-    title: "Salud y rehabilitación",
-    desc: "Planes de recuperación post-lesión y manejo de dolor. Integración con fisioterapia y trabajo de movilidad para longevidad.",
-    icon: "🏥",
+    title: "Composición corporal",
+    desc: "Para quienes quieren decidir con datos, no con la balanza. Mediciones de bioimpedancia periódicas que muestran masa muscular, grasa e hidratación en el tiempo.",
+  },
+  {
+    title: "Recuperación y osteopatía",
+    desc: "Para cuerpos con dolor, lesión o limitación de movimiento. Osteopatía y kinesiología integradas al plan de entrenamiento para volver a moverte sin riesgo.",
   },
 ];
 

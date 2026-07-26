@@ -24,8 +24,8 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
   return (
     <section id="testimonios" className="testimonial-section">
       <div className="container">
-        <p className="section-eyebrow blur-reveal">Resultados reales</p>
-        <h2 className="section-h2 mask-reveal">Lo que dicen</h2>
+        <p className="section-eyebrow fade-in">Resultados reales</p>
+        <h2 className="section-h2 fade-in">Lo que dicen</h2>
 
         <div className="testimonial-wrapper" aria-live="polite" aria-atomic="true">
           <AnimatePresence mode="wait">
@@ -56,7 +56,7 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
             <button
               onClick={prev}
               className="nav-button"
-              aria-label="Previous testimonial"
+              aria-label="Testimonio anterior"
             >
               ← Anterior
             </button>
@@ -66,14 +66,14 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
                   key={i}
                   onClick={() => setCurrent(i)}
                   className={`dot ${i === current ? "active" : ""}`}
-                  aria-label={`Go to testimonial ${i + 1}`}
+                  aria-label={`Ir al testimonio ${i + 1}`}
                 />
               ))}
             </div>
             <button
               onClick={next}
               className="nav-button"
-              aria-label="Next testimonial"
+              aria-label="Siguiente testimonio"
             >
               Siguiente →
             </button>

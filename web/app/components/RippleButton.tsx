@@ -77,7 +77,7 @@ export function RippleButton({
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                background: "rgba(200,169,110,0.45)",
+                background: "rgba(255,255,255,0.35)",
                 pointerEvents: "none",
                 transform: "translate(-50%,-50%)",
               }}
@@ -113,7 +113,7 @@ export function RippleButton({
               width: 10,
               height: 10,
               borderRadius: "50%",
-              background: "rgba(200,169,110,0.45)",
+              background: "rgba(255,255,255,0.35)",
               pointerEvents: "none",
               transform: "translate(-50%,-50%)",
             }}

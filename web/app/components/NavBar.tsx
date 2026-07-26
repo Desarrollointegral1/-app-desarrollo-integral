@@ -7,7 +7,7 @@ import { NavDrawer } from "./NavDrawer";
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECURITY: Whitelist de secciones válidas (anti-XSS)
 // ═══════════════════════════════════════════════════════════════════════════════
-const VALID_SECTIONS = ["identidad", "metodo", "plataforma"] as const;
+const VALID_SECTIONS = ["metodo", "plataforma"] as const;
 type ValidSection = typeof VALID_SECTIONS[number];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -54,19 +54,31 @@ export function NavBar() {
   // ─────────────────────────────────────────────────────────────────────────────
   const handleThemeToggle = useCallback(() => {
     if (!themeLimiter.canToggle()) return;
-    
-    setIsDark((prev) => {
-      const newTheme = !prev;
-      // SECURITY: Use setAttribute in requestAnimationFrame (prevent race conditions)
-      requestAnimationFrame(() => {
-        document.documentElement.setAttribute(
-          "data-theme", 
-          newTheme ? "dark" : "light"
-        );
-      });
-      return newTheme;
-    });
-  }, [themeLimiter]);
+
+    // Sincrónico y fuera del updater: setAttribute dentro de un
+    // requestAnimationFrame no dispara en tabs ocultos y dejaba el atributo
+    // desincronizado del estado; un updater con efectos además corre doble
+    // en StrictMode (mismo bug ya corregido en Storytelling, d31604b).
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
+    try {
+      localStorage.setItem("di-theme", next ? "dark" : "light");
+    } catch {
+      /* localStorage bloqueado: el toggle sigue funcionando sin persistencia */
+    }
+  }, [themeLimiter, isDark]);
+
+  // Restaurar el tema persistido (el script inline del layout ya aplicó el
+  // atributo antes del paint; acá solo sincronizamos el estado del ícono)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("di-theme");
+      if (saved === "light") setIsDark(false);
+    } catch {
+      /* sin persistencia */
+    }
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PERFORMANCE: Throttled scroll handler with RAF
@@ -136,7 +148,7 @@ export function NavBar() {
       <nav
         className="nav-main"
         role="navigation"
-        aria-label="Main navigation"
+        aria-label="Navegación principal"
         style={{
           transform: isHidden ? "translateY(-100%)" : "translateY(0)",
           transition: "transform 300ms cubic-bezier(0.23, 1, 0.32, 1)",
@@ -155,9 +167,6 @@ export function NavBar() {
           {/* Desktop Nav Links — Gold Underline on Active                    */}
           {/* ─────────────────────────────────────────────────────────────── */}
           <div className="nav-links-desktop">
-            <NavLink href="#identidad" active={activeSection === "identidad"}>
-              Identidad
-            </NavLink>
             <NavLink href="#metodo" active={activeSection === "metodo"}>
               Método
             </NavLink>
@@ -210,7 +219,7 @@ export function NavBar() {
             </button>
             
             <a 
-              href="#form" 
+              href="#cierre"
               className="nav-cta"
               aria-label="Ir al formulario de contacto"
             >

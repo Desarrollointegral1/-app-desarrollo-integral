@@ -8,8 +8,9 @@ if (process.env.NODE_ENV === "development") {
 }
 
 export const metadata: Metadata = {
-  title: "Desarrollo Integral — Centro de Entrenamiento",
-  description: "Planes de entrenamiento personalizados, con seguimiento y registro completo de cada proceso.",
+  title: "Desarrollo Integral | Entrenamiento Personalizado en Belgrano, Buenos Aires",
+  description:
+    "Centro de entrenamiento personalizado en Belgrano. Evaluación con bioimpedancia, plan de entrenamiento propio y seguimiento profesional sesión a sesión. Sucre 2538, Buenos Aires.",
 };
 
 export default function RootLayout({
@@ -18,7 +19,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Aplica el tema persistido antes del primer paint (evita flash) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('di-theme')==='light'){document.documentElement.setAttribute('data-theme','light')}}catch(e){}",
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

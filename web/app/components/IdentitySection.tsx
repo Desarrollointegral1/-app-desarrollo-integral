@@ -11,7 +11,7 @@ export function IdentitySection({ pillars }: IdentitySectionProps) {
   return (
     <section id="identidad">
       <div className="container">
-        <p className="identidad-eyebrow blur-reveal">Qué es Desarrollo Integral</p>
+        <p className="identidad-eyebrow fade-in">Qué es Desarrollo Integral</p>
 
         <motion.div
           className="identidad-grid"
