@@ -14,9 +14,9 @@
  *     Authorization: Bearer <BRAIN_API_KEY>
  *   (también se acepta el header  x-api-key: <BRAIN_API_KEY>)
  *
- * NO usar en endpoints que llame el navegador (coalition/stream, responder,
- * orchestrator, monitor): un token en JS de cliente no es secreto. Esos van
- * detrás de un login de página, no de este gate.
+ * NO usar en endpoints que llame el navegador (coalition/stream, orchestrator,
+ * monitor): un token en JS de cliente no es secreto. Esos van detrás de un
+ * login de página, no de este gate.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

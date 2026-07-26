@@ -1,6 +1,6 @@
 /**
  * Login de página para las herramientas internas de Charles (coalición,
- * monitor, responder, orquestador) — a diferencia de api-auth.ts (Bearer
+ * monitor, orquestador) — a diferencia de api-auth.ts (Bearer
  * token para llamadas server-to-server), estos endpoints los llama el
  * propio navegador: la sesión vive en una cookie httpOnly firmada.
  *

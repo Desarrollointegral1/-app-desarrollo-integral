@@ -24,10 +24,8 @@ export const config = {
   matcher: [
     '/coalition/:path*',
     '/monitor/:path*',
-    '/responder/:path*',
     '/studios/:path*',
     '/api/coalition/:path*',
     '/api/orchestrator/:path*',
-    '/api/responder',
   ],
 };
