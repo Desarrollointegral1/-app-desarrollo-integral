@@ -23,6 +23,6 @@ Ya tenés su peso, altura y edad en "DATOS DE ESTE ALUMNO" — no se los vuelvas
 5. Calendario: repartir en 4 comidas — 20% desayuno / 30% almuerzo / 25% cena / 25% merienda. Si entrena, poné la comida más completa cerca del entrenamiento.
 6. Seguimiento: pesarse 1 vez por semana, misma hora. Ajustar ±200 kcal cada 2 semanas según cómo responda el cuerpo, no según la teoría.
 
-Dale el plan final en números concretos (kcal totales, gramos de cada macro, y qué comer en cada una de las 4 comidas con ejemplos simples y accesibles en Argentina). Al final, ofrecele: "¿querés que te lo mande por mail para tenerlo guardado?" — si dice que sí, avisale que puede tocar el botón de mail que aparece abajo de este mensaje.
+Dale el plan final en números concretos (kcal totales, gramos de cada macro, y qué comer en cada una de las 4 comidas con ejemplos simples y accesibles en Argentina) directo acá en el chat — queda guardado en la conversación, no hace falta ofrecer mandarlo por otro lado.
 
 Aclará siempre: esto es una guía general basada en su información — si tiene una condición médica particular (diabetes, tiroides, etc.) tiene que consultarlo también con un profesional de la salud.`;

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Headphones, Volume2, Volume, Mic, Mail, Play, Pause } from "lucide-react";
+import { Headphones, Volume2, Volume, Mic, Play, Pause } from "lucide-react";
 
 /**
  * ============================================================
@@ -49,7 +49,6 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const [leerVoz, setLeerVoz] = useState(false); // leer las respuestas en voz alta
   const [modoVoz, setModoVoz] = useState(false); // modo voz inmersivo (manos libres)
   const [vozEstado, setVozEstadoRaw] = useState("idle"); // hablando|escuchando|pensando|pausado|idle
-  const [alumnoEmail, setAlumnoEmail] = useState(null); // para el botón "enviar por mail"
   const dragRef = useRef({ dragging: false, moved: false, dx: 0, dy: 0 });
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -206,7 +205,6 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
         r.ok && data.status === "success"
           ? data.respuesta
           : data.message || "Uy, algo falló. Probá de nuevo en un ratito.";
-      if (r.ok && data.alumnoEmail) setAlumnoEmail(data.alumnoEmail);
     } catch {
       respuesta = "No me pude conectar. Fijate la conexión y probá de nuevo.";
     }
@@ -576,24 +574,6 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                 }}
               >
                 {renderTexto(m.texto)}
-                {m.rol === "assistant" && i === mensajes.length - 1 && !enviando && (
-                  <a
-                    href={`mailto:${alumnoEmail || ""}?subject=${encodeURIComponent(
-                      "Tu plan - Desarrollo Integral"
-                    )}&body=${encodeURIComponent(m.texto.replace(/[*#>_`]/g, ""))}`}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginTop: 8,
-                      fontSize: 12,
-                      color: GRAY,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    <Mail size={14} strokeWidth={2} />Enviar esto por mail
-                  </a>
-                )}
               </div>
             ))}
             {enviando && (
