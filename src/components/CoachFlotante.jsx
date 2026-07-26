@@ -44,7 +44,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [pos, setPos] = useState(null); // {x, y} del botón; null hasta montar
-  const [habilitado, setHabilitado] = useState(false); // flag beta (ver abajo)
+  const [habilitado] = useState(true); // beta cerrada 2026-07-26, abierto a todos los alumnos
   const [escuchando, setEscuchando] = useState(false); // micrófono activo (chat)
   const [leerVoz, setLeerVoz] = useState(false); // leer las respuestas en voz alta
   const [modoVoz, setModoVoz] = useState(false); // modo voz inmersivo (manos libres)
@@ -75,18 +75,6 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     setPos({ x: w - 74, y: h - 150 });
   }, []);
 
-  // FLAG BETA: el coach solo aparece para quien lo activa. Mientras Lucas
-  // prueba, se abre la app UNA vez con ?coach=1 en la URL (queda guardado en
-  // el dispositivo) y no lo ve ningún otro alumno. Se apaga con ?coach=0.
-  // Cuando esté listo para todos, se elimina este gate.
-  useEffect(() => {
-    try {
-      const q = new URL(window.location.href).searchParams.get("coach");
-      if (q === "1") localStorage.setItem("coach_beta", "1");
-      if (q === "0") localStorage.removeItem("coach_beta");
-      setHabilitado(localStorage.getItem("coach_beta") === "1");
-    } catch {}
-  }, []);
 
   // Autoscroll al último mensaje.
   useEffect(() => {
