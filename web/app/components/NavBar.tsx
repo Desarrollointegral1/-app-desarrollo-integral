@@ -37,9 +37,28 @@ class ThemeToggleLimiter {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COMPONENT: NavBar — Premium Dark with Gold
+// COMPONENT: NavBar — nav institucional compartida por todas las rutas
+// Los links y el CTA son configurables para que las páginas internas
+// (/osteopatia) usen la MISMA nav en vez de inventarse una propia.
 // ═══════════════════════════════════════════════════════════════════════════════
-export function NavBar() {
+type NavLinkDef = { href: string; label: string };
+
+const DEFAULT_LINKS: NavLinkDef[] = [
+  { href: "#metodo", label: "Método" },
+  { href: "#plataforma", label: "Plataforma" },
+];
+
+interface NavBarProps {
+  links?: NavLinkDef[];
+  ctaHref?: string;
+  ctaLabel?: string;
+}
+
+export function NavBar({
+  links = DEFAULT_LINKS,
+  ctaHref = "#cierre",
+  ctaLabel = "Contacto",
+}: NavBarProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [isHidden, setIsHidden] = useState(false);
@@ -48,6 +67,13 @@ export function NavBar() {
   
   // SECURITY: Rate limiter instance (memoized)
   const themeLimiter = useMemo(() => new ThemeToggleLimiter(), []);
+
+  // El drawer (único acceso al CTA en ≤640px, donde .nav-cta se oculta)
+  // repite los links de la nav + el CTA como item primario.
+  const drawerItems = useMemo(
+    () => [...links, { href: ctaHref, label: ctaLabel, primary: true }],
+    [links, ctaHref, ctaLabel]
+  );
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SECURITY: Sanitized theme toggle with rate limiting
@@ -167,12 +193,15 @@ export function NavBar() {
           {/* Desktop Nav Links — Gold Underline on Active                    */}
           {/* ─────────────────────────────────────────────────────────────── */}
           <div className="nav-links-desktop">
-            <NavLink href="#metodo" active={activeSection === "metodo"}>
-              Método
-            </NavLink>
-            <NavLink href="#plataforma" active={activeSection === "plataforma"}>
-              Plataforma
-            </NavLink>
+            {links.map(({ href, label }) => (
+              <NavLink
+                key={href}
+                href={href}
+                active={activeSection === href.replace("#", "")}
+              >
+                {label}
+              </NavLink>
+            ))}
           </div>
 
           {/* ─────────────────────────────────────────────────────────────── */}
@@ -218,12 +247,12 @@ export function NavBar() {
               )}
             </button>
             
-            <a 
-              href="#cierre"
+            <a
+              href={ctaHref}
               className="nav-cta"
-              aria-label="Ir al formulario de contacto"
+              aria-label={`Ir a ${ctaLabel.toLowerCase()}`}
             >
-              Contacto
+              {ctaLabel}
             </a>
             
             <button
@@ -241,7 +270,11 @@ export function NavBar() {
         </div>
       </nav>
 
-      <NavDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <NavDrawer
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        items={drawerItems}
+      />
     </>
   );
 }

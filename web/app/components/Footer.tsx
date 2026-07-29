@@ -7,7 +7,9 @@ export function Footer() {
 
   return (
     <footer style={{ position: "relative", zIndex: 10 }}>
-      <a href="#hero" className="footer-logo-link">
+      {/* "#" y no "#hero": el footer es compartido y /osteopatia no tiene esa
+          ancla — así vuelve al inicio en cualquier ruta. */}
+      <a href="#" className="footer-logo-link">
         <img
           src={LOGO_WHITE}
           alt="Desarrollo Integral"

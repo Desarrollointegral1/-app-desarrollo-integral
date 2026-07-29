@@ -6,7 +6,7 @@ import { useEffect, useCallback, useRef } from "react";
 // SECURITY: Whitelist de navegación válida
 // ═══════════════════════════════════════════════════════════════════════════════
 interface NavItem { href: string; label: string; primary?: boolean }
-const VALID_NAVIGATION_ITEMS: NavItem[] = [
+const DEFAULT_NAVIGATION_ITEMS: NavItem[] = [
   { href: "#metodo",    label: "Método" },
   { href: "#plataforma",label: "Plataforma" },
   { href: "#cierre",    label: "Contacto", primary: true },
@@ -15,12 +15,16 @@ const VALID_NAVIGATION_ITEMS: NavItem[] = [
 interface NavDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  /* Los define el código de cada ruta (no input de usuario): siguen siendo
+     la whitelist contra la que se valida cada href al navegar. */
+  items?: NavItem[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENT: NavDrawer — Secure Mobile Navigation
 // ═══════════════════════════════════════════════════════════════════════════════
-export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
+export function NavDrawer({ isOpen, onClose, items }: NavDrawerProps) {
+  const VALID_NAVIGATION_ITEMS = items ?? DEFAULT_NAVIGATION_ITEMS;
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
   const lastFocusableRef = useRef<HTMLAnchorElement>(null);
 
@@ -105,7 +109,7 @@ export function NavDrawer({ isOpen, onClose }: NavDrawerProps) {
     }
     
     onClose();
-  }, [onClose]);
+  }, [onClose, VALID_NAVIGATION_ITEMS]);
 
   return (
     <>

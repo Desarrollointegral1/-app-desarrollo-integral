@@ -25,9 +25,11 @@ export function GriselidaCrosslink() {
           {/* Image */}
           <div
             style={{
-              width: 96,
-              height: 96,
-              borderRadius: "50%",
+              // Retrato en marco rectangular de esquina suave, nunca circular
+              // (playbook anti-cara-de-IA, señal 10)
+              width: 88,
+              height: 110,
+              borderRadius: 6,
               overflow: "hidden",
               border: "1px solid var(--border)",
               flexShrink: 0,
