@@ -1934,6 +1934,10 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
   const metadata = {};
   if (datos.conclusion) metadata.conclusion = datos.conclusion;
   if (datos.objetivo) metadata.objetivo = datos.objetivo;
+  // Requerimiento energético estimado (bloque 7 del protocolo). Viene ya
+  // calculado y validado por src/utils/energia.js, o viene null si el bloque
+  // estaba incompleto — en ese caso no se guarda nada, ni parcial ni NaN.
+  if (datos.requerimiento) metadata.requerimiento = datos.requerimiento;
 
   const payload = limpiarPayload({
     alumno_id,

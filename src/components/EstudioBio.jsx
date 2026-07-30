@@ -1,7 +1,15 @@
-import { useState, useEffect } from "react";
-import { BarChart3, X, Camera, Inbox, Calendar, FileText, Trash2 } from "lucide-react";
-import { S, card, inp } from "../utils/theme.js";
+import { useState, useEffect, useMemo } from "react";
+import { BarChart3, X, Camera, Inbox, Calendar, FileText, Trash2, Flame, TriangleAlert } from "lucide-react";
+import { S, card, inp, innerCard } from "../utils/theme.js";
 import { hoy } from "../utils/helpers.js";
+import {
+  SEXOS,
+  NIVELES_ACTIVIDAD,
+  OBJETIVOS_COMPOSICION,
+  calcularRequerimiento,
+  formatoRango,
+  DISCLAIMER_REQUERIMIENTO,
+} from "../utils/energia.js";
 import {
   saveBioimpedanciaCompleta,
   cargarBioimpedanciaCompleta,
@@ -76,13 +84,17 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
   return (
     <div>
       {!readOnly && <EstudioBioForm alumno={alumno} onGuardar={guardar} guardando={guardando} />}
+      {/* El requerimiento energético y la alerta de disponibilidad son
+          entrenador-only por veto de seguridad: un número de kcal mostrado al
+          alumno se lee como prescripción, y la alerta es un indicador de
+          riesgo RED-S que debe derivar a un profesional, no mostrarse. */}
       <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><BarChart3 size={16} strokeWidth={2} />Estudios registrados</span>
       </div>
       {cargando ? (
         <div style={{ color: S.gray, fontSize: 12, padding: 16, textAlign: "center" }}>Cargando...</div>
       ) : (
-        <EstudioBioHistorial registros={registros} onEliminar={readOnly ? null : eliminar} alumnoFlyer={readOnly ? null : alumno} showToast={showToast} />
+        <EstudioBioHistorial registros={registros} onEliminar={readOnly ? null : eliminar} alumnoFlyer={readOnly ? null : alumno} showToast={showToast} mostrarRequerimiento={!readOnly} />
       )}
     </div>
   );
@@ -104,11 +116,34 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
     masa_muscular: "",
     conclusion: "",
     objetivo: "",
+    sexo: "",
+    actividad: "",
+    objetivo_composicion: "",
   });
   const [foto, setFoto] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
 
   const set = (k) => (e) => setF((prev) => ({ ...prev, [k]: e.target.value }));
+  // Toggle de chip: volver a tocar el activo lo apaga (mismo gesto que las
+  // escalas y los objetivos del protocolo de evaluación).
+  const setChip = (campo, valor) =>
+    setF((p) => ({ ...p, [campo]: p[campo] === valor ? "" : valor }));
+
+  // Se recalcula solo con lo cargado. Devuelve null mientras falte un dato
+  // obligatorio o alguno esté fuera de rango — no hay resultados parciales.
+  const req = useMemo(
+    () =>
+      calcularRequerimiento({
+        sexo: f.sexo,
+        actividad: f.actividad,
+        objetivo: f.objetivo_composicion,
+        edad: f.edad,
+        altura: f.altura,
+        peso: f.peso,
+        grasa_corporal: f.grasa_corporal,
+      }),
+    [f.sexo, f.actividad, f.objetivo_composicion, f.edad, f.altura, f.peso, f.grasa_corporal]
+  );
 
   const handleFoto = (e) => {
     const file = e.target.files[0];
@@ -124,9 +159,41 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
       {t}
     </div>
   );
+  // Mismo peso visual que los subtítulos del protocolo de evaluación: un
+  // bloque nuevo se anuncia como sección, no como caption gris.
+  const subtitulo = (t) => (
+    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, margin: "18px 0 10px" }}>
+      {t}
+    </div>
+  );
+  // Chip de fila (2-3 opciones, ocupan el ancho) y chip pastilla (5 opciones,
+  // se acomodan en dos líneas a 375px en vez de apretarse).
+  const chipFila = (activo) => ({
+    flex: 1,
+    background: activo ? S.white : S.card2,
+    color: activo ? S.bg : S.gray,
+    border: "1px solid " + (activo ? S.white : S.border),
+    borderRadius: 8,
+    padding: "9px 4px",
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+  });
+  const chipPill = (activo) => ({
+    background: activo ? S.white : S.card2,
+    color: activo ? S.bg : S.gray,
+    border: "1px solid " + (activo ? S.white : S.border),
+    borderRadius: 20,
+    padding: "7px 14px",
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+  });
 
   const guardar = async () => {
-    const ok = await onGuardar(f, foto);
+    // `req` es null si el bloque está incompleto: en ese caso no viaja nada
+    // del requerimiento a la base (todo o nada, nunca un NaN disfrazado).
+    const ok = await onGuardar({ ...f, requerimiento: req }, foto);
     if (ok) {
       setF({
         fecha: hoy(),
@@ -140,6 +207,9 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
         masa_muscular: "",
         conclusion: "",
         objetivo: "",
+        sexo: "",
+        actividad: "",
+        objetivo_composicion: "",
       });
       setFoto(null);
       setFotoPreview(null);
@@ -189,6 +259,141 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
           {label("% Masa muscular")}
           <input type="number" inputMode="decimal" step="0.1" value={f.masa_muscular} onChange={set("masa_muscular")} style={inp} />
         </div>
+      </div>
+
+      {/* ── Requerimiento energético estimado ──────────────────────────
+          Bloque 7 del protocolo de evaluación. Se calcula con datos que el
+          estudio ya toma; solo suma sexo, actividad y objetivo. */}
+      {subtitulo("Requerimiento energético estimado")}
+
+      {label("Sexo (para el cálculo)")}
+      <div style={{ display: "flex", gap: 6 }}>
+        {SEXOS.map((s) => (
+          <button key={s.k} type="button" onClick={() => setChip("sexo", s.k)} style={chipFila(f.sexo === s.k)}>
+            {s.txt.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        {label("Nivel de actividad física")}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {NIVELES_ACTIVIDAD.map((n) => (
+            <button key={n.k} type="button" onClick={() => setChip("actividad", n.k)} style={chipPill(f.actividad === n.k)}>
+              {n.txt} · {n.pal.toFixed(1).replace(".", ",")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        {label("Objetivo de composición")}
+        <div style={{ display: "flex", gap: 6 }}>
+          {OBJETIVOS_COMPOSICION.map((o) => (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => setChip("objetivo_composicion", o.k)}
+              style={chipFila(f.objetivo_composicion === o.k)}
+            >
+              {o.txt.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ ...innerCard, padding: "12px 14px", marginTop: 14 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Flame size={14} strokeWidth={2} color={S.gray} />
+          <span style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>
+            Gasto energético estimado
+          </span>
+        </span>
+
+        {!req ? (
+          <div style={{ fontSize: 11, color: S.lgray, marginTop: 8, lineHeight: 1.5 }}>
+            Completá edad, estatura, peso, sexo y nivel de actividad para calcular.
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: req.tmb_cunningham ? "1fr 1fr" : "1fr",
+                gap: 6,
+                marginTop: 10,
+              }}
+            >
+              <div style={{ textAlign: "center", background: S.card3, borderRadius: 6, padding: "6px 4px" }}>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{req.tmb} kcal</div>
+                <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>TMB MIFFLIN</div>
+              </div>
+              {req.tmb_cunningham && (
+                <div style={{ textAlign: "center", background: S.card3, borderRadius: 6, padding: "6px 4px" }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{req.tmb_cunningham} kcal</div>
+                  <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>TMB CUNNINGHAM</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: S.white, lineHeight: 1 }}>
+                {formatoRango(req.rango)}
+              </div>
+              <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>
+                Gasto total estimado · mantenimiento
+              </div>
+            </div>
+
+            {req.rango_ajustado && req.objetivo !== "mantener" && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: S.white, lineHeight: 1 }}>
+                  {formatoRango(req.rango_ajustado)}
+                </div>
+                <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>
+                  {req.objetivo === "bajar_grasa" ? "Rango ajustado · déficit 300–1000" : "Rango ajustado · superávit 300–500"}
+                </div>
+              </div>
+            )}
+
+            {req.alerta_piso && (
+              <div
+                style={{
+                  marginTop: 10,
+                  background: S.card,
+                  borderLeft: "3px solid " + S.yellow,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <TriangleAlert size={14} strokeWidth={2} color={S.yellow} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: S.yellow }}>
+                    Por debajo del piso de seguridad hormonal
+                  </span>
+                </span>
+                <div style={{ fontSize: 11, color: S.white, lineHeight: 1.5, marginTop: 4 }}>
+                  El límite inferior del rango ({req.rango_ajustado ? req.rango_ajustado[0] : req.rango[0]} kcal) queda
+                  por debajo de 30 kcal por kg de masa magra ({req.piso_kcal} kcal sobre {req.masa_magra} kg). Revisar
+                  el objetivo antes de sostenerlo.
+                </div>
+              </div>
+            )}
+
+            <div
+              style={{
+                borderTop: "1px solid " + S.border,
+                paddingTop: 8,
+                marginTop: 12,
+                fontSize: 11,
+                color: S.gray,
+                lineHeight: 1.45,
+              }}
+            >
+              {DISCLAIMER_REQUERIMIENTO}
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{ marginTop: 10 }}>
@@ -271,7 +476,7 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false }) {
 // `alumnoFlyer`: si viene (admin), cada registro muestra "Generar flyer" —
 // el documento de una página con marca DI para mandarle al alumno. Se
 // regenera siempre desde el registro (conclusión/objetivo viven en metadata).
-export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showToast }) {
+export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showToast, mostrarRequerimiento = false }) {
   if (!registros || registros.length === 0) {
     return (
       <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
@@ -340,6 +545,32 @@ export function EstudioBioHistorial({ registros, onEliminar, alumnoFlyer, showTo
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 9, color: S.green, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Objetivo de mejora</div>
               <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>{bio.metadata.objetivo}</div>
+            </div>
+          )}
+          {/* Solo entrenador: el número de kcal se lee como prescripción y la
+              alerta es un indicador de riesgo RED-S. Gateado a propósito, no
+              por el hecho de que hoy no exista una vista de alumno. */}
+          {mostrarRequerimiento && bio.metadata?.requerimiento && (
+            <div style={{ marginTop: 8 }}>
+              <div
+                style={{
+                  fontSize: 9,
+                  color: bio.metadata.requerimiento.alerta_piso ? S.yellow : S.gray,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  marginBottom: 3,
+                }}
+              >
+                Requerimiento energético
+              </div>
+              <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>
+                {formatoRango(bio.metadata.requerimiento.rango_ajustado || bio.metadata.requerimiento.rango)}
+              </div>
+              {bio.metadata.requerimiento.alerta_piso && (
+                <div style={{ color: S.yellow, fontSize: 11, marginTop: 3, lineHeight: 1.4 }}>
+                  Por debajo del piso de 30 kcal/kg de masa magra.
+                </div>
+              )}
             </div>
           )}
           {bio.archivo_url && <BioFoto bio={bio} />}
