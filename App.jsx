@@ -4009,6 +4009,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         boxSizing: "border-box",
       }}
     >
+      {/* El panel admin no montaba GlobalStyles: por eso no le llegaban ni la
+          grilla de escritorio (.di-grid-cards), ni :focus-visible, ni el
+          respeto por prefers-reduced-motion. Detectado midiendo en produccion
+          despues del primer deploy. */}
+      <GlobalStyles />
       {" "}
       {/* Header en 2 filas (2026-07-21, pedido de Lucas sobre un screenshot
           de mobile: antes título + botones compartían un renglón con
