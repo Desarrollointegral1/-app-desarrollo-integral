@@ -266,18 +266,38 @@ export default function PlanDelDia({
            plan o es que hoy no entrena. Ahora se distinguen los dos casos y,
            si entrena otros días, se dicen cuáles. */
         <div style={{ ...card, padding: "24px 20px", textAlign: "center", color: S.gray, fontSize: 16, lineHeight: 1.5 }}>
-          {diasEntrena && diasEntrena.length > 0 ? (
-            <>
-              <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Hoy no te toca entrenar</div>
-              Entrenás los <span style={{ color: S.white, fontWeight: 700 }}>{diasEntrena.join(" · ")}</span>.
-              <div style={{ marginTop: 10 }}>Mientras tanto podés hacer la preparación: está en la pestaña de al lado.</div>
-            </>
-          ) : (
-            <>
-              <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Todavía no tenés plan asignado</div>
-              Hablá con tu entrenador para que te cargue la rutina.
-            </>
-          )}
+          {(() => {
+            // Tres casos distintos, no dos. El alumno puede entrenar HOY y
+            // aun asi no tener plan cargado para hoy (le pasa a Agustina:
+            // entrena martes/jueves/sabado y solo tiene plan del martes).
+            // Decirle "hoy no te toca" cuando si le toca es peor que no
+            // decir nada.
+            const sinDias = !diasEntrena || diasEntrena.length === 0;
+            if (sinDias) {
+              return (
+                <>
+                  <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Todavía no tenés plan asignado</div>
+                  Hablá con tu entrenador para que te cargue la rutina.
+                </>
+              );
+            }
+            const limpia = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+            const DIAS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+            const hoyNombre = DIAS[new Date().getDay()];
+            const entrenaHoy = diasEntrena.some((d) => limpia(d) === hoyNombre);
+            return entrenaHoy ? (
+              <>
+                <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Hoy entrenás, pero todavía no tenés la rutina cargada</div>
+                Avisale a tu entrenador. Mientras tanto podés hacer la preparación: está en la pestaña de al lado.
+              </>
+            ) : (
+              <>
+                <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Hoy no te toca entrenar</div>
+                Entrenás los <span style={{ color: S.white, fontWeight: 700 }}>{diasEntrena.join(" · ")}</span>.
+                <div style={{ marginTop: 10 }}>Si querés moverte igual, hacé la preparación: está en la pestaña de al lado.</div>
+              </>
+            );
+          })()}
         </div>
       ) : (
         <>
