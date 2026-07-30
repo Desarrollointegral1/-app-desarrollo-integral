@@ -3123,12 +3123,26 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
                 <div style={{ color: S.gray, fontSize: 15 }}>ESTE MES</div>
               </div>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
-                <div style={{ color: S.white, fontWeight: 700 }}>{ultimaAsist || "—"}</div>
-                <div style={{ color: S.gray, fontSize: 15 }}>ULTIMA VEZ</div>
+                {/* La fecha se mostraba cruda en ISO ("2026-07-26"): al pasar
+                    la lista a grilla de 3 columnas la caja se angosto y la
+                    fecha se partia en dos lineas. dd/mm entra y ademas se
+                    lee como la escribe una persona. */}
+                <div style={{ color: S.white, fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {ultimaAsist ? `${ultimaAsist.slice(8, 10)}/${ultimaAsist.slice(5, 7)}` : "—"}
+                </div>
+                <div style={{ color: S.gray, fontSize: 15, whiteSpace: "nowrap" }}>ÚLTIMA VEZ</div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(al.id, al.nombre); }}
-                style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 13, cursor: "pointer", flexShrink: 0 }}
+                title={`Eliminar a ${al.nombre}`}
+                aria-label={`Eliminar a ${al.nombre}`}
+                // El rojo es el unico acento de la marca y "nunca un bloque":
+                // habia un boton con borde rojo pleno por cada alumno, o sea
+                // 7 marcas rojas compitiendo en la misma pantalla. Queda gris
+                // en reposo y se pone rojo recien al apuntarlo.
+                onMouseEnter={(e) => { e.currentTarget.style.color = S.red; e.currentTarget.style.borderColor = S.red; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = S.lgray; e.currentTarget.style.borderColor = S.border2; }}
+                style={{ background: "transparent", color: S.lgray, border: "1px solid " + S.border2, borderRadius: 6, padding: "4px 10px", fontSize: 13, cursor: "pointer", flexShrink: 0, transition: "color 0.2s, border-color 0.2s" }}
               ><Trash2 size={16} /></button>
             </div>
           </div>
