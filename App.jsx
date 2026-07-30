@@ -203,7 +203,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
           width={300}
           style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
         />
-        <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
+        <div style={{ color: S.gray, fontSize: 14, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
           App de entrenamiento
         </div>
       </div>
@@ -476,7 +476,7 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 10,
+            fontSize: 14,
             cursor: "pointer",
             boxShadow: "0 1px 4px #000",
           }}
@@ -709,7 +709,7 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               {sug.codigo && (
-                <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                <span style={{ color: S.gray, fontSize: 14, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                   {sug.codigo}
                 </span>
               )}
@@ -717,7 +717,7 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
                 <div style={{ color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
                 {sug.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
               </div>
-              {sug.video && <div style={{ color: S.green, fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}><Play size={11} />VIDEO</div>}
+              {sug.video && <div style={{ color: S.green, fontSize: 14, fontWeight: 700, letterSpacing: 1, flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}><Play size={11} />VIDEO</div>}
             </div>
           ))}
         </div>
@@ -993,7 +993,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 10,
+                    fontSize: 14,
                     padding: "1px 4px",
                   }}
                 >
@@ -1006,7 +1006,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 10,
+                    fontSize: 14,
                     padding: "1px 4px",
                   }}
                 >
@@ -1022,7 +1022,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 10,
+                  fontSize: 14,
                   color: S.gray,
                   fontWeight: 700,
                   flexShrink: 0,
@@ -1034,7 +1034,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                 {" "}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {ej.codigo && (
-                    <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                    <span style={{ color: S.gray, fontSize: 14, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                       {ej.codigo}
                     </span>
                   )}
@@ -1047,7 +1047,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   </div>
                 )}{" "}
                 {showVideo && (ej.video || ej.mediaLocal) && (
-                  <div style={{ color: "#4a9eff", fontSize: 10, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}><Play size={11} />Media asignada</div>
+                  <div style={{ color: "#4a9eff", fontSize: 14, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}><Play size={11} />Media asignada</div>
                 )}{" "}
               </div>{" "}
               <button onClick={() => startEdit(i)} style={smallBtn(S.white)}>
@@ -1244,7 +1244,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
                   border: "1px solid " + S.border,
                   borderRadius: 6,
                   padding: "3px 5px",
-                  fontSize: 10,
+                  fontSize: 14,
                   cursor: i === 0 ? "default" : "pointer",
                   opacity: i === 0 ? 0.4 : 1,
                 }}
@@ -1263,7 +1263,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
                   border: "1px solid " + S.border,
                   borderRadius: 6,
                   padding: "3px 5px",
-                  fontSize: 10,
+                  fontSize: 14,
                   cursor: i === dias.length - 1 ? "default" : "pointer",
                   opacity: i === dias.length - 1 ? 0.4 : 1,
                 }}
@@ -1281,7 +1281,7 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
                   border: "1px solid " + S.red,
                   borderRadius: 6,
                   padding: "3px 6px",
-                  fontSize: 10,
+                  fontSize: 14,
                   cursor: "pointer",
                 }}
               >
@@ -1436,11 +1436,11 @@ function PeriodizacionEditor({ data, onChange }) {
     <div>
       {" "}
       <div style={{ ...card, padding: "12px 14px", marginBottom: 12 }}>
-        <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+        <div style={{ fontSize: 14, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
           Fecha de inicio (día 1 de la semana 1)
         </div>
         <input type="date" onChange={(e) => setFechaInicio(e.target.value)} style={inp} />
-        <div style={{ fontSize: 10, color: S.green, marginTop: 6 }}>
+        <div style={{ fontSize: 14, color: S.green, marginTop: 6 }}>
           Elegila una vez y todas las semanas toman su fecha automáticamente (una por semana).
         </div>
       </div>{" "}
@@ -1456,7 +1456,7 @@ function PeriodizacionEditor({ data, onChange }) {
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 {" "}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>FECHA (lunes)</div>
+                  <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>FECHA (lunes)</div>
                   <input
                     value={form.fecha}
                     onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))}
@@ -1464,13 +1464,13 @@ function PeriodizacionEditor({ data, onChange }) {
                     style={inp}
                   />
                   {form.fecha && (
-                    <div style={{ fontSize: 10, color: S.green, marginTop: 4 }}>
+                    <div style={{ fontSize: 14, color: S.green, marginTop: 4 }}>
                       Semanas siguientes se calculan automaticamente
                     </div>
                   )}
                 </div>{" "}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>INTENSIDAD</div>
+                  <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>INTENSIDAD</div>
                   <input
                     value={form.intensidad}
                     onChange={(e) => setForm((f) => ({ ...f, intensidad: e.target.value }))}
@@ -1482,7 +1482,7 @@ function PeriodizacionEditor({ data, onChange }) {
               <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 {" "}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>SERIES</div>
+                  <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>SERIES</div>
                   <input
                     type="number"
                     value={form.series}
@@ -1491,7 +1491,7 @@ function PeriodizacionEditor({ data, onChange }) {
                   />
                 </div>{" "}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>REPS</div>
+                  <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>REPS</div>
                   <input
                     type="number"
                     value={form.reps}
@@ -1559,7 +1559,7 @@ function PeriodizacionEditor({ data, onChange }) {
                     {r.series}x{r.reps}{" "}
                     {r.intensidad && <span style={{ color: S.green, fontSize: 12 }}>· {r.intensidad}</span>}
                   </div>{" "}
-                  <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                  <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                     {r.fecha || <span style={{ color: S.lgray, fontStyle: "italic" }}>sin fecha</span>}
                   </div>{" "}
                 </div>{" "}
@@ -1683,17 +1683,17 @@ function Asistencia({ asistencia, onMarcar }) {
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.green, fontWeight: 900, fontSize: 28 }}>{racha}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 2 }}>RACHA DIAS</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 2 }}>RACHA DIAS</div>{" "}
         </div>{" "}
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{fueDias}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 2 }}>ESTE MES</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 2 }}>ESTE MES</div>{" "}
         </div>{" "}
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{pct}%</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 2 }}>ASISTENCIA</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 2 }}>ASISTENCIA</div>{" "}
         </div>{" "}
       </div>{" "}
       {/* Boton marcar */}{" "}
@@ -1796,7 +1796,7 @@ function Asistencia({ asistencia, onMarcar }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 6 }}>
           {" "}
           {DIAS.map((d, i) => (
-            <div key={i} style={{ textAlign: "center", color: S.lgray, fontSize: 10, fontWeight: 700 }}>
+            <div key={i} style={{ textAlign: "center", color: S.lgray, fontSize: 14, fontWeight: 700 }}>
               {d}
             </div>
           ))}{" "}
@@ -1951,17 +1951,17 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.green, fontWeight: 900, fontSize: 28 }}>{asistMes}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, marginTop: 2 }}>ENTRENOS</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, marginTop: 2 }}>ENTRENOS</div>{" "}
         </div>{" "}
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{pct}%</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, marginTop: 2 }}>ASISTENCIA</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, marginTop: 2 }}>ASISTENCIA</div>{" "}
         </div>{" "}
         <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
           {" "}
           <div style={{ color: S.white, fontWeight: 900, fontSize: 28 }}>{diarioMes.length}</div>{" "}
-          <div style={{ color: S.gray, fontSize: 10, marginTop: 2 }}>ENTRADAS</div>{" "}
+          <div style={{ color: S.gray, fontSize: 14, marginTop: 2 }}>ENTRADAS</div>{" "}
         </div>{" "}
       </div>{" "}
       {/* Records del mes */}{" "}
@@ -2158,7 +2158,7 @@ function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
                 <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
                 {e.respuesta && (
                   <div style={{ marginTop: 8, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
-                    <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
+                    <div style={{ color: S.green, fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
                     <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{e.respuesta}</div>
                   </div>
                 )}{" "}
@@ -2336,13 +2336,13 @@ function HistorialAdmin({ al }) {
               {" "}
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 {g.codigo && (
-                  <span style={{ color: S.gray, fontSize: 9, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                  <span style={{ color: S.gray, fontSize: 14, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                     {g.codigo}
                   </span>
                 )}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ color: S.white, fontWeight: 600, fontSize: 13 }}>{g.nombre}</div>
-                  <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                  <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                     {max > 0 ? (
                       <span>
                         <span style={{ color: S.green, fontWeight: 700 }}>{max}kg</span> máximo · {fecha} · {hist.length} registro{hist.length === 1 ? "" : "s"}
@@ -2494,7 +2494,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
           ) : (
             grupos.map((g) => (
               <div key={g} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{g}</div>
+                <div style={{ fontSize: 14, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{g}</div>
                 {plantillas.filter((p) => (p.grupo || "Sin grupo") === g).map((p) => (
                   <button
                     key={p.id}
@@ -2502,7 +2502,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
                     style={{ width: "100%", textAlign: "left", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 12px", marginBottom: 6, cursor: "pointer" }}
                   >
                     <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{p.nombre}</div>
-                    <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                    <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                       {(p.dias || []).reduce((n, d) => n + (d.ejercicios || []).length, 0)} ejercicio(s)
                     </div>
                   </button>
@@ -2536,7 +2536,7 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
               <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Nombre para {al.nombre}</div>
               <input value={nombreInstancia} onChange={(e) => setNombreInstancia(e.target.value)} style={inp} />
             </div>
-            <div style={{ fontSize: 10, color: S.lgray, marginBottom: 10 }}>
+            <div style={{ fontSize: 14, color: S.lgray, marginBottom: 10 }}>
               Esto es una COPIA de la plantilla — podés tocar cualquier ejercicio para este alumno sin afectar la plantilla original ni a otros alumnos.
             </div>
             <DiasEditor
@@ -2697,7 +2697,7 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
                   border: "none",
                   borderRadius: 5,
                   padding: "4px 8px",
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: 700,
                   cursor: "pointer",
                 }}
@@ -2718,14 +2718,14 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
                 style={{ background: activo ? S.white : S.card, color: activo ? S.bg : S.gray, border: "1px solid " + (activo ? S.white : S.border), borderRadius: 8, padding: "7px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
               >
                 <div>{p.dia_semana === "Fijo" ? "Todos los días" : diasModo === "numerico" ? `Día ${pi + 1}` : p.dia_semana}</div>
-                <div style={{ fontSize: 9, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
+                <div style={{ fontSize: 14, fontWeight: 400, opacity: 0.75 }}>{p.nombre || "Plan"}</div>
               </button>
               {/* Punto 7: sacar un día directo desde acá, sin ir a Planificación */}
               {!p._sintetico && (
                 <button
                   onClick={(e) => { e.stopPropagation(); eliminarDia(p); }}
                   title={`Eliminar ${p.dia_semana}`}
-                  style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: S.red, color: "#fff", border: "none", fontSize: 9, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}
+                  style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: S.red, color: "#fff", border: "none", fontSize: 14, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}
                 >
                   <X size={11} />
                 </button>
@@ -2896,7 +2896,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
       {/* capture abre directamente la cámara del celular */}
       <input ref={camRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
       <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
-      <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB. Con 10-20 segundos alcanza.</div>
+      <div style={{ fontSize: 14, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB. Con 10-20 segundos alcanza.</div>
     </div>
   );
 
@@ -2935,7 +2935,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                       guardarDias(dias.filter((_, j) => j !== i));
                       setSesionIdx(0);
                     }}
-                    style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "3px 6px", fontSize: 10, cursor: "pointer" }}
+                    style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "3px 6px", fontSize: 14, cursor: "pointer" }}
                   >
                     <X size={12} />
                   </button>
@@ -2966,11 +2966,11 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
               </div>
             ) : (
               <div key={ej.id || i} style={{ ...card, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ minWidth: 22, height: 22, borderRadius: "50%", background: S.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: S.gray, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ minWidth: 22, height: 22, borderRadius: "50%", background: S.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: S.gray, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{ej.nombre}</div>
                   {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.desc}</div>}
-                  {ej.video && <div style={{ color: S.green, fontSize: 10, marginTop: 2, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{esImagen(ej.video) ? <><Camera size={11} />Foto</> : <><Play size={11} />Video</>}</div>}
+                  {ej.video && <div style={{ color: S.green, fontSize: 14, marginTop: 2, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{esImagen(ej.video) ? <><Camera size={11} />Foto</> : <><Play size={11} />Video</>}</div>}
                 </div>
                 <button onClick={() => { setEditIdx(i); setForm({ nombre: ej.nombre, desc: ej.desc || "", video: ej.video || "" }); }} style={smallBtn(S.white)}><Pencil size={14} /></button>
                 <button onClick={() => removeEjercicio(i)} style={smallBtn(S.red)}><X size={16} /></button>
@@ -2995,13 +2995,13 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ color: S.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
-                          {b.descripcion && <div style={{ color: S.gray, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.descripcion}</div>}
+                          {b.descripcion && <div style={{ color: S.gray, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.descripcion}</div>}
                         </div>
-                        {b.video && <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>{esImagen(b.video) ? <Camera size={10} /> : <Play size={10} />} MEDIA</span>}
+                        {b.video && <span style={{ color: S.green, fontSize: 14, fontWeight: 700, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>{esImagen(b.video) ? <Camera size={10} /> : <Play size={10} />} MEDIA</span>}
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 10, color: S.lgray, marginTop: 4 }}>Tocá uno para precargarlo — o escribí uno nuevo abajo.</div>
+                  <div style={{ fontSize: 14, color: S.lgray, marginTop: 4 }}>Tocá uno para precargarlo — o escribí uno nuevo abajo.</div>
                 </div>
               )}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nombre</div>
@@ -3026,7 +3026,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
               </button>
             )
           )}
-          <div style={{ fontSize: 10, color: S.lgray, marginTop: 10, textAlign: "center" }}>
+          <div style={{ fontSize: 14, color: S.lgray, marginTop: 10, textAlign: "center" }}>
             Cada ejercicio queda en el plan de {al.nombre} y en la biblioteca de rehabilitación para reutilizarlo.
           </div>
         </>
@@ -3099,13 +3099,16 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
                     aria-label="Marcar asistencia de hoy"
                     role="checkbox"
                     aria-checked={entrenoHoy}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: entrenoHoy ? "#0d1f0d" : "transparent", border: "1px solid " + (entrenoHoy ? S.green : S.border2), borderRadius: 20, padding: "3px 10px", fontSize: 10, color: entrenoHoy ? S.green : S.gray, fontWeight: 700, cursor: "pointer", flexShrink: 0, fontFamily: FONT_BODY }}
+                    // Auditoría 2026-07-30: medía 102x22 reales. Es la acción
+                    // más frecuente del panel (marcar la asistencia del día),
+                    // repetida una vez por alumno: va al piso de 44 de alto.
+                    style={{ display: "inline-flex", alignItems: "center", gap: 7, background: entrenoHoy ? S.card3 : "transparent", border: "1px solid " + (entrenoHoy ? S.white : S.border2), borderRadius: 22, padding: "10px 14px", minHeight: TAP, fontSize: TS.chip, color: entrenoHoy ? S.white : S.gray, fontWeight: 700, cursor: "pointer", flexShrink: 0, fontFamily: FONT_BODY }}
                   >
-                    {entrenoHoy ? <Check size={11} /> : <span style={{ width: 11, height: 11, borderRadius: 3, border: "1.5px solid " + S.gray, display: "inline-block" }} />}
+                    {entrenoHoy ? <Check size={15} /> : <span style={{ width: 14, height: 14, borderRadius: 3, border: "1.5px solid " + S.gray, display: "inline-block" }} />}
                     {entrenoHoy ? "Entrenó hoy" : "Marcar hoy"}
                   </button>
                 </div>
-                <div style={{ color: S.gray, fontSize: 11, marginTop: 2 }}>
+                <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                   {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Stethoscope size={12} />Rehab</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Dumbbell size={12} />Entreno</span>}
                 </div>
               </div>
@@ -3113,15 +3116,15 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{asistSemana}</div>
-                <div style={{ color: S.gray, fontSize: 11 }}>ESTA SEM.</div>
+                <div style={{ color: S.gray, fontSize: 15 }}>ESTA SEM.</div>
               </div>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{asistMes}</div>
-                <div style={{ color: S.gray, fontSize: 11 }}>ESTE MES</div>
+                <div style={{ color: S.gray, fontSize: 15 }}>ESTE MES</div>
               </div>
               <div style={{ flex: 1, background: S.card2, borderRadius: 6, padding: "6px 8px", textAlign: "center" }}>
                 <div style={{ color: S.white, fontWeight: 700 }}>{ultimaAsist || "—"}</div>
-                <div style={{ color: S.gray, fontSize: 11 }}>ULTIMA VEZ</div>
+                <div style={{ color: S.gray, fontSize: 15 }}>ULTIMA VEZ</div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(al.id, al.nombre); }}
@@ -3273,7 +3276,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                   <button
                     key={g.prefijo}
                     onClick={() => setGrupoFiltro(grupoFiltro === g.prefijo ? null : g.prefijo)}
-                    style={{ background: grupoFiltro === g.prefijo ? S.card2 : "transparent", color: grupoFiltro === g.prefijo ? S.white : S.gray, border: "1px solid " + (grupoFiltro === g.prefijo ? S.white : S.border), borderRadius: 20, padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: grupoFiltro === g.prefijo ? S.card2 : "transparent", color: grupoFiltro === g.prefijo ? S.white : S.gray, border: "1px solid " + (grupoFiltro === g.prefijo ? S.white : S.border), borderRadius: 20, padding: "4px 10px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                   >
                     {g.prefijo} · {g.nombre}
                   </button>
@@ -3293,13 +3296,13 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                         <div style={{ background: "#fff", borderRadius: 6, padding: "6px 0" }}>
                           <img src={g.path} alt={g.label} loading="lazy" style={{ width: 120, height: 120, objectFit: "contain" }} />
                         </div>
-                        <div style={{ color: S.white, fontSize: 10, fontWeight: 700, marginTop: 6, wordBreak: "break-all" }}>{g.slug}.gif</div>
+                        <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginTop: 6, wordBreak: "break-all" }}>{g.slug}.gif</div>
                         {asociados.length > 0 ? (
-                          <div style={{ color: S.green, fontSize: 9, marginTop: 4, lineHeight: 1.5 }}>
+                          <div style={{ color: S.green, fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>
                             {asociados.map((n) => <div key={n}>{n}</div>)}
                           </div>
                         ) : (
-                          <div style={{ color: S.lgray, fontSize: 9, marginTop: 4 }}>Sin ejercicio asociado</div>
+                          <div style={{ color: S.lgray, fontSize: 14, marginTop: 4 }}>Sin ejercicio asociado</div>
                         )}
                       </div>
                     );
@@ -3316,7 +3319,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                 style={{ ...card, padding: "10px 12px", marginBottom: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
               >
                 {b.codigo && (
-                  <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 800, color: S.gray, flexShrink: 0 }}>
+                  <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", fontSize: 14, fontWeight: 800, color: S.gray, flexShrink: 0 }}>
                     {b.codigo}
                   </span>
                 )}
@@ -3324,9 +3327,9 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
                   {b.nombre}
                 </div>
                 {b.unidad === "segundos" && (
-                  <span style={{ color: S.green, fontSize: 9, fontWeight: 700, flexShrink: 0 }}>seg</span>
+                  <span style={{ color: S.green, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>seg</span>
                 )}
-                {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 10, flexShrink: 0, display: "flex", alignItems: "center" }}><Play size={12} /></div>}
+                {(b.video || b.gif || getEjercicioGif(b.nombre)) && <div style={{ color: "#4a9eff", fontSize: 14, flexShrink: 0, display: "flex", alignItems: "center" }}><Play size={12} /></div>}
               </div>
             ))}
             {lista.length === 0 && (
@@ -3390,16 +3393,16 @@ function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
               <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{n.titulo}</div>
               {n.contenido && <div style={{ color: S.gray, fontSize: 11, marginBottom: 4, lineHeight: 1.4 }}>{n.contenido}</div>}
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ fontSize: 10, color: S.gray, background: S.card2, borderRadius: 4, padding: "2px 6px" }}>{n.tipo}</span>
-                <span style={{ fontSize: 10, color: S.gray, background: S.card2, borderRadius: 4, padding: "2px 6px" }}>→ {n.dirigido_a}</span>
-                <span style={{ fontSize: 10, color: S.gray }}>{new Date(n.fecha).toLocaleDateString("es-AR")}</span>
+                <span style={{ fontSize: 14, color: S.gray, background: S.card2, borderRadius: 4, padding: "2px 6px" }}>{n.tipo}</span>
+                <span style={{ fontSize: 14, color: S.gray, background: S.card2, borderRadius: 4, padding: "2px 6px" }}>→ {n.dirigido_a}</span>
+                <span style={{ fontSize: 14, color: S.gray }}>{new Date(n.fecha).toLocaleDateString("es-AR")}</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <button onClick={() => onToggle(n.id, !n.activo)} style={{ ...smallBtn(n.activo ? S.green : S.gray), padding: "4px 8px", fontSize: 10 }}>
+              <button onClick={() => onToggle(n.id, !n.activo)} style={{ ...smallBtn(n.activo ? S.green : S.gray), padding: "4px 8px", fontSize: 14 }}>
                 {n.activo ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} />Activa</span> : "○ Oculta"}
               </button>
-              <button onClick={() => onEliminar(n.id)} style={{ ...smallBtn(S.red), padding: "4px 8px", fontSize: 10 }}><Trash2 size={16} /></button>
+              <button onClick={() => onEliminar(n.id)} style={{ ...smallBtn(S.red), padding: "4px 8px", fontSize: 14 }}><Trash2 size={16} /></button>
             </div>
           </div>
         </div>
@@ -3427,7 +3430,7 @@ function EntradaDiarioAdmin({ entrada, onResponder }) {
       <div style={{ color: S.white, fontSize: 14, lineHeight: 1.6 }}>{entrada.texto}</div>
       {entrada.respuesta && !editando ? (
         <div style={{ marginTop: 10, borderLeft: "3px solid " + S.green, paddingLeft: 10 }}>
-          <div style={{ color: S.green, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
+          <div style={{ color: S.green, fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Respuesta del profe</div>
           <div style={{ color: S.white, fontSize: 13, lineHeight: 1.5 }}>{entrada.respuesta}</div>
           <button onClick={() => { setTxt(entrada.respuesta || ""); setEditando(true); }} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 11, cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}>Editar respuesta</button>
         </div>
@@ -4037,7 +4040,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", height: "auto", cursor: "pointer" }}
           />
           <div style={{ textAlign: "center", minWidth: 0, padding: "0 68px" }}>
-            <div style={{ ...eyebrow, fontSize: 10 }}>Panel Admin</div>
+            <div style={{ ...eyebrow, fontSize: 14 }}>Panel Admin</div>
             <div style={{ color: S.white, fontWeight: 800, fontSize: "clamp(16px, 5vw, 22px)", letterSpacing: 0.8, textTransform: "uppercase", fontFamily: FONT_DISPLAY, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.15 }}>
               Desarrollo Integral
             </div>
@@ -4278,7 +4281,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       );
                     })}
                   </div>
-                  {!nmodalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
+                  {!nmodalidad && <div style={{ fontSize: 14, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
                 </div>
                 {/* Género (ronda 12): pill simple M/F — define el saludo de la
                     Bienvenida ("¡Bienvenido!" / "¡Bienvenida!"). Sin setear
@@ -4375,7 +4378,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   )}
                   {(planVisor.plan.dias || []).map((d, di) => (
                     <div key={di} style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>
+                      <div style={{ fontSize: 14, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>
                         {(planVisor.plan.dias || []).length > 1 ? d.dia + " — " : ""}{d.subtitulo || "Ejercicios principales"}
                       </div>
                       {(d.ejercicios || []).map((ej, i) => (
@@ -4435,7 +4438,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         );
                       })}
                     </div>
-                    {!form.modalidad && <div style={{ fontSize: 10, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
+                    {!form.modalidad && <div style={{ fontSize: 14, color: S.lgray, marginTop: 6 }}>Sin definir — tocá una para asignarla</div>}
                   </div>
 
                   {/* Género (ronda 12): define el saludo de la Bienvenida */}
@@ -4531,7 +4534,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     {[["Peso", al.peso], ["Altura", al.altura], ["Edad", calcularEdad(al.fecha_nacimiento) || al.edad]].map(([l, v]) => (
                       <div key={l} style={{ flex: 1, background: S.card2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
                         <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{v || "—"}</div>
-                        <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>{l}</div>
+                        <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1 }}>{l}</div>
                       </div>
                     ))}
                   </div>
@@ -4552,7 +4555,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   {/* Días de entrenamiento (sin hora — ya no se usan horarios) */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {(al.horarios || []).filter((h) => h.dia).map((h, i) => (
-                      <span key={i} style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "2px 8px", fontSize: 10, color: S.white }}>
+                      <span key={i} style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "2px 8px", fontSize: 14, color: S.white }}>
                         {h.dia}
                       </span>
                     ))}
@@ -4594,10 +4597,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                             >
                               <div>
                                 <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{p.nombre || "Plan sin nombre"}</div>
-                                <div style={{ color: S.gray, fontSize: 10, marginTop: 1 }}>{p.dia_semana || "Fijo"}</div>
+                                <div style={{ color: S.gray, fontSize: 14, marginTop: 1 }}>{p.dia_semana || "Fijo"}</div>
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                {esHoy && <span style={{ color: S.green, fontSize: 10, fontWeight: 700 }}>● HOY</span>}
+                                {esHoy && <span style={{ color: S.green, fontSize: 14, fontWeight: 700 }}>● HOY</span>}
                                 <span style={{ color: S.gray, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 3 }}><Pencil size={12} /> ›</span>
                               </div>
                             </div>
@@ -4605,7 +4608,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         })}
                       </div>
                     )}
-                    <div style={{ fontSize: 10, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Plan → Plan Día</div>
+                    <div style={{ fontSize: 14, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Plan → Plan Día</div>
                   </div>
                   {showAsignarPlan && (
                     <AsignarPlanModal
@@ -4697,7 +4700,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                             border: "1px solid " + (planTab === c.key ? S.white : S.border),
                             borderRadius: 8,
                             padding: "7px 4px",
-                            fontSize: 10,
+                            fontSize: 14,
                             fontWeight: 700,
                             cursor: al && c.seccionId ? "grab" : "pointer",
                             opacity: oculta ? 0.4 : 1,
@@ -4719,7 +4722,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                               background: oculta ? S.green : S.red,
                               color: "#fff",
                               border: "none",
-                              fontSize: 9,
+                              fontSize: 14,
                               fontWeight: 900,
                               cursor: "pointer",
                               display: "flex",
@@ -4771,7 +4774,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       );
                     })}
                   </div>
-                  <div style={{ fontSize: 10, color: S.lgray, textAlign: "center", marginTop: 6 }}>
+                  <div style={{ fontSize: 14, color: S.lgray, textAlign: "center", marginTop: 6 }}>
                     Con cuál versión arranca {al.nombre} al entrar — puede cambiarla en el momento.
                   </div>
                 </div>
@@ -4995,7 +4998,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 Ronda 7: Peso Max aplica a TODOS — sin filtro por modalidad. */}
             {al && (
               <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
+                <div style={{ fontSize: 14, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Calendar size={13} />Fecha de evaluación de {al.nombre}</span>
                 </div>
                 <input
@@ -5017,7 +5020,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ color: S.white, fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{ej}</div>{" "}
                   {/* Solo el peso — la fecha de evaluación es UNA por alumno (arriba) */}
                   <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
+                    <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
                     <input
                       type="number"
                       placeholder="0"
@@ -5051,7 +5054,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           <div style={{ color: S.white, fontSize: 12, fontWeight: 700 }}>
                             {Math.round((rm[al.id][ej].peso * pct) / 100)}kg
                           </div>
-                          <div style={{ color: S.gray, fontSize: 9 }}>{pct}%</div>
+                          <div style={{ color: S.gray, fontSize: 14 }}>{pct}%</div>
                         </div>
                       ))}{" "}
                     </div>
@@ -5164,7 +5167,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     >
                       <div style={{ flex: 1 }}>
                         <div style={{ color: activo ? S.white : S.gray, fontWeight: 700, fontSize: 13 }}>
-                          {labelMes(m)}{m === mesHoy ? <span style={{ color: S.green, fontSize: 10, fontWeight: 700, marginLeft: 6 }}>· EN CURSO</span> : ""}
+                          {labelMes(m)}{m === mesHoy ? <span style={{ color: S.green, fontSize: 14, fontWeight: 700, marginLeft: 6 }}>· EN CURSO</span> : ""}
                         </div>
                         <div style={{ color: S.lgray, fontSize: 11, marginTop: 1 }}>{cant} asistencia{cant === 1 ? "" : "s"}</div>
                       </div>
@@ -5181,11 +5184,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
                   <div style={{ color: S.green, fontWeight: 900, fontSize: 22 }}>{delMes.length}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>{labelMes(mesSel).toUpperCase()}</div>
+                  <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1 }}>{labelMes(mesSel).toUpperCase()}</div>
                 </div>
                 <div style={{ flex: 1, ...card, padding: "12px 10px", textAlign: "center" }}>
                   <div style={{ color: S.white, fontWeight: 900, fontSize: 22 }}>{registros.length}</div>
-                  <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1 }}>TOTAL HISTÓRICO</div>
+                  <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1 }}>TOTAL HISTÓRICO</div>
                 </div>
               </div>
               {delMes.length === 0 ? (
@@ -5387,7 +5390,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           ["Nueva clave (dejar vacío para no cambiarla)", editAdminPin, setEditAdminPin, "password"],
                         ].map(([label, val, set, type]) => (
                           <div key={label} style={{ marginBottom: 10 }}>
-                            <div style={{ fontSize: 10, color: S.gray, textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+                            <div style={{ fontSize: 14, color: S.gray, textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
                             <input
                               type={type}
                               value={val}
@@ -5710,7 +5713,7 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
           <img src={ICON} width={34} height={34} alt="DI" />
           <div>
             <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{al.nombre}</div>
-            <div style={{ color: S.green, fontSize: 10, letterSpacing: 1, textTransform: "uppercase" }}>Rehabilitación</div>
+            <div style={{ color: S.green, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>Rehabilitación</div>
           </div>
         </div>
         <button onClick={onSalir} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
@@ -5727,7 +5730,7 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
         ].map(([l, v]) => (
           <div key={l} style={{ flex: 1, background: S.card2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
             <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{v || "—"}</div>
-            <div style={{ color: S.gray, fontSize: 9, letterSpacing: 1, marginTop: 1 }}>{l}</div>
+            <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 1 }}>{l}</div>
           </div>
         ))}
       </div>
@@ -6694,15 +6697,15 @@ export default function App() {
               <div style={{ display: "flex", gap: 8, background: S.card2, borderRadius: 8, padding: "10px 6px" }}>
                 <div style={{ flex: 1, textAlign: "center" }}>
                   <div style={{ color: S.white, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.series}x{sem.reps}</div>
-                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>SERIES X REPS</div>
+                  <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 3 }}>SERIES X REPS</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
                   <div style={{ color: S.green, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.intensidad || "—"}</div>
-                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>INTENSIDAD</div>
+                  <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 3 }}>INTENSIDAD</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
                   <div style={{ color: S.white, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{(dia?.ejercicios || []).length}</div>
-                  <div style={{ color: S.gray, fontSize: 10, letterSpacing: 1, marginTop: 3 }}>EJERCICIOS</div>
+                  <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 3 }}>EJERCICIOS</div>
                 </div>
               </div>
             </div>
@@ -6715,7 +6718,7 @@ export default function App() {
             <div style={{ marginTop: 10, borderTop: "1px solid " + S.border, paddingTop: 10 }}>
               {" "}
               <div
-                style={{ fontSize: 9, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}
+                style={{ fontSize: 14, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 }}
               >
                 PESO MAXIMO
               </div>{" "}
@@ -6726,7 +6729,7 @@ export default function App() {
                     style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 5, padding: "4px 8px" }}
                   >
                     <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{al.rm[ej].peso}kg</div>
-                    <div style={{ color: S.gray, fontSize: 9 }}>{ej}</div>
+                    <div style={{ color: S.gray, fontSize: 14 }}>{ej}</div>
                   </div>
                 ))}
               </div>{" "}
@@ -6856,7 +6859,7 @@ export default function App() {
                       <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
                         <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
                       </div>
-                      <div style={{ color: S.gray, fontSize: 10, marginTop: 8 }}>
+                      <div style={{ color: S.gray, fontSize: 14, marginTop: 8 }}>
                         {pct >= 100 ? "¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien, no aflojes." : "Dale que se puede: cada entreno suma."}
                       </div>
                     </div>
