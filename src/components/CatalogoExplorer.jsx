@@ -25,9 +25,9 @@
 // Performance: render incremental de a 60 con "Cargar más" + loading lazy
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw } from "lucide-react";
-import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY } from "../utils/theme.js";
+import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
 import {
@@ -82,20 +82,43 @@ const esPrincipalDI = (e) => {
   return !!max && parseInt(m[2], 10) <= max;
 };
 
-function Chip({ activo, onClick, children }) {
+// Estados que los estilos inline no pueden expresar (hover/focus-visible).
+// Es la única hoja de estilos del componente: una sola inyección, sin
+// librerías. Motion 200ms cubic-bezier(0.23,1,0.32,1) — Brand Kit §07.
+// Es una función y no una constante a propósito: `S` se reasigna al cambiar
+// de tema (applyTheme), así que el CSS se arma en cada render y el foco/hover
+// quedan legibles también en modo claro.
+const cssCatalogo = () => `
+.di-cat-card { transition: border-color .2s cubic-bezier(.23,1,.32,1), background .2s cubic-bezier(.23,1,.32,1); }
+.di-cat-card:hover { border-color: ${S.border2}; background: ${S.card2}; }
+.di-cat-card:focus-visible, .di-tap:focus-visible { outline: 2px solid ${S.white}; outline-offset: 2px; }
+.di-cat-card img { transition: filter .2s cubic-bezier(.23,1,.32,1); }
+.di-cat-card:hover img { filter: none; }
+.di-tap { -webkit-tap-highlight-color: transparent; }
+.di-tap:active { opacity: .85; }
+`;
+
+// Chip de filtro. El estado activo se marca con TRES señales (playbook:
+// nunca solo con color): fondo invertido + borde + peso tipográfico.
+function Chip({ activo, onClick, children, title }) {
   return (
     <button
       onClick={onClick}
+      title={title}
+      className="di-tap"
+      aria-pressed={!!activo}
       style={{
         background: activo ? S.white : S.card2,
         color: activo ? S.bg : S.gray,
         border: "1px solid " + (activo ? S.white : S.border),
         borderRadius: 20,
-        padding: "4px 10px",
-        fontSize: 11,
-        fontWeight: 600,
+        padding: "8px 14px",
+        minHeight: TAP,
+        fontSize: TS.chip,
+        fontWeight: activo ? 800 : 600,
         cursor: "pointer",
         whiteSpace: "nowrap",
+        fontFamily: FONT_BODY,
       }}
     >
       {children}
@@ -109,16 +132,35 @@ function Chip({ activo, onClick, children }) {
 // tengan — ver renombrarCategoriaCatalogo). Equipamiento/Músculo/Código NO
 // lo reciben: esos valores vienen del dataset y no tiene sentido
 // renombrarlos en masa desde acá.
-function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename }) {
+// Jerarquía del sidebar (2026-07-30): antes eran 4 grupos de chips grises
+// idénticos, todos con el mismo peso — una pared. Ahora cada grupo es una
+// sección plegable con encabezado `eyebrow`, contador de seleccionados y
+// aire real entre grupos (escala de 8px). Los grupos largos
+// (Equipamiento, 30 valores) arrancan cerrados salvo que tengan filtro
+// activo, así se ve de un vistazo qué está filtrado y qué no.
+function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename, colapsable }) {
   const [expandido, setExpandido] = useState(false);
-  const LIMITE = 12;
+  const [abierto, setAbierto] = useState(!colapsable);
+  const LIMITE = 8;
   const mostrar = expandido ? valores : valores.slice(0, LIMITE);
+  const nSel = [...seleccion].filter((v) => valores.includes(v)).length;
+  const desplegado = abierto || nSel > 0;
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>
-        {titulo}
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+    <div style={{ marginBottom: 24 }}>
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="di-tap"
+        style={{ ...eyebrow, fontSize: TS.chip, background: "transparent", border: "none", padding: "8px 0", minHeight: TAP, width: "100%", display: "flex", alignItems: "center", gap: 8, cursor: colapsable ? "pointer" : "default", textAlign: "left", color: nSel > 0 ? S.white : S.gray }}
+      >
+        <span style={{ flex: 1 }}>{titulo}</span>
+        {nSel > 0 && (
+          <span style={{ color: S.red, fontSize: TS.chip, fontWeight: 800, letterSpacing: 0 }}>{nSel}</span>
+        )}
+        {colapsable && <span style={{ fontSize: TS.chip, color: S.lgray }}>{desplegado ? "–" : "+"}</span>}
+      </button>
+      {/* Filete: separa el encabezado de sus chips sin agregar otra card */}
+      <div style={{ height: 1, background: nSel > 0 ? S.white : S.border, marginBottom: 10, opacity: nSel > 0 ? 0.5 : 1 }} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, ...(desplegado ? null : { display: "none" }) }}>
         {mostrar.map((v) =>
           onRename ? (
             <span key={v} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
@@ -128,7 +170,8 @@ function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename
               <button
                 onClick={() => onRename(v)}
                 title={`Renombrar categoría "${labelDe(v)}"`}
-                style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", padding: "0 2px", lineHeight: 1, display: "inline-flex", alignItems: "center" }}
+                className="di-tap"
+                style={{ background: "transparent", border: "none", color: S.lgray, cursor: "pointer", padding: "0 6px", minHeight: TAP, lineHeight: 1, display: "inline-flex", alignItems: "center" }}
               >
                 <Pencil size={14} strokeWidth={2} />
               </button>
@@ -139,9 +182,9 @@ function FiltroSeccion({ titulo, valores, seleccion, onToggle, labelDe, onRename
             </Chip>
           )
         )}
-        {valores.length > LIMITE && !expandido && (
-          <Chip activo={false} onClick={() => setExpandido(true)}>
-            +{valores.length - LIMITE} más
+        {valores.length > LIMITE && (
+          <Chip activo={false} onClick={() => setExpandido((v) => !v)}>
+            {expandido ? "Ver menos" : `+${valores.length - LIMITE} más`}
           </Chip>
         )}
       </div>
@@ -171,7 +214,7 @@ function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 6 }}>
-        {items.length === 0 && <span style={{ fontSize: 11, color: S.lgray }}>Sin ninguno todavía</span>}
+        {items.length === 0 && <span style={{ fontSize: TS.chip, color: S.lgray }}>Sin ninguno todavía</span>}
         {items.map((v) => {
           const esDefault = v === defaultItem;
           return (
@@ -185,15 +228,17 @@ function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder
                 color: esDefault ? S.bg : S.white,
                 border: "1px solid " + S.border,
                 borderRadius: 20,
-                padding: "3px 6px 3px 9px",
-                fontSize: 11,
+                padding: "3px 6px 3px 10px",
+                minHeight: TAP,
+                fontSize: TS.chip,
                 fontWeight: 600,
               }}
             >
               <button
                 onClick={() => onChangeDefault(v)}
                 title="Marcar como predeterminado"
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, fontSize: 11, color: esDefault ? S.bg : S.gray, lineHeight: 1 }}
+                className="di-tap"
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 4px", minHeight: TAP, fontSize: TS.ui, color: esDefault ? S.bg : S.gray, lineHeight: 1 }}
               >
                 {esDefault ? "★" : "☆"}
               </button>
@@ -201,7 +246,8 @@ function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder
               <button
                 onClick={() => remove(v)}
                 title="Quitar"
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 2px", color: esDefault ? S.bg : S.gray, lineHeight: 1, display: "inline-flex", alignItems: "center" }}
+                className="di-tap"
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "0 6px", minHeight: TAP, color: esDefault ? S.bg : S.gray, lineHeight: 1, display: "inline-flex", alignItems: "center" }}
               >
                 <X size={14} strokeWidth={2} />
               </button>
@@ -215,9 +261,9 @@ function TagsEditor({ items, defaultItem, onChange, onChangeDefault, placeholder
           onChange={(e) => setNuevo(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           placeholder={placeholder}
-          style={{ ...inp, flex: 1, padding: "6px 10px", fontSize: 12 }}
+          style={{ ...inp, flex: 1 }}
         />
-        <button onClick={add} style={{ ...smallBtn(S.gray), padding: "6px 12px" }}>+ Agregar</button>
+        <button onClick={add} className="di-tap" style={{ ...smallBtn(S.gray) }}>+ Agregar</button>
       </div>
     </div>
   );
@@ -233,7 +279,8 @@ function SubirVideoInline({ onUrl, showToast }) {
       <button
         onClick={() => ref.current && ref.current.click()}
         disabled={subiendo}
-        style={{ ...smallBtn(S.gray), width: "100%", padding: "8px" }}
+        className="di-tap"
+        style={{ ...smallBtn(S.gray), width: "100%" }}
       >
         {subiendo ? "Subiendo..." : "⬆ Subir video propio"}
       </button>
@@ -307,17 +354,18 @@ export default function CatalogoExplorer({
   const [planForm, setPlanForm] = useState(null); // { nombre, grupo, nivel, dias }
   const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
   const [qPlanAdd, setQPlanAdd] = useState(""); // buscador p/ agregar ejercicios a la plantilla
-  const [isWide, setIsWide] = useState(() => window.innerWidth >= 900);
+  // 2026-07-30: el breakpoint pasa a ser el único de la app (BP=900 en
+  // theme.js) — antes este componente tenía su propio listener de resize.
+  const isWide = useIsWide();
+  // Orden del grid. Por defecto ya no es alfabético puro (arrancaba con
+  // "3/4 abdominal" y 20 variantes de abdominales seguidas): agrupa por
+  // CATEGORÍA (el campo real del dataset: pecho, espalda, core…), que es
+  // como busca un entrenador, y ordena alfabético dentro de cada grupo.
+  const [orden, setOrden] = useState("categoria");
 
   useEffect(() => {
     if (pantalla === "planes") listarPlanesPredeterminados().then(setPlantillas);
   }, [pantalla]);
-
-  useEffect(() => {
-    const onR = () => setIsWide(window.innerWidth >= 900);
-    window.addEventListener("resize", onR);
-    return () => window.removeEventListener("resize", onR);
-  }, []);
 
   useEffect(() => {
     let vivo = true;
@@ -371,7 +419,7 @@ export default function CatalogoExplorer({
   const filtrados = useMemo(() => {
     if (!cat) return [];
     const qq = q.toLowerCase().trim();
-    return cat.filter((e) => {
+    const base = cat.filter((e) => {
       // Punto 4: en Principales (★ Principales DI) solo se listan los que
       // tienen media real (gif o video propio) — el resto queda en el
       // catálogo general pero no como opción utilizable para armar planes.
@@ -394,9 +442,15 @@ export default function CatalogoExplorer({
       }
       return true;
     });
-  }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados]);
+    // Orden (2026-07-30). "categoria" agrupa por el campo real del dataset
+    // y ordena alfabético adentro; "az" es el alfabético plano de antes.
+    const az = (a, b) => (a.nombre_es || "").localeCompare(b.nombre_es || "", "es");
+    return orden === "categoria"
+      ? base.sort((a, b) => labelCat(a.categoria || "zzz").localeCompare(labelCat(b.categoria || "zzz"), "es") || az(a, b))
+      : base.sort(az);
+  }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, orden]);
 
-  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados]);
+  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, orden]);
 
   const toggle = (setter) => (v) =>
     setter((prev) => {
@@ -640,17 +694,17 @@ export default function CatalogoExplorer({
   };
 
   const sidebar = (
-    <div style={{ width: isWide ? 230 : "auto", flexShrink: 0, padding: isWide ? "0 14px 0 0" : 0, borderRight: isWide ? "1px solid " + S.border : "none", overflowY: isWide ? "auto" : "visible" }}>
-      <div style={{ position: "relative", marginBottom: 14 }}>
+    <div style={{ width: isWide ? 260 : "auto", flexShrink: 0, padding: isWide ? "0 20px 0 0" : 0, borderRight: isWide ? "1px solid " + S.border : "none", overflowY: isWide ? "auto" : "visible" }}>
+      <div style={{ position: "relative", marginBottom: 24 }}>
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar ejercicios…"
-          style={{ ...inp, paddingRight: 28 }}
+          style={{ ...inp, paddingRight: 44 }}
         />
         {q && (
-          <button onClick={() => setQ("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: S.gray, cursor: "pointer", fontSize: 14 }}>
-            ×
+          <button onClick={() => setQ("")} title="Limpiar búsqueda" className="di-tap" style={{ position: "absolute", right: 2, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: S.gray, cursor: "pointer", width: TAP, height: TAP, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={18} strokeWidth={2} />
           </button>
         )}
       </div>
@@ -658,7 +712,7 @@ export default function CatalogoExplorer({
           filtros y muestra el catálogo completo (1.344) sin acotar. Antes
           Lucas confundía esto con el botón "Rutinas propias (movilidad)"
           de más abajo, que en realidad abre otra biblioteca separada. */}
-      <div style={{ marginBottom: 14, display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div style={{ marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 6 }}>
         <Chip activo={!hayFiltrosActivos} onClick={limpiarFiltros}>Todos los ejercicios</Chip>
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
         {/* Ronda 18: ver/recuperar archivados */}
@@ -667,13 +721,15 @@ export default function CatalogoExplorer({
       {/* Ronda 18: los botones de crear (ejercicio / plan) se MUDARON a la
           barra de acciones principal de la pantalla — no van dentro del
           panel de filtros. */}
+      {/* Jerarquía: los dos filtros que un entrenador usa siempre
+          (categoría y nivel) quedan abiertos; los largos, plegados. */}
       <FiltroSeccion titulo="Categoría" valores={categorias} seleccion={fCat} onToggle={toggle(setFCat)} labelDe={labelCat} onRename={renombrarCategoria} />
       <FiltroSeccion titulo="Nivel" valores={NIVELES.map(([id]) => id)} seleccion={fNivel} onToggle={toggle(setFNivel)} labelDe={labelNivel} />
-      <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} />
-      <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} />
+      <FiltroSeccion titulo="Músculo objetivo" valores={targets} seleccion={fTg} onToggle={toggle(setFTg)} labelDe={labelTg} colapsable />
+      <FiltroSeccion titulo="Equipamiento" valores={equipos} seleccion={fEq} onToggle={toggle(setFEq)} labelDe={labelEq} colapsable />
       {/* Ronda 17 (punto 3): filtro por prefijo de código, derivado
           dinámicamente de codigo_di. */}
-      <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} />
+      <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} colapsable />
       {/* El botón NO abre el catálogo completo: abre la biblioteca PROPIA
           (movilidad / elástico / entrada en calor), un subconjunto. El nombre
           "Biblioteca completa" confundía (Lucas se confundió). Renombrado a lo
@@ -681,13 +737,27 @@ export default function CatalogoExplorer({
       {onAbrirPropia && (
         <button
           onClick={onAbrirPropia}
-          style={{ width: "100%", marginTop: 8, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          className="di-tap"
+          style={{ width: "100%", marginTop: 8, marginBottom: 16, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.label, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
         >
           <Dumbbell size={16} strokeWidth={2} />Rutinas propias (movilidad · elástico · calor)
         </button>
       )}
     </div>
   );
+
+  // Grilla (2026-07-30). Antes: `minmax(150px, 1fr)` daba 11 columnas en
+  // desktop — 63 tarjetas de 154px con 90px útiles de texto, densidad de
+  // catálogo mayorista y todos los títulos truncados. Ahora tarjetas de
+  // ~240px en escritorio (auto-fill, se adapta al ancho real que queda
+  // libre según haya sidebar o panel de plan) y 2 columnas en el celular,
+  // que es lo máximo legible a 375px.
+  const gridCols = {
+    display: "grid",
+    gridTemplateColumns: isWide ? "repeat(auto-fill, minmax(240px, 1fr))" : "repeat(2, minmax(0, 1fr))",
+    gap: isWide ? 16 : 10,
+    alignItems: "start",
+  };
 
   const grid = (
     // Ronda 18 — FIX del scroll roto en mobile: este wrapper vive en un
@@ -698,95 +768,140 @@ export default function CatalogoExplorer({
     // resultado, lista congelada en el celular. Con minHeight:0 el área de
     // la lista se acota al alto disponible y su scroll interno funciona.
     <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      {/* barra de resultados + filtros activos */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+      {/* barra de resultados + filtros activos + orden */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {badgesActivos.map((b) => (
-          <span key={b.l} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "3px 9px", fontSize: 11, color: S.white }}>
+          <span key={b.l} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 4px 4px 12px", minHeight: TAP, fontSize: TS.chip, fontWeight: 600, color: S.white }}>
             {b.l}
-            <button onClick={b.del} style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", padding: 0, lineHeight: 1, display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
+            <button onClick={b.del} title={`Quitar filtro ${b.l}`} className="di-tap" style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", width: 36, height: 36, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={16} strokeWidth={2} /></button>
           </span>
         ))}
-        <span style={{ marginLeft: "auto", fontSize: 11, color: S.gray }}>
-          {cat ? `${filtrados.length} de ${cat.length} ejercicios` : "Cargando catálogo…"}
+        <span style={{ marginLeft: "auto", fontSize: TS.chip, color: S.gray, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          {cat ? (
+            <>
+              <strong style={{ color: S.white, fontWeight: 800 }}>{filtrados.length}</strong>
+              de {cat.length} ejercicios
+            </>
+          ) : "Cargando catálogo…"}
         </span>
+        {/* Orden: por defecto agrupado por categoría (el alfabético puro
+            dejaba 20 variantes de abdominales seguidas al abrir). */}
+        <div style={{ display: "flex", gap: 6 }}>
+          <Chip activo={orden === "categoria"} onClick={() => setOrden("categoria")}>Por categoría</Chip>
+          <Chip activo={orden === "az"} onClick={() => setOrden("az")}>A–Z</Chip>
+        </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {!cat ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} style={{ ...card, height: 200, opacity: 0.4 }} />
+          <div style={gridCols}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} style={{ ...card, height: 280, opacity: 0.35 }} />
             ))}
           </div>
         ) : filtrados.length === 0 ? (
-          <div style={{ color: S.gray, padding: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Search size={16} strokeWidth={2} />No se encontraron ejercicios</div>
+          <div style={{ ...card, padding: 40, textAlign: "center", maxWidth: 460, margin: "24px auto" }}>
+            <Search size={22} strokeWidth={2} color={S.gray} />
+            <div style={{ color: S.white, fontSize: TS.lead, fontWeight: 700, marginTop: 12, fontFamily: FONT_DISPLAY, letterSpacing: 0.5 }}>
+              Ningún ejercicio con esos filtros
+            </div>
+            <div style={{ color: S.gray, fontSize: TS.body, marginTop: 8, lineHeight: 1.5 }}>
+              Probá con menos filtros, o buscá por el nombre del movimiento.
+            </div>
+            {hayFiltrosActivos && (
+              <button onClick={limpiarFiltros} className="di-tap" style={{ marginTop: 20, background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "12px 20px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}>
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
-              {filtrados.slice(0, visibles).map((e) => {
+            <div style={gridCols}>
+              {filtrados.slice(0, visibles).map((e, i, arr) => {
                 const enCarrito = carrito.some((c) => c.id === e.id);
                 const media = hoverId === e.id && e.gif_url ? catalogoMediaUrl(e.gif_url) : catalogoMediaUrl(e.image || e.gif_url);
+                // Encabezado de grupo: el orden por categoría se tiene que
+                // VER, si no es un orden invisible.
+                const grupo = orden === "categoria" && (i === 0 || arr[i - 1].categoria !== e.categoria)
+                  ? labelCat(e.categoria || "Sin categoría")
+                  : null;
                 return (
-                  <article
-                    key={e.id}
-                    onMouseEnter={() => setHoverId(e.id)}
-                    onMouseLeave={() => setHoverId((h) => (h === e.id ? null : h))}
-                    onClick={() => abrirDetalle(e)}
-                    style={{ ...card, overflow: "hidden", cursor: "pointer", position: "relative" }}
-                  >
-                    <div style={{ aspectRatio: "1", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                      {media ? (
-                        <img src={media} alt={e.nombre_es} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                      ) : (
-                        <Dumbbell size={30} color={S.bg} strokeWidth={2} />
+                  <Fragment key={e.id}>
+                    {grupo && (
+                      <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12, marginTop: i === 0 ? 0 : 16 }}>
+                        <span style={{ width: 24, height: 2, background: S.red, flexShrink: 0 }} />
+                        <span style={{ ...eyebrow, fontSize: TS.chip, color: S.white }}>{grupo}</span>
+                        <span style={{ flex: 1, height: 1, background: S.border }} />
+                      </div>
+                    )}
+                    <article
+                      className="di-cat-card"
+                      tabIndex={0}
+                      onMouseEnter={() => setHoverId(e.id)}
+                      onMouseLeave={() => setHoverId((h) => (h === e.id ? null : h))}
+                      onClick={() => abrirDetalle(e)}
+                      onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abrirDetalle(e); } }}
+                      style={{ ...card, overflow: "hidden", cursor: "pointer", position: "relative", display: "flex", flexDirection: "column" }}
+                    >
+                      {/* La imagen deja de dominar la tarjeta: 4:3 en vez de
+                          1:1 y desaturada, para que el rojo del pack de
+                          stock no compita con el rojo de la marca. Al pasar
+                          el puntero vuelve a color y arranca el gif — el
+                          movimiento devuelve el detalle real del ejercicio. */}
+                      <div style={{ aspectRatio: "4 / 3", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                        {media ? (
+                          <img src={media} alt={e.nombre_es} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "saturate(0.5)" }} />
+                        ) : (
+                          <Dumbbell size={30} color={S.bg} strokeWidth={2} />
+                        )}
+                      </div>
+                      {armadorAbierto && (
+                        <button
+                          onClick={(ev) => { ev.stopPropagation(); agregarAlCarrito(e); }}
+                          title={enCarrito ? "Ya está en el plan" : "Agregar al plan"}
+                          className="di-tap"
+                          style={{ position: "absolute", top: 8, right: 8, width: TAP, height: TAP, borderRadius: "50%", background: enCarrito ? S.green : S.white, color: S.bg, border: "none", fontWeight: 900, fontSize: TS.lead, cursor: "pointer", lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                        >
+                          {enCarrito ? <Check size={20} strokeWidth={2.5} /> : "＋"}
+                        </button>
                       )}
-                    </div>
-                    {e.codigo_di && (
-                      <span style={{ position: "absolute", top: 6, left: 6, background: S.bg, color: S.white, border: "1px solid " + S.border, borderRadius: 4, fontSize: 9, fontWeight: 800, padding: "1px 5px" }}>
-                        {e.codigo_di}
-                      </span>
-                    )}
-                    {e.editado && (
-                      <span style={{ position: "absolute", top: 6, right: armadorAbierto ? 34 : 6, background: S.bg, color: S.green, border: "1px solid " + S.border, borderRadius: 4, padding: "3px 5px", display: "inline-flex", alignItems: "center" }}>
-                        <Pencil size={12} strokeWidth={2} />
-                      </span>
-                    )}
-                    {armadorAbierto && (
-                      <button
-                        onClick={(ev) => { ev.stopPropagation(); agregarAlCarrito(e); }}
-                        title="Agregar al plan"
-                        style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", background: enCarrito ? S.green : S.white, color: S.bg, border: "none", fontWeight: 900, fontSize: 14, cursor: "pointer", lineHeight: 1 }}
-                      >
-                        {enCarrito ? <Check size={14} strokeWidth={2} /> : "＋"}
-                      </button>
-                    )}
-                    <div style={{ padding: "8px 10px" }}>
-                      <div style={{ color: S.white, fontSize: 12, fontWeight: 700, lineHeight: 1.3, minHeight: 31, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                        {e.nombre_es}
-                      </div>
-                      <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.target_es}</span>
-                        <span style={{ fontSize: 11, color: S.gray, background: S.card2, borderRadius: 4, padding: "1px 6px" }}>{e.equipment_es}</span>
-                        {/* Ronda 18: badge de nivel + marca de archivado */}
-                        {e.nivel && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: S.white, background: S.card3, border: "1px solid " + S.border2, borderRadius: 4, padding: "1px 6px" }}>
-                            {labelNivel(e.nivel)}
-                          </span>
-                        )}
-                        {e.archivado && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "1px 6px", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            <Archive size={12} strokeWidth={2} />Archivado
-                          </span>
+                      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+                        {/* El nombre manda: es el único dato que importa. */}
+                        <div style={{ color: S.white, fontSize: TS.ui, fontWeight: 700, lineHeight: 1.35, minHeight: 44, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", fontFamily: FONT_BODY }}>
+                          {e.nombre_es}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: "auto" }}>
+                          {e.target_es && <span style={{ fontSize: TS.chip, color: S.gray, background: S.card2, borderRadius: 4, padding: "3px 8px" }}>{e.target_es}</span>}
+                          {e.equipment_es && <span style={{ fontSize: TS.chip, color: S.gray, background: S.card2, borderRadius: 4, padding: "3px 8px" }}>{e.equipment_es}</span>}
+                          {e.nivel && (
+                            <span style={{ fontSize: TS.chip, fontWeight: 700, color: S.white, background: S.card3, border: "1px solid " + S.border2, borderRadius: 4, padding: "3px 8px" }}>
+                              {labelNivel(e.nivel)}
+                            </span>
+                          )}
+                          {e.archivado && (
+                            <span style={{ fontSize: TS.chip, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <Archive size={14} strokeWidth={2} />Archivado
+                            </span>
+                          )}
+                        </div>
+                        {/* Dato terciario: el código no compite con el
+                            nombre (antes era un badge sobre la imagen). */}
+                        {(e.codigo_di || e.editado) && (
+                          <div style={{ fontSize: TS.chip, color: S.lgray, display: "flex", alignItems: "center", gap: 6 }}>
+                            {e.codigo_di}
+                            {e.editado && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Pencil size={13} strokeWidth={2} />editado</span>}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </article>
+                    </article>
+                  </Fragment>
                 );
               })}
             </div>
             {visibles < filtrados.length && (
               <button
                 onClick={() => setVisibles((v) => v + PAGE)}
-                style={{ ...smallBtn(S.gray), width: "100%", marginTop: 12, padding: "10px" }}
+                className="di-tap"
+                style={{ ...smallBtn(S.gray), width: "100%", marginTop: 20, marginBottom: 8 }}
               >
                 Cargar más ({filtrados.length - visibles} restantes)
               </button>
@@ -805,7 +920,8 @@ export default function CatalogoExplorer({
         <button
           key={id}
           onClick={() => onSet(valor === id ? "" : id)}
-          style={{ flex: 1, background: valor === id ? S.white : S.card3, color: valor === id ? S.bg : S.gray, border: "1px solid " + (valor === id ? S.white : S.border2), borderRadius: 8, padding: "8px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+          className="di-tap"
+          style={{ flex: 1, background: valor === id ? S.white : S.card3, color: valor === id ? S.bg : S.gray, border: "1px solid " + (valor === id ? S.white : S.border2), borderRadius: 8, padding: "11px 6px", minHeight: TAP, fontSize: TS.chip, fontWeight: valor === id ? 800 : 600, cursor: "pointer", fontFamily: FONT_BODY }}
         >
           {l}
         </button>
@@ -813,14 +929,14 @@ export default function CatalogoExplorer({
     </div>
   );
 
-  const labelCampo = { fontSize: 11, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700, marginBottom: 4, fontFamily: FONT_BODY };
+  const labelCampo = { fontSize: TS.chip, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700, marginBottom: 6, fontFamily: FONT_BODY };
 
   // ── Panel "Plan de Entrenamiento" (pantalla de armado) ──────────────
   // Ronda 18: título correcto + campos Nombre del Plan / Categoría / Nivel
   // (antes decía "Plan en construcción (N)" y solo tenía nombre y grupo).
   const planPanel = armadorAbierto && (
     <div style={{ ...card, width: isWide ? 300 : "auto", flexShrink: 0, padding: 12, display: "flex", flexDirection: "column", maxHeight: isWide ? "none" : "48vh", minHeight: 0 }}>
-      <div style={{ ...eyebrow, marginBottom: 8 }}>
+      <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>
         Plan de Entrenamiento {carrito.length > 0 ? `· ${carrito.length} ejercicio(s)` : ""}
       </div>
       <div style={labelCampo}>Nombre del Plan</div>
@@ -831,19 +947,19 @@ export default function CatalogoExplorer({
       <div style={{ marginBottom: 10 }}>{nivelChips(nivelPlan, setNivelPlan)}</div>
       <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", minHeight: 60 }}>
         {carrito.length === 0 ? (
-          <div style={{ color: S.gray, fontSize: 13, padding: "14px 4px", lineHeight: 1.5 }}>
+          <div style={{ color: S.gray, fontSize: TS.body, padding: "14px 4px", lineHeight: 1.5 }}>
             Tocá ＋ en los ejercicios de la lista para ir armando el plan.
           </div>
         ) : (
           carrito.map((it, i) => (
             <div key={it.id} style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ color: S.gray, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
-              <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: TS.ui, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {it.nombre_es}
               </span>
-              <button onClick={() => moverCarrito(i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
-              <button onClick={() => moverCarrito(i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
-              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} style={{ ...smallBtn(S.red), padding: "2px 7px", display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
+              <button onClick={() => moverCarrito(i, -1)} title="Subir" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▲</button>
+              <button onClick={() => moverCarrito(i, 1)} title="Bajar" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▼</button>
+              <button onClick={() => setCarrito((c) => c.filter((x) => x.id !== it.id))} title="Quitar del plan" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 10px", minWidth: 40, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={16} strokeWidth={2} /></button>
             </div>
           ))
         )}
@@ -851,7 +967,8 @@ export default function CatalogoExplorer({
       <button
         onClick={guardarPlan}
         disabled={guardandoPlan || carrito.length === 0 || !nombrePlan.trim()}
-        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, fontSize: 13, fontWeight: 900, letterSpacing: 0.8, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !nombrePlan.trim() ? 0.5 : 1, fontFamily: FONT_BODY }}
+        className="di-tap"
+        style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 14, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, letterSpacing: 0.8, cursor: "pointer", marginTop: 10, opacity: guardandoPlan || carrito.length === 0 || !nombrePlan.trim() ? 0.5 : 1, fontFamily: FONT_BODY }}
       >
         {guardandoPlan ? "GUARDANDO..." : "GUARDAR PLAN"}
       </button>
@@ -942,33 +1059,33 @@ export default function CatalogoExplorer({
             if (planSel) { setPlanSel(null); setPlanForm(null); }
             else setPantalla("biblioteca");
           }}
-          style={{ ...smallBtn(S.gray), fontSize: 13, padding: "8px 12px" }}
+          style={{ ...smallBtn(S.gray) }}
         >
           ← Volver
         </button>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
           {planSel ? "Editar plan" : "Todos los planes"}
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {!planSel ? (
           !plantillas ? (
-            <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 30 }}>Cargando planes…</div>
+            <div style={{ color: S.gray, fontSize: TS.body, textAlign: "center", padding: 30 }}>Cargando planes…</div>
           ) : plantillas.length === 0 ? (
-            <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>
+            <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: TS.body }}>
               Todavía no hay planes guardados — crealos con "＋ Crear plan de entrenamiento".
             </div>
           ) : (
             plantillas.map((p) => (
               <div key={p.id} style={{ ...card, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={() => abrirPlantilla(p)}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nombre}</div>
-                  <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: TS.lead, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.nombre}</div>
+                  <div style={{ color: S.gray, fontSize: TS.chip, marginTop: 4 }}>
                     {[p.grupo, labelNivel(p.nivel), `${(p.dias || []).reduce((n, d) => n + (d.ejercicios || []).length, 0)} ejercicio(s)`].filter(Boolean).join(" · ")}
                   </div>
                 </div>
-                <button onClick={() => abrirPlantilla(p)} style={{ ...smallBtn(S.white), padding: "6px 12px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><Pencil size={14} strokeWidth={2} />Editar</button>
-                <button onClick={() => eliminarPlantilla(p)} style={{ ...smallBtn(S.red), padding: "6px 10px", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><Trash2 size={16} strokeWidth={2} /></button>
+                <button onClick={() => abrirPlantilla(p)} className="di-tap" style={{ ...smallBtn(S.white), flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6 }}><Pencil size={16} strokeWidth={2} />Editar</button>
+                <button onClick={() => eliminarPlantilla(p)} title="Eliminar plan" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 12px", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={18} strokeWidth={2} /></button>
               </div>
             ))
           )
@@ -983,41 +1100,42 @@ export default function CatalogoExplorer({
               <div style={{ marginBottom: 12 }}>{nivelChips(planForm.nivel, (v) => setPlanForm((f) => ({ ...f, nivel: v })))}</div>
               {planForm.dias.map((d, di) => (
                 <div key={di} style={{ ...card, padding: 12, marginBottom: 10 }}>
-                  {planForm.dias.length > 1 && <div style={{ ...eyebrow, marginBottom: 8 }}>{d.dia || `Día ${di + 1}`}</div>}
+                  {planForm.dias.length > 1 && <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>{d.dia || `Día ${di + 1}`}</div>}
                   {(d.ejercicios || []).length === 0 && (
-                    <div style={{ color: S.gray, fontSize: 13, padding: "6px 2px" }}>Sin ejercicios en este día.</div>
+                    <div style={{ color: S.gray, fontSize: TS.body, padding: "6px 2px" }}>Sin ejercicios en este día.</div>
                   )}
                   {(d.ejercicios || []).map((ej, i) => (
                     <div key={ej.id || i} style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ color: S.gray, fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
-                      <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.nombre}</span>
-                      <button onClick={() => moverEjPlantilla(di, i, -1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▲</button>
-                      <button onClick={() => moverEjPlantilla(di, i, 1)} style={{ ...smallBtn(S.gray), padding: "2px 7px" }}>▼</button>
-                      <button onClick={() => quitarEjPlantilla(di, i)} style={{ ...smallBtn(S.red), padding: "2px 7px", display: "inline-flex", alignItems: "center" }}><X size={14} strokeWidth={2} /></button>
+                      <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                      <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: TS.ui, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.nombre}</span>
+                      <button onClick={() => moverEjPlantilla(di, i, -1)} title="Subir" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▲</button>
+                      <button onClick={() => moverEjPlantilla(di, i, 1)} title="Bajar" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▼</button>
+                      <button onClick={() => quitarEjPlantilla(di, i)} title="Quitar" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 10px", minWidth: 40, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={16} strokeWidth={2} /></button>
                     </div>
                   ))}
                 </div>
               ))}
               <div style={{ ...card, padding: 12, marginBottom: 12 }}>
-                <div style={{ ...eyebrow, marginBottom: 8 }}>Agregar ejercicio</div>
+                <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>Agregar ejercicio</div>
                 <input value={qPlanAdd} onChange={(e) => setQPlanAdd(e.target.value)} placeholder="Buscar en el catálogo…" style={inp} />
                 {sugerenciasPlanAdd.map((e) => (
                   <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", borderBottom: "1px solid " + S.border }}>
-                    <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {e.codigo_di ? e.codigo_di + " · " : ""}{e.nombre_es}
+                    <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: TS.ui, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {e.nombre_es}{e.codigo_di ? <span style={{ color: S.lgray }}>{" · " + e.codigo_di}</span> : ""}
                     </span>
-                    <button onClick={() => agregarEjPlantilla(e)} style={{ ...smallBtn(S.white), padding: "3px 10px" }}>＋</button>
+                    <button onClick={() => agregarEjPlantilla(e)} title="Agregar al plan" className="di-tap" style={{ ...smallBtn(S.white), padding: "0 14px" }}>＋</button>
                   </div>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-                <button onClick={() => { setPlanSel(null); setPlanForm(null); }} style={{ ...smallBtn(S.gray), padding: "12px 16px", fontSize: 13 }}>
+                <button onClick={() => { setPlanSel(null); setPlanForm(null); }} className="di-tap" style={{ ...smallBtn(S.gray), padding: "12px 18px" }}>
                   Cancelar
                 </button>
                 <button
                   onClick={guardarPlantilla}
                   disabled={guardandoPlantilla}
-                  style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: guardandoPlantilla ? 0.6 : 1, fontFamily: FONT_BODY }}
+                  className="di-tap"
+                  style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, cursor: "pointer", opacity: guardandoPlantilla ? 0.6 : 1, fontFamily: FONT_BODY }}
                 >
                   {guardandoPlantilla ? "GUARDANDO..." : "GUARDAR CAMBIOS"}
                 </button>
@@ -1035,10 +1153,10 @@ export default function CatalogoExplorer({
   const pantallaArmador = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <button onClick={cerrarArmador} style={{ ...smallBtn(S.gray), fontSize: 13, padding: "8px 12px" }}>
+        <button onClick={cerrarArmador} style={{ ...smallBtn(S.gray) }}>
           ← Volver
         </button>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
           Plan de Entrenamiento
         </div>
       </div>
@@ -1061,15 +1179,15 @@ export default function CatalogoExplorer({
   const pantallaBiblioteca = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: 16, letterSpacing: 1, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><BookOpen size={18} strokeWidth={2} />Biblioteca de ejercicios</span>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><BookOpen size={24} strokeWidth={2} />Biblioteca de ejercicios</span>
         </div>
         {!isWide && (
-          <button onClick={() => setMostrarFiltros((v) => !v)} style={{ ...smallBtn(S.gray), fontSize: 13 }}>
+          <button onClick={() => setMostrarFiltros((v) => !v)} className="di-tap" style={{ ...smallBtn(S.gray) }}>
             {mostrarFiltros ? "Ocultar filtros" : "Filtros"}
           </button>
         )}
-        <button onClick={onClose} style={{ ...smallBtn(S.gray), fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}><X size={14} strokeWidth={2} />Cerrar</button>
+        <button onClick={onClose} className="di-tap" style={{ ...smallBtn(S.gray), display: "inline-flex", alignItems: "center", gap: 6 }}><X size={16} strokeWidth={2} />Cerrar</button>
       </div>
       {/* Ronda 18: barra de ACCIONES principal — los botones de crear
           salieron del panel de filtros y viven acá arriba, junto con
@@ -1077,19 +1195,22 @@ export default function CatalogoExplorer({
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         <button
           onClick={abrirNuevo}
-          style={{ flex: "1 1 150px", minWidth: 0, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
         >
           ＋ Crear ejercicio nuevo
         </button>
         <button
           onClick={() => setPantalla("armador")}
-          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
         >
           ＋ Crear plan de entrenamiento
         </button>
         <button
           onClick={() => setPantalla("planes")}
-          style={{ flex: "1 1 150px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "11px 10px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
           <FolderTree size={16} strokeWidth={2} />Ver todos los planes
         </button>
@@ -1102,7 +1223,8 @@ export default function CatalogoExplorer({
   );
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: "14px 16px", overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: isWide ? "24px 24px 16px" : "14px 12px", overflow: "hidden" }}>
+      <style>{cssCatalogo()}</style>
       {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantallaBiblioteca}
 
       {/* detalle */}
@@ -1110,10 +1232,10 @@ export default function CatalogoExplorer({
         <div onClick={() => { setDetalle(null); setCreando(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, width: "100%", maxWidth: 460, maxHeight: "92vh", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ color: S.white, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", fontFamily: FONT_DISPLAY }}>
-                {creando ? "＋ Crear ejercicio nuevo" : "Editar ejercicio"}
+              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, letterSpacing: 0.5, textTransform: "uppercase", lineHeight: 1, fontFamily: FONT_DISPLAY }}>
+                {creando ? "Crear ejercicio nuevo" : "Editar ejercicio"}
               </div>
-              <button onClick={() => { setDetalle(null); setCreando(false); }} style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", display: "inline-flex", alignItems: "center" }}><X size={18} strokeWidth={2} /></button>
+              <button onClick={() => { setDetalle(null); setCreando(false); }} title="Cerrar" className="di-tap" style={{ background: "transparent", border: "none", color: S.gray, cursor: "pointer", width: TAP, height: TAP, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={20} strokeWidth={2} /></button>
             </div>
             {/* media: SOLO se muestra/edita en el flujo de crear nuevo — editar
                 un ejercicio existente del catálogo no reemplaza su media
@@ -1132,21 +1254,21 @@ export default function CatalogoExplorer({
                 )}
               </div>
             )}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Código</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Código</div>
             <input
               value={form.codigo_di}
               onChange={(e) => { setForm((f) => ({ ...f, codigo_di: e.target.value.toUpperCase() })); setCodigoError(""); }}
               placeholder="ej. CO006 (dejar vacío = sin código)"
               style={{ ...inp, marginBottom: codigoError ? 4 : 10, fontWeight: 700, borderColor: codigoError ? S.red : undefined }}
             />
-            {codigoError && <div style={{ fontSize: 12, color: S.red, marginBottom: 10 }}>{codigoError}</div>}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nombre</div>
+            {codigoError && <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.red, marginBottom: 10 }}>{codigoError}</div>}
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nombre</div>
             <input value={form.nombre_es} onChange={(e) => setForm((f) => ({ ...f, nombre_es: e.target.value }))} style={{ ...inp, marginBottom: 10, fontWeight: 700 }} />
             {detalle.nombre_en && (
-              <div style={{ fontSize: 11, color: S.lgray, marginTop: -6, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
+              <div style={{ fontSize: TS.chip, color: S.lgray, marginTop: -4, marginBottom: 10 }}>EN: {detalle.nombre_en}</div>
             )}
             {/* Ronda 17 (punto 3): categoría editable con datalist. */}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Categoría</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Categoría</div>
             <input
               value={form.categoria}
               onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
@@ -1159,12 +1281,12 @@ export default function CatalogoExplorer({
             </datalist>
             {/* Ronda 18: nivel del ejercicio — Inicial/Intermedio/Avanzado,
                 visible como badge en la card y filtrable en el sidebar. */}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nivel</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nivel</div>
             <div style={{ marginBottom: 10 }}>{nivelChips(form.nivel, (v) => setForm((f) => ({ ...f, nivel: v })))}</div>
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
             <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 12, lineHeight: 1.45 }} />
             {/* músculos editables, con ★ predeterminado (punto 4) */}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Músculos trabajados</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Músculos trabajados</div>
             <div style={{ marginBottom: 12 }}>
               <TagsEditor
                 items={form.musculos}
@@ -1175,7 +1297,7 @@ export default function CatalogoExplorer({
               />
             </div>
             {/* tags editables, con ★ predeterminado (punto 4) */}
-            <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tags (equipamiento y otros)</div>
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Tags (equipamiento y otros)</div>
             <div style={{ marginBottom: 12 }}>
               <TagsEditor
                 items={form.tags}
@@ -1188,7 +1310,7 @@ export default function CatalogoExplorer({
             {/* video/gif propio: SOLO en el flujo de crear nuevo */}
             {creando && (
               <>
-                <div style={{ fontSize: 11, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
+                <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Link video (YouTube o propio)</div>
                 <input value={form.video} onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))} placeholder="https://…" style={{ ...inp, marginBottom: 8 }} />
                 <div style={{ marginBottom: 12 }}>
                   <SubirVideoInline onUrl={(url) => setForm((f) => ({ ...f, video: url }))} showToast={showToast} />
@@ -1199,7 +1321,8 @@ export default function CatalogoExplorer({
             {!creando && detalle.id && (
               <button
                 onClick={() => toggleArchivado(detalle)}
-                style={{ width: "100%", marginBottom: 10, background: "transparent", color: detalle.archivado ? S.green : S.yellow, border: "1px solid " + (detalle.archivado ? S.green : S.yellow), borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+                className="di-tap"
+                style={{ width: "100%", marginBottom: 10, background: "transparent", color: detalle.archivado ? S.green : S.yellow, border: "1px solid " + (detalle.archivado ? S.green : S.yellow), borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.label, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
               >
                 {detalle.archivado ? (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><RotateCcw size={14} strokeWidth={2} />Recuperar (sacar del archivo)</span>
@@ -1212,7 +1335,8 @@ export default function CatalogoExplorer({
               {armadorAbierto && !creando && (
                 <button
                   onClick={() => { agregarAlCarrito(detalle); setDetalle(null); }}
-                  style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
+                  className="di-tap"
+                  style={{ flex: 1, background: S.card2, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY }}
                 >
                   ＋ AGREGAR AL PLAN
                 </button>
@@ -1220,7 +1344,8 @@ export default function CatalogoExplorer({
               <button
                 onClick={guardarDetalle}
                 disabled={guardando}
-                style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1, fontFamily: FONT_BODY }}
+                className="di-tap"
+                style={{ flex: 1, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, cursor: "pointer", opacity: guardando ? 0.6 : 1, fontFamily: FONT_BODY }}
               >
                 {guardando ? "GUARDANDO..." : creando ? "CREAR" : "GUARDAR"}
               </button>

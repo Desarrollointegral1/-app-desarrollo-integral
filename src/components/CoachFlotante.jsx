@@ -91,7 +91,9 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
       setMensajes([
         {
           rol: "assistant",
-          texto: `¡Hola${nombre ? " " + nombre : ""}! Soy tu coach. Puedo guiarte la sesión de hoy paso a paso, explicarte cada ejercicio con calma, o responderte cualquier duda.${porVoz} ¿Arrancamos?`,
+          // Brand Kit §06 — glosario: se dice "entrenador", nunca "coach".
+          // Era la primera línea que leía el alumno y contradecía la marca.
+          texto: `Hola${nombre ? " " + nombre : ""}. Soy tu entrenador. Puedo guiarte la sesión de hoy paso a paso, explicarte cada ejercicio con calma, o responderte cualquier duda.${porVoz} ¿Arrancamos?`,
         },
       ]);
     }
@@ -372,11 +374,11 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   return (
     <>
       {/* Animación del logo: péndulo 3D, igual que el de bienvenida. */}
-      <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}@keyframes coachRing{0%,100%{box-shadow:0 0 0 0 rgba(70,167,88,0.5)}50%{box-shadow:0 0 0 18px rgba(70,167,88,0)}}`}</style>
+      <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}@keyframes coachRing{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.45)}50%{box-shadow:0 0 0 18px rgba(255,255,255,0)}}`}</style>
 
       {/* Botón flotante (logo arrastrable) */}
       <button
-        aria-label="Abrir coach"
+        aria-label="Abrir entrenador"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -421,7 +423,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
       {abierto && (
         <div
           role="dialog"
-          aria-label="Coach"
+          aria-label="Entrenador"
           style={{
             position: "fixed",
             right: 14,
@@ -475,7 +477,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
               />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: TEXT, fontWeight: 700, fontSize: 15, lineHeight: 1.1 }}>Coach</div>
+              <div style={{ color: TEXT, fontWeight: 700, fontSize: 16, lineHeight: 1.1 }}>Entrenador</div>
               <div style={{ color: GRAY, fontSize: 11 }}>Desarrollo Integral</div>
             </div>
             {soportaVoz && soportaLectura && (

@@ -20,21 +20,77 @@
 // 2) TIPOGRAFÍA (2 familias, roles estrictos):
 //    · FONT_DISPLAY — SOLO títulos de pantalla / marca / wordmark:
 //      "PP Formula Condensed" (el condensado black del logo).
-//    · FONT_BODY — TODA la UI (labels, botones, inputs, menús): sans de
-//      sistema de máxima legibilidad. Lucas marcó que PP Formula no se
-//      entiende en cuerpos chicos ("las letras de los menús quedaron muy
-//      chicas y no se entiende con esa fuente") — la legibilidad manda.
-//    · FONT_BRAND — PP Formula, reservada a piezas de marca puntuales
-//      (ej. el subtítulo "APP DE ENTRENAMIENTO" del login/header).
-//    Tamaños mínimos: nada de UI por debajo de 12px real; labels de menú
-//    13-14px. Los estilos compartidos de acá abajo ya lo cumplen.
+//    · FONT_BODY — TODA la UI (labels, botones, inputs, menús).
+//    · FONT_BRAND — PP Formula, piezas de marca puntuales.
+//    · FONT_UI — escape hatch: la sans del sistema. Se usa SOLO en el caso
+//      puntual donde PP Formula no rinda (tablas muy densas, números
+//      apretados), nunca como base de la app.
 //
-// PALETA: grises/blanco/negro como base. Verde = éxito, rojo = peligro,
-// amarillo = atención — SOLO como indicadores, nunca decorativos.
+// ── Auditoría 2026-07-30 ────────────────────────────────────────────────
+// La ronda 18 había pasado FONT_BODY a la sans del sistema porque "PP
+// Formula no se entiende en cuerpos chicos". Medido en producción, la causa
+// era otra: el texto estaba a 10-13px (71 de 99 elementos de la vista del
+// alumno por debajo de 16px; 199 elementos a 11px y 60 a 9px en la
+// biblioteca). No era la fuente, era el tamaño. Con la escala TS de abajo,
+// PP Formula Medium se lee bien y la app deja de estar escrita en la fuente
+// por defecto del navegador (se habían medido 246 de 249 elementos en
+// system-ui y 27 heredando Times New Roman).
+//
+// 3) ESCALA TIPOGRÁFICA (TS) — piso duro de 15px en UI, 16px en lectura.
+//    El Brand Kit v1.0 manda "nunca por debajo de 16px en interfaz"; se
+//    admite 15px SOLO en chips y etiquetas de una palabra, donde 16px
+//    rompe el layout en 375px. Por debajo de 15px no se baja: si algo no
+//    entra, se sacan elementos o se acorta el texto, no se achica la letra.
+//
+// 4) TAP — piso táctil de 44px (iOS HIG / WCAG 2.5.5). Se medían 11 de 13
+//    botones de la vista alumno y 84 de 93 de la biblioteca por debajo.
+//    Todo helper interactivo de este archivo declara `minHeight: TAP`.
+//
+// PALETA: grises/blanco/negro como base, rojo como ÚNICO acento (Brand Kit
+// v1.0, 2026-07-30). El verde quedó reservado a confirmación de estado real
+// (guardado, presente) — nunca decorativo, nunca en texto de marca.
 // ══════════════════════════════════════════════════════════════════════
+import { useState, useEffect } from "react";
+
 export const FONT_DISPLAY = '"PP Formula Condensed", "PP Formula", system-ui, -apple-system, "Segoe UI", sans-serif';
-export const FONT_BODY = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+export const FONT_BODY = '"PP Formula", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 export const FONT_BRAND = '"PP Formula", system-ui, -apple-system, "Segoe UI", sans-serif';
+export const FONT_UI = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+// ── Escala tipográfica ── usar SIEMPRE estos tokens, nunca un número suelto.
+export const TS = {
+  chip: 15,   // piso absoluto: chips, etiquetas de una palabra
+  label: 15,  // labels de formulario, botones secundarios
+  ui: 16,     // texto de interfaz, botones, inputs (piso del Brand Kit)
+  body: 16,   // lectura corrida
+  lead: 20,   // bajadas, nombres
+  title: 26,  // títulos de sección
+  hero: 34,   // navegación protagonista
+};
+// ── Piso táctil ── iOS HIG y WCAG 2.5.5 piden 44x44 CSS px.
+export const TAP = 44;
+
+// ── Breakpoint único ── (2026-07-30, pedido de Lucas: "dos versiones, una
+// web para casa y una de celular para la clase"). Se resuelve con UN solo
+// código base: por debajo de BP manda el layout de celular que ya existe,
+// por encima la app gana ancho real donde sirve (panel admin y biblioteca).
+// Dos bases separadas se desincronizan; esto no.
+export const BP = 900;
+export const isWide = () => typeof window !== "undefined" && window.innerWidth >= BP;
+
+// Hook reactivo: como los estilos de esta app son inline (no hay hojas CSS),
+// el breakpoint no puede resolverse con una media query — hay que re-render.
+export function useIsWide() {
+  const [wide, setWide] = useState(isWide);
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${BP}px)`);
+    const on = (e) => setWide(e.matches);
+    setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
 
 export const DARK_T = {
   bg: "#070707",
@@ -81,12 +137,15 @@ export let card = { background: S.card, border: "1px solid " + S.border, borderR
 // ── Nivel 2: elemento dentro de un módulo ──
 export let innerCard = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, boxShadow: S.shadow2 };
 // ── Inputs (interactivo) ──
-export let inp = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 8, padding: "10px 12px", color: S.white, fontSize: 15, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: FONT_BODY };
+// fontSize TS.ui (16): por debajo de 16px iOS Safari hace zoom automático al
+// enfocar el campo. Estaba en 15 y el zoom se tapaba bloqueando el gesto en
+// el <meta viewport> — ahora no hace falta ninguna de las dos cosas.
+export let inp = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 8, padding: "11px 12px", color: S.white, fontSize: TS.ui, minHeight: TAP, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: FONT_BODY };
 // ── Título de módulo (eyebrow): el label chico arriba de cada módulo ──
-export let eyebrow = { fontSize: 11, color: S.gray, letterSpacing: 1.8, textTransform: "uppercase", fontWeight: 700, fontFamily: FONT_BODY };
+export let eyebrow = { fontSize: 13, color: S.gray, letterSpacing: 1.6, textTransform: "uppercase", fontWeight: 700, fontFamily: FONT_BODY };
 
-export const tabBtn = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card3, color: a ? S.bg : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 8, padding: "9px 4px", fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: 0.4, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
-export const smallBtn = (color = "#888", bg = "transparent") => ({ background: bg, color, border: "1px solid " + (bg === "transparent" ? color : "transparent"), borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: FONT_BODY });
+export const tabBtn = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card3, color: a ? S.bg : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 8, padding: "12px 8px", minHeight: TAP, fontSize: TS.label, fontWeight: 700, cursor: "pointer", letterSpacing: 0.4, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
+export const smallBtn = (color = "#888", bg = "transparent") => ({ background: bg, color, border: "1px solid " + (bg === "transparent" ? color : "transparent"), borderRadius: 8, padding: "10px 14px", minHeight: TAP, fontSize: TS.chip, cursor: "pointer", whiteSpace: "nowrap", fontFamily: FONT_BODY });
 
 // ── Jerarquía de tabs del alumno — 3 niveles bien diferenciados ──
 // Nivel 1 (Entrenamiento | Diario): pills grandes, el activo invertido.
@@ -95,21 +154,34 @@ export const smallBtn = (color = "#888", bg = "transparent") => ({ background: b
 // condensada bien lucida — a 22px con tracking ajustado (0.5) la PP Formula
 // Condensed lidera en vez de competir con los sub-labels. lineHeight:1 saca
 // el aire vertical fantasma de las mayúsculas altas.
-export const tabN1 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card, color: a ? S.bg : S.gray, border: "1.5px solid " + (a ? S.white : S.border2), borderRadius: 14, padding: "20px 12px", fontSize: 30, fontWeight: 800, lineHeight: 1, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_DISPLAY, boxShadow: a ? S.shadow2 : "none" });
+export const tabN1 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : S.card, color: a ? S.bg : S.gray, border: "1.5px solid " + (a ? S.white : S.border2), borderRadius: 14, padding: "20px 12px", minHeight: TAP, fontSize: TS.hero, fontWeight: 800, lineHeight: 1, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_DISPLAY, boxShadow: a ? S.shadow2 : "none" });
 // Nivel 2 (Preparación | Principales): tamaño medio, activo con borde claro.
-export const tabN2 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.card2 : "transparent", color: a ? S.white : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 10, padding: "11px 4px", fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: 0.6, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
+export const tabN2 = (a) => ({ flex: 1, textAlign: "center", background: a ? S.card2 : "transparent", color: a ? S.white : S.gray, border: "1px solid " + (a ? S.white : S.border2), borderRadius: 10, padding: "12px 8px", minHeight: TAP, fontSize: TS.ui, fontWeight: 700, cursor: "pointer", letterSpacing: 0.6, transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", fontFamily: FONT_BODY });
 // Nivel 3: segmented control — track nivel 2, segmento activo pastilla clara.
 export const segTrack = () => ({ display: "flex", gap: 3, background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: 3, boxShadow: S.shadow2 });
-export const segChip = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : "transparent", color: a ? S.bg : S.gray, border: "none", borderRadius: 7, padding: "8px 4px", fontSize: 12, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", boxShadow: a ? "0 1px 3px rgba(0,0,0,0.3)" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: FONT_BODY });
+export const segChip = (a) => ({ flex: 1, textAlign: "center", background: a ? S.white : "transparent", color: a ? S.bg : S.gray, border: "none", borderRadius: 7, padding: "12px 6px", minHeight: TAP, fontSize: TS.chip, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)", boxShadow: a ? "0 1px 3px rgba(0,0,0,0.3)" : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: FONT_BODY });
 // Nivel 4 — sub-menú dentro de un chip de nivel 3: texto + subrayado.
-export const n4Track = () => ({ display: "flex", gap: 18, justifyContent: "center", borderTop: "1px solid " + S.border, paddingTop: 8 });
-export const chipN4 = (a) => ({ background: "transparent", border: "none", borderBottom: "2px solid " + (a ? S.green : "transparent"), color: a ? S.white : S.gray, fontSize: 12, fontWeight: a ? 700 : 500, letterSpacing: 0.3, padding: "1px 1px 5px", cursor: "pointer", transition: "all 0.15s", fontFamily: FONT_BODY });
+// El subrayado activo era verde (#46a758): color prohibido por el Brand Kit
+// v1.0 fuera de un estado real. Pasa a blanco, que es el marcador de
+// "seleccionado" que ya usa el resto de la app.
+export const n4Track = () => ({ display: "flex", gap: 14, justifyContent: "center", borderTop: "1px solid " + S.border, paddingTop: 6 });
+export const chipN4 = (a) => ({ background: "transparent", border: "none", borderBottom: "2px solid " + (a ? S.white : "transparent"), color: a ? S.white : S.gray, fontSize: TS.chip, fontWeight: a ? 700 : 500, letterSpacing: 0.3, padding: "12px 8px 8px", minHeight: TAP, cursor: "pointer", transition: "all 0.15s", fontFamily: FONT_BODY });
 
 export function applyTheme(dark) {
   const t = dark ? DARK_T : LIGHT_T;
   S = t;
   card = { background: S.card, border: "1px solid " + S.border, borderRadius: 14, boxShadow: S.shadow1 };
   innerCard = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, boxShadow: S.shadow2 };
-  inp = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 8, padding: "10px 12px", color: S.white, fontSize: 15, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: FONT_BODY };
-  eyebrow = { fontSize: 11, color: S.gray, letterSpacing: 1.8, textTransform: "uppercase", fontWeight: 700, fontFamily: FONT_BODY };
+  inp = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 8, padding: "11px 12px", color: S.white, fontSize: TS.ui, minHeight: TAP, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: FONT_BODY };
+  eyebrow = { fontSize: 13, color: S.gray, letterSpacing: 1.6, textTransform: "uppercase", fontWeight: 700, fontFamily: FONT_BODY };
 }
+
+// ── Retratos ── Brand Kit §08 y señal 10 del playbook anti-cara-de-IA:
+// los retratos NUNCA van en círculo. Marco rectangular de esquina suave; el
+// tamaño varía según jerarquía, no es siempre el mismo.
+export const retrato = (size = 44) => ({ width: size, height: size, borderRadius: Math.max(6, Math.round(size * 0.14)), objectFit: "cover", display: "block", background: S.card2, border: "1px solid " + S.border2, flexShrink: 0 });
+
+// ── Contenedor responsive ── el layout de celular es el que ya existía
+// (columna centrada). En pantalla ancha se ensancha en vez de dejar dos
+// bandas negras vacías a los lados.
+export const shell = (wide = isWide(), max = 1180) => ({ width: "100%", maxWidth: wide ? max : 460, margin: "0 auto", padding: wide ? "0 24px" : "0 12px", boxSizing: "border-box" });

@@ -18,7 +18,7 @@ function RepsLabel({ prefijo, cantidad, tipo, sufijo }) {
   return (
     <>
       {prefijo ? prefijo + " " : ""}
-      <span style={{ color: S.green, fontWeight: 800 }}>{cantidad}</span>
+      <span style={{ color: S.white, fontWeight: 800 }}>{cantidad}</span>
       {" repeticiones" + suf}
       {sufijo ? " " + sufijo : ""}
     </>
@@ -95,8 +95,8 @@ export default function PlanDelDia({
     const ytId = getYTId(url);
     return (
       <div style={{ ...card, padding: "14px 12px", textAlign: "center" }}>
-        <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{tipo}</div>
-        <div style={{ color: S.green, fontSize: 12, marginBottom: 10, fontWeight: 600 }}>{mv?.duracion || defaultDur}</div>
+        <div style={{ color: S.white, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tipo}</div>
+        <div style={{ color: S.gray, fontSize: 15, marginBottom: 10, fontWeight: 600 }}>{mv?.duracion || defaultDur}</div>
         {ytId ? (
           <div style={{ borderRadius: 6, overflow: "hidden", position: "relative", paddingTop: "56.25%", background: "#000" }}>
             <iframe
@@ -112,7 +112,7 @@ export default function PlanDelDia({
             <source src={url} type="video/mp4" />
           </video>
         ) : (
-          <div style={{ padding: "14px 0", color: S.lgray || S.gray, fontSize: 11 }}>Video pendiente</div>
+          <div style={{ padding: "14px 0", color: S.lgray || S.gray, fontSize: 15 }}>Video pendiente</div>
         )}
       </div>
     );
@@ -125,7 +125,7 @@ export default function PlanDelDia({
         <div style={{ color: S.white, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
           Todavía no tenés plan asignado
         </div>
-        <div style={{ fontSize: 13 }}>Hablá con tu entrenador para que configure tu rutina.</div>
+        <div style={{ fontSize: 15 }}>Hablá con tu entrenador para que configure tu rutina.</div>
       </div>
     );
   }
@@ -197,7 +197,7 @@ export default function PlanDelDia({
       </div>
 
       {seccion === "preparacion" && (PREP_TABS.length === 0 || !prepActiva ? (
-        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
           Tu entrenador no habilitó secciones de preparación. Pasá directo a Principales.
         </div>
       ) : (
@@ -224,11 +224,11 @@ export default function PlanDelDia({
               ))}
             </div>
           )}
-          <div style={{ color: S.gray, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
+          <div style={{ color: S.gray, fontSize: 15, textAlign: "center", marginBottom: 10 }}>
             <RepsLabel {...prepActiva.detalle} />
           </div>
           {prepActiva.items.length === 0 ? (
-            <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+            <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
               Sin ejercicios en esta parte
             </div>
           ) : (
@@ -247,7 +247,7 @@ export default function PlanDelDia({
           {/* Video de la versión elegida, al final de Movilidad */}
           {prepActiva.id === "movilidad" && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
+              <div style={{ fontSize: 15, color: S.gray, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 10 }}>
                 Rutina con el profe
               </div>
               <VideoCard tipo={moviActiva.label} defaultDur={moviActiva.videoDur} mv={moviActiva.video} />
@@ -258,7 +258,7 @@ export default function PlanDelDia({
 
       {/* ── PRINCIPALES ── */}
       {seccion === "principales" && (!planValido || !dia ? (
-        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 12 }}>
+        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
           Sin ejercicios principales asignados
         </div>
       ) : (
@@ -271,21 +271,21 @@ export default function PlanDelDia({
               <div style={{ color: S.white, fontWeight: 700 }}>
                 {sem.series}x{sem.reps}
               </div>
-              <div style={{ color: S.gray, fontSize: 10 }}>SERIES X REPS</div>
+              <div style={{ color: S.gray, fontSize: 15 }}>SERIES X REPS</div>
             </div>
             {sem.intensidad && (
               <div>
-                <div style={{ color: S.green, fontWeight: 700 }}>{sem.intensidad}</div>
-                <div style={{ color: S.gray, fontSize: 10 }}>INTENSIDAD</div>
+                <div style={{ color: S.white, fontWeight: 700 }}>{sem.intensidad}</div>
+                <div style={{ color: S.gray, fontSize: 15 }}>INTENSIDAD</div>
               </div>
             )}
             <div>
               <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
-              <div style={{ color: S.gray, fontSize: 10 }}>EJERCICIOS</div>
+              <div style={{ color: S.gray, fontSize: 15 }}>EJERCICIOS</div>
             </div>
           </div>
           <SelectorDia />
-          {dia.subtitulo && <div style={{ color: S.gray, fontSize: 12, marginBottom: 10 }}>{dia.subtitulo}</div>}
+          {dia.subtitulo && <div style={{ color: S.gray, fontSize: 15, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
             const rmKey = RM_EJS.find(
               (k) =>
@@ -347,7 +347,7 @@ export default function PlanDelDia({
             </button>
           )}
           {onRegistrarDia && (
-            <div style={{ fontSize: 10, color: S.lgray, textAlign: "center", marginTop: 8 }}>
+            <div style={{ fontSize: 15, color: S.lgray, textAlign: "center", marginTop: 8 }}>
               {diaRegistrado
                 ? "La sesión de hoy quedó registrada en tu historial. Podés volver a tocar si cambiaste algún peso."
                 : "Tus pesos se van guardando solos. Este botón cierra y registra la sesión de hoy."}

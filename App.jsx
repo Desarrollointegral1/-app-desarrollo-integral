@@ -77,7 +77,7 @@ import {
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND } from "./src/utils/theme.js";
+import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
@@ -209,21 +209,25 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
       </div>
       {/* 3) Tema · Salir — pegados al borde derecho. Salir es un ícono chico
              (flecha saliendo de una puerta) — se entiende y ocupa menos. */}
-      <div style={{ width: 84, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+      {/* Auditoría 2026-07-30: ambos medían ~35x33 reales. Son los dos
+          botones fijos del header, siempre en pantalla: van al piso de
+          44x44 (iOS HIG / WCAG 2.5.5). */}
+      <div style={{ width: 100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
-          style={{ ...btnBase, padding: "6px 9px", fontSize: 13 }}
+          aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          style={{ ...btnBase, width: TAP, height: TAP, padding: 0, fontSize: TS.ui, display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          {darkMode ? <Moon size={16} /> : <Sun size={16} />}
+          {darkMode ? <Moon size={18} /> : <Sun size={18} />}
         </button>
         <button
           onClick={onSalir}
           title={salirLabel}
           aria-label={salirLabel}
-          style={{ ...btnBase, padding: "7px 8px", display: "flex", alignItems: "center", justifyContent: "center", color: S.gray }}
+          style={{ ...btnBase, width: TAP, height: TAP, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", color: S.gray }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
@@ -339,7 +343,7 @@ function FechaRapida({ value, onChange }) {
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -438,9 +442,12 @@ function FotoAlumno({ foto, size = 56, editable, onFoto }) {
         style={{
           width: size,
           height: size,
-          borderRadius: "50%",
+          // Brand Kit §08 + señal 10 del playbook anti-cara-de-IA: los
+          // retratos NUNCA van en círculo. Marco rectangular de esquina
+          // suave, proporcional al tamaño (~14%, mínimo 6px).
+          borderRadius: Math.max(6, Math.round(size * 0.14)),
           background: S.card2,
-          border: "2px solid " + S.border,
+          border: "1px solid " + S.border2,
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
@@ -3053,12 +3060,17 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
           ya no vive acá adentro, ver onBiblioteca solo queda como prop
           legacy sin uso directo en este componente. */}
 
-      <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
+      <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 10 }}>
         Todos los alumnos ({alumnos.length})
       </div>
 
       {/* Ronda 18: el alumno seleccionado va PRIMERO en la lista (la card
-          duplicada que aparecía abajo del buscador se eliminó). */}
+          duplicada que aparecía abajo del buscador se eliminó).
+          2026-07-30: en escritorio la lista pasa a grilla (ver .di-grid-cards
+          en GlobalStyles). En celular sigue siendo una columna, igual que
+          siempre — el breakpoint vive en CSS, no en JS, para que no dependa
+          de un re-render. */}
+      <div className="di-grid-cards">
       {[...alumnos].sort((a, b) => (a.id === selId ? -1 : 0) - (b.id === selId ? -1 : 0)).map((al) => {
         const asistSemana = (al.asistencia || []).filter((d) => d >= lunesStr).length;
         const asistMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
@@ -3119,6 +3131,7 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -3480,6 +3493,13 @@ const MODALIDADES = [
 // Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
 // ("por más que entrene solo, algún día lo voy a ir a ver").
 function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
+  // 2026-07-30, pedido de Lucas: "dos versiones, una web para usarla de casa
+  // y una de celular para la clase o el alumno". Se resuelve con UN código
+  // base y este breakpoint, no con dos apps (dos bases se desincronizan).
+  // El panel admin es el que trabaja en escritorio: acá el ancho de verdad
+  // sirve — armar planes, cruzar datos, la biblioteca. La vista del alumno
+  // queda angosta a propósito, porque se usa con una mano en la clase.
+  const wide = useIsWide();
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
@@ -3978,10 +3998,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       style={{
         minHeight: "100vh",
         background: S.bg,
-        maxWidth: 480,
+        maxWidth: wide ? 1180 : 480,
         margin: "0 auto",
+        padding: wide ? "0 24px" : 0,
         fontFamily: "inherit",
         paddingBottom: 60,
+        boxSizing: "border-box",
       }}
     >
       {" "}
@@ -5531,12 +5553,17 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           color: S.gray,
           border: "1px solid " + S.border,
           borderRadius: 8,
-          padding: "6px 10px",
-          fontSize: 14,
+          width: TAP,
+          height: TAP,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          fontSize: TS.ui,
           cursor: "pointer",
         }}
       >
-        {darkMode ? <Moon size={16} /> : <Sun size={16} />}
+        {darkMode ? <Moon size={18} /> : <Sun size={18} />}
       </button>
       {/* Header de marca — ronda 11: ícono y wordmark al DOBLE de tamaño que
           la ronda anterior (600 / 480, con tope responsivo para no desbordar
@@ -5579,7 +5606,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         {/* Ronda 16: labels centrados + bold, misma tipografía (FONT_BODY)
             que el subtítulo "App de entrenamiento" de arriba — pedido
             explícito de Lucas de unificar la identidad tipográfica. */}
-        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, textAlign: "center", fontWeight: 700, fontFamily: FONT_BODY }}>
+        <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 6, textAlign: "center" }}>
           Usuario
         </div>
         <input
@@ -5587,11 +5614,13 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           onChange={(e) => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="Tu username"
-          style={{ ...inp, fontSize: 15, padding: "12px 14px" }}
+          autoComplete="username"
+          autoCapitalize="characters"
+          style={{ ...inp, padding: "13px 14px" }}
           disabled={cargando}
         />
 
-        <div style={{ fontSize: 10, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 6, marginTop: 14, textAlign: "center", fontWeight: 700, fontFamily: FONT_BODY }}>
+        <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 6, marginTop: 14, textAlign: "center" }}>
           Clave
         </div>
         <input
@@ -5601,11 +5630,16 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="••••"
           maxLength={4}
-          style={{ ...inp, fontSize: 15, padding: "12px 14px" }}
+          // La clave son 4 dígitos: en el celular tiene que abrir el teclado
+          // numérico, no el alfabético. Faltaba `inputMode`, así que el
+          // alumno tenía que cambiar de teclado a mano en cada ingreso.
+          inputMode="numeric"
+          autoComplete="current-password"
+          style={{ ...inp, padding: "13px 14px", letterSpacing: 4 }}
           disabled={cargando}
         />
 
-        {err && <div style={{ color: S.red, fontSize: 12, marginTop: 14, padding: "8px 10px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
+        {err && <div role="alert" style={{ color: S.red, fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "10px 12px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
         <button
           onClick={go}
@@ -5617,8 +5651,9 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
             color: cargando ? S.gray : S.bg,
             border: "none",
             borderRadius: 8,
-            padding: "13px",
-            fontSize: 13,
+            padding: "14px",
+            minHeight: TAP,
+            fontSize: TS.ui,
             fontWeight: 800,
             letterSpacing: 2,
             textTransform: "uppercase",
@@ -5642,16 +5677,17 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           background: esAdmin ? "rgba(76,175,80,0.12)" : "transparent",
           color: esAdmin ? S.green : S.lgray,
           border: "1px solid " + (esAdmin ? S.green : S.border),
-          borderRadius: 20,
-          padding: "6px 14px",
-          fontSize: 10,
+          borderRadius: 22,
+          padding: "12px 18px",
+          minHeight: TAP,
+          fontSize: TS.chip,
           fontWeight: 700,
           letterSpacing: 1,
           textTransform: "uppercase",
           cursor: cargando ? "not-allowed" : "pointer",
         }}
       >
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.green : S.lgray, flexShrink: 0 }} />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: esAdmin ? S.white : S.lgray, flexShrink: 0 }} />
         {esAdmin ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Acceso administrador activado</span> : "Acceso administrador"}
       </button>
     </div>
@@ -5850,7 +5886,11 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
   const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
   const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
   const genero = alumno.rm?.genero;
-  const saludo = genero === "M" ? "¡Bienvenido!" : genero === "F" ? "¡Bienvenida!" : "¡Bienvenido/a!";
+  const saludo = genero === "M" ? "Bienvenido" : genero === "F" ? "Bienvenida" : "Hola";
+  // ¿La semana tiene carga real cargada? Un valor vacío, nulo o "-" no es
+  // un número: si no lo hay, no se dibuja la ficha (ver estado vacío abajo).
+  const nOk = (v) => v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim() !== "-" && !Number.isNaN(Number(v));
+  const hayCarga = !!semanaData && nOk(semanaData.series) && nOk(semanaData.reps);
   // BUG (ronda 12): acá se leía plan.dias (los sub-días DENTRO de un plan —
   // "Sesion", o "Día 1"/"Día 2"/"Día 3" en un PPL) en vez de los días de la
   // SEMANA que el alumno realmente entrena (Lunes/Martes/...). Con un plan
@@ -5886,8 +5926,12 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
 
         {/* 2. Saludo al doble de grande (13px → 26px) + 3. primer nombre solo */}
         <div className="di-slide" style={{ textAlign: "center", width: "100%", maxWidth: 360, marginTop: 18 }}>
-          <div style={{ color: S.white, fontWeight: 900, fontSize: 26, fontFamily: FONT_DISPLAY }}>{saludo}</div>
-          <div style={{ color: S.green, fontWeight: 800, fontSize: 20, marginTop: 4, fontFamily: FONT_DISPLAY }}>{primerNombre}</div>
+          {/* Auditoría 2026-07-30 — jerarquía invertida: el saludo pesaba más
+              que la persona. Manda el nombre; el saludo pasa a kicker.
+              El nombre estaba en verde (#46a758), color prohibido por el
+              Brand Kit v1.0 fuera de un estado real. */}
+          <div style={{ ...eyebrow, textAlign: "center" }}>{saludo}</div>
+          <div style={{ color: S.white, fontWeight: 900, fontSize: 34, lineHeight: 1.05, marginTop: 6, fontFamily: FONT_DISPLAY }}>{primerNombre}</div>
         </div>
 
         <div
@@ -5895,8 +5939,13 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
           style={{ marginTop: 14, textAlign: "center", marginBottom: 26, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
         >
           {/* 4. Semana N de tu plan de entrenamiento */}
-          <div style={{ color: S.gray, fontSize: 13 }}>Semana {semanaActual} de tu plan de entrenamiento</div>
-          {semanaData && (
+          <div style={{ color: S.gray, fontSize: TS.label }}>Semana {semanaActual} de tu plan de entrenamiento</div>
+          {/* Auditoría 2026-07-30 — estado vacío roto: cuando el plan no
+              tiene series/reps cargadas, la pantalla mostraba "-x-" y
+              "- series por - repeticiones" (guiones literales). Es lo
+              primero que ve el alumno. Ahora la ficha solo se arma si hay
+              números de verdad; si no, se dice qué pasa. */}
+          {semanaData && hayCarga && (
             <>
               {/* 5. Ficha 2x6 / al 70% */}
               <div
@@ -5909,27 +5958,32 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
                   display: "inline-block",
                 }}
               >
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 20 }}>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 26, fontFamily: FONT_DISPLAY }}>
                   {semanaData.series}x{semanaData.reps}
                 </div>
                 {semanaData.intensidad && (
-                  <div style={{ color: S.green, fontSize: 13, marginTop: 2 }}>al {semanaData.intensidad}</div>
+                  <div style={{ color: S.gray, fontSize: TS.label, marginTop: 2 }}>al {semanaData.intensidad}</div>
                 )}
               </div>
               {/* 6. "Hoy te toca en los EJERCICIOS PRINCIPALES" + versión en palabras */}
-              <div style={{ color: S.gray, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", marginTop: 14 }}>
+              <div style={{ color: S.gray, fontSize: TS.chip, letterSpacing: 1, textTransform: "uppercase", marginTop: 14 }}>
                 Hoy te toca en los <span style={{ color: S.white, fontWeight: 800 }}>ejercicios principales</span>
               </div>
-              <div style={{ color: S.gray, fontSize: 13, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>
+              <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
                   {pl(semanaData.reps, "repetición", "repeticiones")}
                 </span>
                 {semanaData.intensidad && (
-                  <> al <span style={{ color: S.green, fontWeight: 700 }}>{semanaData.intensidad}</span></>
+                  <> al <span style={{ color: S.white, fontWeight: 700 }}>{semanaData.intensidad}</span></>
                 )}
               </div>
             </>
+          )}
+          {!hayCarga && (
+            <div style={{ marginTop: 14, color: S.gray, fontSize: TS.ui, lineHeight: 1.5, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
+              Todavía no tenés la carga de esta semana cargada. Entrá igual: el plan del día está abajo.
+            </div>
           )}
           {/* 7. "Entrenás los:" + días en pill */}
           {diasPlan.length > 0 && (

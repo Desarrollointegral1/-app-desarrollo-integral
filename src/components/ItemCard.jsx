@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
-import { S, card } from "../utils/theme.js";
+import { S, card, TS, TAP } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
@@ -63,7 +63,7 @@ export default function ItemCard({
     // Path de rehab-media aún resolviéndose a signed URL: mostrar loading.
     if (mediaPendiente)
       return (
-        <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center", color: S.gray, fontSize: 12 }}>
+        <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center", color: S.gray, fontSize: 15 }}>
           Cargando media…
         </div>
       );
@@ -114,13 +114,13 @@ export default function ItemCard({
             loading="lazy"
             style={{ width: 180, height: 180, objectFit: "contain" }}
           />
-          <div style={{ color: "#999", fontSize: 8, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
+          <div style={{ color: "#999", fontSize: 15, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
         </div>
       );
     return (
       <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center" }}>
         <div style={{ marginBottom: 4, display: "flex", justifyContent: "center" }}><Play size={22} color={S.gray} strokeWidth={2} /></div>
-        <div style={{ color: S.lgray, fontSize: 12 }}>Video proximamente</div>
+        <div style={{ color: S.lgray, fontSize: 15 }}>Video proximamente</div>
       </div>
     );
   };
@@ -132,15 +132,17 @@ export default function ItemCard({
       >
         <div
           style={{
-            minWidth: 22,
-            height: 22,
+            // El círculo crece con el número: a 22px el dígito a 15px no
+            // entraba (la escala nueva subió el piso de 10 a 15).
+            minWidth: 26,
+            height: 26,
             borderRadius: "50%",
             background: S.card2,
             border: "1px solid " + S.border,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 10,
+            fontSize: 15,
             color: S.gray,
             fontWeight: 700,
             flexShrink: 0,
@@ -148,30 +150,38 @@ export default function ItemCard({
         >
           {numero}
         </div>
-        <div style={{ flex: 1, color: S.white, fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>
+        <div style={{ flex: 1, color: S.white, fontSize: TS.ui, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {showPeso && (
-            /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta */
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={(e) => e.stopPropagation()}>
+            /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta.
+               Auditoría 2026-07-30: los +/- medían 28x28 reales. Es el botón
+               que el alumno toca en medio de la serie, de pie y transpirado
+               — pasa al piso táctil de 44x44 (iOS HIG / WCAG 2.5.5).
+               El input suma inputMode="decimal" para que el celular abra el
+               teclado numérico en vez del alfabético. */
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
-                style={{ width: 28, height: 28, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
+                aria-label="Restar un kilo"
+                style={{ width: TAP, height: TAP, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
               >
                 −
               </button>
               <div style={{ textAlign: "center" }}>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={peso || ""}
                   placeholder="0"
                   onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: 44, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 7, padding: "5px 2px", color: S.white, fontSize: 13, fontWeight: 900, outline: "none" }}
+                  style={{ width: 56, height: TAP, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "2px", color: S.white, fontSize: TS.ui, fontWeight: 900, outline: "none" }}
                 />
-                <div style={{ color: S.gray, fontSize: 8, letterSpacing: 1, marginTop: 1 }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
+                <div style={{ color: S.gray, fontSize: 15, marginTop: 2, whiteSpace: "nowrap" }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
               </div>
               <button
                 onClick={() => onPesoChange && onPesoChange(peso + 1)}
-                style={{ width: 28, height: 28, background: S.white, color: S.bg, border: "none", borderRadius: 7, fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
+                aria-label="Sumar un kilo"
+                style={{ width: TAP, height: TAP, background: S.white, color: S.bg, border: "none", borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
               >
                 +
               </button>
@@ -183,7 +193,7 @@ export default function ItemCard({
       {open && (
         <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
           {desc && (
-            <div style={{ color: S.gray, fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
+            <div style={{ color: S.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
           )}
           {renderMedia()}
           {showPeso && (
@@ -202,8 +212,8 @@ export default function ItemCard({
                   }}
                 >
                   <div>
-                    <div style={{ color: S.gray, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
-                    <div style={{ color: S.lgray, fontSize: 10 }}>{pesoAnterior.fecha}</div>
+                    <div style={{ color: S.gray, fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
+                    <div style={{ color: S.lgray, fontSize: 15 }}>{pesoAnterior.fecha}</div>
                   </div>
                   <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
                 </div>
@@ -217,7 +227,7 @@ export default function ItemCard({
                   textAlign: "center",
                   color: S.white,
                   fontWeight: 900,
-                  fontSize: 12,
+                  fontSize: 15,
                   letterSpacing: 1.5,
                   textTransform: "uppercase",
                   marginBottom: 12,
@@ -261,7 +271,7 @@ export default function ItemCard({
                     outline: "none",
                   }}
                 />
-                <span style={{ color: S.gray, fontSize: 13, flexShrink: 0 }}>{enSegundos ? "seg" : "kg"}</span>
+                <span style={{ color: S.gray, fontSize: 15, flexShrink: 0 }}>{enSegundos ? "seg" : "kg"}</span>
                 <button
                   onClick={() => onPesoChange && onPesoChange(peso + 1)}
                   style={{

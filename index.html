@@ -2,7 +2,13 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Auditoría 2026-07-30: se saca `maximum-scale=1.0, user-scalable=no`.
+         Bloquear el zoom estaba puesto para tapar el auto-zoom de iOS al
+         enfocar un input, pero la causa real era otra: los inputs estaban a
+         15px y iOS hace zoom con cualquier campo por debajo de 16px. Ahora
+         los inputs son de 16px (ver `inp` en theme.js), así que el auto-zoom
+         no ocurre y el alumno recupera el derecho a agrandar la pantalla. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Desarrollo Integral</title>
     <meta name="description" content="Panel de alumnos de Desarrollo Integral — entrenamiento, rehabilitación y seguimiento personalizado." />
     <link rel="icon" type="image/png" href="/favicon.png" />
@@ -67,15 +73,27 @@
         font-display: swap;
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      html { -webkit-text-size-adjust: 100%; }
-      /* Ronda 18: la fuente base de la UI pasa a la sans del sistema —
-         Lucas marcó que PP Formula no se lee en cuerpos chicos de interfaz
-         ("no se entiende con esa fuente"). PP Formula queda cargada para
-         los roles de marca (FONT_DISPLAY / FONT_BRAND en theme.js). */
+      /* Auditoría 2026-07-30: el <html> no declaraba `font-family`, así que
+         todo lo que no heredaba de <body> caía al serif por defecto del
+         navegador — se midieron 27 elementos renderizando en Times New
+         Roman en producción. Se declara acá para que no quede ningún hueco. */
+      html {
+        -webkit-text-size-adjust: 100%;
+        font-family: "PP Formula", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      /* Ronda 18 decía: "la fuente base de la UI pasa a la sans del sistema,
+         Lucas marcó que PP Formula no se lee en cuerpos chicos".
+         Auditoría 2026-07-30 — la causa estaba mal atribuida: PP Formula no
+         se leía porque el cuerpo estaba a 10-13px (se midieron 71 de 99
+         elementos por debajo de 16px en la vista del alumno). Con la escala
+         nueva (piso de 15px en UI, 16px en lectura e inputs) PP Formula
+         Medium sí se entiende, y el Brand Kit v1.0 la pide como fuente de
+         cuerpo. Si en algún cuerpo puntual siguiera costando leerla, se baja
+         ESE caso a FONT_UI — no se cambia la base de toda la app. */
       body {
         background: #000;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        font-weight: 400;
+        font-family: "PP Formula", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-weight: 500;
         color: #f0f0f0;
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
