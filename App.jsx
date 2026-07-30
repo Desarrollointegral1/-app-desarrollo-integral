@@ -6782,6 +6782,10 @@ export default function App() {
             <PlanDelDia
               plan={plan}
               planValido={planValido}
+              // Los días que el alumno entrena, para que cuando abra
+              // Principales un día que no le toca la app se lo diga en vez
+              // de dejarlo con "Sin ejercicios principales asignados".
+              diasEntrena={[...(al.horarios || [])].map((h) => h.dia).filter(Boolean)}
               dia={dia}
               diaIdx={diaIdx}
               setDiaIdx={setDiaIdx}

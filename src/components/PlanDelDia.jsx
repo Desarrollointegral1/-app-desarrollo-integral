@@ -32,6 +32,7 @@ function RepsLabel({ prefijo, cantidad, tipo, sufijo }) {
 export default function PlanDelDia({
   plan,
   planValido,
+  diasEntrena,
   dia,
   diaIdx,
   setDiaIdx,
@@ -258,8 +259,25 @@ export default function PlanDelDia({
 
       {/* ── PRINCIPALES ── */}
       {seccion === "principales" && (!planValido || !dia ? (
-        <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
-          Sin ejercicios principales asignados
+        /* Auditoría 2026-07-30. Este mensaje decía sólo "Sin ejercicios
+           principales asignados" y era la razón por la que parecía que los
+           GIFs de los ejercicios no funcionaban: el alumno entra un día que
+           no le toca, no ve NADA, y no hay forma de saber si es que no tiene
+           plan o es que hoy no entrena. Ahora se distinguen los dos casos y,
+           si entrena otros días, se dicen cuáles. */
+        <div style={{ ...card, padding: "24px 20px", textAlign: "center", color: S.gray, fontSize: 16, lineHeight: 1.5 }}>
+          {diasEntrena && diasEntrena.length > 0 ? (
+            <>
+              <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Hoy no te toca entrenar</div>
+              Entrenás los <span style={{ color: S.white, fontWeight: 700 }}>{diasEntrena.join(" · ")}</span>.
+              <div style={{ marginTop: 10 }}>Mientras tanto podés hacer la preparación: está en la pestaña de al lado.</div>
+            </>
+          ) : (
+            <>
+              <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Todavía no tenés plan asignado</div>
+              Hablá con tu entrenador para que te cargue la rutina.
+            </>
+          )}
         </div>
       ) : (
         <>

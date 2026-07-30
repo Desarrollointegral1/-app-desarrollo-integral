@@ -120,8 +120,50 @@ const norm = (s) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+// Igual que norm, pero adem\u00e1s saca puntuacion y colapsa espacios. Sirve para
+// que "Jalon con banda (desde arriba)" alcance a "jalon con banda desde
+// arriba", que es la MISMA entrada escrita sin parentesis.
+const normSuave = (s) =>
+  norm(s)
+    .replace(/[()[\]{}.,;:\u00a1!\u00bf?"'`]/g, " ")
+    .replace(/[-\u2013\u2014/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Saca lo que va entre parentesis: "Remo con banda (doble)" -> "remo con
+// banda". Los parentesis en estos planes son aclaraciones de ejecucion
+// ("codos atras", "una pierna", "plantas juntas"), no ejercicios distintos.
+const sinParentesis = (s) =>
+  norm(s).replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+
+// Indice auxiliar: las mismas claves del mapa, normalizadas en suave, para
+// poder comparar sin puntuacion sin tener que duplicar cada entrada a mano.
+const M_SUAVE = {};
+for (const k of Object.keys(M)) {
+  const ks = normSuave(k);
+  if (ks && !(ks in M_SUAVE)) M_SUAVE[ks] = M[k];
+}
+
 // Devuelve la ruta del GIF del ejercicio (o "" si no hay match).
-export const getEjercicioGif = (nombre) => M[norm(nombre)] || "";
+//
+// Auditoria 2026-07-30: antes era UNICAMENTE coincidencia exacta contra M, y
+// por eso 5 de los 7 ejercicios de "Entrada en calor" que tienen los alumnos
+// no mostraban nada: el plan dice "Jalon con banda (desde arriba)" y el mapa
+// "jalon con banda desde arriba" \u2014 mismo ejercicio, distinta puntuacion.
+// Ahora se prueba en tres pasadas, de la mas estricta a la mas tolerante.
+// Ninguna adivina: las tres tienen que caer en una clave real del mapa.
+export const getEjercicioGif = (nombre) => {
+  if (!nombre) return "";
+  // 1) exacta, como siempre
+  const exacta = M[norm(nombre)];
+  if (exacta) return exacta;
+  // 2) sin puntuacion ni guiones
+  const suave = M_SUAVE[normSuave(nombre)];
+  if (suave) return suave;
+  // 3) sin la aclaracion entre parentesis
+  const base = sinParentesis(nombre);
+  return M[base] || M_SUAVE[normSuave(base)] || "";
+};
 
 // Inverso: nombres de ejercicio que resuelven (por lookup automático) a un
 // GIF dado. Se usa en la pestaña GIFs de la Biblioteca para mostrar a qué
