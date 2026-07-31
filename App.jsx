@@ -7345,11 +7345,13 @@ export default function App() {
                     : "Marcar presente"}
                 </button>
               </div>
-              {/* 2026-07-31, pedido de Lucas: "va a ser mejor debajo un menú
-                  para bioimpedancia y otro para diario" — reemplaza los
-                  sub-tabs en pill (quedaban raros) por dos entradas de menú
-                  completas, mismo lenguaje que una fila de navegación real. */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              {/* 2026-07-31, pedido de Lucas: el menú Diario/Bioimpedancia
+                  quedaba del mismo tamaño y peso que la card de Asistencia de
+                  arriba y competía con ella. Ahora es una fila chica y
+                  horizontal — mismo espíritu de "menú", pero se nota de un
+                  vistazo que es navegación secundaria, no otro bloque de
+                  información como Asistencia. */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 16, background: S.card2, borderRadius: 10, padding: 4 }}>
                 {[["diario", "Diario", NotebookPen], ["bio", "Bioimpedancia", TrendingUp]].map(([id, label, Icono]) => {
                   const activo = historialSub === id;
                   return (
@@ -7357,22 +7359,23 @@ export default function App() {
                       key={id}
                       onClick={() => setHistorialSub(id)}
                       style={{
-                        ...card,
+                        flex: 1,
                         display: "flex",
                         alignItems: "center",
-                        gap: 12,
-                        padding: "14px 16px",
-                        border: "1px solid " + (activo ? S.white : S.border),
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "8px 10px",
+                        minHeight: TAP,
+                        borderRadius: 7,
+                        border: "none",
+                        background: activo ? S.card : "transparent",
                         cursor: "pointer",
-                        textAlign: "left",
-                        width: "100%",
                       }}
                     >
-                      <Icono size={20} color={activo ? S.white : S.gray} />
-                      <span style={{ flex: 1, color: activo ? S.white : S.lgray, fontWeight: activo ? 800 : 600, fontSize: TS.ui }}>
+                      <Icono size={15} color={activo ? S.white : S.gray} />
+                      <span style={{ color: activo ? S.white : S.gray, fontWeight: activo ? 700 : 500, fontSize: TS.chip }}>
                         {label}
                       </span>
-                      <span style={{ color: S.gray }}>›</span>
                     </button>
                   );
                 })}
