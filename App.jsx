@@ -197,7 +197,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
       <div
         onClick={onLogoClick}
         title="Ir al inicio"
-        style={{ width: 84, flexShrink: 0, display: "flex", justifyContent: "flex-start", cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
+        style={{ width: 94, flexShrink: 0, display: "flex", justifyContent: "flex-start", cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
       >
         <Logo3D size={40} />
       </div>
@@ -219,7 +219,13 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
       {/* Auditoría 2026-07-30: ambos medían ~35x33 reales. Son los dos
           botones fijos del header, siempre en pantalla: van al piso de
           44x44 (iOS HIG / WCAG 2.5.5). */}
-      <div style={{ width: 100, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+      {/* 2026-07-31 — Lucas: "quedó mal el margen en el celi" en el header:
+          esta columna (100px) y la del logo (antes 84px) no eran simétricas,
+          así que el bloque de marca del medio NO quedaba centrado de verdad
+          en pantallas angostas — quedaba corrido hacia la izquierda. Las dos
+          columnas ahora miden lo mismo (94px, lo justo para los 2 botones de
+          44px + gap). */}
+      <div style={{ width: 94, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -2119,7 +2125,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
 // entrada en el array SIN ordenar (se conserva al ordenar acá abajo con
 // .map antes del .sort, así el índice sigue apuntando a la entrada
 // correcta en al.diario del lado de App()).
-function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
+function Diario({ entradas, onAdd, onEdit, onDelete, slotAntesDeEntradas }) {
   const [texto, setTexto] = useState("");
   const [editIdx, setEditIdx] = useState(null);
   const [editFecha, setEditFecha] = useState("");
@@ -2154,7 +2160,7 @@ function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
           directo debajo del botón de asistencia */}
       <div style={{ ...card, padding: 14, marginBottom: 14 }}>
         {" "}
-        <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>Como estuvo el entreno hoy?</div>{" "}
+        <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>Contanos cómo estuvo el entrenamiento hoy?</div>{" "}
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value.slice(0, MAX))}
@@ -2236,14 +2242,27 @@ function Diario({ entradas, onAdd, onEdit, slotAntesDeEntradas }) {
                     {e.fecha.slice(0, 10)}
                     {e.fecha.length > 10 && <span style={{ color: S.green, fontWeight: 700 }}> · {e.fecha.slice(11)} hs</span>}
                   </div>
-                  {onEdit && (
-                    <button
-                      onClick={() => empezarEdicion(i, e)}
-                      style={{ background: "transparent", border: "none", color: S.gray, fontSize: 11, cursor: "pointer", textDecoration: "underline", padding: 0, flexShrink: 0 }}
-                    >
-                      Editar
-                    </button>
-                  )}
+                  <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                    {onEdit && (
+                      <button
+                        onClick={() => empezarEdicion(i, e)}
+                        style={{ background: "transparent", border: "none", color: S.gray, fontSize: 11, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {/* 2026-07-31, pedido de Lucas: "el alumno tiene que poder
+                        borrar un comentario". Confirmación nativa — es
+                        destructivo y no se puede deshacer. */}
+                    {onDelete && (
+                      <button
+                        onClick={() => window.confirm("¿Borrar este comentario? No se puede deshacer.") && onDelete(i)}
+                        style={{ background: "transparent", border: "none", color: S.gray, fontSize: 11, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                      >
+                        Borrar
+                      </button>
+                    )}
+                  </div>
                 </div>{" "}
                 <div style={{ color: S.white, fontSize: 14, lineHeight: 1.5 }}>{e.texto}</div>{" "}
                 {e.respuesta && (
@@ -6501,6 +6520,9 @@ export default function App() {
   // previsualizar sin depender de un celular real o achicar la ventana).
   const forzarMovil = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("vista") === "movil";
   const wideAlumno = useIsWide() && !forzarMovil;
+  // 2026-07-31, pedido de Lucas: el ícono de Luqui vive en la barra inferior
+  // — este ref permite abrir el panel de chat desde ahí (ver CoachFlotante).
+  const coachRef = useRef(null);
   // ── MODO ENTRENADOR (ronda 9) ──
   // El admin (Lucas/Ari/Griselda) opera la interfaz del alumno con los
   // presenciales: elige un alumno y ve EXACTAMENTE su vista, cargando pesos
@@ -6776,6 +6798,15 @@ export default function App() {
     setAlumnos(u);
     setAlumno(u.find((a) => a.id === alumno.id));
   };
+  // 2026-07-31, pedido de Lucas: "el alumno tiene que poder borrar un
+  // comentario" — mismo patrón que editarDiario, filtra por índice.
+  const eliminarDiario = (idx) => {
+    const u = alumnos.map((a) =>
+      a.id === alumno.id ? { ...a, diario: (a.diario || []).filter((_, i) => i !== idx) } : a
+    );
+    setAlumnos(u);
+    setAlumno(u.find((a) => a.id === alumno.id));
+  };
   // ── REGISTRAR DÍA (ronda 8) ──
   // Cierre explícito de la sesión de hoy. Los pesos YA se autoguardan con cada
   // cambio (handlePeso → saveDailyWeight); este botón: 1) re-sincroniza todos
@@ -6951,7 +6982,20 @@ export default function App() {
     <>
       {" "}
       <GlobalStyles /> <Toast msg={toastMsg} />{" "}
-      <CoachFlotante alumno={al} iconWhite={ICON_WHITE_CROP} iconBlack={ICON_BLACK_CROP} darkMode={darkMode} S={S} />{" "}
+      <CoachFlotante
+        ref={coachRef}
+        alumno={al}
+        iconWhite={ICON_WHITE_CROP}
+        iconBlack={ICON_BLACK_CROP}
+        darkMode={darkMode}
+        S={S}
+        // 2026-07-31, pedido de Lucas: el ícono de Luqui pasa a la barra
+        // inferior fija — en mobile ya no hace falta el botón flotante
+        // arrastrable (duplicaría el acceso), y el panel se corre para no
+        // quedar tapado por esa barra.
+        mostrarBoton={wideAlumno}
+        panelBottom={wideAlumno ? 14 : 78}
+      />{" "}
       {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}{" "}
       {/* Auditoría 2026-07-30 — patrón de Instagram/Facebook: tirar hacia
           abajo para actualizar. Es el gesto que el alumno ya tiene aprendido;
@@ -7024,15 +7068,17 @@ export default function App() {
             />{" "}
             <div style={{ flex: 1, minWidth: 0 }}>
               {" "}
-              {/* Kicker (tipo de membresía) + nombre grande — jerarquía de
-                  dos líneas (spec Design 2026-07-22): el nombre es el título
-                  real de la pantalla del alumno. */}
-              <div style={{ ...eyebrow, marginBottom: 2 }}>
-                {al.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"}
-              </div>
+              {/* 2026-07-31, pedido de Lucas: "saca Entrenamiento de arriba
+                  del nombre, ya dice App de Entrenamiento arriba" — el
+                  header (HeaderAlumno) ya lo dice, este eyebrow repetía el
+                  mismo dato. Se saca salvo para rehabilitación, que sí es
+                  información nueva (no aparece en ningún otro lado). */}
+              {al.tipo === "rehabilitacion" && (
+                <div style={{ ...eyebrow, marginBottom: 2 }}>Rehabilitación</div>
+              )}
               <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>{al.nombre}</div>{" "}
               {al.horarios && al.horarios.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, marginTop: 4 }}>
                   {al.horarios.map((h, i) => {
                     // Ronda 17 (punto 4): pill clickeable → salta a
                     // Entrenamiento → Principales con ese día.
@@ -7301,7 +7347,7 @@ export default function App() {
                   arriba, sin importar qué módulo esté eligiendo abajo. */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Asistencia</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Marcar Asistencia</span>
                 </div>
                 {/* Ronda 18: date picker nativo reemplazado por chips
                     Hoy/Ayer/Otro día (lista inline de 14 días). */}
@@ -7353,7 +7399,7 @@ export default function App() {
                   vistazo que es navegación secundaria, no otro bloque de
                   información como Asistencia. */}
               <div style={{ display: "flex", gap: 6, marginBottom: 16, background: S.card2, borderRadius: 10, padding: 4 }}>
-                {[["diario", "Diario", NotebookPen], ["bio", "Bioimpedancia", TrendingUp]].map(([id, label, Icono]) => {
+                {[["bio", "Bioimpedancia", TrendingUp], ["diario", "Diario", NotebookPen]].map(([id, label, Icono]) => {
                   const activo = historialSub === id;
                   return (
                     <button
@@ -7388,6 +7434,7 @@ export default function App() {
                 <Diario
                   entradas={al.diario || []}
                   onEdit={editarDiario}
+                  onDelete={eliminarDiario}
                   onAdd={addDiario}
                   slotAntesDeEntradas={(() => {
                     const diasPorSemana =
@@ -7442,15 +7489,20 @@ export default function App() {
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
+          {/* 2026-07-31, pedido de Lucas: Historial a la izquierda,
+              Entrenamiento en el medio (el destino principal), Luqui a la
+              derecha — desde ahí se abre el chat directo, sin duplicar el
+              botón flotante (ver mostrarBoton en CoachFlotante). */}
           {[
-            ["entrenamiento", "Entrenamiento", Dumbbell],
             ["diario", "Historial", ClipboardList],
+            ["entrenamiento", "Entrenamiento", Dumbbell],
+            ["luqui", "Luqui", null],
           ].map(([id, label, Icono]) => {
-            const activo = tabGroup === id;
+            const activo = id !== "luqui" && tabGroup === id;
             return (
               <button
                 key={id}
-                onClick={() => setTabGroup(id)}
+                onClick={() => (id === "luqui" ? coachRef.current?.abrir() : setTabGroup(id))}
                 style={{
                   flex: 1,
                   minHeight: TAP + 20,
@@ -7465,7 +7517,11 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
+                {id === "luqui" ? (
+                  <img src={darkMode ? ICON_BLACK_CROP : ICON_WHITE_CROP} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                ) : (
+                  <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
+                )}
                 <span style={{ fontSize: 11, fontWeight: activo ? 800 : 500, color: activo ? S.white : S.gray }}>
                   {label}
                 </span>

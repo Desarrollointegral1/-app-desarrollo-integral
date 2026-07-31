@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, Check } from "lucide-react";
+import { ClipboardList, Check, Move, Zap, Flame } from "lucide-react";
 import { S, card, tabBtn, tabN2, segTrack, segChip, n4Track, chipN4 } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
@@ -164,12 +164,12 @@ export default function PlanDelDia({
   // calor) y el ADMIN puede ocultar/reordenar secciones por alumno vía
   // rm.secciones_config = { orden: ["movilidad","banda","peso"], ocultas: [] }.
   const PREP_TABS_BASE = [
-    { id: "movilidad", label: "Movilidad", detalle: moviActiva.detalle, items: moviActiva.items },
-    { id: "banda", label: "Act. Elástico", detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
+    { id: "movilidad", label: "Movilidad", icono: Move, detalle: moviActiva.detalle, items: moviActiva.items },
+    { id: "banda", label: "Act. Elástico", icono: Zap, detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
     // 2026-07-31: "Entrada en calor" se cortaba con "..." en el segmented
     // control de 3 chips (ronda visual de hoy) — se acorta a "Calor", mismo
     // criterio de abreviar que ya usa "Act. Elástico" al lado.
-    { id: "peso", label: "Calor", detalle: { cantidad: 5, tipo: null }, items: activacion },
+    { id: "peso", label: "Calor", icono: Flame, detalle: { cantidad: 5, tipo: null }, items: activacion },
   ];
   const cfg = rm?.secciones_config || {};
   const ordenCfg = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => PREP_TABS_BASE.some((t) => t.id === id));
@@ -252,12 +252,20 @@ export default function PlanDelDia({
         <>
           {/* Sub-menús de Preparación — respetan orden y visibilidad que el
               admin configuró para este alumno (ronda 9) */}
+          {/* 2026-07-31, pedido de Lucas: "implementa lo mismo en movilidad
+              elástico y calor" — mismo lenguaje ícono+label que ya se usa en
+              el menú Diario/Bioimpedancia. */}
           <div style={{ ...segTrack(), marginBottom: 8 }}>
-            {PREP_TABS.map((t) => (
-              <button key={t.id} onClick={() => setPrep(t.id)} style={segChip(prepActiva.id === t.id)}>
-                {t.label}
-              </button>
-            ))}
+            {PREP_TABS.map((t) => {
+              const activo = prepActiva.id === t.id;
+              const Icono = t.icono;
+              return (
+                <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...segChip(activo), display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  {Icono && <Icono size={13} />}
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
           {/* Selector de versión de movilidad — nivel 4 (ronda 11): sub-menú
               DENTRO de Movilidad, con un estilo más chico/sutil (texto +

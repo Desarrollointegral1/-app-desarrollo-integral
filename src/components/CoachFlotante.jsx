@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Headphones, Volume2, Volume, Mic, Play, Pause } from "lucide-react";
 
 /**
@@ -78,8 +78,14 @@ function renderTexto(texto) {
   });
 }
 
-export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, S }) {
+// 2026-07-31, pedido de Lucas: el ícono de Luqui pasa a vivir en la barra
+// inferior fija (junto a Entrenamiento/Historial) — ya no hace falta el
+// botón flotante arrastrable en mobile (`mostrarBoton=false` lo oculta, el
+// panel se abre igual desde afuera con el ref). `panelBottom` corre el panel
+// para que no quede tapado por esa barra.
+const CoachFlotante = forwardRef(function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, S, mostrarBoton = true, panelBottom = 14 }, ref) {
   const [abierto, setAbierto] = useState(false);
+  useImperativeHandle(ref, () => ({ abrir: () => setAbierto(true), toggle: () => setAbierto((v) => !v) }), []);
   const [mensajes, setMensajes] = useState([]);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -96,8 +102,20 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   const modoVozRef = useRef(false);
   const vozEstadoRef = useRef("idle");
   const reintentoRef = useRef(0);
+  // Audio de Voicebox (voz local) del último consultarCoach — { base64, mime }
+  // o null si no vino (Voicebox apagado/no configurado: se usa SpeechSynthesis).
+  const ultimoAudioRef = useRef(null);
+  const audioElRef = useRef(null); // <audio> de Voicebox sonando ahora, si hay
   // Setter que mantiene el ref en sync (para leer el estado en callbacks async).
   const setVozEstado = (e) => { vozEstadoRef.current = e; setVozEstadoRaw(e); };
+
+  // Corta cualquier voz sonando ahora mismo (Voicebox o navegador) — se usa
+  // en toda interrupción/barge-in y al pausar/cerrar el modo voz.
+  function cortarVoz() {
+    try { window.speechSynthesis?.cancel(); } catch {}
+    try { audioElRef.current?.pause(); } catch {}
+    audioElRef.current = null;
+  }
 
   // ¿El navegador soporta dictado por voz? (Chrome/Edge sí; Safari iOS parcial)
   const SR =
@@ -124,15 +142,13 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   useEffect(() => {
     if (abierto && mensajes.length === 0) {
       const nombre = (alumno?.nombre || "").split(" ")[0];
-      const porVoz = soportaVoz
-        ? " Si te resulta más cómodo, tocá el micrófono y hablame — te escucho y te respondo."
-        : "";
+      // 2026-07-31 — Lucas: "el chat de Luqui tiene mucho texto en el primer
+      // mensaje". Se corta a lo esencial; el resto (voz, modo guiado) el
+      // alumno lo descubre solo tocando los íconos del header.
       setMensajes([
         {
           rol: "assistant",
-          // Brand Kit §06 — glosario: se dice "entrenador", nunca "coach".
-          // 2026-07-31: el entrenador virtual pasa a llamarse Luqui.
-          texto: `Hola${nombre ? " " + nombre : ""}. Soy ${NOMBRE_ENTRENADOR}, tu entrenador. Puedo guiarte la sesión de hoy paso a paso, explicarte cada ejercicio con calma, o responderte cualquier duda.${porVoz} ¿Arrancamos?`,
+          texto: `Hola${nombre ? " " + nombre : ""}, soy ${NOMBRE_ENTRENADOR}. ¿En qué te ayudo?`,
         },
       ]);
     }
@@ -146,14 +162,14 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   // Al desmontar: cortar voz y micrófono.
   useEffect(() => () => {
     modoVozRef.current = false;
-    try { window.speechSynthesis?.cancel(); } catch {}
+    cortarVoz();
     try { recognitionRef.current?.stop(); } catch {}
   }, []);
 
   // Al minimizar/cerrar el chat (no en modo voz): cortar la voz y el micrófono.
   useEffect(() => {
     if (!abierto && !modoVozRef.current) {
-      try { window.speechSynthesis?.cancel(); } catch {}
+      cortarVoz();
       try { recognitionRef.current?.stop(); } catch {}
       setEscuchando(false);
     }
@@ -200,6 +216,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   // Habla un texto en voz alta. `alTerminar` se llama al terminar (para
   // encadenar el modo voz: hablar → escuchar).
   function hablar(texto, alTerminar) {
+    if (ultimoAudioRef.current) { reproducirAudioVoicebox(ultimoAudioRef.current, alTerminar); return; }
     if (!soportaLectura) { alTerminar && alTerminar(); return; }
     const u = new SpeechSynthesisUtterance(prepararParaVoz(texto));
     u.lang = "es-AR";
@@ -220,6 +237,24 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
     window.speechSynthesis.speak(u);
   }
 
+  // Reproduce el audio generado por Voicebox (voz local). Mismo contrato que
+  // SpeechSynthesis: `alTerminar` se llama una sola vez, con salvavidas de 25s.
+  function reproducirAudioVoicebox({ base64, mime }, alTerminar) {
+    const el = new Audio(`data:${mime};base64,${base64}`);
+    audioElRef.current = el;
+    let yaTermino = false;
+    const terminarUnaVez = () => {
+      if (yaTermino) return;
+      yaTermino = true;
+      if (audioElRef.current === el) audioElRef.current = null;
+      alTerminar && alTerminar();
+    };
+    el.onended = terminarUnaVez;
+    el.onerror = terminarUnaVez;
+    setTimeout(terminarUnaVez, 25000);
+    el.play().catch(terminarUnaVez);
+  }
+
   // Núcleo: registra el turno del alumno, pide la respuesta al coach, la
   // registra y la devuelve. La transcripción ES `mensajes` (se guarda en el
   // backend en coach_conversaciones automáticamente). En modo voz, el backend
@@ -227,6 +262,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   async function consultarCoach(texto, modoVozActivo = false) {
     setMensajes((m) => [...m, { rol: "user", texto }]);
     let respuesta;
+    ultimoAudioRef.current = null; // se completa abajo si vino audio de Voicebox
     try {
       const r = await fetch("/web/api/coach", {
         method: "POST",
@@ -238,6 +274,9 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
         r.ok && data.status === "success"
           ? data.respuesta
           : data.message || "Uy, algo falló. Probá de nuevo en un ratito.";
+      if (r.ok && data.audioBase64) {
+        ultimoAudioRef.current = { base64: data.audioBase64, mime: data.audioMime || "audio/wav" };
+      }
     } catch {
       respuesta = "No me pude conectar. Fijate la conexión y probá de nuevo.";
     }
@@ -319,17 +358,28 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
   function hablarYEscuchar(texto) {
     if (!modoVozRef.current) return;
     setVozEstado("hablando");
-    const u = new SpeechSynthesisUtterance(prepararParaVoz(texto));
-    u.lang = "es-AR";
-    const es = elegirVozEs();
-    if (es) u.voice = es;
-    u.rate = 0.97;
     let yaTermino = false;
     const pasarAEscuchar = () => {
       if (yaTermino) return;
       yaTermino = true;
       if (modoVozRef.current && vozEstadoRef.current === "hablando") setVozEstado("escuchando");
     };
+    if (ultimoAudioRef.current) {
+      const el = new Audio(`data:${ultimoAudioRef.current.mime};base64,${ultimoAudioRef.current.base64}`);
+      audioElRef.current = el;
+      const terminar = () => { if (audioElRef.current === el) audioElRef.current = null; pasarAEscuchar(); };
+      el.onended = terminar;
+      el.onerror = terminar;
+      setTimeout(terminar, 25000);
+      el.play().catch(terminar);
+      escucharVoz();
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(prepararParaVoz(texto));
+    u.lang = "es-AR";
+    const es = elegirVozEs();
+    if (es) u.voice = es;
+    u.rate = 0.97;
     u.onend = pasarAEscuchar;
     u.onerror = pasarAEscuchar;
     // Mismo salvavidas que hablar(): si onend nunca dispara, no se queda
@@ -351,7 +401,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
       const dicho = e.results?.[0]?.[0]?.transcript || "";
       if (!dicho.trim()) return;
       capturado = true;
-      window.speechSynthesis.cancel(); // corta a Luqui si todavía estaba hablando
+      cortarVoz(); // corta a Luqui si todavía estaba hablando
       try { rec.stop(); } catch {}
       turnoVoz(dicho);
     };
@@ -393,7 +443,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
 
   function pausarVoz() {
     setVozEstado("pausado"); // primero el estado, así el onend no re-escucha
-    try { window.speechSynthesis?.cancel(); } catch {}
+    cortarVoz();
     try { recognitionRef.current?.stop(); } catch {}
   }
 
@@ -404,7 +454,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
 
   function terminarModoVoz() {
     modoVozRef.current = false;
-    try { window.speechSynthesis?.cancel(); } catch {}
+    cortarVoz();
     try { recognitionRef.current?.stop(); } catch {}
     setVozEstado("idle");
     setModoVoz(false);
@@ -430,48 +480,52 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
       {/* Animación del logo: péndulo 3D, igual que el de bienvenida. */}
       <style>{`@keyframes coachLogoSpin{0%{transform:rotateY(0)}25%{transform:rotateY(52deg)}50%{transform:rotateY(0)}75%{transform:rotateY(-52deg)}100%{transform:rotateY(0)}}@keyframes coachPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,0.5)}50%{box-shadow:0 0 0 6px rgba(229,72,77,0)}}@keyframes coachRing{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.45)}50%{box-shadow:0 0 0 18px rgba(255,255,255,0)}}`}</style>
 
-      {/* Botón flotante (logo arrastrable) */}
-      <button
-        aria-label="Abrir entrenador"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        style={{
-          position: "fixed",
-          left: pos.x,
-          top: pos.y,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          background: CIRCULO,
-          border: `1px solid ${BORDER}`,
-          boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
-          cursor: "grab",
-          touchAction: "none",
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-          overflow: "hidden",
-          perspective: "220px",
-          zIndex: 2147483000,
-          padding: 0,
-          transition: "transform 0.15s",
-        }}
-      >
-        <img
-          src={LOGO}
-          alt=""
-          draggable={false}
+      {/* Botón flotante (logo arrastrable) — en mobile vive en la barra
+          inferior en su lugar (mostrarBoton=false), este queda solo para
+          desktop. */}
+      {mostrarBoton && (
+        <button
+          aria-label="Abrir entrenador"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
           style={{
-            width: 42,
-            height: 42,
-            marginBottom: 3,
-            pointerEvents: "none",
-            userSelect: "none",
-            animation: "coachLogoSpin 6s ease-in-out infinite",
+            position: "fixed",
+            left: pos.x,
+            top: pos.y,
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            background: CIRCULO,
+            border: `1px solid ${BORDER}`,
+            boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
+            cursor: "grab",
+            touchAction: "none",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            overflow: "hidden",
+            perspective: "220px",
+            zIndex: 2147483000,
+            padding: 0,
+            transition: "transform 0.15s",
           }}
-        />
-      </button>
+        >
+          <img
+            src={LOGO}
+            alt=""
+            draggable={false}
+            style={{
+              width: 42,
+              height: 42,
+              marginBottom: 3,
+              pointerEvents: "none",
+              userSelect: "none",
+              animation: "coachLogoSpin 6s ease-in-out infinite",
+            }}
+          />
+        </button>
+      )}
 
       {/* Panel de chat */}
       {abierto && (
@@ -481,13 +535,20 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
           style={{
             position: "fixed",
             right: 14,
-            bottom: 14,
+            bottom: panelBottom,
             width: "min(92vw, 380px)",
             height: "min(72vh, 560px)",
-            background: BG,
+            // 2026-07-31 — Lucas: "el chat de Luqui es poco estético... tiene
+            // que ser más transparente, menos invasivo". Antes era un panel
+            // sólido opaco; ahora deja ver de fondo la app (glassmorphism
+            // sutil), y la sombra baja de intensidad para no sentirse un
+            // bloque pesado flotando encima de todo.
+            background: darkMode ? "rgba(7,7,7,0.82)" : "rgba(255,255,255,0.86)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
             border: `1px solid ${BORDER}`,
             borderRadius: 18,
-            boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+            boxShadow: "0 8px 28px rgba(0,0,0,0.25)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -507,7 +568,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
               alignItems: "center",
               gap: 10,
               padding: "12px 14px",
-              background: CARD,
+              background: "transparent",
               borderBottom: `1px solid ${BORDER}`,
               cursor: "pointer",
             }}
@@ -656,7 +717,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                 alignItems: "center",
                 gap: 8,
                 padding: "12px 14px",
-                background: CARD,
+                background: "transparent",
                 borderTop: `1px solid ${BORDER}`,
               }}
             >
@@ -718,7 +779,7 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
                 display: "flex",
                 gap: 8,
                 padding: 10,
-                background: CARD,
+                background: "transparent",
                 borderTop: `1px solid ${BORDER}`,
               }}
             >
@@ -791,4 +852,6 @@ export default function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, 
 
     </>
   );
-}
+});
+
+export default CoachFlotante;
