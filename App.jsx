@@ -346,9 +346,16 @@ function FechaRapida({ value, onChange }) {
   );
 }
 // ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
+// 2026-07-30: prefers-reduced-motion apaga TODAS las animaciones — correcto
+// para transiciones de interfaz, pero de paso dejó fijo el logo pendulando
+// (.di-logo3d) del login, que Lucas pidió recuperar explícitamente. Es
+// identidad de marca, no una animación de UI: lenta (9s), sin parpadeo, sin
+// desplazamiento brusco — no dispara mareo vestibular, que es lo que la
+// preferencia intenta evitar. Se la exime puntualmente al final del media
+// query de abajo, el resto de la app sigue respetando la preferencia.
 function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } .di-logo3d, .di-logo3d * { animation-duration:9s !important; animation-iteration-count:infinite !important; } }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -5835,15 +5842,41 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   );
 }
 // ── LOGIN ─────────────────────────────────────────────────────────────
+// 2026-07-30, pedido de Lucas: que el login se parezca a Mercado Libre o
+// Instagram — usuario recordado + ingreso con huella. Dos mecanismos
+// SEPARADOS, cada uno cubriendo lo que el otro no puede:
+//   1) Usuario recordado: SIEMPRE (todos los navegadores), un simple
+//      localStorage con el último código usado. No es un dato sensible.
+//   2) Clave + huella: se delega al gestor de contraseñas del SISTEMA vía la
+//      Credential Management API (`navigator.credentials`), NO a un
+//      localStorage propio. Es la diferencia entre "de verdad seguro" y
+//      "parece seguro": el navegador/SO ya guarda la clave en su bóveda
+//      protegida por huella/Face ID (así la ve iOS Keychain o el Administrador
+//      de contraseñas de Android/Chrome) — nosotros solo la pedimos prestada
+//      un instante para completar el formulario. Nunca la tocamos en texto
+//      plano fuera de esa llamada. En iOS Safari (que no implementa esta
+//      API) el mismo resultado sale gratis: el teclado ya ofrece autocompletar
+//      con Face ID/Touch ID porque los campos ya tienen autoComplete correcto.
+const LS_ULTIMO_USUARIO = "di_ultimo_usuario";
+const credencialesOk = typeof window !== "undefined" && "credentials" in navigator && typeof window.PasswordCredential === "function";
+
 function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
-  const [codigo, setCodigo] = useState("");
+  const [codigo, setCodigo] = useState(() => {
+    try { return localStorage.getItem(LS_ULTIMO_USUARIO) || ""; } catch { return ""; }
+  });
   const [pin, setPin] = useState("");
   const [esAdmin, setEsAdmin] = useState(false);
   const [err, setErr] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Evita pedir la credencial dos veces en desarrollo (React StrictMode monta
+  // los efectos dos veces) y evita ofrecerla de nuevo si el usuario ya la
+  // rechazó una vez en esta visita.
+  const yaPidioCredencial = useRef(false);
 
-  const go = async () => {
-    if (!codigo.trim() || !pin.trim()) {
+  const go = async (codigoOverride, pinOverride) => {
+    const cod = (codigoOverride ?? codigo).trim();
+    const clave = (pinOverride ?? pin).trim();
+    if (!cod || !clave) {
       setErr("Completa username y clave");
       return;
     }
@@ -5853,10 +5886,24 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
 
     try {
       if (esAdmin) {
-        const admin = await loginAdmin(codigo, pin);
+        const admin = await loginAdmin(cod, clave);
+        try { localStorage.setItem(LS_ULTIMO_USUARIO, cod); } catch {}
         onAdmin(admin);
       } else {
-        const alumno = await loginConCodigo(codigo, pin);
+        const alumno = await loginConCodigo(cod, clave);
+        try { localStorage.setItem(LS_ULTIMO_USUARIO, cod); } catch {}
+        // Ofrece guardar la clave en el gestor de contraseñas del sistema —
+        // la próxima vez el navegador la completa sola (con huella/Face ID
+        // si el dispositivo lo pide). Nunca se guarda en nuestro propio
+        // storage: se lo entregamos al navegador y listo.
+        if (credencialesOk) {
+          try {
+            await navigator.credentials.store(new window.PasswordCredential({ id: cod, password: clave, name: cod }));
+          } catch {
+            // El usuario puede cancelar el guardado, o el navegador no
+            // soportar algo puntual — no es un error de login, se ignora.
+          }
+        }
         onLogin(alumno);
       }
     } catch (e) {
@@ -5865,6 +5912,27 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
       setCargando(false);
     }
   };
+
+  // Al entrar a la pantalla, si el navegador tiene una clave guardada para
+  // esta app, se la pedimos (dispara el prompt de huella/Face ID del SO si
+  // corresponde) y completamos el login solos. `mediation: "optional"`
+  // muestra el selector nativo de cuentas en vez de loguear en silencio —
+  // el usuario siempre ve y confirma qué cuenta está entrando.
+  useEffect(() => {
+    if (!credencialesOk || yaPidioCredencial.current) return;
+    yaPidioCredencial.current = true;
+    navigator.credentials
+      .get({ password: true, mediation: "optional" })
+      .then((cred) => {
+        if (cred && cred.type === "password" && cred.id && cred.password) {
+          setCodigo(cred.id);
+          setPin(cred.password);
+          go(cred.id, cred.password);
+        }
+      })
+      .catch(() => {}); // cancelado por el usuario o sin credencial guardada
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
@@ -5994,7 +6062,14 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         {err && <div role="alert" style={{ color: S.red, fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "10px 12px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
         <button
-          onClick={go}
+          // 2026-07-30: NO poner onClick={go} directo — React pasa el
+          // SyntheticEvent del click como primer argumento, que pisaba el
+          // nuevo parámetro `codigoOverride` de go() (usado por el autofill
+          // de credenciales) con el objeto del evento en vez de undefined.
+          // Bug real, encontrado en pruebas: "(codigoOverride ?? codigo).trim
+          // is not a function". Con la arrow function, go() se llama sin
+          // argumentos y usa el estado normal (codigo/pin del formulario).
+          onClick={() => go()}
           disabled={cargando}
           style={{
             width: "100%",
@@ -6026,9 +6101,11 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           display: "flex",
           alignItems: "center",
           gap: 7,
-          background: esAdmin ? "rgba(76,175,80,0.12)" : "transparent",
-          color: esAdmin ? S.green : S.lgray,
-          border: "1px solid " + (esAdmin ? S.green : S.border),
+          // Quedó verde de una pasada anterior de la auditoría — se corrige
+          // acá de paso: el Brand Kit solo admite rojo como acento.
+          background: esAdmin ? S.card3 : "transparent",
+          color: esAdmin ? S.white : S.lgray,
+          border: "1px solid " + (esAdmin ? S.white : S.border),
           borderRadius: 22,
           padding: "12px 18px",
           minHeight: TAP,
