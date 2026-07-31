@@ -6043,42 +6043,43 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         </div>
       </div>
 
-      <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "28px 24px" }}>
-        {/* Ronda 16: labels centrados + bold, misma tipografía (FONT_BODY)
-            que el subtítulo "App de entrenamiento" de arriba — pedido
-            explícito de Lucas de unificar la identidad tipográfica. */}
-        <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 6, textAlign: "center" }}>
-          Usuario
+      <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "24px 20px" }}>
+        {/* 2026-07-31, pedido de Lucas: caja real estilo Mercado Libre —
+            label y campo fundidos en UN solo contenedor con borde propio, no
+            un caption flotando arriba de un input suelto (mismo patrón que
+            ya se aplicó en la app de Urquiza el mismo día). */}
+        <div style={{ border: "1px solid " + S.border, borderRadius: 10, padding: "8px 14px", marginBottom: 12 }}>
+          <div style={{ ...eyebrow, letterSpacing: 1.5, fontSize: 11 }}>Usuario</div>
+          <input
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            placeholder="Tu username"
+            autoComplete="username"
+            autoCapitalize="characters"
+            style={{ ...inp, border: "none", background: "transparent", padding: "2px 0 0", height: "auto" }}
+            disabled={cargando}
+          />
         </div>
-        <input
-          value={codigo}
-          onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-          onKeyDown={(e) => e.key === "Enter" && go()}
-          placeholder="Tu username"
-          autoComplete="username"
-          autoCapitalize="characters"
-          style={{ ...inp, padding: "13px 14px" }}
-          disabled={cargando}
-        />
 
-        <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 6, marginTop: 14, textAlign: "center" }}>
-          Clave
+        <div style={{ border: "1px solid " + S.border, borderRadius: 10, padding: "8px 14px" }}>
+          <div style={{ ...eyebrow, letterSpacing: 1.5, fontSize: 11 }}>Clave</div>
+          <input
+            type="password"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.slice(0, 4))}
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            placeholder="••••"
+            maxLength={4}
+            // La clave son 4 dígitos: en el celular tiene que abrir el teclado
+            // numérico, no el alfabético. Faltaba `inputMode`, así que el
+            // alumno tenía que cambiar de teclado a mano en cada ingreso.
+            inputMode="numeric"
+            autoComplete="current-password"
+            style={{ ...inp, border: "none", background: "transparent", padding: "2px 0 0", height: "auto", letterSpacing: 4 }}
+            disabled={cargando}
+          />
         </div>
-        <input
-          type="password"
-          value={pin}
-          onChange={(e) => setPin(e.target.value.slice(0, 4))}
-          onKeyDown={(e) => e.key === "Enter" && go()}
-          placeholder="••••"
-          maxLength={4}
-          // La clave son 4 dígitos: en el celular tiene que abrir el teclado
-          // numérico, no el alfabético. Faltaba `inputMode`, así que el
-          // alumno tenía que cambiar de teclado a mano en cada ingreso.
-          inputMode="numeric"
-          autoComplete="current-password"
-          style={{ ...inp, padding: "13px 14px", letterSpacing: 4 }}
-          disabled={cargando}
-        />
 
         {err && <div role="alert" style={{ color: S.red, fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "10px 12px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
