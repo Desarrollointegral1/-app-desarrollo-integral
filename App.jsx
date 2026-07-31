@@ -186,46 +186,44 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         marginBottom: 12,
       }}
     >
-      {/* 2026-07-31 — Lucas: "quedó muy lejos del logo" + "encimada a los
-          menús". El diseño de 3 columnas (logo | centro | botones) centraba
-          el wordmark en el ESPACIO SOBRANTE, no junto al logo — de ahí el
-          hueco. Rediseño: logo+wordmark ahora son UN solo bloque (lockup),
-          centrado de verdad en toda la fila con margin:auto; los botones se
-          sacan del flujo (position:absolute a la derecha) para que nunca
-          empujen ni tapen el centro. maxWidth deja aire real a cada lado. */}
+      {/* 2026-07-31 — Lucas, viendo píxeles reales (capturó su propia
+          pantalla): "el logo/texto quedaron microscópicos". La causa real
+          era `maxWidth: calc(100% - 200px)` — reservaba 200px de aire "por
+          las dudas" y dejaba apenas ~150px reales para el lockup en un
+          celular de 390px. Van 4 rondas tratando de CENTRAR esto en toda la
+          pantalla — se abandona ese enfoque. Ahora: logo+wordmark GRANDES,
+          alineados a la izquierda (mismo patrón que Instagram/Mercado
+          Libre: marca a la izquierda, acciones a la derecha, sin centrado
+          forzado), con todo el ancho disponible hasta donde empiezan los
+          botones. */}
       <div
         onClick={onLogoClick}
         title="Ir al inicio"
         style={{
-          margin: "0 auto",
-          maxWidth: "calc(100% - 200px)",
+          flex: 1,
+          minWidth: 0,
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: 10,
           cursor: onLogoClick ? "pointer" : "default",
+          paddingRight: 100,
         }}
       >
         <div style={{ flexShrink: 0, lineHeight: 0 }}>
-          <Logo3D size={34} estatico />
+          <Logo3D size={44} estatico />
         </div>
         <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
           <DIWordmark
             soloDesarrollo
-            width={220}
-            style={{ color: S.white, width: "min(220px, 100%)", height: "auto", display: "block" }}
+            width={230}
+            style={{ color: S.white, width: "min(230px, 100%)", height: "auto", display: "block" }}
           />
-          {/* Subtítulo achicado y con letterSpacing bajo para que nunca
-              vuelva a desbordar, ahora que vive pegado al wordmark. */}
-          <div style={{ color: S.gray, fontSize: "clamp(9px, 2.6vw, 12px)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 4, fontFamily: FONT_BRAND, whiteSpace: "nowrap" }}>
+          <div style={{ color: S.gray, fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginTop: 5, fontFamily: FONT_BRAND, whiteSpace: "nowrap" }}>
             App de entrenamiento
           </div>
         </div>
       </div>
-      {/* 3) Tema · Salir — ahora fuera del flujo (absolute), pegados al
-          borde derecho real de la pantalla. Ya no arma una columna
-          "espejo" del logo — esa simetría artificial era la raíz del
-          hueco/descentrado; con esto el lockup logo+wordmark se centra
-          en TODO el ancho, y los botones nunca lo tocan. */}
+      {/* Tema · Salir — pegados al borde derecho real de la pantalla. */}
       <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 6 }}>
         <button
           onClick={toggleTheme}
