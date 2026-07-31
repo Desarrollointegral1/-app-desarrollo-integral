@@ -83,6 +83,11 @@ import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
 import ItemCard from "./src/components/ItemCard.jsx";
 import PlanDelDia from "./src/components/PlanDelDia.jsx";
+// Patrones de las apps que el alumno ya sabe usar (Instagram / Mercado Libre
+// / Facebook), incorporados en la auditoría del 2026-07-30.
+import { useDeshacer } from "./src/components/ToastDeshacer.jsx";
+import { SkeletonListaAlumnos, SkeletonCard } from "./src/components/Skeleton.jsx";
+import PullToRefresh from "./src/components/PullToRefresh.jsx";
 import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
@@ -1483,8 +1488,13 @@ function PeriodizacionEditor({ data, onChange }) {
                 {" "}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>SERIES</div>
+                  {/* Auditoría 2026-07-30: series y reps son enteros. Sin
+                      `inputMode` el celular abría el teclado alfabético y
+                      había que cambiarlo a mano en cada campo. */}
                   <input
                     type="number"
+                    inputMode="numeric"
+                    autoComplete="off"
                     value={form.series}
                     onChange={(e) => setForm((f) => ({ ...f, series: e.target.value }))}
                     style={inp}
@@ -1494,6 +1504,8 @@ function PeriodizacionEditor({ data, onChange }) {
                   <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>REPS</div>
                   <input
                     type="number"
+                    inputMode="numeric"
+                    autoComplete="off"
                     value={form.reps}
                     onChange={(e) => setForm((f) => ({ ...f, reps: e.target.value }))}
                     style={inp}
@@ -2486,7 +2498,9 @@ function AsignarPlanModal({ al, biblioteca, onGuardarBiblioteca, onGuardarParaTo
         {!diasEditables ? (
           // Paso 1: elegir plantilla
           !plantillas ? (
-            <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>Cargando plantillas…</div>
+            // Patrón de Instagram: la silueta del contenido que viene, en vez
+            // del texto "Cargando…". Se siente más rápido aunque tarde igual.
+            <div style={{ padding: "4px 0" }}><SkeletonCard /><SkeletonCard /></div>
           ) : plantillas.length === 0 ? (
             <div style={{ color: S.gray, fontSize: 13, textAlign: "center", padding: 20 }}>
               Todavía no hay plantillas — creá una desde <BookOpen size={13} style={{ verticalAlign: "-2px" }} /> Biblioteca → + Crear plan de entrenamiento.
@@ -3357,6 +3371,112 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
     </div>
   );
 }
+// ── NOVEDADES DEL ALUMNO (contador de no leídos) ───────────────────────
+// Auditoría 2026-07-30: los avisos del gimnasio se listaban siempre abiertos
+// y sin ninguna señal de "hay algo nuevo". El alumno tenía que acordarse de
+// cuál ya había leído, y en el celular los avisos viejos le empujaban el plan
+// del día hacia abajo. Se aplica el patrón que ya conocen de Instagram y
+// Facebook: un acceso plegado con un contador rojo de no leídos; se abre de
+// un toque y ahí se marcan como leídos.
+//
+// Por qué localStorage y no Supabase: la tabla `novedades` es global (un
+// aviso para todo el gimnasio, sin estado por alumno). "Leído" es una
+// preferencia del dispositivo del alumno, no un dato del negocio — agregar
+// una tabla novedades_leidas + sus políticas RLS sería mucho más caro que
+// resolverlo en el cliente, y si se pierde el peor caso es ver el badge una
+// vez de más.
+function NovedadesAlumno({ novedades, alumnoId }) {
+  const key = "di_novedades_vistas_" + alumnoId;
+  const [vistas, setVistas] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
+  });
+  const [abierto, setAbierto] = useState(false);
+
+  if (novedades.length === 0) return null;
+
+  // Criterio de "no leída": su id NO está en la lista guardada. Se guardan
+  // ids y no una fecha de última lectura porque el admin puede despublicar y
+  // volver a publicar un aviso (toggle `activo`) sin que cambie su `fecha`:
+  // con fecha, ese aviso re-publicado quedaría marcado como leído para
+  // siempre. Con ids cada aviso se cuenta una sola vez, sin falsos negativos.
+  const noLeidas = novedades.filter((n) => !vistas.includes(n.id));
+
+  const abrir = () => {
+    setAbierto((a) => !a);
+    if (noLeidas.length > 0) {
+      const ids = novedades.map((n) => n.id);
+      setVistas(ids);
+      try { localStorage.setItem(key, JSON.stringify(ids)); } catch { /* modo privado: se muestra el badge de nuevo, no rompe nada */ }
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <button
+        onClick={abrir}
+        aria-expanded={abierto}
+        aria-label={noLeidas.length > 0
+          ? `Novedades: ${noLeidas.length} ${noLeidas.length === 1 ? "novedad sin leer" : "novedades sin leer"}`
+          : "Novedades del gimnasio"}
+        style={{
+          ...card,
+          width: "100%",
+          minHeight: TAP,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 14px",
+          color: S.white,
+          fontFamily: FONT_BODY,
+          fontSize: TS.ui,
+          fontWeight: 700,
+          textAlign: "left",
+          cursor: "pointer",
+        }}
+      >
+        <Megaphone size={18} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>Novedades</span>
+        {/* Badge: solo si hay algo sin leer. Nunca un cero — un contador en
+            cero es ruido. Rojo (S.red) porque acá sí es una alerta real, que
+            es el único uso permitido del acento por el Brand Kit v1.0. */}
+        {noLeidas.length > 0 && (
+          <span
+            aria-hidden="true"
+            style={{
+              minWidth: 24,
+              height: 24,
+              borderRadius: 12,
+              background: S.red,
+              color: "#fff",
+              fontSize: TS.chip,
+              fontWeight: 800,
+              lineHeight: "24px",
+              textAlign: "center",
+              padding: "0 7px",
+              boxSizing: "border-box",
+              flexShrink: 0,
+            }}
+          >
+            {noLeidas.length > 9 ? "9+" : noLeidas.length}
+          </span>
+        )}
+        <span style={{ color: S.gray, fontSize: TS.chip, flexShrink: 0 }}>{abierto ? "▲" : "▼"}</span>
+      </button>
+      {/* Cerrado se sigue viendo de qué se trata lo nuevo: el título del
+          aviso más reciente sin leer queda como preview, igual que la
+          notificación de un chat. Así nadie se pierde un aviso por no abrir. */}
+      {!abierto && noLeidas.length > 0 && (
+        <div style={{ color: S.gray, fontSize: TS.label, lineHeight: 1.4, padding: "6px 14px 0" }}>{noLeidas[0].titulo}</div>
+      )}
+      {abierto && novedades.map((n) => (
+        <div key={n.id} style={{ ...card, padding: "12px 14px", marginTop: 8, borderLeft: "3px solid " + S.border2 }}>
+          <div style={{ color: S.white, fontWeight: 700, fontSize: TS.ui, display: "flex", alignItems: "center", gap: 6 }}>{n.titulo}</div>
+          {n.contenido && <div style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.5, marginTop: 4 }}>{n.contenido}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
 // ── NOVEDADES ADMIN ───────────────────────────────────────────────────
 function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
   const [titulo, setTitulo] = useState("");
@@ -3517,6 +3637,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // sirve — armar planes, cruzar datos, la biblioteca. La vista del alumno
   // queda angosta a propósito, porque se usa con una mano en la clase.
   const wide = useIsWide();
+  // Toast con "Deshacer" (patrón Gmail/Instagram/ML) — reemplaza los
+  // window.confirm() bloqueantes en las acciones destructivas del panel.
+  const { ejecutarConDeshacer, ToastUI } = useDeshacer();
   const [sec, setSec] = useState("dashboard");
   const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
   const [planTab, setPlanTab] = useState("entrenamiento");
@@ -4028,6 +4151,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           respeto por prefers-reduced-motion. Detectado midiendo en produccion
           despues del primer deploy. */}
       <GlobalStyles />
+      {/* Toast de "Deshacer" — se monta una sola vez por vista, flotante. */}
+      {ToastUI}
       {" "}
       {/* Header en 2 filas (2026-07-21, pedido de Lucas sobre un screenshot
           de mobile: antes título + botones compartían un renglón con
@@ -4221,13 +4346,34 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 setSec("alumnos");
                 setForm(null);
               }}
-              onDelete={async (id, nombre) => {
-                if (!window.confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
-                await deleteAlumno(id);
+              // Auditoría 2026-07-30 — patrón de Gmail/Instagram/Mercado Libre:
+              // en vez de frenar al usuario con un window.confirm() bloqueante
+              // ANTES de actuar, se actúa y se ofrece "Deshacer" unos segundos.
+              // Menos fricción y menos miedo, y el borrado real recién sale
+              // cuando vence el plazo (ver useDeshacer en ToastDeshacer.jsx).
+              onDelete={(id, nombre) => {
+                const alumnoBorrado = alumnos.find((a) => a.id === id);
                 const nuevos = alumnos.filter((a) => a.id !== id);
                 onUpdate(nuevos);
-                setSelId(nuevos[0]?.id);
-                showToast && showToast(`${nombre} eliminado.`);
+                if (selId === id) setSelId(nuevos[0]?.id);
+                ejecutarConDeshacer({
+                  mensaje: `${nombre} eliminado`,
+                  alDeshacer: () => {
+                    onUpdate(alumnos);
+                    setSelId(id);
+                  },
+                  alConfirmar: async () => {
+                    try {
+                      await deleteAlumno(id);
+                    } catch (e) {
+                      // Si la base rechaza el borrado, se repone en pantalla:
+                      // nunca queda "borrado" acá y vivo allá.
+                      console.error("[onDelete alumno]", e);
+                      if (alumnoBorrado) onUpdate(alumnos);
+                      showToast && showToast(`No se pudo eliminar a ${nombre}`);
+                    }
+                  },
+                });
               }}
               onNuevo={() => setShowCrearAlumno((v) => !v)}
               onBiblioteca={() => setShowCatalogo(true)}
@@ -4270,7 +4416,18 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
-                    <input type={label === "Email" ? "email" : "text"} value={val} onChange={(e) => set(e.target.value)} placeholder={label === "Email" ? "para mandarle el acceso más adelante" : undefined} style={inp} />
+                    {/* Auditoría 2026-07-30: Clave son 4 dígitos (entero),
+                        Peso y Altura admiten coma (72,5 kg / 1,78 m). Sin
+                        `inputMode` los tres abrían el teclado alfabético. */}
+                    <input
+                      type={label === "Email" ? "email" : "text"}
+                      inputMode={label.startsWith("Clave") ? "numeric" : (label.startsWith("Peso") || label.startsWith("Altura")) ? "decimal" : undefined}
+                      autoComplete="off"
+                      value={val}
+                      onChange={(e) => set(e.target.value)}
+                      placeholder={label === "Email" ? "para mandarle el acceso más adelante" : undefined}
+                      style={inp}
+                    />
                   </div>
                 ))}
                 <div style={{ marginBottom: 10 }}>
@@ -4433,7 +4590,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   ].map(([label, val, key]) => (
                     <div key={key} style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>
-                      <input type={key === "email" ? "email" : "text"} placeholder={key === "email" ? "para mandarle el acceso más adelante" : undefined} value={val || ""} onChange={(e) => setForm((f) => ({ ...f, [key]: key === "codigo" ? e.target.value.toUpperCase() : e.target.value }))} style={inp} />
+                      {/* Auditoría 2026-07-30: peso y altura son numéricos con
+                          coma → teclado decimal en el celular. */}
+                      <input
+                        type={key === "email" ? "email" : "text"}
+                        inputMode={key === "peso" || key === "altura" ? "decimal" : undefined}
+                        autoComplete="off"
+                        placeholder={key === "email" ? "para mandarle el acceso más adelante" : undefined}
+                        value={val || ""}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: key === "codigo" ? e.target.value.toUpperCase() : e.target.value }))}
+                        style={inp}
+                      />
                     </div>
                   ))}
                   <div style={{ marginBottom: 10 }}>
@@ -4482,8 +4649,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   {/* Cambiar clave */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nueva clave (4 dígitos — dejá vacío para no cambiar)</div>
+                    {/* Auditoría 2026-07-30: la clave son 4 dígitos — mismo
+                        criterio que el PIN del login, teclado numérico. */}
                     <input
                       type="password"
+                      inputMode="numeric"
+                      autoComplete="new-password"
                       value={editPin}
                       onChange={(e) => setEditPin(e.target.value.slice(0, 4))}
                       placeholder="····"
@@ -5040,8 +5211,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   {/* Solo el peso — la fecha de evaluación es UNA por alumno (arriba) */}
                   <div style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
+                    {/* Auditoría 2026-07-30: el peso máximo se carga en kg y
+                        admite decimales (62.5). `inputMode="decimal"` abre el
+                        teclado numérico con separador en vez del alfabético. */}
                     <input
                       type="number"
+                      inputMode="decimal"
+                      autoComplete="off"
                       placeholder="0"
                       value={(rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso) || ""}
                       onChange={(e) =>
@@ -5295,8 +5471,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 ].map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 12 }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>
+                    {/* Auditoría 2026-07-30: la clave del admin son 4 dígitos
+                        → teclado numérico. Nombre/Username sin autocompletar:
+                        son datos de OTRA persona, no del dueño del celular. */}
                     <input
                       type={label.includes("Clave") ? "password" : "text"}
+                      inputMode={label.includes("Clave") ? "numeric" : undefined}
+                      autoComplete={label.includes("Clave") ? "new-password" : "off"}
                       value={val}
                       onChange={(e) => set(e.target.value)}
                       style={inp}
@@ -5410,8 +5591,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         ].map(([label, val, set, type]) => (
                           <div key={label} style={{ marginBottom: 10 }}>
                             <div style={{ fontSize: 14, color: S.gray, textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+                            {/* Auditoría 2026-07-30: idem — la clave es
+                                numérica de 4 dígitos, teclado numérico. */}
                             <input
                               type={type}
+                              inputMode={type === "password" ? "numeric" : undefined}
+                              autoComplete={type === "password" ? "new-password" : "off"}
                               value={val}
                               onChange={(e) => set(e.target.value)}
                               style={inp}
@@ -6483,6 +6668,12 @@ export default function App() {
       <GlobalStyles /> <Toast msg={toastMsg} />{" "}
       <CoachFlotante alumno={al} iconWhite={ICON_WHITE_CROP} iconBlack={ICON_BLACK_CROP} darkMode={darkMode} S={S} />{" "}
       {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}{" "}
+      {/* Auditoría 2026-07-30 — patrón de Instagram/Facebook: tirar hacia
+          abajo para actualizar. Es el gesto que el alumno ya tiene aprendido;
+          antes había que salir y volver a entrar para ver un cambio que el
+          entrenador acababa de hacer. Solo actúa con el scroll arriba de todo
+          y en pantallas táctiles; en escritorio es un div común. */}
+      <PullToRefresh onRefresh={recargarDatos}>
       <div
         style={{
           minHeight: "100vh",
@@ -6759,14 +6950,10 @@ export default function App() {
         <div className="di-slide" style={{ padding: "0 16px" }}>
           {" "}
           {/* Avisos del gimnasio (los carga el admin en Novedades) */}
-          {novedades
-            .filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))
-            .map((n) => (
-              <div key={n.id} style={{ ...card, padding: "12px 14px", marginBottom: 10, borderLeft: "3px solid " + S.green }}>
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}><Megaphone size={14} />{n.titulo}</div>
-                {n.contenido && <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{n.contenido}</div>}
-              </div>
-            ))}
+          <NovedadesAlumno
+            novedades={novedades.filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))}
+            alumnoId={al.id}
+          />
           {/* ── Nivel 1: ENTRENAMIENTO | DIARIO — pills grandes, activo invertido ── */}
           <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
             {[
@@ -6785,7 +6972,15 @@ export default function App() {
               // Los días que el alumno entrena, para que cuando abra
               // Principales un día que no le toca la app se lo diga en vez
               // de dejarlo con "Sin ejercicios principales asignados".
-              diasEntrena={[...(al.horarios || [])].map((h) => h.dia).filter(Boolean)}
+              // Se unen los días declarados en `horarios` con los que tienen
+              // plan cargado: hay alumnos sin horarios pero con plan (a esos
+              // decirles "no tenés plan" sería falso).
+              diasEntrena={[
+                ...new Set([
+                  ...[...(al.horarios || [])].map((h) => h.dia),
+                  ...[...(al.planes || [])].map((p) => p.dia_semana),
+                ].filter((d) => d && d !== "Fijo")),
+              ]}
               dia={dia}
               diaIdx={diaIdx}
               setDiaIdx={setDiaIdx}
@@ -6893,6 +7088,7 @@ export default function App() {
           )}{" "}
         </div>{" "}
       </div>{" "}
+      </PullToRefresh>
     </>
   );
 }
