@@ -91,6 +91,7 @@ import { useDeshacer } from "./src/components/ToastDeshacer.jsx";
 import { SkeletonListaAlumnos, SkeletonCard } from "./src/components/Skeleton.jsx";
 import PullToRefresh from "./src/components/PullToRefresh.jsx";
 import CoachFlotante from "./src/components/CoachFlotante.jsx";
+import ResumenPlanModal from "./src/components/ResumenPlanModal.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
@@ -6356,8 +6357,13 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
 // patrón sin-migración que movilidad_default/secciones_config, editable
 // desde el admin en alta y edición de alumno); sin setear usa el fallback
 // neutro "¡Bienvenido/a!" de siempre.
-function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrADia, onIrAPreparacion }) {
+function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrADia, onIrAPreparacion, biblioteca }) {
   const [cargando, setCargando] = useState(false);
+  // 2026-07-31, pedido de Lucas: flujo en 2 pasos — primero elegir el día,
+  // recién ahí se revela el plan de ese día. `diaElegido` es local (no
+  // navega todavía); el ENTRENAR final es el que efectivamente entra.
+  const [diaElegido, setDiaElegido] = useState(null);
+  const [showResumen, setShowResumen] = useState(false);
   const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
   const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
   const genero = alumno.rm?.genero;
@@ -6377,6 +6383,12 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
     .map((h) => h.dia)
     .filter(Boolean)
     .sort((a, b) => (ORDEN_DIAS_SEM[a] || 9) - (ORDEN_DIAS_SEM[b] || 9));
+  // 2026-07-31 — una vez elegido el día, buscamos SU plan específico (cada
+  // día de semana puede ser un alumno_plan separado) para mostrar/resumir
+  // el de ESE día, no siempre el de "hoy" (`plan`, que sigue de fallback).
+  const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const planElegido = diaElegido ? (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(diaElegido)) || plan : plan;
+  const diaDelPlanElegido = planElegido?.dias?.[0] || null;
   return (
     <>
       {" "}
@@ -6413,31 +6425,53 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
           className="di-slide"
           style={{ marginTop: 14, textAlign: "center", marginBottom: 26, animationDelay: "0.08s", width: "100%", maxWidth: 360 }}
         >
-          {/* 4. Semana N de tu plan de entrenamiento */}
-          <div style={{ color: S.gray, fontSize: TS.label }}>Semana {semanaActual} de tu plan de entrenamiento</div>
-          {/* Auditoría 2026-07-30 — estado vacío roto: cuando el plan no
-              tiene series/reps cargadas, la pantalla mostraba "-x-" y
-              "- series por - repeticiones" (guiones literales). Es lo
-              primero que ve el alumno. Ahora la ficha solo se arma si hay
-              números de verdad; si no, se dice qué pasa. */}
-          {semanaData && hayCarga && (
+          {/* 2026-07-31 — Lucas: "Estás en la semana X..." en vez de
+              "Semana X de tu plan..." — misma info, mejor redactada. */}
+          <div style={{ color: S.gray, fontSize: TS.label }}>Estás en la semana {semanaActual} de tu plan de entrenamiento</div>
+
+          {/* 2026-07-31, pedido de Lucas: flujo en 2 pasos. Primero elige el
+              día que va a entrenar; recién ahí se revela el plan de ESE día
+              (antes se mostraba todo junto, sin preguntar). */}
+          {!diaElegido ? (
+            diasPlan.length > 0 && (
+              <div style={{ marginTop: 34 }}>
+                <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginBottom: 14 }}>
+                  ¿Qué día vas a entrenar hoy?
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
+                  {diasPlan.map((d, i) => {
+                    const planDia = (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(d));
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setDiaElegido(d)}
+                        title={`Elegir ${d}`}
+                        style={{
+                          background: S.card,
+                          border: "1px solid " + S.border,
+                          borderRadius: 14,
+                          padding: "9px 16px",
+                          minHeight: TAP,
+                          color: S.white,
+                          cursor: "pointer",
+                          fontFamily: FONT_BODY,
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontSize: TS.chip, fontWeight: 700 }}>{d}</div>
+                        <div style={{ fontSize: 11, color: S.gray, marginTop: 2, fontWeight: 600 }}>Día {i + 1}</div>
+                        {planDia?.nombre && (
+                          <div style={{ fontSize: 11, color: S.lgray, marginTop: 1 }}>{planDia.nombre}</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )
+          ) : (
             <>
-              {/* 2026-07-31 — Lucas: "dice arriba 2x6 al 70% y abajo lo
-                  repite, prefiero que quede solo abajo". Se saca la fichita
-                  chica (era el mismo dato dicho dos veces en la pantalla) y
-                  queda solo la versión en palabras.
-                  "Ejercicios Principales tiene que estar en la misma línea
-                  abajo" — con mayúscula sostenida + tracking de 1 el texto
-                  no entraba en una sola línea a 375px y partía justo ahí.
-                  Se separa en eyebrow (arriba, chico) + título corto (abajo,
-                  una sola línea garantizada) en vez de pelear con el ancho. */}
-              <div style={{ ...eyebrow, textAlign: "center", marginTop: 34 }}>Plan de hoy</div>
-              {/* 2026-07-31 — Lucas: "esto no lo pusiste" (aunque el link SÍ
-                  estaba en el código): mismo color blanco y tamaño que
-                  "Ejercicios principales" de abajo, sin subrayado ni
-                  flecha — no se leía como algo tocable, se leía como parte
-                  del mismo bloque. Ahora es un chip real con borde, ícono de
-                  flecha y espacio propio arriba/abajo — inconfundible. */}
+              <div style={{ ...eyebrow, textAlign: "center", marginTop: 34 }}>Plan de hoy — {diaElegido}</div>
               {onIrAPreparacion && (
                 <button
                   onClick={onIrAPreparacion}
@@ -6460,81 +6494,65 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                   Ir a Preparación <span style={{ fontSize: 14 }}>›</span>
                 </button>
               )}
-              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 18 }}>Ejercicios principales</div>
-              <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
-                <span style={{ color: S.white, fontWeight: 700 }}>
-                  {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
-                  {pl(semanaData.reps, "repetición", "repeticiones")}
-                </span>
-                {/* 2026-07-31: "al 70%" a secas no decía de qué — ahora dice
-                    explícitamente que es el % de la intensidad máxima. */}
-                {semanaData.intensidad && (
-                  <> al <span style={{ color: S.white, fontWeight: 700 }}>{semanaData.intensidad} de tu intensidad máxima</span></>
-                )}
-              </div>
-            </>
-          )}
-          {!hayCarga && (
-            <div style={{ marginTop: 14, color: S.gray, fontSize: TS.ui, lineHeight: 1.5, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
-              Todavía no tenés la carga de esta semana cargada. Entrá igual: el plan del día está abajo.
-            </div>
-          )}
-          {/* 7. "Entrenás los:" + días en pill.
-              2026-07-31, pedido de Lucas: "entrenás los martes jueves y
-              viernes deberían ya llevarla a los ejercicios principales en
-              ese día" — eran <div> decorativos sin onClick. Ahora cada pill
-              lleva directo a Principales (onIrADia, ver App() más arriba). */}
-          {diasPlan.length > 0 && (
-            <div style={{ marginTop: 18 }}>
-              <div style={{ color: S.gray, fontSize: TS.chip, marginBottom: 8 }}>Entrenás los:</div>
-              {/* 2026-07-31, pedido de Lucas (repetido — "esto no lo
-                  cambiaste, te lo pedí antes"): abajo de cada día, el
-                  número de sesión ("Día 1/2/3") y el nombre del plan de
-                  ESE día — así si faltó uno sabe exactamente qué sesión
-                  retomar, no solo qué día de la semana es. */}
-              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
-                {diasPlan.map((d, i) => {
-                  const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-                  const planDia = (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(d));
+              {/* 2026-07-31, pedido de Lucas: "Ejercicios principales
+                  linkeado a un resumen del plan" — abre el mismo modal que
+                  en Principales (ejercicios + grupo muscular + periodización
+                  del plan de ESE día). */}
+              <button
+                onClick={() => setShowResumen(true)}
+                disabled={!diaDelPlanElegido}
+                style={{ display: "block", width: "100%", background: "transparent", border: "none", color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 18, padding: 0, cursor: diaDelPlanElegido ? "pointer" : "default", textDecoration: diaDelPlanElegido ? "underline" : "none" }}
+              >
+                Ejercicios principales
+              </button>
+              {(() => {
+                const semDia = (planElegido?.periodizacion || []).find((p) => p.semana === semanaActual) || (planElegido?.periodizacion || [])[0] || semanaData;
+                const okDia = semDia && nOk(semDia.series) && nOk(semDia.reps);
+                if (!okDia) {
                   return (
-                    <button
-                      key={i}
-                      onClick={() => onIrADia && onIrADia(d)}
-                      title={`Ir a los ejercicios principales del ${d}`}
-                      style={{
-                        background: S.card,
-                        border: "1px solid " + S.border,
-                        borderRadius: 14,
-                        padding: "9px 16px",
-                        minHeight: TAP,
-                        color: S.white,
-                        cursor: "pointer",
-                        fontFamily: FONT_BODY,
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontSize: TS.chip, fontWeight: 700 }}>{d}</div>
-                      <div style={{ fontSize: 11, color: S.gray, marginTop: 2, fontWeight: 600 }}>Día {i + 1}</div>
-                      {planDia?.nombre && (
-                        <div style={{ fontSize: 11, color: S.lgray, marginTop: 1 }}>{planDia.nombre}</div>
-                      )}
-                    </button>
+                    <div style={{ marginTop: 14, color: S.gray, fontSize: TS.ui, lineHeight: 1.5, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
+                      Todavía no tenés la carga de esta semana cargada. Entrá igual: el plan del día está abajo.
+                    </div>
                   );
-                })}
-              </div>
-            </div>
+                }
+                return (
+                  <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
+                    <span style={{ color: S.white, fontWeight: 700 }}>
+                      {semDia.series} {pl(semDia.series, "serie", "series")} por {semDia.reps}{" "}
+                      {pl(semDia.reps, "repetición", "repeticiones")}
+                    </span>
+                    {semDia.intensidad && (
+                      <> al <span style={{ color: S.white, fontWeight: 700 }}>{semDia.intensidad} de tu intensidad máxima</span></>
+                    )}
+                  </div>
+                );
+              })()}
+              <button
+                onClick={() => setDiaElegido(null)}
+                style={{ display: "block", margin: "18px auto 0", background: "transparent", border: "none", color: S.gray, fontSize: 13, textDecoration: "underline", cursor: "pointer", fontFamily: FONT_BODY }}
+              >
+                ‹ Elegir otro día
+              </button>
+            </>
           )}
         </div>
 
+        {/* 2026-07-31, pedido de Lucas: resumen del plan del día elegido —
+            mismo modal compartido que en Principales. */}
+        {showResumen && diaDelPlanElegido && (
+          <ResumenPlanModal plan={planElegido} dia={diaDelPlanElegido} onClose={() => setShowResumen(false)} />
+        )}
+
         {/* 8. Botón final ENTRENAR — pedido de Lucas: efecto de carga breve
-            antes de entrar, no un salto seco. */}
+            antes de entrar, no un salto seco. Si ya eligió un día, entra
+            directo a ESE día; si no, al comportamiento default (hoy). */}
         <div className="di-slide" style={{ animationDelay: "0.16s" }}>
           <button
             disabled={cargando}
             onClick={() => {
               if (cargando) return;
               setCargando(true);
-              setTimeout(onContinuar, 500);
+              setTimeout(() => (diaElegido && onIrADia ? onIrADia(diaElegido) : onContinuar()), 500);
             }}
             style={{
               background: S.white,
@@ -7032,6 +7050,7 @@ export default function App() {
       <Bienvenida
         alumno={al}
         plan={plan}
+        biblioteca={biblioteca}
         semanaData={sem}
         semanaActual={semanaActual}
         onContinuar={() => setShowBienvenida(false)}
@@ -7370,6 +7389,7 @@ export default function App() {
             <PlanDelDia
               plan={plan}
               planValido={planValido}
+              biblioteca={biblioteca}
               // Los días que el alumno entrena, para que cuando abra
               // Principales un día que no le toca la app se lo diga en vez
               // de dejarlo con "Sin ejercicios principales asignados".

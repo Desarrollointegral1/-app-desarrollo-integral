@@ -5,6 +5,7 @@ import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
 import ItemCard from "./ItemCard.jsx";
+import ResumenPlanModal from "./ResumenPlanModal.jsx";
 
 // Vista de la sesión del alumno, con DOS tabs del mismo tamaño (pills):
 //   PREPARACIÓN — 3 sub-menús: Movilidad · Activación con elástico · Activación con peso
@@ -32,6 +33,9 @@ export default function PlanDelDia({
   diasSemana,
   diaSemanaActivo,
   onIrADiaSemana,
+  // 2026-07-31 — para mostrar el grupo muscular de cada ejercicio en el
+  // resumen del plan (el dato vive en la biblioteca, no en el plan).
+  biblioteca,
   // 2026-07-30 — Modo Entrenador: el entrenador opera la app durante la
   // clase y sólo necesita los ejercicios principales (la preparación la hace
   // el alumno solo). Default false para que si App.jsx todavía no pasa la
@@ -395,12 +399,13 @@ export default function PlanDelDia({
               que ya muestra el ribbon de la ficha del alumno arriba de las
               tabs Entrenamiento/Historial — se sacó de acá. */}
           <SelectorDia />
-          {/* 2026-07-31, pedido de Lucas: tocar el nombre del plan abre un
-              resumen con la periodización (objetivo básico del plan). */}
+          {/* 2026-07-31 — Lucas: "esa ficha me gustaría que esté más
+              centrada abajo de los días" — tocar el nombre del plan abre el
+              resumen (ejercicios + grupo muscular + periodización). */}
           {dia.subtitulo && (
             <button
               onClick={() => setShowResumen(true)}
-              style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: S.gray, fontSize: 15, marginBottom: 10, padding: 0, cursor: "pointer", textDecoration: "underline" }}
+              style={{ display: "block", width: "100%", textAlign: "center", background: "transparent", border: "none", color: S.gray, fontSize: 15, marginBottom: 10, padding: 0, cursor: "pointer", textDecoration: "underline" }}
             >
               {dia.subtitulo}
             </button>
@@ -474,40 +479,11 @@ export default function PlanDelDia({
           )}
         </>
       ))}
-      {/* 2026-07-31, pedido de Lucas: resumen del plan (periodización) al
-          tocar el nombre del plan en Principales. Modal simple, se cierra
-          tocando afuera o el botón. */}
+      {/* 2026-07-31, pedido de Lucas: resumen del plan (ejercicios + grupo
+          muscular + periodización) al tocar el nombre del plan. Componente
+          compartido — el mismo se abre desde la pantalla de Bienvenida. */}
       {showResumen && (
-        <div
-          onClick={() => setShowResumen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 2000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ ...card, width: "100%", maxWidth: 480, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: "20px 18px", maxHeight: "80vh", overflowY: "auto" }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ color: S.white, fontWeight: 800, fontSize: 18 }}>{dia?.subtitulo || "Tu plan"}</div>
-              <button onClick={() => setShowResumen(false)} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 22, cursor: "pointer", padding: 4 }}>×</button>
-            </div>
-            <div style={{ color: S.gray, fontSize: 14, marginBottom: 14 }}>
-              Progresión semana a semana: series, repeticiones e intensidad.
-            </div>
-            {(plan?.periodizacion || []).length === 0 ? (
-              <div style={{ color: S.gray, fontSize: 14, textAlign: "center", padding: 16 }}>Sin periodización cargada todavía.</div>
-            ) : (
-              (plan.periodizacion || [])
-                .slice()
-                .sort((a, b) => (a.semana || 0) - (b.semana || 0))
-                .map((p, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: i > 0 ? "1px solid " + S.border : "none" }}>
-                    <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>Semana {p.semana}</div>
-                    <div style={{ color: S.gray, fontSize: 14 }}>{p.series}x{p.reps}{p.intensidad ? " · " + p.intensidad : ""}</div>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
+        <ResumenPlanModal plan={plan} dia={dia} onClose={() => setShowResumen(false)} />
       )}
     </div>
   );

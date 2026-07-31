@@ -2233,6 +2233,30 @@ export async function cargarCatalogo() {
   return all;
 }
 
+// 2026-07-31 — el resumen del plan (modal, ver ResumenPlanModal.jsx) quiere
+// mostrar el grupo muscular de cada ejercicio del día. Ese dato SOLO vive
+// en catalogo_ejercicios (musculo_default/tag_default/tags/muscle_group_es
+// /target_es) — biblioteca_ejercicios (la curada, la que ya se cargaba al
+// loguear) no tiene ese campo. Traer el catálogo COMPLETO (1344 filas, con
+// instrucciones/gif pesados) solo para esto sería desperdicio; esta versión
+// pide solo las columnas de nombre+músculo, paginada igual que
+// cargarCatalogo, y se llama on-demand al abrir el modal — no en el
+// arranque de la app.
+export async function cargarMusculosCatalogo() {
+  const PAGE = 1000;
+  let all = [];
+  for (let desde = 0; ; desde += PAGE) {
+    const { data, error } = await supabase
+      .from("catalogo_ejercicios")
+      .select("nombre_es,musculo_default,tag_default,tags,muscle_group_es,target_es")
+      .range(desde, desde + PAGE - 1);
+    if (error) { ERR("cargarMusculosCatalogo", error.message, error); return all; }
+    all = all.concat(data || []);
+    if (!data || data.length < PAGE) break;
+  }
+  return all;
+}
+
 // Edición desde la app (biblioteca nueva): nombre, instrucciones, video
 // propio. Marca editado=true para distinguir filas tocadas por Lucas.
 export async function guardarEjercicioCatalogo(id, patch) {
