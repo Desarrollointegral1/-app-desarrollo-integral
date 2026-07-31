@@ -46,6 +46,11 @@ export default function PlanDelDia({
   diaRegistrado,
   registrandoDia,
   irAPrincipales,
+  // 2026-07-30 — Modo Entrenador: el entrenador opera la app durante la
+  // clase y sólo necesita los ejercicios principales (la preparación la hace
+  // el alumno solo). Default false para que si App.jsx todavía no pasa la
+  // prop la vista del alumno quede exactamente igual que hoy.
+  modoEntrenador = false,
 }) {
   // null = "la primera sección visible según el orden del admin" (ronda 9)
   const [prep, setPrep] = useState(null);
@@ -58,6 +63,10 @@ export default function PlanDelDia({
   const [videosGlobal, setVideosGlobal] = useState(null);
   // Dos tabs del mismo tamaño: Preparación | Principales.
   const [seccion, setSeccion] = useState("preparacion");
+  // 2026-07-30 — en Modo Entrenador no hay Preparación, así que tampoco hay
+  // dos tabs que elegir: quedaría un tab huérfano marcando una jerarquía que
+  // ya no existe. Se saltea el estado y se muestra Principales directo.
+  const seccionActiva = modoEntrenador ? "principales" : seccion;
 
   // Videos de movilidad globales (Admin → Plan → Videos de movilidad).
   useEffect(() => {
@@ -171,14 +180,43 @@ export default function PlanDelDia({
   // rm.dias_modo === "numerico" muestra "Día 1/Día 2/..." en vez del
   // nombre real del día (para alumnos sin horario fijo).
   const diasModo = rm?.dias_modo === "numerico" ? "numerico" : "nombres";
+  // 2026-07-30 — Modo Entrenador: el entrenador necesita las DOS lecturas a
+  // la vez ("Día 2" es como se habla en la clase, "Miércoles" es cómo lo
+  // busca en la agenda), así que no se elige una u otra: se apilan.
+  // El nombre real del día puede estar en el sub-día (`d.dia`, planes viejos
+  // con varios días adentro) o ser el `dia_semana` del plan (estructura
+  // actual: un alumno_plan por día). Se toma el que efectivamente sea un día
+  // de la semana; si ninguno lo es (ej. "Sesion", "Fijo") no se inventa nada.
+  const DIAS_SEM = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+  const esDiaSemana = (s) =>
+    DIAS_SEM.includes((s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
+  const nombreDiaDe = (d) =>
+    esDiaSemana(d?.dia) ? d.dia : esDiaSemana(plan?.dia_semana) ? plan.dia_semana : "";
   const SelectorDia = () =>
     planValido && plan.dias.length > 1 ? (
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {plan.dias.map((d, i) => (
-          <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(diaIdx === i), flex: 1 }}>
-            {diasModo === "numerico" ? `Día ${i + 1}` : d.dia}
-          </button>
-        ))}
+        {plan.dias.map((d, i) => {
+          const activo = diaIdx === i;
+          const nombre = nombreDiaDe(d);
+          return (
+            <button key={i} onClick={() => setDiaIdx(i)} style={{ ...tabBtn(activo), flex: 1, lineHeight: 1.25 }}>
+              {modoEntrenador ? (
+                <>
+                  <div>{`Día ${i + 1}`}</div>
+                  {nombre && (
+                    <div style={{ fontSize: 15, fontWeight: 500, opacity: activo ? 0.7 : 1, color: activo ? S.bg : S.gray }}>
+                      {nombre}
+                    </div>
+                  )}
+                </>
+              ) : diasModo === "numerico" ? (
+                `Día ${i + 1}`
+              ) : (
+                d.dia
+              )}
+            </button>
+          );
+        })}
       </div>
     ) : null;
 
@@ -186,18 +224,20 @@ export default function PlanDelDia({
     <div id="di-plan-seccion">
       {/* ── Tabs nivel 2: PREPARACIÓN | PRINCIPALES — activo con borde blanco
           + fondo card, sin invertir (jerarquía visual ronda 6) ── */}
-      <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
-        {[
-          ["preparacion", "Preparación"],
-          ["principales", "Principales"],
-        ].map(([id, label]) => (
-          <button key={id} onClick={() => setSeccion(id)} style={tabN2(seccion === id)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      {!modoEntrenador && (
+        <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
+          {[
+            ["preparacion", "Preparación"],
+            ["principales", "Principales"],
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setSeccion(id)} style={tabN2(seccion === id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {seccion === "preparacion" && (PREP_TABS.length === 0 || !prepActiva ? (
+      {seccionActiva === "preparacion" && (PREP_TABS.length === 0 || !prepActiva ? (
         <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
           Tu entrenador no habilitó secciones de preparación. Pasá directo a Principales.
         </div>
@@ -258,7 +298,7 @@ export default function PlanDelDia({
       ))}
 
       {/* ── PRINCIPALES ── */}
-      {seccion === "principales" && (!planValido || !dia ? (
+      {seccionActiva === "principales" && (!planValido || !dia ? (
         /* Auditoría 2026-07-30. Este mensaje decía sólo "Sin ejercicios
            principales asignados" y era la razón por la que parecía que los
            GIFs de los ejercicios no funcionaban: el alumno entra un día que

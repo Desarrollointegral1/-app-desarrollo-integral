@@ -26,7 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
-import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw } from "lucide-react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
@@ -44,6 +44,7 @@ import {
   listarPlanesPredeterminados,
   actualizarPlanPredeterminado,
   eliminarPlanPredeterminado,
+  supabase,
 } from "../../services/supabase.js";
 
 // Niveles asignables a un ejercicio o a una plantilla de plan (ronda 18).
@@ -348,6 +349,20 @@ export default function CatalogoExplorer({
   // verlos/recuperarlos) + filtro por nivel del ejercicio.
   const [verArchivados, setVerArchivados] = useState(false);
   const [fNivel, setFNivel] = useState(new Set());
+  // 2026-07-30 — Tag REVISAR (pedido de Lucas: "así cuando veo algo raro lo
+  // tiro en revisar"). Es una BANDEJA DE PENDIENTES, no un archivo: el
+  // ejercicio marcado sigue apareciendo normal en los listados (solo con una
+  // marca terciaria), y el chip "Para revisar (N)" filtra la bandeja.
+  // Se maneja acá con un Set de ids en vez de un campo más en `cat` porque
+  // cargarCatalogo() trae una lista EXPLÍCITA de columnas (services/
+  // supabase.js) que no incluye `revisar` — pedirlo aparte también deja
+  // aislada la falla si la migración 025 todavía no está aplicada.
+  const [revisarIds, setRevisarIds] = useState(() => new Set());
+  const [verRevisar, setVerRevisar] = useState(false);
+  // Defensivo: si la columna `revisar` no existe todavía (migración 025 sin
+  // aplicar), el select falla → se apaga la función entera en vez de romper
+  // la Biblioteca, y el toggle avisa qué falta.
+  const [revisarOk, setRevisarOk] = useState(true);
   // "Ver todos los planes": lista + plantilla abierta en edición.
   const [plantillas, setPlantillas] = useState(null);
   const [planSel, setPlanSel] = useState(null); // plantilla en edición
@@ -373,6 +388,47 @@ export default function CatalogoExplorer({
     return () => { vivo = false; };
   }, []);
 
+  // 2026-07-30 — carga de la bandeja "Para revisar". Solo los marcados
+  // (unas decenas), no las 1.343 filas. Si la columna no existe todavía, el
+  // error se traga acá y `revisarOk` queda en false: la app sigue andando
+  // igual, solo sin la función.
+  useEffect(() => {
+    let vivo = true;
+    supabase
+      .from("catalogo_ejercicios")
+      .select("id")
+      .eq("revisar", true)
+      .then(({ data, error }) => {
+        if (!vivo) return;
+        if (error) { console.warn("[revisar] columna no disponible (falta migración 025):", error.message); setRevisarOk(false); return; }
+        setRevisarIds(new Set((data || []).map((r) => r.id)));
+      });
+    return () => { vivo = false; };
+  }, []);
+
+  // Marcar/desmarcar "para revisar" — mismo camino que toggleArchivado, pero
+  // por el cliente de supabase directo (guardarEjercicioCatalogo vive en un
+  // archivo que esta sesión no toca).
+  const toggleRevisar = async (e) => {
+    const nuevo = !revisarIds.has(e.id);
+    const { error } = await supabase
+      .from("catalogo_ejercicios")
+      .update({ revisar: nuevo, updated_at: new Date().toISOString() })
+      .eq("id", e.id);
+    if (error) {
+      console.error("[revisar] error marcando", error);
+      setRevisarOk(false);
+      showToast && showToast("No se pudo marcar: falta aplicar la migración 025 (columna revisar)");
+      return;
+    }
+    setRevisarIds((prev) => {
+      const s = new Set(prev);
+      nuevo ? s.add(e.id) : s.delete(e.id);
+      return s;
+    });
+    showToast && showToast(nuevo ? "Marcado para revisar" : "Sacado de para revisar");
+  };
+
   // Ronda 17 (punto 3): prefijo de código = letras iniciales de codigo_di
   // (ej. "GL007" → "GL"). Derivado dinámicamente de la tabla real, no
   // hardcodeado — cubre tanto los ~50 Principales DI (PH/RO/PE/CA/JA/GL/CO)
@@ -391,6 +447,7 @@ export default function CatalogoExplorer({
   // valores ya seleccionados quedan siempre visibles para poder destildarlos.
   const pasaBase = (e, omit) => {
     if (verArchivados ? !e.archivado : e.archivado) return false;
+    if (verRevisar && !revisarIds.has(e.id)) return false; // 2026-07-30
     if (soloDI && !esPrincipalDI(e)) return false;
     if (soloDI && !e.gif_url && !e.video) return false;
     if (omit !== "cat" && fCat.size && !fCat.has(e.categoria)) return false;
@@ -410,7 +467,7 @@ export default function CatalogoExplorer({
     seleccion.forEach((v) => disp.add(v)); // los ya tildados nunca se ocultan
     return [...disp].sort(cmp);
   };
-  const facetDeps = [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados];
+  const facetDeps = [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, verRevisar, revisarIds];
   const categorias = useMemo(() => valoresFacet((e) => e.categoria, "cat", fCat, (a, b) => labelCat(a).localeCompare(labelCat(b))), facetDeps);
   const equipos = useMemo(() => valoresFacet((e) => e.equipment, "eq", fEq, (a, b) => labelEq(a).localeCompare(labelEq(b))), facetDeps);
   const targets = useMemo(() => valoresFacet((e) => e.target, "tg", fTg, (a, b) => labelTg(a).localeCompare(labelTg(b))), facetDeps);
@@ -429,6 +486,9 @@ export default function CatalogoExplorer({
       // Ronda 18: los archivados no aparecen en listados/búsquedas; el
       // chip "Archivados" invierte la vista para recuperarlos.
       if (verArchivados ? !e.archivado : e.archivado) return false;
+      // 2026-07-30: "Para revisar" NO oculta nada por defecto (no es un
+      // archivo) — solo cuando el chip está activo se acota a la bandeja.
+      if (verRevisar && !revisarIds.has(e.id)) return false;
       if (soloDI && !esPrincipalDI(e)) return false;
       if (soloDI && !e.gif_url && !e.video) return false;
       if (fCat.size && !fCat.has(e.categoria)) return false;
@@ -448,9 +508,9 @@ export default function CatalogoExplorer({
     return orden === "categoria"
       ? base.sort((a, b) => labelCat(a.categoria || "zzz").localeCompare(labelCat(b.categoria || "zzz"), "es") || az(a, b))
       : base.sort(az);
-  }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, orden]);
+  }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, verRevisar, revisarIds, orden]);
 
-  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, orden]);
+  useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, verRevisar, orden]);
 
   const toggle = (setter) => (v) =>
     setter((prev) => {
@@ -467,6 +527,7 @@ export default function CatalogoExplorer({
     ...[...fNivel].map((v) => ({ v, l: "Nivel: " + (labelNivel(v) || "sin nivel"), del: () => toggle(setFNivel)(v) })),
     ...(soloDI ? [{ v: "di", l: "Principales DI", del: () => setSoloDI(false) }] : []),
     ...(verArchivados ? [{ v: "arch", l: "Archivados", del: () => setVerArchivados(false) }] : []),
+    ...(verRevisar ? [{ v: "rev", l: "Para revisar", del: () => setVerRevisar(false) }] : []),
   ];
 
   // Ronda 17 (punto 3): "Todos los ejercicios" — resetea TODOS los filtros
@@ -477,9 +538,9 @@ export default function CatalogoExplorer({
   // calor, tabla distinta) — no "todo el catálogo". Se deja ese botón con
   // un nombre que describe lo que hace de verdad y se agrega este chip
   // nuevo para lo que Lucas pidió literalmente.
-  const hayFiltrosActivos = fCat.size > 0 || fEq.size > 0 || fTg.size > 0 || fPre.size > 0 || fNivel.size > 0 || soloDI || verArchivados || q.trim() !== "";
+  const hayFiltrosActivos = fCat.size > 0 || fEq.size > 0 || fTg.size > 0 || fPre.size > 0 || fNivel.size > 0 || soloDI || verArchivados || verRevisar || q.trim() !== "";
   const limpiarFiltros = () => {
-    setFCat(new Set()); setFEq(new Set()); setFTg(new Set()); setFPre(new Set()); setFNivel(new Set()); setSoloDI(false); setVerArchivados(false); setQ("");
+    setFCat(new Set()); setFEq(new Set()); setFTg(new Set()); setFPre(new Set()); setFNivel(new Set()); setSoloDI(false); setVerArchivados(false); setVerRevisar(false); setQ("");
   };
 
   // Ronda 17 (punto 3): renombrar una categoría — se propaga en la base a
@@ -717,6 +778,16 @@ export default function CatalogoExplorer({
         <Chip activo={soloDI} onClick={() => setSoloDI((v) => !v)}>★ Principales DI</Chip>
         {/* Ronda 18: ver/recuperar archivados */}
         <Chip activo={verArchivados} onClick={() => setVerArchivados((v) => !v)}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Archive size={14} strokeWidth={2} />Archivados</span></Chip>
+        {/* 2026-07-30: bandeja "Para revisar" con contador — es una lista de
+            pendientes, sirve saber cuántos quedan sin abrirla. Si la
+            migración 025 no está aplicada, el chip ni aparece. */}
+        {revisarOk && (
+          <Chip activo={verRevisar} onClick={() => setVerRevisar((v) => !v)} title="Ejercicios que marcaste para revisar (gif/nombre/código raros)">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Flag size={14} strokeWidth={2} />Para revisar{revisarIds.size > 0 ? ` (${revisarIds.size})` : ""}
+            </span>
+          </Chip>
+        )}
       </div>
       {/* Ronda 18: los botones de crear (ejercicio / plan) se MUDARON a la
           barra de acciones principal de la pantalla — no van dentro del
@@ -730,20 +801,36 @@ export default function CatalogoExplorer({
       {/* Ronda 17 (punto 3): filtro por prefijo de código, derivado
           dinámicamente de codigo_di. */}
       <FiltroSeccion titulo="Código" valores={prefijos} seleccion={fPre} onToggle={toggle(setFPre)} labelDe={(v) => v} colapsable />
-      {/* El botón NO abre el catálogo completo: abre la biblioteca PROPIA
-          (movilidad / elástico / entrada en calor), un subconjunto. El nombre
-          "Biblioteca completa" confundía (Lucas se confundió). Renombrado a lo
-          que hace de verdad (auditoría 2026-07-22). */}
-      {onAbrirPropia && (
-        <button
-          onClick={onAbrirPropia}
-          className="di-tap"
-          style={{ width: "100%", marginTop: 8, marginBottom: 16, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.label, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-        >
-          <Dumbbell size={16} strokeWidth={2} />Rutinas propias (movilidad · elástico · calor)
-        </button>
-      )}
+      {/* 2026-07-30: el botón de "Rutinas propias" ya NO vive acá. Lucas
+          preguntó "ese botón de abajo para qué sirve?" — y era esperable:
+          estaba al fondo de una columna de filtros, así que se leía como un
+          filtro más del catálogo cuando en realidad NAVEGA a otra biblioteca
+          (tabla distinta). Se mudó arriba, fuera de la zona de filtros, como
+          bloque de navegación rotulado. Ver `navPropia`. */}
     </div>
+  );
+
+  // ── Otra biblioteca (2026-07-30) ────────────────────────────────────
+  // Bloque de NAVEGACIÓN, no un filtro: fila propia, ancho completo, rótulo
+  // "Otra biblioteca" + qué contiene + chevron de "te lleva a otro lado".
+  // Queda arriba de la fila filtros/grilla y separado de los filtros por su
+  // propia superficie (card nivel 1), para que no compita con ellos.
+  const navPropia = onAbrirPropia && (
+    <button
+      onClick={onAbrirPropia}
+      className="di-tap"
+      title="Abre la biblioteca de rutinas propias de Lucas (otra lista, no el catálogo de 1.343 ejercicios)"
+      style={{ ...card, width: "100%", marginBottom: 12, padding: "12px 14px", minHeight: TAP, cursor: "pointer", fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}
+    >
+      <Dumbbell size={20} strokeWidth={2} color={S.white} style={{ flexShrink: 0 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ ...eyebrow, display: "block" }}>Otra biblioteca</span>
+        <span style={{ display: "block", color: S.white, fontSize: TS.ui, fontWeight: 700, marginTop: 2 }}>
+          Rutinas propias — movilidad, elástico y entrada en calor
+        </span>
+      </span>
+      <ChevronRight size={18} strokeWidth={2} color={S.gray} style={{ flexShrink: 0 }} />
+    </button>
   );
 
   // Grilla (2026-07-30). Antes: `minmax(150px, 1fr)` daba 11 columnas en
@@ -840,7 +927,20 @@ export default function CatalogoExplorer({
                       onMouseLeave={() => setHoverId((h) => (h === e.id ? null : h))}
                       onClick={() => abrirDetalle(e)}
                       onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); abrirDetalle(e); } }}
-                      style={{ ...card, overflow: "hidden", cursor: "pointer", position: "relative", display: "flex", flexDirection: "column" }}
+                      style={{
+                        ...card,
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        // 2026-07-30 — marca de "para revisar": un filete
+                        // rojo de 3px al costado, nada de badge de color
+                        // pleno. El rojo es el único acento de la marca y acá
+                        // se usa en la mínima superficie que se ve de un
+                        // vistazo al barrer la grilla.
+                        ...(revisarIds.has(e.id) ? { borderLeft: "3px solid " + S.red } : null),
+                      }}
                     >
                       {/* La imagen deja de dominar la tarjeta: 4:3 en vez de
                           1:1 y desaturada, para que el rojo del pack de
@@ -880,6 +980,13 @@ export default function CatalogoExplorer({
                           {e.archivado && (
                             <span style={{ fontSize: TS.chip, fontWeight: 700, color: S.yellow, background: S.card2, borderRadius: 4, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
                               <Archive size={14} strokeWidth={2} />Archivado
+                            </span>
+                          )}
+                          {/* Etiqueta terciaria, en gris: la señal fuerte ya
+                              la da el filete; esto solo la nombra. */}
+                          {revisarIds.has(e.id) && (
+                            <span style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, background: "transparent", border: "1px solid " + S.border2, borderRadius: 4, padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <Flag size={14} strokeWidth={2} />Para revisar
                             </span>
                           )}
                         </div>
@@ -1215,6 +1322,7 @@ export default function CatalogoExplorer({
           <FolderTree size={16} strokeWidth={2} />Ver todos los planes
         </button>
       </div>
+      {navPropia}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
         {(isWide || mostrarFiltros) && sidebar}
         {grid}
@@ -1316,6 +1424,21 @@ export default function CatalogoExplorer({
                   <SubirVideoInline onUrl={(url) => setForm((f) => ({ ...f, video: url }))} showToast={showToast} />
                 </div>
               </>
+            )}
+            {/* 2026-07-30 — tag REVISAR: mismo camino que archivar (acción de
+                estado al pie del detalle), pero neutro: marcar algo para
+                mirarlo después no es una alerta, es una nota. */}
+            {!creando && detalle.id && revisarOk && (
+              <button
+                onClick={() => toggleRevisar(detalle)}
+                className="di-tap"
+                style={{ width: "100%", marginBottom: 10, background: revisarIds.has(detalle.id) ? S.card3 : "transparent", color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.label, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Flag size={14} strokeWidth={2} />
+                  {revisarIds.has(detalle.id) ? "Sacar de “Para revisar”" : "Marcar para revisar (algo está raro)"}
+                </span>
+              </button>
             )}
             {/* Ronda 18: archivar/desarchivar (solo ejercicios existentes) */}
             {!creando && detalle.id && (

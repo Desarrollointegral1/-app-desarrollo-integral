@@ -92,7 +92,7 @@ import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
-import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif } from "./src/utils/ejerciciosMedia.js";
+import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power } from "lucide-react";
 import { useSignedUrl } from "./src/utils/useSignedUrl.js";
@@ -686,45 +686,99 @@ function GifPicker({ nombre, value, onChange }) {
     </div>
   );
 }
+// ── GIF DEL EJERCICIO, SOLO PARA VER (2026-07-30) ──────────────────────
+// Pedido textual de Lucas probando el panel: "en ejercicios NO ME DEJA VER EL
+// GIF (me pide link de YouTube o subir video)... acá lo que me sirve es ver el
+// gif del ejercicio cargado". Este bloque NO edita nada: resuelve el GIF igual
+// que la vista del alumno (ItemCard.jsx) — primero el `gif` que el ítem del
+// plan ya tenga guardado, si no el automático por nombre — y lo muestra.
+// Mismo criterio visual que ItemCard: fondo blanco (los GIFs de Gym visual
+// vienen sobre blanco) y el crédito obligatorio debajo.
+function GifEjercicio({ nombre, gif, size = 180 }) {
+  const src = gif || getEjercicioGif(nombre);
+  if (!src)
+    return (
+      <div style={{ background: S.card2, borderRadius: 8, padding: 14, textAlign: "center", marginBottom: 8 }}>
+        <div style={{ color: S.lgray, fontSize: TS.chip }}>
+          {nombre ? "Este ejercicio todavía no tiene GIF" : "Elegí un ejercicio para ver su GIF"}
+        </div>
+      </div>
+    );
+  return (
+    <div style={{ background: "#fff", borderRadius: 8, marginBottom: 8, padding: "10px 0 4px", textAlign: "center" }}>
+      <img src={src} alt={nombre} loading="lazy" style={{ width: size, height: size, objectFit: "contain" }} />
+      <div style={{ color: "#999", fontSize: TS.chip, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
+    </div>
+  );
+}
 // Buscador con autocomplete desde la biblioteca (ronda 12, punto 7): se usa
 // tanto para editar un ejercicio existente como para AGREGAR uno nuevo — el
 // buscador sugiere ejercicios EXISTENTES (con su código, si tienen) y
 // permite crear uno nuevo si no existe (simplemente tipeando un nombre que
 // no matchea nada y guardando).
+// 2026-07-30: pasa a ser un SELECTOR de ejercicios existentes, no un campo de
+// texto libre — "el campo nombre debería mostrar la lista de ejercicios
+// existentes (elegir, no crear)". Cambios: la lista se abre al enfocar aunque
+// el campo esté vacío (patrón Mercado Libre), se filtra en vivo al tipear, y
+// se navega con teclado (↓ ↑ Enter Esc) además del mouse. Cada fila muestra
+// el GIF del ejercicio, para elegir mirando y no leyendo.
 function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputChange, onSelect }) {
+  const [hi, setHi] = useState(-1);
+  useEffect(() => { setHi(-1); }, [sugs]);
+  const elegir = (sug) => { setHi(-1); onSelect(sug); };
+  const onKeyDown = (e) => {
+    if (!showSugs || sugs.length === 0) {
+      if (e.key === "ArrowDown") { setShowSugs(true); onInputChange(value); }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => (h + 1) % sugs.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => (h <= 0 ? sugs.length - 1 : h - 1)); }
+    else if (e.key === "Enter" && hi >= 0) { e.preventDefault(); elegir(sugs[hi]); }
+    else if (e.key === "Escape") { setShowSugs(false); setHi(-1); }
+  };
   return (
     <div style={{ position: "relative", marginBottom: 8 }}>
       <input
         value={value}
         onChange={(e) => onInputChange(e.target.value)}
+        onKeyDown={onKeyDown}
         onBlur={() => setTimeout(() => setShowSugs(false), 150)}
-        onFocus={() => value.length >= 2 && sugs.length > 0 && setShowSugs(true)}
-        placeholder="Escribí para buscar o crear uno nuevo..."
-        style={inp}
+        onFocus={() => onInputChange(value)}
+        placeholder="Buscá y elegí un ejercicio…"
+        style={{ ...inp, minHeight: TAP, fontSize: TS.ui }}
         autoComplete="off"
+        role="combobox"
+        aria-expanded={showSugs}
+        aria-autocomplete="list"
       />
       {showSugs && sugs.length > 0 && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, zIndex: 50, maxHeight: 260, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
-          {sugs.map((sug, i) => (
-            <div
-              key={i}
-              onMouseDown={() => onSelect(sug)}
-              style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10 }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#252525")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              {sug.codigo && (
-                <span style={{ color: S.gray, fontSize: 14, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
-                  {sug.codigo}
-                </span>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: S.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
-                {sug.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
+        <div role="listbox" style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, zIndex: 50, maxHeight: 320, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+          {sugs.map((sug, i) => {
+            const gifSug = sug.gif || getEjercicioGif(sug.nombre);
+            return (
+              <div
+                key={i}
+                role="option"
+                aria-selected={hi === i}
+                onMouseDown={() => elegir(sug)}
+                onMouseEnter={() => setHi(i)}
+                style={{ padding: "8px 14px", minHeight: TAP, cursor: "pointer", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10, background: hi === i ? "#252525" : "transparent" }}
+              >
+                {gifSug && (
+                  <img src={gifSug} alt="" loading="lazy" style={{ width: 34, height: 34, objectFit: "contain", background: "#fff", borderRadius: 4, flexShrink: 0 }} />
+                )}
+                {sug.codigo && (
+                  <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                    {sug.codigo}
+                  </span>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: S.white, fontSize: TS.chip, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
+                  {sug.desc && <div style={{ color: S.gray, fontSize: TS.chip, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
+                </div>
               </div>
-              {sug.video && <div style={{ color: S.green, fontSize: 14, fontWeight: 700, letterSpacing: 1, flexShrink: 0, display: "flex", alignItems: "center", gap: 3 }}><Play size={11} />VIDEO</div>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -804,6 +858,20 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
   const _catalogoRef = useRef(null);
   const handleNombreChange = (val) => {
     setForm((f) => ({ ...f, nombre: val }));
+    // 2026-07-30: con el campo vacío (o con 1 letra) ya se muestra la lista de
+    // la biblioteca curada, para poder ELEGIR sin saber qué escribir. El
+    // catálogo completo de 1.343 entra recién desde 2 caracteres — listarlo
+    // entero sin filtro no ayuda a nadie y hay que bajarlo.
+    if (val.length < 2) {
+      if (!_catalogoRef.current) {
+        _catalogoRef.current = [];
+        cargarCatalogoCached().then((c) => { _catalogoRef.current = c; });
+      }
+      const iniciales = biblioteca.slice(0, 12);
+      setSugs(iniciales);
+      setShowSugs(iniciales.length > 0);
+      return;
+    }
     if (val.length >= 2) {
       if (!_catalogoRef.current) {
         _catalogoRef.current = [];
@@ -854,7 +922,9 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
         nombre: sug.nombre,
         desc: sug.desc || f.desc,
         video: sug.video || f.video,
-        gif: sug.gif || f.gif,
+        // 2026-07-30: ver nota de abajo — el GIF se reemplaza por el del
+        // ejercicio elegido, nunca se arrastra el del anterior.
+        gif: sug.gif || "",
         ...(sug.codigo ? { codigo: sug.codigo } : {}),
       }));
       agregarCatalogoABiblioteca(sug._catalogo).then((codigo) => {
@@ -868,6 +938,12 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
       nombre: sug.nombre,
       desc: sug.desc || sug.descripcion || f.desc,
       video: sug.video || f.video,
+      // 2026-07-30: el GIF pasa a ser el del ejercicio ELEGIDO. Se pisa
+      // siempre (aunque el nuevo no tenga uno propio) porque si no quedaba
+      // pegado el GIF manual del ejercicio anterior y se mostraba un
+      // movimiento que no es. Con "" el lookup automático por nombre vuelve
+      // a mandar, que es lo que Lucas quiere.
+      gif: sug.gif || "",
       // Taxonomía 2026-07-21: al elegir un ejercicio de la biblioteca, el
       // ítem del plan hereda su código de grupo y su unidad (Plancha=segundos).
       ...(sug.codigo ? { codigo: sug.codigo } : {}),
@@ -911,23 +987,16 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                 rows={2}
                 style={{ ...inp, resize: "vertical", marginBottom: 8 }}
               />{" "}
-              {showVideo && (
-                <>
-                  {" "}
-                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>LINK YOUTUBE</div>{" "}
-                  <input
-                    value={form.video}
-                    onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))}
-                    placeholder="https://youtube.com/watch?v=..."
-                    style={{ ...inp, marginBottom: 8 }}
-                  />{" "}
-                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>O SUBIR VIDEO</div>{" "}
-                  <VideoUploadButton
-                    onVideoUrl={(url) => setForm((f) => ({ ...f, video: url }))}
-                  />{" "}
-                  <GifPicker nombre={form.nombre} value={form.gif} onChange={(v) => setForm((f) => ({ ...f, gif: v }))} />
-                </>
-              )}{" "}
+              {/* 2026-07-30: acá había LINK YOUTUBE + subir video + GifPicker.
+                  Se sacaron los tres. Este editor es para ARMAR EL PLAN
+                  eligiendo ejercicios que ya existen, no para crearlos ni para
+                  cargarles media — eso vive en la Biblioteca de ejercicios,
+                  que sigue teniendo YouTube, subida de video y GIF manual.
+                  Ojo: los campos video/mediaLocal/gif que un ítem ya tenga
+                  guardado NO se borran (startEdit los carga en form y save los
+                  vuelve a escribir tal cual) — se sacan de la EDICIÓN, no del
+                  dato. En su lugar va el GIF, para VER. */}
+              <GifEjercicio nombre={form.nombre} gif={form.gif} />{" "}
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 {" "}
                 <button
@@ -1035,7 +1104,23 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
               >
                 {i + 1}
               </div>{" "}
-              <div style={{ flex: 1 }}>
+              {/* 2026-07-30: el GIF a la vista en la propia fila, sin abrir
+                  nada — "en ejercicios tengo que poder clicar sobre el
+                  ejercicio y ver el gif". Tocar la fila abre el editor, que
+                  muestra el mismo GIF en grande. */}
+              {(() => {
+                const gifFila = ej.gif || getEjercicioGif(ej.nombre);
+                return gifFila ? (
+                  <img
+                    src={gifFila}
+                    alt=""
+                    loading="lazy"
+                    onClick={() => startEdit(i)}
+                    style={{ width: TAP, height: TAP, objectFit: "contain", background: "#fff", borderRadius: 6, flexShrink: 0, cursor: "pointer" }}
+                  />
+                ) : null;
+              })()}{" "}
+              <div style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(i)}>
                 {" "}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {ej.codigo && (
@@ -1089,21 +1174,10 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
             rows={2}
             style={{ ...inp, resize: "vertical", marginBottom: 8 }}
           />{" "}
-          {showVideo && (
-            <>
-              {" "}
-              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>LINK YOUTUBE</div>{" "}
-              <input
-                value={form.video}
-                onChange={(e) => setForm((f) => ({ ...f, video: e.target.value }))}
-                placeholder="https://youtube.com/watch?v=..."
-                style={{ ...inp, marginBottom: 8 }}
-              />{" "}
-              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>O SUBIR FOTO / VIDEO</div>{" "}
-              <MediaUploader media={form.mediaLocal} onMedia={(m) => setForm((f) => ({ ...f, mediaLocal: m }))} />{" "}
-              <GifPicker nombre={form.nombre} value={form.gif} onChange={(v) => setForm((f) => ({ ...f, gif: v }))} />
-            </>
-          )}{" "}
+          {/* 2026-07-30: mismo criterio que arriba — agregar un ejercicio al
+              plan es ELEGIRLO de la lista, no crearlo con su media. El GIF se
+              muestra solo, por nombre. */}
+          <GifEjercicio nombre={form.nombre} gif={form.gif} />{" "}
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
             {" "}
             <button
@@ -3619,14 +3693,31 @@ function DiarioAdmin({ alumnos, onUpdate, showToast }) {
 // elegirla setea/equivale a tipo="rehabilitacion" (el campo que activa la
 // vista y el plan de rehabilitación). tipo sigue siendo la fuente de verdad;
 // la modalidad es la forma visible de elegirlo — se sincronizan al guardar.
-const MODALIDAD_REHAB = "Rehabilitación";
+// 2026-07-30 (pedido de Lucas): las categorías se reescriben en términos de
+// CON QUIÉN entrena, no de "presencial/a distancia" — "entrena solo en
+// Desarrollo Integral" sonaba a que el alumno está abandonado. Cuatro
+// categorías fijas, ni una más.
+const MODALIDAD_REHAB = "Paciente de Griselda";
 const MODALIDADES = [
-  "Presencial con Lucas",
-  "Presencial con Ariel",
-  "Entrena solo en Desarrollo Integral",
-  "A distancia",
+  "Entrena con Lucas",
+  "Entrena con Ariel",
+  "Entrena en Desarrollo Integral",
   MODALIDAD_REHAB,
 ];
+// Los 7 alumnos que ya existen tienen guardado el texto VIEJO en la columna
+// `modalidad`. No se toca la base: se traduce al mostrar y al abrir el
+// formulario, así ninguno queda sin categoría. "A distancia" no tiene
+// equivalente en la lista nueva — se deja pasar tal cual (ver
+// modalidadLabel: lo que no está en el mapa vuelve sin cambios) y se sigue
+// mostrando como chip suelto en el editor hasta que Lucas lo reasigne.
+const MODALIDAD_LEGACY = {
+  "Presencial con Lucas": "Entrena con Lucas",
+  "Presencial con Ariel": "Entrena con Ariel",
+  "Entrena solo en Desarrollo Integral": "Entrena en Desarrollo Integral",
+  "Rehabilitación": MODALIDAD_REHAB,
+  "Rehabilitacion": MODALIDAD_REHAB,
+};
+const modalidadLabel = (m) => (m ? MODALIDAD_LEGACY[m] || m : "");
 // Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
 // ("por más que entrene solo, algún día lo voy a ir a ver").
 function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
@@ -3780,8 +3871,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       altura: al.altura,
       edad: al.edad,
       fecha_nacimiento: (al.fecha_nacimiento || "").slice(0, 10),
-      // Los rehab viejos sin modalidad guardada se muestran como "Rehabilitación"
-      modalidad: al.modalidad || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
+      // Los rehab viejos sin modalidad guardada se muestran como paciente de
+      // Griselda. 2026-07-30: modalidadLabel traduce el valor viejo guardado
+      // ("Presencial con Lucas"...) al nombre nuevo, para que el chip que
+      // corresponde aparezca marcado en vez de "Sin definir".
+      modalidad: modalidadLabel(al.modalidad) || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
       // Género (ronda 12): vive en rm.genero, no es columna de alumnos —
       // se saca del form antes de spreadearlo (ver saveEdit).
@@ -3917,7 +4011,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         ["Edad", (calcularEdad(alumno.fecha_nacimiento) || alumno.edad || "—") + " años"],
         ["Peso corporal", alumno.peso ? alumno.peso + " kg" : "—"],
         ["Altura", alumno.altura ? alumno.altura + " cm" : "—"],
-        ["Modalidad", alumno.modalidad || "Sin definir"],
+        ["Modalidad", modalidadLabel(alumno.modalidad) || "Sin definir"],
         ["Tipo", alumno.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"],
         ["Días de entrenamiento", (alumno.horarios || []).map((h) => h.dia).join(" · ") || "—"],
       ].map(([l, v]) => `<div class="dato"><span>${l}</span><strong>${esc(v)}</strong></div>`).join("");
@@ -4611,7 +4705,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Modalidad de entrenamiento</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                      {MODALIDADES.map((m) => {
+                      {/* 2026-07-30: a las 4 categorías se les suma, si hace
+                          falta, la modalidad vieja que este alumno ya tenía y
+                          no tiene equivalente (ej. "A distancia"). Se muestra
+                          y se puede desmarcar — no se borra sola. */}
+                      {[
+                        ...MODALIDADES,
+                        ...(form.modalidad && !MODALIDADES.includes(form.modalidad) ? [form.modalidad] : []),
+                      ].map((m) => {
                         const activa = (form.modalidad || "") === m;
                         return (
                           <button
@@ -4728,27 +4829,66 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       </div>
                     ))}
                   </div>
-                  {/* Botón para entrar a la pantalla de evaluación de este alumno */}
-                  <button
-                    onClick={() => { setSec("evaluacion"); setEvalTab("integral"); setForm(null); }}
-                    style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 10, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                  >
-                    <ClipboardList size={15} />Evaluar
-                  </button>
+                  {/* 2026-07-30: se sacó el botón "Evaluar" de acá. Arriba de
+                      esta misma pantalla ya está el tab "Evaluación", que
+                      lleva exactamente al mismo lugar (sec="evaluacion") —
+                      dos entradas al mismo módulo en la misma pantalla. Queda
+                      el TAB porque es navegación persistente: está siempre a
+                      la vista, en cualquier sección del alumno, no solo con
+                      la ficha abierta. */}
                   {al.modalidad && (
                     <div style={{ marginBottom: 10 }}>
-                      <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 12px", fontSize: 11, color: S.white, fontWeight: 600 }}>
-                        {al.modalidad}
+                      <span style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 12px", fontSize: 15, color: S.white, fontWeight: 600 }}>
+                        {modalidadLabel(al.modalidad)}
                       </span>
                     </div>
                   )}
-                  {/* Días de entrenamiento (sin hora — ya no se usan horarios) */}
+                  {/* Días de entrenamiento — 2026-07-30: eran texto muerto.
+                      Ahora cada día es un link al plan de ESE día, con el
+                      mismo salto que ya usan las filas de "Planes asignados"
+                      de abajo (planFoco + planTab + sec="plan"). Si el día no
+                      tiene plan todavía, en vez de no hacer nada lleva a
+                      Planificación → Plan x día con el día ya elegido, que es
+                      donde se le asigna uno. */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {(al.horarios || []).filter((h) => h.dia).map((h, i) => (
-                      <span key={i} style={{ background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "2px 8px", fontSize: 14, color: S.white }}>
-                        {h.dia}
-                      </span>
-                    ))}
+                    {(al.horarios || []).filter((h) => h.dia).map((h, i) => {
+                      const planDelDia = (al.planes || []).find((p) => p.dia_semana === h.dia);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            if (planDelDia) {
+                              setPlanFoco(planDelDia.id || null);
+                              setPlanTab("entrenamiento");
+                              setSec("plan");
+                            } else {
+                              setSelectedDia(h.dia);
+                              setPlanesTab("plan-dias");
+                              setSec("planes");
+                            }
+                            setForm(null);
+                          }}
+                          title={planDelDia ? `Ver el plan de ${h.dia}` : `Asignarle un plan a ${h.dia}`}
+                          style={{
+                            minHeight: TAP,
+                            background: S.card2,
+                            border: "1px solid " + (planDelDia ? S.border2 : S.border),
+                            borderRadius: 8,
+                            padding: "0 14px",
+                            fontSize: TS.chip,
+                            color: S.white,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {h.dia}
+                          <span style={{ color: S.gray }}>›</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Planes REALES asignados (plan por día), con el de hoy marcado.
@@ -6994,6 +7134,10 @@ export default function App() {
               diaRegistrado={diaRegistrado === hoy() + ":" + al.id}
               registrandoDia={registrandoDia}
               irAPrincipales={irPrincipalesToken}
+              // 2026-07-30, pedido de Lucas: en Modo Entrenador se ocultan
+              // movilidad, elástico y entrada en calor — durante la clase el
+              // entrenador solo opera los ejercicios principales.
+              modoEntrenador={modoEntrenador}
             />
           )}
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
