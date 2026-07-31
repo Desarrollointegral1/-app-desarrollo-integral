@@ -402,10 +402,14 @@ export default function PlanDelDia({
           {/* 2026-07-31 — Lucas: "esa ficha me gustaría que esté más
               centrada abajo de los días" — tocar el nombre del plan abre el
               resumen (ejercicios + grupo muscular + periodización). */}
+          {/* 2026-07-31 — Lucas: "que haya un recuadro alrededor de todo el
+              nombre del plan, como la línea que está ahora pero que lo
+              envuelva entero" — mismo lenguaje visual del chip "Entrada en
+              calor" (borde + radio), en vez de solo el subrayado de antes. */}
           {dia.subtitulo && (
             <button
               onClick={() => setShowResumen(true)}
-              style={{ display: "block", width: "100%", textAlign: "center", background: "transparent", border: "none", color: S.gray, fontSize: 15, marginBottom: 10, padding: 0, cursor: "pointer", textDecoration: "underline" }}
+              style={{ display: "block", width: "fit-content", maxWidth: "100%", margin: "0 auto 10px", textAlign: "center", background: "transparent", border: "1px solid " + S.border2, borderRadius: 20, padding: "8px 16px", color: S.lgray, fontSize: 15, fontWeight: 700, cursor: "pointer" }}
             >
               {dia.subtitulo}
             </button>
@@ -483,7 +487,7 @@ export default function PlanDelDia({
           muscular + periodización) al tocar el nombre del plan. Componente
           compartido — el mismo se abre desde la pantalla de Bienvenida. */}
       {showResumen && (
-        <ResumenPlanModal plan={plan} dia={dia} onClose={() => setShowResumen(false)} />
+        <ResumenPlanModal plan={plan} dia={dia} rm={rm} onClose={() => setShowResumen(false)} />
       )}
     </div>
   );

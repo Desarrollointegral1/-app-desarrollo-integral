@@ -2248,7 +2248,7 @@ export async function cargarMusculosCatalogo() {
   for (let desde = 0; ; desde += PAGE) {
     const { data, error } = await supabase
       .from("catalogo_ejercicios")
-      .select("nombre_es,musculo_default,tag_default,tags,muscle_group_es,target_es")
+      .select("nombre_es,codigo_di,musculo_default,tag_default,tags,muscle_group_es,target_es")
       .range(desde, desde + PAGE - 1);
     if (error) { ERR("cargarMusculosCatalogo", error.message, error); return all; }
     all = all.concat(data || []);

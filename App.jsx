@@ -6432,46 +6432,56 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
           {/* 2026-07-31, pedido de Lucas: flujo en 2 pasos. Primero elige el
               día que va a entrenar; recién ahí se revela el plan de ESE día
               (antes se mostraba todo junto, sin preguntar). */}
-          {!diaElegido ? (
-            diasPlan.length > 0 && (
-              <div style={{ marginTop: 34 }}>
-                <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginBottom: 14 }}>
-                  ¿Qué día vas a entrenar hoy?
-                </div>
-                <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
-                  {diasPlan.map((d, i) => {
-                    const planDia = (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(d));
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setDiaElegido(d)}
-                        title={`Elegir ${d}`}
-                        style={{
-                          background: S.card,
-                          border: "1px solid " + S.border,
-                          borderRadius: 14,
-                          padding: "9px 16px",
-                          minHeight: TAP,
-                          color: S.white,
-                          cursor: "pointer",
-                          fontFamily: FONT_BODY,
-                          textAlign: "center",
-                        }}
-                      >
-                        <div style={{ fontSize: TS.chip, fontWeight: 700 }}>{d}</div>
-                        <div style={{ fontSize: 11, color: S.gray, marginTop: 2, fontWeight: 600 }}>Día {i + 1}</div>
-                        {planDia?.nombre && (
-                          <div style={{ fontSize: 11, color: S.lgray, marginTop: 1 }}>{planDia.nombre}</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* 2026-07-31 — Lucas: "cuando elijas que día vas a entrenar que
+              no desaparezca lo que elegiste, que sigan los días y el que
+              elegiste en más claro, que lo puedas cambiar ahí en el
+              momento" — las pills quedan SIEMPRE visibles (antes se
+              reemplazaban enteras por el bloque de info al elegir), con el
+              día activo resaltado; ya no hace falta un link separado para
+              "elegir otro día", las pills mismas cumplen esa función. */}
+          {diasPlan.length > 0 && (
+            <div style={{ marginTop: 34 }}>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginBottom: 14 }}>
+                ¿Qué día vas a entrenar hoy?
               </div>
-            )
-          ) : (
-            <>
-              <div style={{ ...eyebrow, textAlign: "center", marginTop: 34 }}>Plan de hoy — {diaElegido}</div>
+              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
+                {diasPlan.map((d, i) => {
+                  const planDia = (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(d));
+                  const activo = norm(diaElegido) === norm(d);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setDiaElegido(d)}
+                      title={`Elegir ${d}`}
+                      style={{
+                        background: activo ? S.white : S.card,
+                        border: "1px solid " + (activo ? S.white : S.border),
+                        borderRadius: 14,
+                        padding: "9px 16px",
+                        minHeight: TAP,
+                        color: activo ? S.bg : S.white,
+                        cursor: "pointer",
+                        fontFamily: FONT_BODY,
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: TS.chip, fontWeight: 700 }}>{d}</div>
+                      <div style={{ fontSize: 11, color: activo ? S.bg : S.gray, marginTop: 2, fontWeight: 600, opacity: activo ? 0.7 : 1 }}>Día {i + 1}</div>
+                      {planDia?.nombre && (
+                        <div style={{ fontSize: 11, color: activo ? S.bg : S.lgray, marginTop: 1, opacity: activo ? 0.7 : 1 }}>{planDia.nombre}</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {diaElegido && (
+            <div style={{ marginTop: 28 }}>
+              {/* Lucas: "plan de hoy - que siempre diga plan de hoy nada más" */}
+              <div style={{ ...eyebrow, textAlign: "center" }}>Plan de hoy</div>
+              {/* Lucas: "al inves de ir a preparacion - Entrada en calor" */}
               {onIrAPreparacion && (
                 <button
                   onClick={onIrAPreparacion}
@@ -6491,23 +6501,16 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                     fontFamily: FONT_BODY,
                   }}
                 >
-                  Ir a Preparación <span style={{ fontSize: 14 }}>›</span>
+                  Entrada en calor <span style={{ fontSize: 14 }}>›</span>
                 </button>
               )}
-              {/* 2026-07-31, pedido de Lucas: "Ejercicios principales
-                  linkeado a un resumen del plan" — abre el mismo modal que
-                  en Principales (ejercicios + grupo muscular + periodización
-                  del plan de ESE día). */}
-              <button
-                onClick={() => setShowResumen(true)}
-                disabled={!diaDelPlanElegido}
-                style={{ display: "block", width: "100%", background: "transparent", border: "none", color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 18, padding: 0, cursor: diaDelPlanElegido ? "pointer" : "default", textDecoration: diaDelPlanElegido ? "underline" : "none" }}
-              >
-                Ejercicios principales
-              </button>
+              {/* 2026-07-31, pedido de Lucas: "+" y abajo, línea por línea:
+                  series por repeticiones / al X% de intensidad máxima / de
+                  los N ejercicios — antes iba todo junto en un párrafo. */}
               {(() => {
                 const semDia = (planElegido?.periodizacion || []).find((p) => p.semana === semanaActual) || (planElegido?.periodizacion || [])[0] || semanaData;
                 const okDia = semDia && nOk(semDia.series) && nOk(semDia.reps);
+                const cantEj = (diaDelPlanElegido?.ejercicios || []).length;
                 if (!okDia) {
                   return (
                     <div style={{ marginTop: 14, color: S.gray, fontSize: TS.ui, lineHeight: 1.5, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
@@ -6516,31 +6519,39 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                   );
                 }
                 return (
-                  <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
-                    <span style={{ color: S.white, fontWeight: 700 }}>
-                      {semDia.series} {pl(semDia.series, "serie", "series")} por {semDia.reps}{" "}
-                      {pl(semDia.reps, "repetición", "repeticiones")}
-                    </span>
+                  <div style={{ marginTop: 14, textAlign: "center" }}>
+                    <div style={{ color: S.gray, fontSize: 20, fontWeight: 700, marginBottom: 8 }}>+</div>
+                    <div style={{ color: S.white, fontSize: TS.ui, fontWeight: 700, lineHeight: 1.6 }}>
+                      {semDia.series} {pl(semDia.series, "serie", "series")} por {semDia.reps} {pl(semDia.reps, "repetición", "repeticiones")}
+                    </div>
                     {semDia.intensidad && (
-                      <> al <span style={{ color: S.white, fontWeight: 700 }}>{semDia.intensidad} de tu intensidad máxima</span></>
+                      <div style={{ color: S.white, fontSize: TS.ui, fontWeight: 700, lineHeight: 1.6 }}>
+                        al {semDia.intensidad} de tu intensidad máxima
+                      </div>
+                    )}
+                    {cantEj > 0 && (
+                      <div style={{ color: S.gray, fontSize: TS.ui, lineHeight: 1.6 }}>de los {cantEj}</div>
                     )}
                   </div>
                 );
               })()}
+              {/* Lucas: "ejercicios principales - linkeado al resumen del
+                  plan" — al final del bloque, no antes de las estadísticas. */}
               <button
-                onClick={() => setDiaElegido(null)}
-                style={{ display: "block", margin: "18px auto 0", background: "transparent", border: "none", color: S.gray, fontSize: 13, textDecoration: "underline", cursor: "pointer", fontFamily: FONT_BODY }}
+                onClick={() => setShowResumen(true)}
+                disabled={!diaDelPlanElegido}
+                style={{ display: "block", width: "100%", background: "transparent", border: "none", color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 18, padding: 0, cursor: diaDelPlanElegido ? "pointer" : "default", textDecoration: diaDelPlanElegido ? "underline" : "none" }}
               >
-                ‹ Elegir otro día
+                Ejercicios principales
               </button>
-            </>
+            </div>
           )}
         </div>
 
         {/* 2026-07-31, pedido de Lucas: resumen del plan del día elegido —
             mismo modal compartido que en Principales. */}
         {showResumen && diaDelPlanElegido && (
-          <ResumenPlanModal plan={planElegido} dia={diaDelPlanElegido} onClose={() => setShowResumen(false)} />
+          <ResumenPlanModal plan={planElegido} dia={diaDelPlanElegido} rm={alumno.rm} onClose={() => setShowResumen(false)} />
         )}
 
         {/* 8. Botón final ENTRENAR — pedido de Lucas: efecto de carga breve
@@ -7062,6 +7073,14 @@ export default function App() {
         // sub-día del plan visible, o si el día es un alumno_plan aparte lo
         // enfoca, y saltan derecho a Principales.
         onIrADia={(nombreDia) => {
+          // 2026-07-31 — Lucas: "al clicar en entrenar te tiene que llevar a
+          // movilidad corta... ahora te lleva a principales bien abajo de
+          // todo". Antes se copiaba el mismo salto que las pills de la ficha
+          // (setIrPrincipalesToken fuerza seccion="principales" + scroll a
+          // esa sección). Acá NO: se elige el día y se entra directo —
+          // PlanDelDia ya arranca en Preparación → Movilidad → Corta por
+          // default, así que basta con no forzar el salto y con llevar el
+          // scroll de la página al tope.
           const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
           const idxPlan = planValido ? plan.dias.findIndex((d) => norm(d.dia) === norm(nombreDia)) : -1;
           if (idxPlan >= 0) {
@@ -7071,8 +7090,8 @@ export default function App() {
             if (planDia) { setDiaSemanaFoco(nombreDia); setDiaIdx(0); }
           }
           setTabGroup("entrenamiento");
-          setIrPrincipalesToken((t) => t + 1);
           setShowBienvenida(false);
+          window.scrollTo({ top: 0 });
         }}
       />
     );
