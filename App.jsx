@@ -62,6 +62,8 @@ import {
   initH,
   uid,
   getSemanaActual,
+  calcularEdad,
+  registroAsistencia,
 } from "./src/utils/helpers.js";
 import {
   PERIODIZACION_BASE,
@@ -260,16 +262,6 @@ const EJS_SUGERIDOS = [
   // Extras comunes
   "Curl de biceps","Extension de triceps","Elevaciones laterales","Face pull","Remo con barra","Pull over","Fondos en paralelas","Step up","Glute bridge","Good morning",
 ];
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function calcularEdad(fechaNac) {
-  if (!fechaNac) return null;
-  const hoy = new Date();
-  const nac = new Date(fechaNac);
-  let edad = hoy.getFullYear() - nac.getFullYear();
-  const m = hoy.getMonth() - nac.getMonth();
-  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-  return edad;
-}
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }) {
   if (!msg) return null;
@@ -2405,7 +2397,7 @@ function HistorialAdmin({ al }) {
     <div>
       {" "}
       <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>
-        Historial — {al.nombre}
+        Historial de pesos máximos — {al.nombre}
       </div>{" "}
       <div style={{ fontSize: 11, color: S.lgray, marginBottom: 12 }}>
         Peso máximo por ejercicio (unifica todos los días asignados)
@@ -3743,18 +3735,34 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Toast con "Deshacer" (patrón Gmail/Instagram/ML) — reemplaza los
   // window.confirm() bloqueantes en las acciones destructivas del panel.
   const { ejecutarConDeshacer, ToastUI } = useDeshacer();
-  const [sec, setSec] = useState("dashboard");
-  const [selId, setSelId] = useState(alumnos[0] && alumnos[0].id);
-  const [planTab, setPlanTab] = useState("entrenamiento");
+  // 2026-07-30, pedido de Lucas: "al actualizar la página me saca del lugar
+  // donde estaba". La navegación del panel admin vivía solo en useState, así
+  // que un F5 la reiniciaba siempre a Dashboard. Se guarda en sessionStorage
+  // (dura mientras la pestaña esté abierta, no se pisa entre dispositivos ni
+  // queda pegada días después) y se restaura al montar. selId se valida
+  // contra la lista real de alumnos por si el guardado quedó viejo (alumno
+  // borrado, u otra cuenta).
+  const NAV_KEY = "di_admin_nav";
+  const navGuardada = (() => {
+    try { return JSON.parse(sessionStorage.getItem(NAV_KEY)) || {}; } catch { return {}; }
+  })();
+  const [sec, setSec] = useState(navGuardada.sec || "dashboard");
+  const [selId, setSelId] = useState(() =>
+    alumnos.some((a) => a.id === navGuardada.selId) ? navGuardada.selId : alumnos[0] && alumnos[0].id
+  );
+  const [planTab, setPlanTab] = useState(navGuardada.planTab || "entrenamiento");
   // Ronda 8: menús del admin en 3 grupos — Plan (edición de las 4 partes),
   // Planes (periodización · plan x día · evaluación peso max) y Reportes
   // (asistencia · historial · bioimpedancia). Subtabs de cada grupo:
-  const [planesTab, setPlanesTab] = useState("periodizacion");
-  const [repTab, setRepTab] = useState("asistencia");
+  const [planesTab, setPlanesTab] = useState(navGuardada.planesTab || "periodizacion");
+  const [repTab, setRepTab] = useState(navGuardada.repTab || "asistencia");
   // Módulo Evaluación (accesible por el botón "Evaluar" de la ficha): dos
   // sub-módulos — "integral" (protocolo de escalas 1-5) y "bio" (bioimpedancia,
   // antes vivía en Reportes).
-  const [evalTab, setEvalTab] = useState("integral");
+  const [evalTab, setEvalTab] = useState(navGuardada.evalTab || "integral");
+  useEffect(() => {
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ sec, selId, planTab, planesTab, repTab, evalTab })); } catch {}
+  }, [sec, selId, planTab, planesTab, repTab, evalTab]);
   const [selectedDia, setSelectedDia] = useState(null);
   // Punto 8 (ronda 16): "Plan x día" reorganizado — en vez de los 7 días
   // fijos siempre visibles, solo se muestran los días que la persona
@@ -4486,10 +4494,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               onDeselect={() => setSelId(null)}
               onToggleAsistencia={async (id, marcar) => {
                 await saveDailyAttendance(id, hoy(), marcar);
+                // Auditoría 2026-07-30: este toggle guardaba la fecha pelada,
+                // sin hora — por eso el reporte de Asistencia mostraba "—" en
+                // el horario para lo marcado desde acá. registroAsistencia()
+                // arma "YYYY-MM-DD HH:mm" para hoy, igual que ya hacía el
+                // auto-marcado del alumno.
                 const nuevos = alumnos.map((a) => {
                   if (a.id !== id) return a;
                   const sinHoy = (a.asistencia || []).filter((f) => f.slice(0, 10) !== hoy());
-                  return { ...a, asistencia: marcar ? [...sinHoy, hoy()] : sinHoy };
+                  return { ...a, asistencia: marcar ? [...sinHoy, registroAsistencia(hoy())] : sinHoy };
                 });
                 onUpdate(nuevos);
                 showToast && showToast(marcar ? "Asistencia marcada" : "Asistencia borrada");
@@ -5435,7 +5448,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           <div style={{ ...segTrack(), marginBottom: 14 }}>
             {[
               ["Asistencia", "asistencia"],
-              ["Historial", "historial"],
+              ["Historial de pesos máximos", "historial"],
             ].map(([l, k]) => (
               <button key={k} onClick={() => setRepTab(k)} style={segChip(repTab === k)}>
                 {l}
@@ -6480,7 +6493,14 @@ export default function App() {
   const [modoEntrenador, setModoEntrenador] = useState(false);
   const [selectorEntrenador, setSelectorEntrenador] = useState(false);
   const [tab, setTab] = useState("Movilidad");
-  const [tabGroup, setTabGroup] = useState("entrenamiento");
+  // 2026-07-30: mismo arreglo que en AdminPanel — "Entrenamiento"/"Diario" se
+  // reiniciaba a Entrenamiento en cada F5. Se restaura desde sessionStorage.
+  const [tabGroup, setTabGroup] = useState(() => {
+    try { return sessionStorage.getItem("di_alumno_tabgroup") || "entrenamiento"; } catch { return "entrenamiento"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("di_alumno_tabgroup", tabGroup); } catch {}
+  }, [tabGroup]);
   const [diaIdx, setDiaIdx] = useState(0);
   // Ronda 17 (punto 4): pills de días (debajo del nombre del alumno)
   // clickeables → saltan directo a Entrenamiento → Principales con el día
@@ -6705,13 +6725,11 @@ export default function App() {
     saveDailyWeight(alumno.id, hoy(), id, Number(val));
   };
   const marcarAsistencia = (fecha) => {
-    // De acá en adelante la asistencia de HOY se guarda con hora
-    // ("YYYY-MM-DD HH:mm"). Días anteriores quedan solo fecha (hora desconocida).
-    // La lectura sigue siendo compatible con las fechas viejas sin hora.
-    const ahora = new Date();
-    const registro = fecha === hoy()
-      ? `${fecha} ${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`
-      : fecha;
+    // La asistencia de HOY se guarda con hora ("YYYY-MM-DD HH:mm"); días
+    // anteriores quedan solo fecha. registroAsistencia() (helpers.js) es la
+    // única función que arma este formato — el toggle rápido del admin la
+    // usa también, para que no haya dos lugares calculando la hora distinto.
+    const registro = registroAsistencia(fecha);
     const u = alumnos.map((a) => (a.id === alumno.id ? { ...a, asistencia: [...(a.asistencia || []), registro] } : a));
     setAlumnos(u);
     setAlumno(u.find((a) => a.id === alumno.id));
