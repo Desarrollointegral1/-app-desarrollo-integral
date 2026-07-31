@@ -114,12 +114,18 @@ export const DARK_T = {
 // 2026-07-20). Nada de tonos crema — acá la jerarquía la dan las sombras
 // difusas (los fondos casi no cambian entre niveles en claro).
 export const LIGHT_T = {
-  bg: "#f2f2f4",
-  card: "#ffffff",
-  card2: "#f4f4f6",
-  card3: "#e9e9ee",
-  border: "#e2e2e6",
-  border2: "#c8c8d0",
+  // 2026-07-31, pedido de Lucas viendo la app real (todas sus capturas eran
+  // en modo claro): "un poco más oscuro el fondo y las cajas de diálogo
+  // blancas que sean más oscuras que el blanco". El bg pasa de casi-blanco a
+  // un gris visible de verdad, y las cards dejan de ser #ffffff puro — que
+  // es lo que hacía que cualquier tarjeta (sobre todo el chat del
+  // entrenador) leyera como "blanco sobre blanco", plano y sin jerarquía.
+  bg: "#e7e7ea",
+  card: "#f7f7f8",
+  card2: "#eeeef1",
+  card3: "#e3e3e9",
+  border: "#d7d7dd",
+  border2: "#bcbcc4",
   white: "#17171a",
   gray: "#4b4b52",
   lgray: "#84848c",
@@ -175,6 +181,25 @@ export function applyTheme(dark) {
   inp = { background: S.card2, border: "1px solid " + S.border2, borderRadius: 8, padding: "11px 12px", color: S.white, fontSize: TS.ui, minHeight: TAP, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: FONT_BODY };
   eyebrow = { fontSize: 13, color: S.gray, letterSpacing: 1.6, textTransform: "uppercase", fontWeight: 700, fontFamily: FONT_BODY };
 }
+
+// ── Checkbox real (2026-07-31, pedido de Lucas: "Marcar hoy" no puede ser
+// un pill de texto, tiene que ser un checkbox real, como en cualquier app").
+// Mismo lenguaje visual en todo lo que confirma un estado (asistencia, etc).
+// Funciones (no objetos) por la misma razón que segTrack/segChip: releen `S`
+// en cada llamada, así siguen el tema activo sin plumbing en applyTheme().
+export const checkboxWrap = () => ({ display: "inline-flex", alignItems: "center", gap: 8, minHeight: TAP, cursor: "pointer", padding: "6px 4px" });
+export const checkboxBox = (a) => ({ width: 22, height: 22, borderRadius: 6, border: "2px solid " + (a ? S.white : S.border2), background: a ? S.white : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s cubic-bezier(0.32,0.72,0,1)" });
+
+// ── Stepper de cantidad (2026-07-31) ── un solo bloque con el MISMO fondo en
+// los 3 segmentos. Antes el − y el + eran dos cuadrados sueltos de colores
+// opuestos (uno oscuro, uno blanco sólido) sin relación visual entre sí —
+// "esa caja con esos botones... queda muy grotesco". Referencia: el
+// selector de cantidad de Mercado Libre / Uber Eats — una pill con
+// separadores finos, nunca dos colores enfrentados.
+export const stepperTrack = () => ({ display: "inline-flex", alignItems: "stretch", background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, overflow: "hidden" });
+export const stepperBtn = () => ({ width: TAP, minHeight: TAP, background: "transparent", color: S.white, border: "none", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 });
+export const stepperDivider = () => ({ width: 1, alignSelf: "stretch", background: S.border2 });
+export const stepperValue = () => ({ minWidth: 56, textAlign: "center", background: "transparent", border: "none", color: S.white, fontSize: TS.ui, fontWeight: 900, outline: "none" });
 
 // ── Retratos ── Brand Kit §08 y señal 10 del playbook anti-cara-de-IA:
 // los retratos NUNCA van en círculo. Marco rectangular de esquina suave; el

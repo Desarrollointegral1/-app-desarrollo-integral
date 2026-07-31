@@ -57,8 +57,12 @@ export default function PlanDelDia({
   // Versión de movilidad elegida por el alumno: superrapida (~3') · corta (~8') · completa (15'+).
   // Arranca en la PREDETERMINADA que el admin eligió para este alumno
   // (rm.movilidad_default, Admin → Plan → Movil.); el alumno puede cambiarla acá.
+  // 2026-07-31 — Lucas: "que movilidad venga predeterminado en corta". Si el
+  // admin configuró movilidad_default para este alumno, se respeta igual
+  // (esta parte no cambia); el fallback cuando no hay nada configurado pasa
+  // de "completa" a "corta".
   const [moviVersion, setMoviVersion] = useState(() =>
-    ["superrapida", "corta", "completa"].includes(rm?.movilidad_default) ? rm.movilidad_default : "completa"
+    ["superrapida", "corta", "completa"].includes(rm?.movilidad_default) ? rm.movilidad_default : "corta"
   );
   const [videosGlobal, setVideosGlobal] = useState(null);
   // Dos tabs del mismo tamaño: Preparación | Principales.

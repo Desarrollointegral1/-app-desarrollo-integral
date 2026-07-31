@@ -79,7 +79,7 @@ import {
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
-import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell } from "./src/utils/theme.js";
+import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell, checkboxWrap, checkboxBox } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
 import MiniChart from "./src/components/MiniChart.jsx";
@@ -1647,7 +1647,7 @@ function PeriodizacionEditor({ data, onChange }) {
                   {" "}
                   <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>
                     {r.series}x{r.reps}{" "}
-                    {r.intensidad && <span style={{ color: S.green, fontSize: 12 }}>· {r.intensidad}</span>}
+                    {r.intensidad && <span style={{ color: S.gray, fontSize: 12 }}>· {r.intensidad}</span>}
                   </div>{" "}
                   <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                     {r.fecha || <span style={{ color: S.lgray, fontStyle: "italic" }}>sin fecha</span>}
@@ -3191,13 +3191,17 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
                     aria-label="Marcar asistencia de hoy"
                     role="checkbox"
                     aria-checked={entrenoHoy}
-                    // Auditoría 2026-07-30: medía 102x22 reales. Es la acción
-                    // más frecuente del panel (marcar la asistencia del día),
-                    // repetida una vez por alumno: va al piso de 44 de alto.
-                    style={{ display: "inline-flex", alignItems: "center", gap: 7, background: entrenoHoy ? S.card3 : "transparent", border: "1px solid " + (entrenoHoy ? S.white : S.border2), borderRadius: 22, padding: "10px 14px", minHeight: TAP, fontSize: TS.chip, color: entrenoHoy ? S.white : S.gray, fontWeight: 700, cursor: "pointer", flexShrink: 0, fontFamily: FONT_BODY }}
+                    // 2026-07-31, pedido de Lucas: "Marcar hoy" no le gustaba
+                    // como pill de texto que cambiaba de palabra — un
+                    // checkbox real (casilla + tilde) es el patrón que
+                    // cualquiera reconoce al toque, y el texto no cambia de
+                    // palabra según el estado, solo la casilla.
+                    style={{ ...checkboxWrap(), background: "transparent", border: "none", fontFamily: FONT_BODY }}
                   >
-                    {entrenoHoy ? <Check size={15} /> : <span style={{ width: 14, height: 14, borderRadius: 3, border: "1.5px solid " + S.gray, display: "inline-block" }} />}
-                    {entrenoHoy ? "Entrenó hoy" : "Marcar hoy"}
+                    <span style={checkboxBox(entrenoHoy)}>
+                      {entrenoHoy && <Check size={14} strokeWidth={3} color={S.bg} />}
+                    </span>
+                    <span style={{ fontSize: TS.chip, color: entrenoHoy ? S.white : S.gray, fontWeight: 700 }}>Asistencia</span>
                   </button>
                 </div>
                 <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
@@ -6324,7 +6328,7 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
 // patrón sin-migración que movilidad_default/secciones_config, editable
 // desde el admin en alta y edición de alumno); sin setear usa el fallback
 // neutro "¡Bienvenido/a!" de siempre.
-function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
+function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrADia }) {
   const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
   const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
   const genero = alumno.rm?.genero;
@@ -6389,35 +6393,26 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
               números de verdad; si no, se dice qué pasa. */}
           {semanaData && hayCarga && (
             <>
-              {/* 5. Ficha 2x6 / al 70% */}
-              <div
-                style={{
-                  marginTop: 12,
-                  background: S.card,
-                  border: "1px solid " + S.border,
-                  borderRadius: 10,
-                  padding: "12px 20px",
-                  display: "inline-block",
-                }}
-              >
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 26, fontFamily: FONT_DISPLAY }}>
-                  {semanaData.series}x{semanaData.reps}
-                </div>
-                {semanaData.intensidad && (
-                  <div style={{ color: S.gray, fontSize: TS.label, marginTop: 2 }}>al {semanaData.intensidad}</div>
-                )}
-              </div>
-              {/* 6. "Hoy te toca en los EJERCICIOS PRINCIPALES" + versión en palabras */}
-              <div style={{ color: S.gray, fontSize: TS.chip, letterSpacing: 1, textTransform: "uppercase", marginTop: 14 }}>
-                Hoy te toca en los <span style={{ color: S.white, fontWeight: 800 }}>ejercicios principales</span>
-              </div>
+              {/* 2026-07-31 — Lucas: "dice arriba 2x6 al 70% y abajo lo
+                  repite, prefiero que quede solo abajo". Se saca la fichita
+                  chica (era el mismo dato dicho dos veces en la pantalla) y
+                  queda solo la versión en palabras.
+                  "Ejercicios Principales tiene que estar en la misma línea
+                  abajo" — con mayúscula sostenida + tracking de 1 el texto
+                  no entraba en una sola línea a 375px y partía justo ahí.
+                  Se separa en eyebrow (arriba, chico) + título corto (abajo,
+                  una sola línea garantizada) en vez de pelear con el ancho. */}
+              <div style={{ ...eyebrow, textAlign: "center", marginTop: 14 }}>Plan de hoy</div>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 4 }}>Ejercicios principales</div>
               <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
                   {pl(semanaData.reps, "repetición", "repeticiones")}
                 </span>
+                {/* 2026-07-31: "al 70%" a secas no decía de qué — ahora dice
+                    explícitamente que es el % de la intensidad máxima. */}
                 {semanaData.intensidad && (
-                  <> al <span style={{ color: S.white, fontWeight: 700 }}>{semanaData.intensidad}</span></>
+                  <> al <span style={{ color: S.white, fontWeight: 700 }}>{semanaData.intensidad} de tu intensidad máxima</span></>
                 )}
               </div>
             </>
@@ -6427,26 +6422,35 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar }) {
               Todavía no tenés la carga de esta semana cargada. Entrá igual: el plan del día está abajo.
             </div>
           )}
-          {/* 7. "Entrenás los:" + días en pill */}
+          {/* 7. "Entrenás los:" + días en pill.
+              2026-07-31, pedido de Lucas: "entrenás los martes jueves y
+              viernes deberían ya llevarla a los ejercicios principales en
+              ese día" — eran <div> decorativos sin onClick. Ahora cada pill
+              lleva directo a Principales (onIrADia, ver App() más arriba). */}
           {diasPlan.length > 0 && (
             <div style={{ marginTop: 18 }}>
-              <div style={{ color: S.gray, fontSize: 12, marginBottom: 8 }}>Entrenás los:</div>
+              <div style={{ color: S.gray, fontSize: TS.chip, marginBottom: 8 }}>Entrenás los:</div>
               <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
                 {diasPlan.map((d, i) => (
-                  <div
+                  <button
                     key={i}
+                    onClick={() => onIrADia && onIrADia(d)}
+                    title={`Ir a los ejercicios principales del ${d}`}
                     style={{
                       background: S.card,
                       border: "1px solid " + S.border,
                       borderRadius: 20,
-                      padding: "6px 14px",
-                      fontSize: 12,
+                      padding: "9px 16px",
+                      minHeight: TAP,
+                      fontSize: TS.chip,
                       fontWeight: 700,
                       color: S.white,
+                      cursor: "pointer",
+                      fontFamily: FONT_BODY,
                     }}
                   >
                     {d}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -6501,6 +6505,16 @@ export default function App() {
   useEffect(() => {
     try { sessionStorage.setItem("di_alumno_tabgroup", tabGroup); } catch {}
   }, [tabGroup]);
+  // 2026-07-31, pedido de Lucas: "el alumno debería poder ver su historial
+  // de pesos y la bioimpedancia" — hasta hoy EstudioBioSeccion solo se
+  // montaba en el panel admin (evalTab === "bio"), el alumno no tenía forma
+  // de verla. El tab "Diario" pasa a llamarse "Historial" y adentro tiene
+  // dos sub-secciones: Diario (lo de siempre) y Bioimpedancia (de solo
+  // lectura — mismo componente que usa el admin, con readOnly). El id
+  // interno del tab de nivel 1 sigue siendo "diario" a propósito (lo usan
+  // el atajo del botón atrás y el resto del archivo): solo cambia la
+  // ETIQUETA visible y lo que hay adentro.
+  const [historialSub, setHistorialSub] = useState("diario");
   const [diaIdx, setDiaIdx] = useState(0);
   // Ronda 17 (punto 4): pills de días (debajo del nombre del alumno)
   // clickeables → saltan directo a Entrenamiento → Principales con el día
@@ -6900,6 +6914,25 @@ export default function App() {
         semanaData={sem}
         semanaActual={semanaActual}
         onContinuar={() => setShowBienvenida(false)}
+        // 2026-07-31, pedido de Lucas: "entrenás los martes jueves y viernes
+        // deberían ya llevarla a los ejercicios principales en ese día" — las
+        // pills de días de la portada eran texto muerto. Mismo mecanismo que
+        // ya usan las pills de la ficha del alumno (línea ~7010): buscan el
+        // sub-día del plan visible, o si el día es un alumno_plan aparte lo
+        // enfoca, y saltan derecho a Principales.
+        onIrADia={(nombreDia) => {
+          const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+          const idxPlan = planValido ? plan.dias.findIndex((d) => norm(d.dia) === norm(nombreDia)) : -1;
+          if (idxPlan >= 0) {
+            setDiaIdx(idxPlan);
+          } else {
+            const planDia = (al.planes || []).find((p) => norm(p.dia_semana) === norm(nombreDia));
+            if (planDia) { setDiaSemanaFoco(nombreDia); setDiaIdx(0); }
+          }
+          setTabGroup("entrenamiento");
+          setIrPrincipalesToken((t) => t + 1);
+          setShowBienvenida(false);
+        }}
       />
     );
   return (
@@ -7150,7 +7183,9 @@ export default function App() {
                   <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 3 }}>SERIES X REPS</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
-                  <div style={{ color: S.green, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.intensidad || "—"}</div>
+                  {/* 2026-07-31: quedaba verde de una pasada anterior de la
+                      auditoría — el Brand Kit solo admite rojo como acento. */}
+                  <div style={{ color: S.white, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, lineHeight: 1 }}>{sem.intensidad || "—"}</div>
                   <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 3 }}>INTENSIDAD</div>
                 </div>
                 <div style={{ flex: 1, textAlign: "center" }}>
@@ -7198,7 +7233,7 @@ export default function App() {
           <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
             {[
               ["entrenamiento", "Entrenamiento"],
-              ["diario", "Diario"],
+              ["diario", "Historial"],
             ].map(([id, label]) => (
               <button key={id} onClick={() => setTabGroup(id)} style={tabN1(tabGroup === id)}>
                 {label}
@@ -7243,6 +7278,21 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
+              {/* 2026-07-31, pedido de Lucas: el alumno tiene que poder ver
+                  su propia bioimpedancia. Sub-tabs dentro de Historial:
+                  Diario (lo de siempre) y Bioimpedancia (de solo lectura). */}
+              <div style={{ ...segTrack(), marginBottom: 16 }}>
+                {[["diario", "Diario"], ["bio", "Bioimpedancia"]].map(([id, label]) => (
+                  <button key={id} onClick={() => setHistorialSub(id)} style={segChip(historialSub === id)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {historialSub === "bio" && (
+                <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly />
+              )}
+              {historialSub === "diario" && (
+                <>
               {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy como
                   default (antes forzaba siempre hoy()). */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
@@ -7328,6 +7378,8 @@ export default function App() {
                   );
                 })()}
               />
+                </>
+              )}
           </div>
           )}{" "}
         </div>{" "}

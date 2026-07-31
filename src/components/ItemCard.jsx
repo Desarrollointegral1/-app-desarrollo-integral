@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
-import { S, card, TS, TAP } from "../utils/theme.js";
+import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { getEjercicioGif, MEDIA_CREDITO } from "../utils/ejerciciosMedia.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
@@ -114,7 +114,12 @@ export default function ItemCard({
             loading="lazy"
             style={{ width: 180, height: 180, objectFit: "contain" }}
           />
-          <div style={{ color: "#999", fontSize: 15, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
+          {/* 2026-07-31 — Lucas pidió sacar el crédito de Gym Visual del GIF.
+              El comentario de licencia en ejerciciosMedia.js dice "atribución
+              obligatoria": no se puede borrar del DOM sin arriesgar el permiso
+              de uso. Se lo reduce a lo mínimo legible — 9px, gris muy tenue,
+              pegado al borde — en vez de sacarlo. Ver aviso en el reporte. */}
+          <div style={{ color: "#ccc", fontSize: 9, paddingBottom: 2 }}>{MEDIA_CREDITO}</div>
         </div>
       );
     return (
@@ -159,32 +164,40 @@ export default function ItemCard({
                — pasa al piso táctil de 44x44 (iOS HIG / WCAG 2.5.5).
                El input suma inputMode="decimal" para que el celular abra el
                teclado numérico en vez del alfabético. */
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }} onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
-                aria-label="Restar un kilo"
-                style={{ width: TAP, height: TAP, background: S.card2, color: S.white, border: "1px solid " + S.border, borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
-              >
-                −
-              </button>
-              <div style={{ textAlign: "center" }}>
+            <div style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+              {/* 2026-07-31 — Lucas: "esa caja con esos botones... queda muy
+                  grotesco". Antes eran dos botones sueltos de 44x44 con dos
+                  fondos distintos enfrentados (− oscuro, + blanco sólido).
+                  Ahora es UN solo bloque (stepperTrack) con el mismo fondo en
+                  los 3 segmentos, separadores finos — mismo lenguaje visual
+                  que el stepper del detalle expandido, más abajo. */}
+              <div style={stepperTrack()}>
+                <button
+                  onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
+                  aria-label="Restar un kilo"
+                  style={stepperBtn()}
+                >
+                  −
+                </button>
+                <div style={stepperDivider()} />
                 <input
                   type="number"
                   inputMode="decimal"
                   value={peso || ""}
                   placeholder="0"
                   onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ width: 56, height: TAP, textAlign: "center", background: S.card2, border: "1px solid " + S.border, borderRadius: 8, padding: "2px", color: S.white, fontSize: TS.ui, fontWeight: 900, outline: "none" }}
+                  style={{ ...stepperValue(), minWidth: 44, height: TAP }}
                 />
-                <div style={{ color: S.gray, fontSize: 15, marginTop: 2, whiteSpace: "nowrap" }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
+                <div style={stepperDivider()} />
+                <button
+                  onClick={() => onPesoChange && onPesoChange(peso + 1)}
+                  aria-label="Sumar un kilo"
+                  style={stepperBtn()}
+                >
+                  +
+                </button>
               </div>
-              <button
-                onClick={() => onPesoChange && onPesoChange(peso + 1)}
-                aria-label="Sumar un kilo"
-                style={{ width: TAP, height: TAP, background: S.white, color: S.bg, border: "none", borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: "pointer", flexShrink: 0, padding: 0 }}
-              >
-                +
-              </button>
+              <div style={{ color: S.gray, fontSize: 15, marginTop: 2, whiteSpace: "nowrap" }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
             </div>
           )}
           <div style={{ color: S.gray }}>{open ? "▲" : "▼"}</div>
@@ -235,61 +248,65 @@ export default function ItemCard({
               >
                 {enSegundos ? "Registrá tus segundos de hoy" : "Registrá tu peso de hoy"}
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
-                <button
-                  onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    flexShrink: 0,
-                    background: S.card,
-                    color: S.white,
-                    border: "1px solid " + S.border,
-                    borderRadius: 8,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  −
-                </button>
-                <input
-                  type="number"
-                  value={peso || ""}
-                  placeholder="0"
-                  onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
-                  style={{
-                    width: 72,
-                    textAlign: "center",
-                    background: S.card,
-                    border: "1px solid " + S.border,
-                    borderRadius: 8,
-                    padding: "9px 6px",
-                    color: S.white,
-                    fontSize: 16,
-                    fontWeight: 700,
-                    outline: "none",
-                  }}
-                />
-                <span style={{ color: S.gray, fontSize: 15, flexShrink: 0 }}>{enSegundos ? "seg" : "kg"}</span>
-                <button
-                  onClick={() => onPesoChange && onPesoChange(peso + 1)}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    flexShrink: 0,
-                    background: S.white,
-                    color: S.bg,
-                    border: "none",
-                    borderRadius: 8,
-                    fontSize: 18,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  +
-                </button>
+              {/* 2026-07-31 — mismo stepperTrack que la fila colapsada de
+                  arriba, solo un poco más grande (acá hay más lugar). Antes
+                  este era un segundo diseño distinto (40x40, otros estilos)
+                  del mismo control — quedaban dos steppers de peso que no se
+                  parecían entre sí. */}
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <div style={stepperTrack()}>
+                  <button
+                    onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
+                    aria-label="Restar un kilo"
+                    style={{ ...stepperBtn(), width: 48 }}
+                  >
+                    −
+                  </button>
+                  <div style={stepperDivider()} />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={peso || ""}
+                    placeholder="0"
+                    onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ ...stepperValue(), minWidth: 72, height: 48 }}
+                  />
+                  <span style={{ color: S.gray, fontSize: 15, flexShrink: 0, alignSelf: "center" }}>{enSegundos ? "seg" : "kg"}</span>
+                  <div style={stepperDivider()} />
+                  <button
+                    onClick={() => onPesoChange && onPesoChange(peso + 1)}
+                    aria-label="Sumar un kilo"
+                    style={{ ...stepperBtn(), width: 48 }}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
+              {/* 2026-07-31 — Tarea 2: máximo histórico de este ejercicio.
+                  Mismo estilo de card compacta que "PESO ANTERIOR" arriba,
+                  con su propio texto. Si no hay historial con datos (>0), no
+                  se muestra nada — no hay dato que mostrar. */}
+              {(() => {
+                const maxHistorico = historial.length > 0 ? Math.max(...historial.map((h) => Number(h.peso) || 0)) : 0;
+                if (maxHistorico <= 0) return null;
+                return (
+                  <div
+                    style={{
+                      background: S.card,
+                      border: "1px solid " + S.border,
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      marginTop: 10,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ color: S.gray, fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>TU MÁXIMO EN ESTE EJERCICIO</div>
+                    <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{maxHistorico} {enSegundos ? "seg" : "kg"}</div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
