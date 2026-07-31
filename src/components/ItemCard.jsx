@@ -123,9 +123,6 @@ export default function ItemCard({
       </div>
     );
   };
-  // 2026-07-31 — Lucas: "esa barra de máximo abajo del gif quedó horrible,
-  // sacala, dejemos solo arriba". Se saca del detalle expandido y se suma acá
-  // como texto chico, junto al stepper que ya se ve sin abrir la tarjeta.
   const maxHistorico = historial.length > 0 ? Math.max(...historial.map((h) => Number(h.peso) || 0)) : 0;
   return (
     <div style={{ ...card, marginBottom: 8, overflow: "hidden" }}>
@@ -170,10 +167,7 @@ export default function ItemCard({
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, paddingLeft: 36 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ color: S.gray, fontSize: 15 }}>
-              {enSegundos ? "SEG HOY" : "KG HOY"}
-              {maxHistorico > 0 && <span style={{ marginLeft: 8 }}>· Máx {maxHistorico}{enSegundos ? "seg" : "kg"}</span>}
-            </div>
+            <div style={{ color: S.gray, fontSize: 15 }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
             <div style={stepperTrack()}>
               <button
                 onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
@@ -209,7 +203,7 @@ export default function ItemCard({
             <div style={{ color: S.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
           )}
           {renderMedia()}
-          {showPeso && (
+          {showPeso && (pesoAnterior || maxHistorico > 0) && (
             <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
               {pesoAnterior && (
                 <div
@@ -231,57 +225,27 @@ export default function ItemCard({
                   <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
                 </div>
               )}
-              {/* Ronda 7: sin título "Registro de peso", sin "Sin registrar",
-                  sin gráfico. Solo: último registro arriba → título centrado
-                  → stepper compacto centrado. El peso se guarda solo al
-                  cambiarlo (no hace falta botón de guardar). */}
-              <div
-                style={{
-                  textAlign: "center",
-                  color: S.white,
-                  fontWeight: 900,
-                  fontSize: 15,
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                  marginBottom: 12,
-                }}
-              >
-                {enSegundos ? "Registrá tus segundos de hoy" : "Registrá tu peso de hoy"}
-              </div>
-              {/* 2026-07-31 — mismo stepperTrack que la fila colapsada de
-                  arriba, solo un poco más grande (acá hay más lugar). Antes
-                  este era un segundo diseño distinto (40x40, otros estilos)
-                  del mismo control — quedaban dos steppers de peso que no se
-                  parecían entre sí. */}
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <div style={stepperTrack()}>
-                  <button
-                    onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
-                    aria-label="Restar un kilo"
-                    style={{ ...stepperBtn(), width: 48 }}
-                  >
-                    −
-                  </button>
-                  <div style={stepperDivider()} />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={peso || ""}
-                    placeholder="0"
-                    onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ ...stepperValue(), minWidth: 72, height: 48 }}
-                  />
-                  <span style={{ color: S.gray, fontSize: 15, flexShrink: 0, alignSelf: "center" }}>{enSegundos ? "seg" : "kg"}</span>
-                  <div style={stepperDivider()} />
-                  <button
-                    onClick={() => onPesoChange && onPesoChange(peso + 1)}
-                    aria-label="Sumar un kilo"
-                    style={{ ...stepperBtn(), width: 48 }}
-                  >
-                    +
-                  </button>
+              {/* 2026-07-31 — Lucas: "no quiero que aparezca tu peso de hoy
+                  abajo otra vez, ahí lo que tiene que aparecer es el peso
+                  máximo". El editable ya está arriba (fila colapsada, KG
+                  HOY); acá abajo del gif va solo lectura, sin duplicar el
+                  control. */}
+              {maxHistorico > 0 && (
+                <div
+                  style={{
+                    background: S.card,
+                    border: "1px solid " + S.border,
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ color: S.gray, fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>TU MÁXIMO EN ESTE EJERCICIO</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{maxHistorico} {enSegundos ? "seg" : "kg"}</div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

@@ -55,7 +55,12 @@ const M = {
   "press hombros mancuerna": "/ejercicios/press-hombros-sentado.gif",
   "press hombros mancuernas": "/ejercicios/press-hombros-sentado.gif",
   "press hombros sentado": "/ejercicios/press-hombros-sentado.gif",
-  "press militar": "/ejercicios/press-hombros-barra.gif",
+  // 2026-07-31 — Lucas: "este ejercicio es press militar PARADO y el gif
+  // está sentado en un banco, ¿cómo puede ser?". El gif viejo (press-hombros-
+  // barra.gif) viene del dataset original mapeado a "barbell seated overhead
+  // press" — sentado de verdad, mal asignado a este nombre. Gif nuevo:
+  // "barbell standing close grip military press" del mismo dataset (id 1456).
+  "press militar": "/ejercicios/press-militar-parado-barra.gif",
   "press paloff (banda)": "/ejercicios/press-pallof.gif",
   "press pecho": "/ejercicios/press-pecho-barra.gif",
   "press pecho barra": "/ejercicios/press-pecho-barra.gif",
@@ -91,7 +96,7 @@ const M = {
   "press militar sentado con mancuernas": "/ejercicios/press-hombros-sentado.gif",
   "press militar sentado con mancuernas unilateral": "/ejercicios/press-hombros-sentado.gif",
   "press militar parado con mancuernas unilateral": "/ejercicios/fuerza-impulso-un-brazo.gif",
-  "press militar parado con barra": "/ejercicios/press-hombros-barra.gif",
+  "press militar parado con barra": "/ejercicios/press-militar-parado-barra.gif",
   "levantada de cajon": "/ejercicios/sentarse-pararse-cajon.gif",
   "sentadilla con peso adelante": "/ejercicios/goblet-squat.gif",
   "sentadilla bulgara": "/ejercicios/sentadilla-bulgara.gif",
