@@ -5,8 +5,13 @@ export const MEDIA_CREDITO = "© Gym visual — gymvisual.com";
 const M = {
   "biceps con barra": "/ejercicios/biceps-barra.gif",
   "biceps con mancuernas": "/ejercicios/biceps-mancuernas.gif",
+  // 2026-07-31 — Lucas: "buenos días con disco está con una barra". Las dos
+  // variantes (disco/mancuerna) compartían el gif de "barbell good morning"
+  // (con barra). El dataset fuente no tiene una variante con disco — se
+  // deja la de barra ahí (aviso pendiente) y se separa la de mancuerna con
+  // un gif real de mancuernas ("dumbbell straight leg deadlift").
   "buenos dias con disco": "/ejercicios/buenos-dias.gif",
-  "buenos dias con mancuerna": "/ejercicios/buenos-dias.gif",
+  "buenos dias con mancuerna": "/ejercicios/buenos-dias-mancuerna.gif",
   "cajon con peso": "/ejercicios/sentarse-pararse-cajon.gif",
   "core": "/ejercicios/core-crunch.gif",
   "core (crunch)": "/ejercicios/core-crunch.gif",
@@ -27,7 +32,11 @@ const M = {
   "jalon al pecho / maquina dorsales": "/ejercicios/jalon-al-pecho.gif",
   "jalon brazos estirados (banda)": "/ejercicios/jalon-brazos-estirados.gif",
   "jalon con banda desde arriba": "/ejercicios/jalon-banda-arriba.gif",
-  "jalon con mancuerna": "/ejercicios/jalon-mancuerna.gif",
+  // 2026-07-31 — Lucas: "jalón con mancuerna está haciendo pullover" — el
+  // dataset original lo mapeó a "dumbbell pullover" (empuje de pecho/espalda
+  // acostado), no una tracción/jalón real. Reemplazado por un jalón de
+  // verdad: remo con mancuernas inclinado ("dumbbell bent over row").
+  "jalon con mancuerna": "/ejercicios/jalon-mancuerna-fix.gif",
   "levantada de cadera a una pierna": "/ejercicios/levantada-cadera-una-pierna.gif",
   "levantada del cajon": "/ejercicios/sentarse-pararse-cajon.gif",
   "levantada del cajon con peso": "/ejercicios/sentarse-pararse-cajon.gif",
@@ -37,6 +46,12 @@ const M = {
   "peso muerto 1 pierna": "/ejercicios/peso-muerto-una-pierna.gif",
   "peso muerto a 1 pierna": "/ejercicios/peso-muerto-una-pierna.gif",
   "peso muerto a una pierna": "/ejercicios/peso-muerto-una-pierna.gif",
+  // 2026-07-31 — Lucas: "peso muerto a una pierna sin peso está con una
+  // mancuerna" — confirmado, comparte el gif de la variante CON peso porque
+  // el dataset fuente (Gym Visual) no tiene una versión sin equipamiento de
+  // este movimiento. Sin asset correcto disponible todavía — pendiente de
+  // conseguir un gif/foto real de la versión sin peso (no hay reemplazo
+  // válido en el dataset actual, ver bitácora).
   "peso muerto a una pierna sin peso": "/ejercicios/peso-muerto-una-pierna.gif",
   "peso muerto barra": "/ejercicios/peso-muerto-barra.gif",
   "peso muerto con barra": "/ejercicios/peso-muerto-barra.gif",

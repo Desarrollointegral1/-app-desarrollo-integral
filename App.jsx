@@ -6357,7 +6357,8 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
 // patrón sin-migración que movilidad_default/secciones_config, editable
 // desde el admin en alta y edición de alumno); sin setear usa el fallback
 // neutro "¡Bienvenido/a!" de siempre.
-function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrADia }) {
+function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrADia, onIrAPreparacion }) {
+  const [cargando, setCargando] = useState(false);
   const primerNombre = (alumno.nombre || "").trim().split(/\s+/)[0] || alumno.nombre;
   const pl = (n, singular, plural) => (Number(n) === 1 ? singular : plural);
   const genero = alumno.rm?.genero;
@@ -6431,8 +6432,22 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                   no entraba en una sola línea a 375px y partía justo ahí.
                   Se separa en eyebrow (arriba, chico) + título corto (abajo,
                   una sola línea garantizada) en vez de pelear con el ancho. */}
-              <div style={{ ...eyebrow, textAlign: "center", marginTop: 14 }}>Plan de hoy</div>
-              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 4 }}>Ejercicios principales</div>
+              <div style={{ ...eyebrow, textAlign: "center", marginTop: 34 }}>Plan de hoy</div>
+              {/* 2026-07-31, pedido de Lucas: falta un link a Preparación
+                  antes de Principales — mismo tratamiento pero más chico
+                  (sin el peso 800), clickeable, con espacio propio contra
+                  Ejercicios principales para que se lean como dos opciones
+                  distintas. Preparación ya es la sección default de
+                  PlanDelDia, así que el callback solo cierra la Bienvenida. */}
+              {onIrAPreparacion && (
+                <div
+                  onClick={onIrAPreparacion}
+                  style={{ color: S.white, fontWeight: 500, fontSize: TS.lead, marginTop: 4, cursor: "pointer" }}
+                >
+                  Preparación
+                </div>
+              )}
+              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 10 }}>Ejercicios principales</div>
               <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
@@ -6498,10 +6513,16 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
           )}
         </div>
 
-        {/* 8. Botón final ENTRENAR */}
+        {/* 8. Botón final ENTRENAR — pedido de Lucas: efecto de carga breve
+            antes de entrar, no un salto seco. */}
         <div className="di-slide" style={{ animationDelay: "0.16s" }}>
           <button
-            onClick={onContinuar}
+            disabled={cargando}
+            onClick={() => {
+              if (cargando) return;
+              setCargando(true);
+              setTimeout(onContinuar, 500);
+            }}
             style={{
               background: S.white,
               color: S.bg,
@@ -6511,10 +6532,17 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
               fontSize: 16,
               fontWeight: 900,
               letterSpacing: 2,
-              cursor: "pointer",
+              cursor: cargando ? "default" : "pointer",
+              opacity: cargando ? 0.75 : 1,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
             }}
           >
-            ENTRENAR
+            {cargando && (
+              <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + S.bg, borderTopColor: "transparent", animation: "diSpin 0.6s linear infinite" }} />
+            )}
+            {cargando ? "ENTRENANDO..." : "ENTRENAR"}
           </button>
         </div>
       </div>{" "}
@@ -6994,6 +7022,7 @@ export default function App() {
         semanaData={sem}
         semanaActual={semanaActual}
         onContinuar={() => setShowBienvenida(false)}
+        onIrAPreparacion={() => { setShowBienvenida(false); setTabGroup("entrenamiento"); }}
         // 2026-07-31, pedido de Lucas: "entrenás los martes jueves y viernes
         // deberían ya llevarla a los ejercicios principales en ese día" — las
         // pills de días de la portada eran texto muerto. Mismo mecanismo que
@@ -7113,13 +7142,18 @@ export default function App() {
               {al.tipo === "rehabilitacion" && (
                 <div style={{ ...eyebrow, marginBottom: 2 }}>Rehabilitación</div>
               )}
-              <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>{al.nombre}</div>{" "}
+              <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>
+                {(al.nombre || "").trim().split(/\s+/).slice(1).join(" ") || al.nombre}
+              </div>{" "}
               {/* 2026-07-31 — Lucas: "el card quedó re desorganizado". El
                   centrado forzado de la ronda anterior chocaba con el nombre
                   arriba (alineado a la izquierda) — vuelve al alineado a la
-                  izquierda, consistente con el nombre. */}
+                  izquierda, consistente con el nombre.
+                  2026-07-31 (2): "los días de la semana los quiero en la
+                  misma fila" — sin flexWrap, y cada pill se achica
+                  (padding/fontSize) y trunca con ellipsis si no entra. */}
               {al.horarios && al.horarios.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
+                <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, marginTop: 4 }}>
                   {al.horarios.map((h, i) => {
                     // Ronda 17 (punto 4): pill clickeable → salta a
                     // Entrenamiento → Principales con ese día.
@@ -7140,10 +7174,15 @@ export default function App() {
                           background: S.card2,
                           border: "1px solid " + S.border2,
                           borderRadius: 6,
-                          padding: "4px 10px",
-                          fontSize: 12,
+                          padding: "3px 6px",
+                          fontSize: 11,
                           color: S.gray,
                           cursor: "pointer",
+                          flex: 1,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}

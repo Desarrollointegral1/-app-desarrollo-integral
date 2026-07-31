@@ -6,25 +6,6 @@ import { getAppConfig } from "../../services/supabase.js";
 import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
 import ItemCard from "./ItemCard.jsx";
 
-// ── Texto de repeticiones (ronda 12) ────────────────────────────────────
-// Antes cada sección tenía su propio string libre ("6 rep por lado", "5 rep
-// por brazo", "activación express — 5 por lado") con la palabra recortada.
-// Ahora el dato es ESTRUCTURADO ({ prefijo, cantidad, tipo, sufijo }) y este
-// componente lo renderiza siempre con "repeticiones" completo y el número en
-// verde + negrita — los 3 patrones pedidos: "X repeticiones", "X
-// repeticiones por brazo", "X repeticiones por lado".
-function RepsLabel({ prefijo, cantidad, tipo, sufijo }) {
-  const suf = tipo === "lado" ? " por lado" : tipo === "brazo" ? " por brazo" : "";
-  return (
-    <>
-      {prefijo ? prefijo + " " : ""}
-      <span style={{ color: S.white, fontWeight: 800 }}>{cantidad}</span>
-      {" repeticiones" + suf}
-      {sufijo ? " " + sufijo : ""}
-    </>
-  );
-}
-
 // Vista de la sesión del alumno, con DOS tabs del mismo tamaño (pills):
 //   PREPARACIÓN — 3 sub-menús: Movilidad · Activación con elástico · Activación con peso
 //      (al final de Movilidad, los videos de la rutina completa: corta/larga)
@@ -59,6 +40,9 @@ export default function PlanDelDia({
 }) {
   // null = "la primera sección visible según el orden del admin" (ronda 9)
   const [prep, setPrep] = useState(null);
+  // 2026-07-31, pedido de Lucas: tocar el nombre del plan en Principales
+  // abre un resumen con la periodización (objetivo básico del plan).
+  const [showResumen, setShowResumen] = useState(false);
   // Versión de movilidad elegida por el alumno: superrapida (~3') · corta (~8') · completa (15'+).
   // Arranca en la PREDETERMINADA que el admin eligió para este alumno
   // (rm.movilidad_default, Admin → Plan → Movil.); el alumno puede cambiarla acá.
@@ -296,14 +280,16 @@ export default function PlanDelDia({
           {/* 2026-07-31, pedido de Lucas: al entrar a Elástico/Calor (o elegir
               una versión de Movilidad), un subtítulo breve de qué es/para qué
               sirve — distinto de la caption fija de arriba. */}
+          {/* 2026-07-31 — Lucas: "sacá 6 repeticiones por lado abajo antes de
+              empezar con los ejercicios, quedó duplicado. El cambio era
+              poner el nuevo y sacar el antiguo, solo pusiste el nuevo."
+              El <RepsLabel/> dinámico que vivía acá decía lo mismo que la
+              caption fija de arriba — se saca, queda solo la de arriba. */}
           {(prepActiva.id === "movilidad" ? moviActiva.subtitulo : prepActiva.subtitulo) && (
-            <div style={{ color: S.white, fontWeight: 700, fontSize: 15, textAlign: "center", marginBottom: 2 }}>
+            <div style={{ color: S.white, fontWeight: 700, fontSize: 15, textAlign: "center", marginBottom: 10 }}>
               {prepActiva.id === "movilidad" ? moviActiva.subtitulo : prepActiva.subtitulo}
             </div>
           )}
-          <div style={{ color: S.gray, fontSize: 15, textAlign: "center", marginBottom: 10 }}>
-            <RepsLabel {...prepActiva.detalle} />
-          </div>
           {prepActiva.items.length === 0 ? (
             <div style={{ ...card, padding: "24px 16px", textAlign: "center", color: S.gray, fontSize: 15 }}>
               Sin ejercicios en esta parte
@@ -402,7 +388,16 @@ export default function PlanDelDia({
               que ya muestra el ribbon de la ficha del alumno arriba de las
               tabs Entrenamiento/Historial — se sacó de acá. */}
           <SelectorDia />
-          {dia.subtitulo && <div style={{ color: S.gray, fontSize: 15, marginBottom: 10 }}>{dia.subtitulo}</div>}
+          {/* 2026-07-31, pedido de Lucas: tocar el nombre del plan abre un
+              resumen con la periodización (objetivo básico del plan). */}
+          {dia.subtitulo && (
+            <button
+              onClick={() => setShowResumen(true)}
+              style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", color: S.gray, fontSize: 15, marginBottom: 10, padding: 0, cursor: "pointer", textDecoration: "underline" }}
+            >
+              {dia.subtitulo}
+            </button>
+          )}
           {(dia.ejercicios || []).map((ej, i) => {
             const rmKey = RM_EJS.find(
               (k) =>
@@ -472,6 +467,41 @@ export default function PlanDelDia({
           )}
         </>
       ))}
+      {/* 2026-07-31, pedido de Lucas: resumen del plan (periodización) al
+          tocar el nombre del plan en Principales. Modal simple, se cierra
+          tocando afuera o el botón. */}
+      {showResumen && (
+        <div
+          onClick={() => setShowResumen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 2000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ ...card, width: "100%", maxWidth: 480, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: "20px 18px", maxHeight: "80vh", overflowY: "auto" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: 18 }}>{dia?.subtitulo || "Tu plan"}</div>
+              <button onClick={() => setShowResumen(false)} style={{ background: "transparent", border: "none", color: S.gray, fontSize: 22, cursor: "pointer", padding: 4 }}>×</button>
+            </div>
+            <div style={{ color: S.gray, fontSize: 14, marginBottom: 14 }}>
+              Progresión semana a semana: series, repeticiones e intensidad.
+            </div>
+            {(plan?.periodizacion || []).length === 0 ? (
+              <div style={{ color: S.gray, fontSize: 14, textAlign: "center", padding: 16 }}>Sin periodización cargada todavía.</div>
+            ) : (
+              (plan.periodizacion || [])
+                .slice()
+                .sort((a, b) => (a.semana || 0) - (b.semana || 0))
+                .map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: i > 0 ? "1px solid " + S.border : "none" }}>
+                    <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>Semana {p.semana}</div>
+                    <div style={{ color: S.gray, fontSize: 14 }}>{p.series}x{p.reps}{p.intensidad ? " · " + p.intensidad : ""}</div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
