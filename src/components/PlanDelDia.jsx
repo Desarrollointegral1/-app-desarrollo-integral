@@ -249,10 +249,17 @@ export default function PlanDelDia({
             {PREP_TABS.map((t) => {
               const activo = prepActiva.id === t.id;
               const Icono = t.icono;
+              // 2026-07-31 — Lucas notó que a "Movilidad" (la palabra más
+              // larga de las 3) le faltaba el ícono: segChip() trae
+              // overflow:hidden pensado para texto plano, y en un chip de
+              // ancho igual (flex:1) "MOVILIDAD" + ícono no entraban — el
+              // ícono, primer hijo, quedaba recortado. overflow:visible acá
+              // y el truncado (si hiciera falta) se lo dejamos al span de
+              // texto, no al botón entero.
               return (
-                <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...segChip(activo), display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                  {Icono && <Icono size={13} />}
-                  {t.label}
+                <button key={t.id} onClick={() => setPrep(t.id)} style={{ ...segChip(activo), overflow: "visible", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                  {Icono && <Icono size={13} style={{ flexShrink: 0 }} />}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.label}</span>
                 </button>
               );
             })}

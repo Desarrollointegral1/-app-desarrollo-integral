@@ -212,7 +212,13 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         <div style={{ flexShrink: 0, lineHeight: 0 }}>
           <Logo3D size={44} estatico />
         </div>
-        <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+        {/* 2026-07-31 — Lucas: "Desarrollo Integral es más corto que App de
+            entrenamiento, por eso Desarrollo Integral tiene que quedar
+            centrado con App de entrenamiento" — sin alignItems:"center" acá,
+            el wordmark (más angosto) y el subtítulo (más ancho, nowrap)
+            quedaban alineados a la izquierda entre sí, no centrados uno
+            sobre el otro. */}
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
           <DIWordmark
             soloDesarrollo
             width={230}
@@ -6426,21 +6432,35 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                   Se separa en eyebrow (arriba, chico) + título corto (abajo,
                   una sola línea garantizada) en vez de pelear con el ancho. */}
               <div style={{ ...eyebrow, textAlign: "center", marginTop: 34 }}>Plan de hoy</div>
-              {/* 2026-07-31, pedido de Lucas: falta un link a Preparación
-                  antes de Principales — mismo tratamiento pero más chico
-                  (sin el peso 800), clickeable, con espacio propio contra
-                  Ejercicios principales para que se lean como dos opciones
-                  distintas. Preparación ya es la sección default de
-                  PlanDelDia, así que el callback solo cierra la Bienvenida. */}
+              {/* 2026-07-31 — Lucas: "esto no lo pusiste" (aunque el link SÍ
+                  estaba en el código): mismo color blanco y tamaño que
+                  "Ejercicios principales" de abajo, sin subrayado ni
+                  flecha — no se leía como algo tocable, se leía como parte
+                  del mismo bloque. Ahora es un chip real con borde, ícono de
+                  flecha y espacio propio arriba/abajo — inconfundible. */}
               {onIrAPreparacion && (
-                <div
+                <button
                   onClick={onIrAPreparacion}
-                  style={{ color: S.white, fontWeight: 500, fontSize: TS.lead, marginTop: 4, cursor: "pointer" }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: 16,
+                    background: "transparent",
+                    border: "1px solid " + S.border2,
+                    borderRadius: 20,
+                    padding: "8px 16px",
+                    color: S.lgray,
+                    fontSize: TS.chip,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: FONT_BODY,
+                  }}
                 >
-                  Preparación
-                </div>
+                  Ir a Preparación <span style={{ fontSize: 14 }}>›</span>
+                </button>
               )}
-              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 10 }}>Ejercicios principales</div>
+              <div style={{ color: S.white, fontWeight: 800, fontSize: TS.lead, marginTop: 18 }}>Ejercicios principales</div>
               <div style={{ color: S.gray, fontSize: TS.ui, marginTop: 6, lineHeight: 1.5, textAlign: "center", maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
                 <span style={{ color: S.white, fontWeight: 700 }}>
                   {semanaData.series} {pl(semanaData.series, "serie", "series")} por {semanaData.reps}{" "}
@@ -7138,52 +7158,6 @@ export default function App() {
               <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>
                 {(al.nombre || "").trim().split(/\s+/).slice(1).join(" ") || al.nombre}
               </div>{" "}
-              {/* 2026-07-31 — Lucas: "el card quedó re desorganizado". El
-                  centrado forzado de la ronda anterior chocaba con el nombre
-                  arriba (alineado a la izquierda) — vuelve al alineado a la
-                  izquierda, consistente con el nombre.
-                  2026-07-31 (2): "los días de la semana los quiero en la
-                  misma fila" — sin flexWrap, y cada pill se achica
-                  (padding/fontSize) y trunca con ellipsis si no entra. */}
-              {al.horarios && al.horarios.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "nowrap", gap: 4, marginTop: 4 }}>
-                  {al.horarios.map((h, i) => {
-                    // Ronda 17 (punto 4): pill clickeable → salta a
-                    // Entrenamiento → Principales con ese día.
-                    // Ronda 18 (FIX del "no funciona"): el matching era por
-                    // igualdad exacta lowercase — "Miércoles" (con tilde,
-                    // como puede venir en horarios) nunca matcheaba
-                    // "Miercoles" (sin tilde, como guarda el plan) y la
-                    // pill quedaba muerta sin feedback. Ahora se normalizan
-                    // los acentos de los dos lados; y si igual no hay día
-                    // exacto, la pill lleva a Principales con el día actual
-                    // (siempre navega, nunca queda muerta).
-                    return (
-                      <div
-                        key={i}
-                        onClick={() => irADiaSemana(h.dia)}
-                        title={`Ver ${h.dia} en Principales`}
-                        style={{
-                          background: S.card2,
-                          border: "1px solid " + S.border2,
-                          borderRadius: 6,
-                          padding: "3px 6px",
-                          fontSize: 11,
-                          color: S.gray,
-                          cursor: "pointer",
-                          flex: 1,
-                          minWidth: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}{" "}
             </div>{" "}
             {/* Botón "Presente" del día (pedido de Lucas 2026-07-22): marca
                 la asistencia de HOY desde el mismo módulo del nombre, sin
@@ -7257,6 +7231,39 @@ export default function App() {
               );
             })()}
           </div>{" "}
+          {/* 2026-07-31 — Lucas: "Asistencia tiene que quedar más arriba así
+              se extienden los días de la semana a lo largo" — sacados de la
+              columna del nombre (compartía fila con Asistencia, quedaban sin
+              espacio y había que abreviar "M. J. S."). Ahora tienen su
+              propia fila de ancho completo: entran los nombres completos. */}
+          {al.horarios && al.horarios.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "nowrap", gap: 6, marginBottom: 10 }}>
+              {al.horarios.map((h, i) => (
+                <div
+                  key={i}
+                  onClick={() => irADiaSemana(h.dia)}
+                  title={`Ver ${h.dia} en Principales`}
+                  style={{
+                    background: S.card2,
+                    border: "1px solid " + S.border2,
+                    borderRadius: 6,
+                    padding: "5px 8px",
+                    fontSize: 12,
+                    color: S.gray,
+                    cursor: "pointer",
+                    flex: 1,
+                    minWidth: 0,
+                    textAlign: "center",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span style={{ color: S.white, fontWeight: 600 }}>{h.dia}</span>{h.hora ? " · " + h.hora : ""}
+                </div>
+              ))}
+            </div>
+          )}
           {/* Punto 10 (2026-07-21): esta zona pasa a estar protagonizada por
               el/los día(s) del plan actual + un selector (si hay más de
               uno) + una ficha compacta que cambia EN VIVO con el día
