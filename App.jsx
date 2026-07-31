@@ -6016,12 +6016,16 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           Logo3D ahora usa ICON_CROP (recortado al dibujo real), así que el
           dibujo arranca de verdad donde arranca el contenedor: logo casi
           tocando el borde superior y wordmark pegado al logo. */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 480, marginBottom: "clamp(36px, 8vh, 72px)" }}>
-        <Logo3D size={260} />
+      {/* 2026-07-31, pedido de Lucas: "el logo un poco más chico quedaría
+          mejor" — 260→200 (y el wordmark acompaña la proporción, 480→380),
+          menos protagonismo del ícono para que el formulario de login entre
+          más rápido en la vista sin scrollear. */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 380, marginBottom: "clamp(28px, 6vh, 56px)" }}>
+        <Logo3D size={200} />
         <DIWordmark
           soloDesarrollo
-          width={480}
-          style={{ color: S.white, marginTop: 16, width: "min(480px, 100%)", maxWidth: "100%", height: "auto" }}
+          width={380}
+          style={{ color: S.white, marginTop: 14, width: "min(380px, 100%)", maxWidth: "100%", height: "auto" }}
         />
         <div
           style={{

@@ -166,7 +166,10 @@ export default function PlanDelDia({
   const PREP_TABS_BASE = [
     { id: "movilidad", label: "Movilidad", detalle: moviActiva.detalle, items: moviActiva.items },
     { id: "banda", label: "Act. Elástico", detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
-    { id: "peso", label: "Entrada en calor", detalle: { cantidad: 5, tipo: null }, items: activacion },
+    // 2026-07-31: "Entrada en calor" se cortaba con "..." en el segmented
+    // control de 3 chips (ronda visual de hoy) — se acorta a "Calor", mismo
+    // criterio de abreviar que ya usa "Act. Elástico" al lado.
+    { id: "peso", label: "Calor", detalle: { cantidad: 5, tipo: null }, items: activacion },
   ];
   const cfg = rm?.secciones_config || {};
   const ordenCfg = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => PREP_TABS_BASE.some((t) => t.id === id));
