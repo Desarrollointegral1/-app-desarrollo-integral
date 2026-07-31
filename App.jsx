@@ -706,7 +706,13 @@ function GifEjercicio({ nombre, gif, size = 180 }) {
     );
   return (
     <div style={{ background: "#fff", borderRadius: 8, marginBottom: 8, padding: "10px 0 4px", textAlign: "center" }}>
-      <img src={src} alt={nombre} loading="lazy" style={{ width: size, height: size, objectFit: "contain" }} />
+      {/* Sin loading="lazy": medido en producción, las miniaturas de la lista
+          de ejercicios quedaban en blanco (0 de 6 cargadas) aunque estuvieran
+          a la vista — el navegador no dispara la carga diferida para imágenes
+          que se montan dentro de un panel ya scrolleado. Son GIFs de ~100 kB
+          que además cachea el service worker, así que no hay motivo para
+          diferirlos acá: el punto de esta pantalla es justamente VER el GIF. */}
+      <img src={src} alt={nombre} style={{ width: size, height: size, objectFit: "contain" }} />
       <div style={{ color: "#999", fontSize: TS.chip, paddingBottom: 4 }}>{MEDIA_CREDITO}</div>
     </div>
   );
@@ -1114,7 +1120,6 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   <img
                     src={gifFila}
                     alt=""
-                    loading="lazy"
                     onClick={() => startEdit(i)}
                     style={{ width: TAP, height: TAP, objectFit: "contain", background: "#fff", borderRadius: 6, flexShrink: 0, cursor: "pointer" }}
                   />
