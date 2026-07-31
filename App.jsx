@@ -7560,7 +7560,16 @@ export default function App() {
                     con el chat tapando la pantalla. */
                 onClick={() => {
                   if (id === "luqui") coachRef.current?.toggle();
-                  else { coachRef.current?.cerrar(); setTabGroup(id); }
+                  else {
+                    // 2026-07-31 — Lucas: "al clickear en Entrenamiento que
+                    // no me baje toda la pantalla" — al cambiar de sección
+                    // el scroll quedaba en la misma posición de píxeles de
+                    // la sección anterior (con otra altura de contenido),
+                    // dando un salto brusco. Reset a arriba en cada cambio.
+                    coachRef.current?.cerrar();
+                    setTabGroup(id);
+                    window.scrollTo({ top: 0 });
+                  }
                 }}
                 style={{
                   flex: 1,
