@@ -175,9 +175,9 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
   return (
     <div
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
-        gap: "clamp(6px, 2vw, 10px)",
         // Ronda 2026-07-22 (ajuste Lucas): el header quedaba pegado al borde
         // de arriba de la pantalla. Se le da aire arriba (margen de encabezado)
         // sin agrandar de más el resto.
@@ -186,52 +186,47 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         marginBottom: 12,
       }}
     >
-      {/* 1) Logo — animado igual que el de bienvenida (Logo3D, giro 360°
-             continuo), más chico, click → pantalla inicial. Ronda 2026-07-22
-             (2º ajuste de Lucas): logo más chico todavía y sin espacio
-             sobrante alrededor. */}
-      {/* Lado izquierdo (logo) y lado derecho (botones) del MISMO ancho, así
-          el bloque de marca del medio queda centrado de verdad en pantalla
-          (pedido de Lucas 2026-07-22: "que el título quede más centrado").
-          Los botones van pegados al borde derecho; "Salir" pasó a ícono. */}
+      {/* 2026-07-31 — Lucas: "quedó muy lejos del logo" + "encimada a los
+          menús". El diseño de 3 columnas (logo | centro | botones) centraba
+          el wordmark en el ESPACIO SOBRANTE, no junto al logo — de ahí el
+          hueco. Rediseño: logo+wordmark ahora son UN solo bloque (lockup),
+          centrado de verdad en toda la fila con margin:auto; los botones se
+          sacan del flujo (position:absolute a la derecha) para que nunca
+          empujen ni tapen el centro. maxWidth deja aire real a cada lado. */}
       <div
         onClick={onLogoClick}
         title="Ir al inicio"
-        style={{ width: 94, flexShrink: 0, display: "flex", justifyContent: "flex-start", cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
+        style={{
+          margin: "0 auto",
+          maxWidth: "calc(100% - 200px)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          cursor: onLogoClick ? "pointer" : "default",
+        }}
       >
-        <Logo3D size={40} estatico />
-      </div>
-      {/* 2) Marca protagonista: wordmark GRANDE + "APP DE ENTRENAMIENTO"
-             CENTRADA justo debajo, centrada en pantalla por el balance de
-             lados. */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <DIWordmark
-          soloDesarrollo
-          width={300}
-          style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
-        />
-        {/* 2026-07-31 — Lucas: "quedó muy mal centrado el título arriba".
-            Con letterSpacing:4 + nowrap, "APP DE ENTRENAMIENTO" no entra en
-            la columna angosta que queda entre los dos botones (~130-140px
-            reales en un celular común) y desborda — se ve descentrado
-            aunque el contenedor sí esté centrado. Se achica letterSpacing y
-            se permite ajustar tamaño con clamp para que siempre entre. */}
-        <div style={{ color: S.gray, fontSize: "clamp(10px, 3.2vw, 14px)", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center", maxWidth: "100%" }}>
-          App de entrenamiento
+        <div style={{ flexShrink: 0, lineHeight: 0 }}>
+          <Logo3D size={34} estatico />
+        </div>
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <DIWordmark
+            soloDesarrollo
+            width={220}
+            style={{ color: S.white, width: "min(220px, 100%)", height: "auto", display: "block" }}
+          />
+          {/* Subtítulo achicado y con letterSpacing bajo para que nunca
+              vuelva a desbordar, ahora que vive pegado al wordmark. */}
+          <div style={{ color: S.gray, fontSize: "clamp(9px, 2.6vw, 12px)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 4, fontFamily: FONT_BRAND, whiteSpace: "nowrap" }}>
+            App de entrenamiento
+          </div>
         </div>
       </div>
-      {/* 3) Tema · Salir — pegados al borde derecho. Salir es un ícono chico
-             (flecha saliendo de una puerta) — se entiende y ocupa menos. */}
-      {/* Auditoría 2026-07-30: ambos medían ~35x33 reales. Son los dos
-          botones fijos del header, siempre en pantalla: van al piso de
-          44x44 (iOS HIG / WCAG 2.5.5). */}
-      {/* 2026-07-31 — Lucas: "quedó mal el margen en el celi" en el header:
-          esta columna (100px) y la del logo (antes 84px) no eran simétricas,
-          así que el bloque de marca del medio NO quedaba centrado de verdad
-          en pantallas angostas — quedaba corrido hacia la izquierda. Las dos
-          columnas ahora miden lo mismo (94px, lo justo para los 2 botones de
-          44px + gap). */}
-      <div style={{ width: 94, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+      {/* 3) Tema · Salir — ahora fuera del flujo (absolute), pegados al
+          borde derecho real de la pantalla. Ya no arma una columna
+          "espejo" del logo — esa simetría artificial era la raíz del
+          hueco/descentrado; con esto el lockup logo+wordmark se centra
+          en TODO el ancho, y los botones nunca lo tocan. */}
+      <div style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 6 }}>
         <button
           onClick={toggleTheme}
           title={darkMode ? "Modo claro" : "Modo oscuro"}
@@ -6464,28 +6459,40 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
           {diasPlan.length > 0 && (
             <div style={{ marginTop: 18 }}>
               <div style={{ color: S.gray, fontSize: TS.chip, marginBottom: 8 }}>Entrenás los:</div>
-              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
-                {diasPlan.map((d, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onIrADia && onIrADia(d)}
-                    title={`Ir a los ejercicios principales del ${d}`}
-                    style={{
-                      background: S.card,
-                      border: "1px solid " + S.border,
-                      borderRadius: 20,
-                      padding: "9px 16px",
-                      minHeight: TAP,
-                      fontSize: TS.chip,
-                      fontWeight: 700,
-                      color: S.white,
-                      cursor: "pointer",
-                      fontFamily: FONT_BODY,
-                    }}
-                  >
-                    {d}
-                  </button>
-                ))}
+              {/* 2026-07-31, pedido de Lucas (repetido — "esto no lo
+                  cambiaste, te lo pedí antes"): abajo de cada día, el
+                  número de sesión ("Día 1/2/3") y el nombre del plan de
+                  ESE día — así si faltó uno sabe exactamente qué sesión
+                  retomar, no solo qué día de la semana es. */}
+              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
+                {diasPlan.map((d, i) => {
+                  const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+                  const planDia = (alumno.planes || []).find((p) => norm(p.dia_semana) === norm(d));
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => onIrADia && onIrADia(d)}
+                      title={`Ir a los ejercicios principales del ${d}`}
+                      style={{
+                        background: S.card,
+                        border: "1px solid " + S.border,
+                        borderRadius: 14,
+                        padding: "9px 16px",
+                        minHeight: TAP,
+                        color: S.white,
+                        cursor: "pointer",
+                        fontFamily: FONT_BODY,
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: TS.chip, fontWeight: 700 }}>{d}</div>
+                      <div style={{ fontSize: 11, color: S.gray, marginTop: 2, fontWeight: 600 }}>Día {i + 1}</div>
+                      {planDia?.nombre && (
+                        <div style={{ fontSize: 11, color: S.lgray, marginTop: 1 }}>{planDia.nombre}</div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -7364,88 +7371,20 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
-              {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy como
-                  default (antes forzaba siempre hoy()). 2026-07-31: sacada
-                  del sub-tab "Diario" — Lucas la quiere siempre visible acá
-                  arriba, sin importar qué módulo esté eligiendo abajo. */}
-              <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Marcar Asistencia</span>
-                </div>
-                {/* Ronda 18: date picker nativo reemplazado por chips
-                    Hoy/Ayer/Otro día (lista inline de 14 días). */}
-                <div style={{ marginBottom: 12 }}>
-                  <FechaRapida value={fechaAsistencia} onChange={setFechaAsistencia} />
-                </div>
-                <button
-                  onClick={() => {
-                    if (al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)) {
-                      const u = alumnos.map((a) =>
-                        a.id === al.id
-                          ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha.slice(0, 10) !== fechaAsistencia) }
-                          : a
-                      );
-                      setAlumnos(u);
-                      setAlumno(u.find((a) => a.id === al.id));
-                      showToast && showToast("Asistencia removida");
-                    } else {
-                      saveDailyAttendance(al.id, fechaAsistencia, true).then(() => {
-                        marcarAsistencia(fechaAsistencia);
-                        showToast && showToast("¡Asistencia marcada!");
-                      });
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    background: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? S.green : S.white,
-                    color: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? "#fff" : S.bg,
-                    border: "none",
-                    borderRadius: 12,
-                    padding: "15px 24px",
-                    fontSize: 15,
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    transition: "all 0.3s",
-                  }}
-                >
-                  {al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)
-                    ? (fechaAsistencia === hoy() ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente hoy</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente ese día</span>)
-                    : "Marcar presente"}
-                </button>
-              </div>
-              {/* 2026-07-31, pedido de Lucas: el menú Diario/Bioimpedancia
-                  quedaba del mismo tamaño y peso que la card de Asistencia de
-                  arriba y competía con ella. Ahora es una fila chica y
-                  horizontal — mismo espíritu de "menú", pero se nota de un
-                  vistazo que es navegación secundaria, no otro bloque de
-                  información como Asistencia. */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 16, background: S.card2, borderRadius: 10, padding: 4 }}>
+              {/* 2026-07-31, pedido de Lucas: Bioimpedancia/Diario pasan a
+                  verse como el selector Preparación/Principales de
+                  PlanDelDia (mismo tabN2), no como el menú chico anterior. */}
+              <div style={{ display: "flex", gap: 8, margin: "4px 0 16px" }}>
                 {[["bio", "Bioimpedancia", TrendingUp], ["diario", "Diario", NotebookPen]].map(([id, label, Icono]) => {
                   const activo = historialSub === id;
                   return (
                     <button
                       key={id}
                       onClick={() => setHistorialSub(id)}
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        padding: "8px 10px",
-                        minHeight: TAP,
-                        borderRadius: 7,
-                        border: "none",
-                        background: activo ? S.card : "transparent",
-                        cursor: "pointer",
-                      }}
+                      style={{ ...tabN2(activo), display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     >
                       <Icono size={15} color={activo ? S.white : S.gray} />
-                      <span style={{ color: activo ? S.white : S.gray, fontWeight: activo ? 700 : 500, fontSize: TS.chip }}>
-                        {label}
-                      </span>
+                      {label}
                     </button>
                   );
                 })}
@@ -7469,6 +7408,56 @@ export default function App() {
                     const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
                     const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
                     return (
+                      <>
+                      {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy
+                          como default. 2026-07-31, pedido de Lucas: pasa a
+                          vivir DENTRO de Diario, debajo del comentario del
+                          día, y no aparece en Bioimpedancia. */}
+                      <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
+                        <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Marcar Asistencia</span>
+                        </div>
+                        <div style={{ marginBottom: 12 }}>
+                          <FechaRapida value={fechaAsistencia} onChange={setFechaAsistencia} />
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)) {
+                              const u = alumnos.map((a) =>
+                                a.id === al.id
+                                  ? { ...a, asistencia: (a.asistencia || []).filter((fecha) => fecha.slice(0, 10) !== fechaAsistencia) }
+                                  : a
+                              );
+                              setAlumnos(u);
+                              setAlumno(u.find((a) => a.id === al.id));
+                              showToast && showToast("Asistencia removida");
+                            } else {
+                              saveDailyAttendance(al.id, fechaAsistencia, true).then(() => {
+                                marcarAsistencia(fechaAsistencia);
+                                showToast && showToast("¡Asistencia marcada!");
+                              });
+                            }
+                          }}
+                          style={{
+                            width: "100%",
+                            background: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? S.green : S.white,
+                            color: al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia) ? "#fff" : S.bg,
+                            border: "none",
+                            borderRadius: 12,
+                            padding: "15px 24px",
+                            fontSize: 15,
+                            fontWeight: 900,
+                            cursor: "pointer",
+                            letterSpacing: 1,
+                            textTransform: "uppercase",
+                            transition: "all 0.3s",
+                          }}
+                        >
+                          {al.asistencia?.some((a) => a.slice(0, 10) === fechaAsistencia)
+                            ? (fechaAsistencia === hoy() ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente hoy</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Check size={14} />Presente ese día</span>)
+                            : "Marcar presente"}
+                        </button>
+                      </div>
                       <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                           <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -7486,6 +7475,7 @@ export default function App() {
                           {pct >= 100 ? "¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien, no aflojes." : "Dale que se puede: cada entreno suma."}
                         </div>
                       </div>
+                      </>
                     );
                   })()}
                 />
@@ -7525,7 +7515,10 @@ export default function App() {
             return (
               <button
                 key={id}
-                onClick={() => (id === "luqui" ? coachRef.current?.abrir() : setTabGroup(id))}
+                /* 2026-07-31 — Lucas: "al clickear en Luqui debería cerrar
+                    el chat" si ya está abierto — toggle en vez de abrir
+                    siempre (coachRef.current.toggle ya existía, sin usar). */
+                onClick={() => (id === "luqui" ? coachRef.current?.toggle() : setTabGroup(id))}
                 style={{
                   flex: 1,
                   minHeight: TAP + 20,

@@ -158,10 +158,12 @@ export default function PlanDelDia({
 
   // Las 3 versiones de movilidad (CEREBRO-ENTRENAMIENTO 3.1 y 3.5): el alumno
   // elige según el tiempo que tiene; cada una con sus ejercicios y su video.
+  // 2026-07-31, pedido de Lucas: subtítulo propio para cada versión (qué
+  // hace/para qué sirve), no solo el detalle de repeticiones.
   const MOVI_VERSIONES = [
-    { id: "superrapida", label: "Superrápida", detalle: { prefijo: "activación express:", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
-    { id: "corta", label: "Corta", detalle: { cantidad: 6, tipo: "lado", sufijo: "(versión corta)" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
-    { id: "completa", label: "Completa", detalle: { cantidad: 6, tipo: "lado" }, items: movilidad, video: videos.larga, videoDur: "15+ min" },
+    { id: "superrapida", label: "Superrápida", subtitulo: "Activación express de tu cuerpo", detalle: { prefijo: "activación express:", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
+    { id: "corta", label: "Corta", subtitulo: "Pensada para conectar con tu cuerpo", detalle: { cantidad: 6, tipo: "lado", sufijo: "(versión corta)" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
+    { id: "completa", label: "Completa", subtitulo: "Para mejorar tu movilidad total", detalle: { cantidad: 6, tipo: "lado" }, items: movilidad, video: videos.larga, videoDur: "15+ min" },
   ];
   const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];
 
@@ -271,6 +273,13 @@ export default function PlanDelDia({
               );
             })}
           </div>
+          {/* 2026-07-31, pedido de Lucas: "abajo de Movilidad/Elástico/Calor
+              que ya diga 6 repeticiones por lado FIJA" — caption fija, igual
+              sin importar cuál de las 3 esté activa (a diferencia del
+              subtítulo de más abajo, que sí cambia por sección/versión). */}
+          <div style={{ color: S.gray, fontSize: 14, textAlign: "center", marginBottom: 8 }}>
+            6 repeticiones por lado
+          </div>
           {/* Selector de versión de movilidad — nivel 4 (ronda 11): sub-menú
               DENTRO de Movilidad, con un estilo más chico/sutil (texto +
               subrayado) para que no se confunda con el segmented control de
@@ -284,11 +293,12 @@ export default function PlanDelDia({
               ))}
             </div>
           )}
-          {/* 2026-07-31, pedido de Lucas: al entrar a Elástico/Calor, un
-              subtítulo breve arriba del detalle de repeticiones. */}
-          {prepActiva.subtitulo && (
+          {/* 2026-07-31, pedido de Lucas: al entrar a Elástico/Calor (o elegir
+              una versión de Movilidad), un subtítulo breve de qué es/para qué
+              sirve — distinto de la caption fija de arriba. */}
+          {(prepActiva.id === "movilidad" ? moviActiva.subtitulo : prepActiva.subtitulo) && (
             <div style={{ color: S.white, fontWeight: 700, fontSize: 15, textAlign: "center", marginBottom: 2 }}>
-              {prepActiva.subtitulo}
+              {prepActiva.id === "movilidad" ? moviActiva.subtitulo : prepActiva.subtitulo}
             </div>
           )}
           <div style={{ color: S.gray, fontSize: 15, textAlign: "center", marginBottom: 10 }}>
@@ -370,15 +380,18 @@ export default function PlanDelDia({
           {/* 2026-07-31, pedido de Lucas: "necesito que puedan elegir el día
               que quiere entrenar ahí abajo" — si faltó un día, tiene que
               poder saltar directo al que le toca sin scrollear arriba.
-              Mismo mecanismo que las pills del header (onIrADiaSemana). */}
+              Aclaración de Lucas: "martes/jueves/sábado ya aparece arriba,
+              acá tiene que ser por día O SESIÓN" — mismo mecanismo
+              (onIrADiaSemana) pero con label "Día N" en vez de repetir el
+              nombre del día de semana, para no duplicar la info del header. */}
           {diasSemana && diasSemana.length > 1 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
               {diasSemana.map((h, i) => {
                 const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
                 const activo = diaSemanaActivo ? norm(diaSemanaActivo) === norm(h.dia) : i === 0 && !diaSemanaActivo;
                 return (
-                  <button key={i} onClick={() => onIrADiaSemana && onIrADiaSemana(h.dia)} style={{ ...tabBtn(activo), flex: 1 }}>
-                    {h.dia}
+                  <button key={i} onClick={() => onIrADiaSemana && onIrADiaSemana(h.dia)} title={`Ir a ${h.dia}`} style={{ ...tabBtn(activo), flex: 1 }}>
+                    Día {i + 1}
                   </button>
                 );
               })}
