@@ -46,6 +46,11 @@ export default function PlanDelDia({
   diaRegistrado,
   registrandoDia,
   irAPrincipales,
+  // 2026-07-31 — selector de día de semana DENTRO de Principales (además de
+  // las pills del header): mismo mecanismo, ver irADiaSemana en App.jsx.
+  diasSemana,
+  diaSemanaActivo,
+  onIrADiaSemana,
   // 2026-07-30 — Modo Entrenador: el entrenador opera la app durante la
   // clase y sólo necesita los ejercicios principales (la preparación la hace
   // el alumno solo). Default false para que si App.jsx todavía no pasa la
@@ -165,11 +170,10 @@ export default function PlanDelDia({
   // rm.secciones_config = { orden: ["movilidad","banda","peso"], ocultas: [] }.
   const PREP_TABS_BASE = [
     { id: "movilidad", label: "Movilidad", icono: Move, detalle: moviActiva.detalle, items: moviActiva.items },
-    { id: "banda", label: "Act. Elástico", icono: Zap, detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
-    // 2026-07-31: "Entrada en calor" se cortaba con "..." en el segmented
-    // control de 3 chips (ronda visual de hoy) — se acorta a "Calor", mismo
-    // criterio de abreviar que ya usa "Act. Elástico" al lado.
-    { id: "peso", label: "Calor", icono: Flame, detalle: { cantidad: 5, tipo: null }, items: activacion },
+    // 2026-07-31, pedido de Lucas: "Act. Elástico se va a llamar Elástico" +
+    // subtítulo breve al entrar a la sección.
+    { id: "banda", label: "Elástico", icono: Zap, subtitulo: "Activación de articulaciones con elástico", detalle: { cantidad: 5, tipo: "brazo" }, items: calor },
+    { id: "peso", label: "Calor", icono: Flame, subtitulo: "Entrada en calor con peso", detalle: { cantidad: 5, tipo: null }, items: activacion },
   ];
   const cfg = rm?.secciones_config || {};
   const ordenCfg = (Array.isArray(cfg.orden) ? cfg.orden : []).filter((id) => PREP_TABS_BASE.some((t) => t.id === id));
@@ -280,6 +284,13 @@ export default function PlanDelDia({
               ))}
             </div>
           )}
+          {/* 2026-07-31, pedido de Lucas: al entrar a Elástico/Calor, un
+              subtítulo breve arriba del detalle de repeticiones. */}
+          {prepActiva.subtitulo && (
+            <div style={{ color: S.white, fontWeight: 700, fontSize: 15, textAlign: "center", marginBottom: 2 }}>
+              {prepActiva.subtitulo}
+            </div>
+          )}
           <div style={{ color: S.gray, fontSize: 15, textAlign: "center", marginBottom: 10 }}>
             <RepsLabel {...prepActiva.detalle} />
           </div>
@@ -356,6 +367,23 @@ export default function PlanDelDia({
         </div>
       ) : (
         <>
+          {/* 2026-07-31, pedido de Lucas: "necesito que puedan elegir el día
+              que quiere entrenar ahí abajo" — si faltó un día, tiene que
+              poder saltar directo al que le toca sin scrollear arriba.
+              Mismo mecanismo que las pills del header (onIrADiaSemana). */}
+          {diasSemana && diasSemana.length > 1 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {diasSemana.map((h, i) => {
+                const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+                const activo = diaSemanaActivo ? norm(diaSemanaActivo) === norm(h.dia) : i === 0 && !diaSemanaActivo;
+                return (
+                  <button key={i} onClick={() => onIrADiaSemana && onIrADiaSemana(h.dia)} style={{ ...tabBtn(activo), flex: 1 }}>
+                    {h.dia}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {/* 2026-07-31, pedido de Lucas: esta ficha (series x reps ·
               intensidad · ejercicios) repetía exactamente los mismos datos
               que ya muestra el ribbon de la ficha del alumno arriba de las

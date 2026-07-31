@@ -199,7 +199,7 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
         title="Ir al inicio"
         style={{ width: 94, flexShrink: 0, display: "flex", justifyContent: "flex-start", cursor: onLogoClick ? "pointer" : "default", lineHeight: 0 }}
       >
-        <Logo3D size={40} />
+        <Logo3D size={40} estatico />
       </div>
       {/* 2) Marca protagonista: wordmark GRANDE + "APP DE ENTRENAMIENTO"
              CENTRADA justo debajo, centrada en pantalla por el balance de
@@ -210,7 +210,13 @@ function HeaderAlumno({ darkMode, toggleTheme, onSalir, salirLabel = "Salir", on
           width={300}
           style={{ color: S.white, width: "min(300px, 100%)", height: "auto", display: "block" }}
         />
-        <div style={{ color: S.gray, fontSize: 14, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center" }}>
+        {/* 2026-07-31 — Lucas: "quedó muy mal centrado el título arriba".
+            Con letterSpacing:4 + nowrap, "APP DE ENTRENAMIENTO" no entra en
+            la columna angosta que queda entre los dos botones (~130-140px
+            reales en un celular común) y desborda — se ve descentrado
+            aunque el contenedor sí esté centrado. Se achica letterSpacing y
+            se permite ajustar tamaño con clamp para que siempre entre. */}
+        <div style={{ color: S.gray, fontSize: "clamp(10px, 3.2vw, 14px)", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginTop: 7, fontFamily: FONT_BRAND, whiteSpace: "nowrap", textAlign: "center", maxWidth: "100%" }}>
           App de entrenamiento
         </div>
       </div>
@@ -376,7 +382,11 @@ function GlobalStyles() {
 // ahora ±52° en 5s (antes 8s), sigue lejos del rango 90°-270° del
 // artefacto. Además usa ICON_CROP (SVG recortado al dibujo real): el logo
 // llena el box de verdad, sin el ~30% de aire interno del vector viejo.
-function Logo3D({ size = 230 }) {
+// 2026-07-31, pedido de Lucas: "que el logo una vez que entrás en la app no
+// pendule" — el swing es identidad de marca para login/carga, pero adentro
+// de la app (header persistente, chico) es una distracción constante en
+// cada pantalla. `estatico` saca la clase que dispara la animación.
+function Logo3D({ size = 230, estatico = false }) {
   // Profundidad reducida (2026-07-22): con el giro 360° continuo, un depth
   // grande hacía que las 4 capas se vieran como líneas separadas de canto a
   // ~90°/270° (el "fantasma" que en su momento obligó a oscilar). Con un
@@ -390,7 +400,7 @@ function Logo3D({ size = 230 }) {
   const box = `min(${size}px, 82vw)`;
   return (
     <div style={{ perspective: Math.round(size * 1.4), width: box, height: box }}>
-      <div className="di-logo3d" style={{ position: "relative", width: "100%", height: "100%", transformStyle: "preserve-3d" }}>
+      <div className={estatico ? "" : "di-logo3d"} style={{ position: "relative", width: "100%", height: "100%", transformStyle: estatico ? undefined : "preserve-3d" }}>
         {zs.map((z, i) => (
           <img
             key={z}
@@ -6562,6 +6572,26 @@ export default function App() {
   // que poder cambiar QUÉ plan se muestra, no solo el sub-día. null =
   // comportamiento normal (plan de hoy).
   const [diaSemanaFoco, setDiaSemanaFoco] = useState(null);
+  // 2026-07-31, pedido de Lucas: "necesito que puedan elegir el día que
+  // quiere entrenar ahí abajo [en Principales]" — antes esta lógica vivía
+  // solo en el onClick de las pills del header (arriba de todo). Se extrae
+  // acá para reusarla también en el selector de día DENTRO de Principales,
+  // sin duplicar el matching de nombres/acentos.
+  const irADiaSemana = (diaNombre) => {
+    const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const idxPlan = planValido ? plan.dias.findIndex((d) => norm(d.dia) === norm(diaNombre)) : -1;
+    if (idxPlan >= 0) {
+      setDiaIdx(idxPlan);
+    } else {
+      const planDia = (al.planes || []).find((p) => norm(p.dia_semana) === norm(diaNombre));
+      if (planDia) {
+        setDiaSemanaFoco(diaNombre);
+        setDiaIdx(0);
+      }
+    }
+    setTabGroup("entrenamiento");
+    setIrPrincipalesToken((t) => t + 1);
+  };
   // Ronda 17 (punto 4): fecha editable en "Marcar presente" — antes
   // forzaba siempre hoy(); ahora hay un selector con hoy como default,
   // para poder cargar una asistencia de un día anterior que se olvidó.
@@ -7077,8 +7107,12 @@ export default function App() {
                 <div style={{ ...eyebrow, marginBottom: 2 }}>Rehabilitación</div>
               )}
               <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>{al.nombre}</div>{" "}
+              {/* 2026-07-31 — Lucas: "el card quedó re desorganizado". El
+                  centrado forzado de la ronda anterior chocaba con el nombre
+                  arriba (alineado a la izquierda) — vuelve al alineado a la
+                  izquierda, consistente con el nombre. */}
               {al.horarios && al.horarios.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 5, marginTop: 4 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
                   {al.horarios.map((h, i) => {
                     // Ronda 17 (punto 4): pill clickeable → salta a
                     // Entrenamiento → Principales con ese día.
@@ -7090,27 +7124,10 @@ export default function App() {
                     // los acentos de los dos lados; y si igual no hay día
                     // exacto, la pill lleva a Principales con el día actual
                     // (siempre navega, nunca queda muerta).
-                    const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-                    const idxPlan = planValido ? plan.dias.findIndex((d) => norm(d.dia) === norm(h.dia)) : -1;
                     return (
                       <div
                         key={i}
-                        onClick={() => {
-                          if (idxPlan >= 0) {
-                            // el día es un sub-día del plan visible
-                            setDiaIdx(idxPlan);
-                          } else {
-                            // Ronda 18: cada día de la semana puede ser un
-                            // alumno_plan SEPARADO — la pill enfoca ese plan.
-                            const planDia = (al.planes || []).find((p) => norm(p.dia_semana) === norm(h.dia));
-                            if (planDia) {
-                              setDiaSemanaFoco(h.dia);
-                              setDiaIdx(0);
-                            }
-                          }
-                          setTabGroup("entrenamiento");
-                          setIrPrincipalesToken((t) => t + 1);
-                        }}
+                        onClick={() => irADiaSemana(h.dia)}
                         title={`Ver ${h.dia} en Principales`}
                         style={{
                           background: S.card2,
@@ -7322,6 +7339,12 @@ export default function App() {
               dia={dia}
               diaIdx={diaIdx}
               setDiaIdx={setDiaIdx}
+              // 2026-07-31, pedido de Lucas: poder elegir el día (Martes/
+              // Jueves/Sábado) desde ADENTRO de Principales, sin volver a
+              // scrollear arriba a las pills del header.
+              diasSemana={al.horarios || []}
+              diaSemanaActivo={diaSemanaFoco}
+              onIrADiaSemana={irADiaSemana}
               sem={sem}
               semanaActual={semanaActual}
               pesos={pesos}
@@ -7518,7 +7541,12 @@ export default function App() {
                 }}
               >
                 {id === "luqui" ? (
-                  <img src={darkMode ? ICON_BLACK_CROP : ICON_WHITE_CROP} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                  // 2026-07-31 — Lucas: "Luqui tiene que quedar en blanco...
+                  // ya que es negro ese menú abajo". La barra usa S.card
+                  // (oscuro en dark mode), así que necesita el ícono BLANCO
+                  // en dark mode — estaba al revés (mostraba el negro,
+                  // invisible sobre el fondo oscuro).
+                  <img src={darkMode ? ICON_WHITE_CROP : ICON_BLACK_CROP} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
                 ) : (
                   <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
                 )}
