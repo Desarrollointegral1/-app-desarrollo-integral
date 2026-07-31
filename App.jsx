@@ -92,6 +92,7 @@ import { SkeletonListaAlumnos, SkeletonCard } from "./src/components/Skeleton.js
 import PullToRefresh from "./src/components/PullToRefresh.jsx";
 import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import ResumenPlanModal from "./src/components/ResumenPlanModal.jsx";
+import SwipeToConfirm from "./src/components/SwipeToConfirm.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
@@ -6554,38 +6555,20 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
           <ResumenPlanModal plan={planElegido} dia={diaDelPlanElegido} rm={alumno.rm} onClose={() => setShowResumen(false)} />
         )}
 
-        {/* 8. Botón final ENTRENAR — pedido de Lucas: efecto de carga breve
-            antes de entrar, no un salto seco. Si ya eligió un día, entra
-            directo a ESE día; si no, al comportamiento default (hoy). */}
-        <div className="di-slide" style={{ animationDelay: "0.16s" }}>
-          <button
-            disabled={cargando}
-            onClick={() => {
+        {/* 8. Botón final ENTRENAR — pedido de Lucas: "que la barra la
+            tengas que presionar a la izquierda y arrastrar a la derecha y
+            que se llene de rojo" — swipe-to-confirm en vez de tap simple.
+            Si ya eligió un día, entra directo a ESE día; si no, al
+            comportamiento default (hoy). */}
+        <div className="di-slide" style={{ animationDelay: "0.16s", display: "flex", justifyContent: "center", width: "100%" }}>
+          <SwipeToConfirm
+            confirming={cargando}
+            onConfirm={() => {
               if (cargando) return;
               setCargando(true);
               setTimeout(() => (diaElegido && onIrADia ? onIrADia(diaElegido) : onContinuar()), 500);
             }}
-            style={{
-              background: S.white,
-              color: S.bg,
-              border: "none",
-              borderRadius: 10,
-              padding: "16px 48px",
-              fontSize: 16,
-              fontWeight: 900,
-              letterSpacing: 2,
-              cursor: cargando ? "default" : "pointer",
-              opacity: cargando ? 0.75 : 1,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            {cargando && (
-              <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid " + S.bg, borderTopColor: "transparent", animation: "diSpin 0.6s linear infinite" }} />
-            )}
-            {cargando ? "ENTRENANDO..." : "ENTRENAR"}
-          </button>
+          />
         </div>
       </div>{" "}
     </>
