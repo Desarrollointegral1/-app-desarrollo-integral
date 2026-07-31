@@ -6493,6 +6493,13 @@ export default function App() {
   const [novedades, setNovedades] = useState([]);
   const [showBienvenida, setShowBienvenida] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  // 2026-07-31, aprendizaje de Instagram/Mercado Libre (Lucas): el nav del
+  // alumno tiene que quedar fijo abajo, con ícono+label, no scrollear con el
+  // contenido como las 2 pills de texto que había antes.
+  // ?vista=movil fuerza el layout mobile en cualquier pantalla (para
+  // previsualizar sin depender de un celular real o achicar la ventana).
+  const forzarMovil = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("vista") === "movil";
+  const wideAlumno = useIsWide() && !forzarMovil;
   // ── MODO ENTRENADOR (ronda 9) ──
   // El admin (Lucas/Ari/Griselda) opera la interfaz del alumno con los
   // presenciales: elige un alumno y ve EXACTAMENTE su vista, cargando pesos
@@ -6958,7 +6965,7 @@ export default function App() {
           maxWidth: 480,
           margin: "0 auto",
           fontFamily: "inherit",
-          paddingBottom: 48,
+          paddingBottom: wideAlumno ? 48 : 88,
           transition: "background 0.3s",
         }}
       >
@@ -7233,17 +7240,22 @@ export default function App() {
             novedades={novedades.filter((n) => n.activo && (n.dirigido_a === "todos" || n.dirigido_a === (al.tipo || "entrenamiento")))}
             alumnoId={al.id}
           />
-          {/* ── Nivel 1: ENTRENAMIENTO | DIARIO — pills grandes, activo invertido ── */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-            {[
-              ["entrenamiento", "Entrenamiento"],
-              ["diario", "Historial"],
-            ].map(([id, label]) => (
-              <button key={id} onClick={() => setTabGroup(id)} style={tabN1(tabGroup === id)}>
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* ── Nivel 1: ENTRENAMIENTO | HISTORIAL ── en desktop se muestra
+              arriba como antes; en mobile se reemplaza por la barra fija de
+              abajo (bottomNavAlumno, estilo Instagram) para no competir con
+              el mismo nivel de navegación dos veces en la misma pantalla. */}
+          {wideAlumno && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {[
+                ["entrenamiento", "Entrenamiento"],
+                ["diario", "Historial"],
+              ].map(([id, label]) => (
+                <button key={id} onClick={() => setTabGroup(id)} style={tabN1(tabGroup === id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           {tabGroup === "entrenamiento" && (
             <PlanDelDia
               plan={plan}
@@ -7282,23 +7294,10 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
-              {/* 2026-07-31, pedido de Lucas: el alumno tiene que poder ver
-                  su propia bioimpedancia. Sub-tabs dentro de Historial:
-                  Diario (lo de siempre) y Bioimpedancia (de solo lectura). */}
-              <div style={{ ...segTrack(), marginBottom: 16 }}>
-                {[["diario", "Diario"], ["bio", "Bioimpedancia"]].map(([id, label]) => (
-                  <button key={id} onClick={() => setHistorialSub(id)} style={segChip(historialSub === id)}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {historialSub === "bio" && (
-                <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly />
-              )}
-              {historialSub === "diario" && (
-                <>
               {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy como
-                  default (antes forzaba siempre hoy()). */}
+                  default (antes forzaba siempre hoy()). 2026-07-31: sacada
+                  del sub-tab "Diario" — Lucas la quiere siempre visible acá
+                  arriba, sin importar qué módulo esté eligiendo abajo. */}
               <div style={{ ...card, padding: "18px 16px", textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Check size={12} />Asistencia</span>
@@ -7346,49 +7345,131 @@ export default function App() {
                     : "Marcar presente"}
                 </button>
               </div>
-              {/* Cómo estuvo el día — el reporte "Tu mes" va como slot,
-                  justo antes de los comentarios guardados (no arriba). */}
-              <Diario
-                entradas={al.diario || []}
-                onEdit={editarDiario}
-                onAdd={addDiario}
-                slotAntesDeEntradas={(() => {
-                  const diasPorSemana =
-                    (al.horarios || []).length ||
-                    new Set((al.planes || []).map((p) => p.dia_semana).filter((d) => d && d !== "Fijo")).size ||
-                    3;
-                  const semanasTranscurridas = Math.max(1, Math.ceil(new Date().getDate() / 7));
-                  const objetivo = diasPorSemana * semanasTranscurridas;
-                  const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
-                  const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
+              {/* 2026-07-31, pedido de Lucas: "va a ser mejor debajo un menú
+                  para bioimpedancia y otro para diario" — reemplaza los
+                  sub-tabs en pill (quedaban raros) por dos entradas de menú
+                  completas, mismo lenguaje que una fila de navegación real. */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+                {[["diario", "Diario", NotebookPen], ["bio", "Bioimpedancia", TrendingUp]].map(([id, label, Icono]) => {
+                  const activo = historialSub === id;
                   return (
-                    <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                        <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
-                          Tu mes
-                        </div>
-                        <div style={{ color: S.red, fontWeight: 900, fontSize: 15 }}>{pct}%</div>
-                      </div>
-                      <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
-                        Entrenaste <span style={{ color: S.red }}>{entrenosMes}</span> de {objetivo} veces este mes
-                      </div>
-                      <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
-                      </div>
-                      <div style={{ color: S.gray, fontSize: 14, marginTop: 8 }}>
-                        {pct >= 100 ? "¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien, no aflojes." : "Dale que se puede: cada entreno suma."}
-                      </div>
-                    </div>
+                    <button
+                      key={id}
+                      onClick={() => setHistorialSub(id)}
+                      style={{
+                        ...card,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 16px",
+                        border: "1px solid " + (activo ? S.white : S.border),
+                        cursor: "pointer",
+                        textAlign: "left",
+                        width: "100%",
+                      }}
+                    >
+                      <Icono size={20} color={activo ? S.white : S.gray} />
+                      <span style={{ flex: 1, color: activo ? S.white : S.lgray, fontWeight: activo ? 800 : 600, fontSize: TS.ui }}>
+                        {label}
+                      </span>
+                      <span style={{ color: S.gray }}>›</span>
+                    </button>
                   );
-                })()}
-              />
-                </>
+                })}
+              </div>
+              {historialSub === "bio" && (
+                <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly />
+              )}
+              {historialSub === "diario" && (
+                <Diario
+                  entradas={al.diario || []}
+                  onEdit={editarDiario}
+                  onAdd={addDiario}
+                  slotAntesDeEntradas={(() => {
+                    const diasPorSemana =
+                      (al.horarios || []).length ||
+                      new Set((al.planes || []).map((p) => p.dia_semana).filter((d) => d && d !== "Fijo")).size ||
+                      3;
+                    const semanasTranscurridas = Math.max(1, Math.ceil(new Date().getDate() / 7));
+                    const objetivo = diasPorSemana * semanasTranscurridas;
+                    const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
+                    const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
+                    return (
+                      <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                          <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                            Tu mes
+                          </div>
+                          <div style={{ color: S.red, fontWeight: 900, fontSize: 15 }}>{pct}%</div>
+                        </div>
+                        <div style={{ color: S.white, fontSize: 14, fontWeight: 700, marginBottom: 10, lineHeight: 1.4 }}>
+                          Entrenaste <span style={{ color: S.red }}>{entrenosMes}</span> de {objetivo} veces este mes
+                        </div>
+                        <div style={{ background: S.card2, borderRadius: 20, height: 8, overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: S.red, borderRadius: 20, transition: "width 0.4s ease" }} />
+                        </div>
+                        <div style={{ color: S.gray, fontSize: 14, marginTop: 8 }}>
+                          {pct >= 100 ? "¡Objetivo cumplido! Seguí así." : pct >= 60 ? "Vas bien, no aflojes." : "Dale que se puede: cada entreno suma."}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                />
               )}
           </div>
           )}{" "}
         </div>{" "}
       </div>{" "}
       </PullToRefresh>
+      {/* Barra inferior fija (mobile), patrón Instagram: ícono + label juntos,
+          activo = ícono relleno blanco + texto blanco, inactivo = gris. Vive
+          fuera del scroll para que el alumno siempre sepa dónde está. */}
+      {!wideAlumno && (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 500,
+            display: "flex",
+            background: S.card,
+            borderTop: "1px solid " + S.border2,
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          }}
+        >
+          {[
+            ["entrenamiento", "Entrenamiento", Dumbbell],
+            ["diario", "Historial", ClipboardList],
+          ].map(([id, label, Icono]) => {
+            const activo = tabGroup === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setTabGroup(id)}
+                style={{
+                  flex: 1,
+                  minHeight: TAP + 20,
+                  background: "transparent",
+                  border: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  padding: "8px 0",
+                  cursor: "pointer",
+                }}
+              >
+                <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
+                <span style={{ fontSize: 11, fontWeight: activo ? 800 : 500, color: activo ? S.white : S.gray }}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }

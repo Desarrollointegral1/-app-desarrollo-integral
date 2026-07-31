@@ -199,7 +199,10 @@ export const checkboxBox = (a) => ({ width: 22, height: 22, borderRadius: 6, bor
 export const stepperTrack = () => ({ display: "inline-flex", alignItems: "stretch", background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, overflow: "hidden" });
 export const stepperBtn = () => ({ width: TAP, minHeight: TAP, background: "transparent", color: S.white, border: "none", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 });
 export const stepperDivider = () => ({ width: 1, alignSelf: "stretch", background: S.border2 });
-export const stepperValue = () => ({ minWidth: 56, textAlign: "center", background: "transparent", border: "none", color: S.white, fontSize: TS.ui, fontWeight: 900, outline: "none" });
+// width explícito (no solo minWidth): un <input type="number"> sin width fijo
+// toma el ancho intrínseco del navegador (~220px en Chrome) y revienta el
+// layout del stepper — bug real encontrado 2026-07-31 revisando píxeles.
+export const stepperValue = () => ({ width: 56, minWidth: 56, textAlign: "center", background: "transparent", border: "none", color: S.white, fontSize: TS.ui, fontWeight: 900, outline: "none" });
 
 // ── Retratos ── Brand Kit §08 y señal 10 del playbook anti-cara-de-IA:
 // los retratos NUNCA van en círculo. Marco rectangular de esquina suave; el

@@ -348,27 +348,10 @@ export default function PlanDelDia({
         </div>
       ) : (
         <>
-          {/* Ficha de stats — SOLO acá en Principales (Preparación usa otras
-              series/reps): series x reps · intensidad · cantidad de ejercicios.
-              Ronda 8: contenido CENTRADO (antes quedaba pegado a la izquierda). */}
-          <div style={{ ...card, padding: "10px 14px", display: "flex", gap: 28, marginBottom: 12, justifyContent: "center", textAlign: "center" }}>
-            <div>
-              <div style={{ color: S.white, fontWeight: 700 }}>
-                {sem.series}x{sem.reps}
-              </div>
-              <div style={{ color: S.gray, fontSize: 15 }}>SERIES X REPS</div>
-            </div>
-            {sem.intensidad && (
-              <div>
-                <div style={{ color: S.white, fontWeight: 700 }}>{sem.intensidad}</div>
-                <div style={{ color: S.gray, fontSize: 15 }}>INTENSIDAD</div>
-              </div>
-            )}
-            <div>
-              <div style={{ color: S.white, fontWeight: 700 }}>{(dia.ejercicios || []).length}</div>
-              <div style={{ color: S.gray, fontSize: 15 }}>EJERCICIOS</div>
-            </div>
-          </div>
+          {/* 2026-07-31, pedido de Lucas: esta ficha (series x reps ·
+              intensidad · ejercicios) repetía exactamente los mismos datos
+              que ya muestra el ribbon de la ficha del alumno arriba de las
+              tabs Entrenamiento/Historial — se sacó de acá. */}
           <SelectorDia />
           {dia.subtitulo && <div style={{ color: S.gray, fontSize: 15, marginBottom: 10 }}>{dia.subtitulo}</div>}
           {(dia.ejercicios || []).map((ej, i) => {
