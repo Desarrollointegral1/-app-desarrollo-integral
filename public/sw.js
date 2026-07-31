@@ -13,7 +13,12 @@
 // teléfono y abre al toque. Son archivos inmutables (el dataset no pisa
 // paths), así que cache-first es seguro.
 // Todo lo demás (API de Supabase, YouTube): red directa, sin tocar.
-const CACHE = "di-shell-v2";
+// 2026-07-31 — bump v2→v3: Lucas seguía viendo la app vieja pese a que
+// producción tenía el build nuevo confirmado byte a byte. El `activate`
+// de abajo borra cualquier cache que no matchee este nombre — bumpear la
+// versión fuerza esa limpieza en el próximo load, por si el celular tenía
+// algo pegado del shell viejo.
+const CACHE = "di-shell-v3";
 const GIF_CACHE = "di-gifs-v1";
 const GIF_MAX_ENTRIES = 220;
 // Prefijo de los assets públicos del catálogo en Supabase Storage:

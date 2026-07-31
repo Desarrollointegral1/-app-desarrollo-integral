@@ -6067,43 +6067,38 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         </div>
       </div>
 
-      <div style={{ width: "100%", maxWidth: 340, background: S.card, border: "1px solid " + S.border, borderRadius: 14, padding: "24px 20px" }}>
-        {/* 2026-07-31, pedido de Lucas: caja real estilo Mercado Libre —
-            label y campo fundidos en UN solo contenedor con borde propio, no
-            un caption flotando arriba de un input suelto (mismo patrón que
-            ya se aplicó en la app de Urquiza el mismo día). */}
-        <div style={{ border: "1px solid " + S.border, borderRadius: 10, padding: "8px 14px", marginBottom: 12 }}>
-          <div style={{ ...eyebrow, letterSpacing: 1.5, fontSize: 11 }}>Usuario</div>
-          <input
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === "Enter" && go()}
-            placeholder="Tu username"
-            autoComplete="username"
-            autoCapitalize="characters"
-            style={{ ...inp, border: "none", background: "transparent", padding: "2px 0 0", height: "auto" }}
-            disabled={cargando}
-          />
-        </div>
-
-        <div style={{ border: "1px solid " + S.border, borderRadius: 10, padding: "8px 14px" }}>
-          <div style={{ ...eyebrow, letterSpacing: 1.5, fontSize: 11 }}>Clave</div>
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value.slice(0, 4))}
-            onKeyDown={(e) => e.key === "Enter" && go()}
-            placeholder="••••"
-            maxLength={4}
-            // La clave son 4 dígitos: en el celular tiene que abrir el teclado
-            // numérico, no el alfabético. Faltaba `inputMode`, así que el
-            // alumno tenía que cambiar de teclado a mano en cada ingreso.
-            inputMode="numeric"
-            autoComplete="current-password"
-            style={{ ...inp, border: "none", background: "transparent", padding: "2px 0 0", height: "auto", letterSpacing: 4 }}
-            disabled={cargando}
-          />
-        </div>
+      <div style={{ width: "100%", maxWidth: 340 }}>
+        {/* 2026-07-31, pedido de Lucas: "no me gusta ese login... mejor sin
+            ese cuadro, tomá lo que aprendiste de Instagram y Mercado Libre".
+            Se saca la caja con borde propio + label adentro (patrón ML de la
+            tanda anterior) y se vuelve al patrón Instagram: input suelto,
+            fondo relleno sutil, placeholder como único label, sin caption
+            arriba ni borde de caja. */}
+        <input
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === "Enter" && go()}
+          placeholder="Usuario"
+          autoComplete="username"
+          autoCapitalize="characters"
+          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, marginBottom: 10 }}
+          disabled={cargando}
+        />
+        <input
+          type="password"
+          value={pin}
+          onChange={(e) => setPin(e.target.value.slice(0, 4))}
+          onKeyDown={(e) => e.key === "Enter" && go()}
+          placeholder="Clave"
+          maxLength={4}
+          // La clave son 4 dígitos: en el celular tiene que abrir el teclado
+          // numérico, no el alfabético. Faltaba `inputMode`, así que el
+          // alumno tenía que cambiar de teclado a mano en cada ingreso.
+          inputMode="numeric"
+          autoComplete="current-password"
+          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, letterSpacing: 4 }}
+          disabled={cargando}
+        />
 
         {err && <div role="alert" style={{ color: S.red, fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "10px 12px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
 
@@ -7110,10 +7105,10 @@ export default function App() {
           toggleTheme={toggleTheme}
           onSalir={modoEntrenador ? salirModoEntrenador : logout}
           onLogoClick={() => {
-            // Ronda 18: click en el logo → pantalla inicial del alumno
-            // (Entrenamiento, arriba de todo).
-            setTabGroup("entrenamiento");
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            // 2026-07-31 — Lucas: "al clickear el logo me tiene que llevar a
+            // la pantalla de bienvenida" (antes solo iba a Entrenamiento).
+            coachRef.current?.cerrar();
+            setShowBienvenida(true);
           }}
         />{" "}
         {/* Perfil */}{" "}
@@ -7554,10 +7549,14 @@ export default function App() {
             return (
               <button
                 key={id}
-                /* 2026-07-31 — Lucas: "al clickear en Luqui debería cerrar
-                    el chat" si ya está abierto — toggle en vez de abrir
-                    siempre (coachRef.current.toggle ya existía, sin usar). */
-                onClick={() => (id === "luqui" ? coachRef.current?.toggle() : setTabGroup(id))}
+                /* 2026-07-31 — Lucas: Luqui hace toggle (cierra si ya está
+                    abierto); los OTROS botones (Historial/Entrenamiento)
+                    también lo cierran si estaba abierto, para no navegar
+                    con el chat tapando la pantalla. */
+                onClick={() => {
+                  if (id === "luqui") coachRef.current?.toggle();
+                  else { coachRef.current?.cerrar(); setTabGroup(id); }
+                }}
                 style={{
                   flex: 1,
                   minHeight: TAP + 20,

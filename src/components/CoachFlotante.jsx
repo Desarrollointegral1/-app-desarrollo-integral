@@ -85,7 +85,11 @@ function renderTexto(texto) {
 // para que no quede tapado por esa barra.
 const CoachFlotante = forwardRef(function CoachFlotante({ alumno, iconWhite, iconBlack, darkMode, S, mostrarBoton = true, panelBottom = 14 }, ref) {
   const [abierto, setAbierto] = useState(false);
-  useImperativeHandle(ref, () => ({ abrir: () => setAbierto(true), toggle: () => setAbierto((v) => !v) }), []);
+  // 2026-07-31 — Lucas: "al clickear en otro módulo de abajo también se
+  // tiene que cerrar Luqui" — `cerrar` se usa desde los otros botones de la
+  // barra inferior (Historial/Entrenamiento) para no dejar el chat abierto
+  // tapando la pantalla al navegar a otra sección.
+  useImperativeHandle(ref, () => ({ abrir: () => setAbierto(true), cerrar: () => setAbierto(false), toggle: () => setAbierto((v) => !v) }), []);
   const [mensajes, setMensajes] = useState([]);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
