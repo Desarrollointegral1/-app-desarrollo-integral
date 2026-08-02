@@ -202,12 +202,51 @@ function limpiarPayload(obj) {
 const COLS_ALUMNO_SIN_FOTO =
   "id,nombre,username,codigo,peso,altura,edad,fecha_nacimiento,email,tipo,plan_type,modalidad,horarios,bioimpedancia,rm,asistencia,diario,plan_movilidad,plan_calor,plan_activacion,plan_periodizacion";
 
+// Convierte un array crudo de plan_dias (con plan_ejercicios embebido) al
+// shape { dia, subtitulo, ejercicios } que usa el resto de la app — mismo
+// mapeo que getPlanDias/getPlanDiasPorAlumnoPlan, para que cargarDatos()
+// devuelva exactamente la misma forma cargando todo en una sola consulta.
+function _mapDiasEmbebidos(diasRaw) {
+  return [...(diasRaw || [])]
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .map((d) => ({
+      dia:       d.dia,
+      subtitulo: d.subtitulo || "",
+      ejercicios: [...(d.plan_ejercicios || [])]
+        .sort((a, b) => a.orden - b.orden)
+        .map((e) => ({
+          id:         e.id,
+          nombre:     e.nombre      || "",
+          desc:       e.descripcion || "",
+          video:      e.video       || "",
+          codigo:     e.codigo      || "",
+          gif:        e.gif         || "",
+          unidad:     e.unidad      || "reps",
+          mediaLocal: "",
+          historial:  [],
+        })),
+    }));
+}
+
 export async function cargarDatos(fallback) {
-  LOG("cargarDatos", "⏳ Cargando alumnos (sin fotos)...");
+  LOG("cargarDatos", "⏳ Cargando alumnos y planes (1 consulta anidada)...");
   try {
+    // Auditoría de performance 2026-08-02: antes era 1 query a alumnos + 1
+    // por alumno (alumno_planes) + 1 por plan (plan_dias+plan_ejercicios) —
+    // con 7 alumnos ya eran ~31 roundtrips, y escala linealmente con alumnos
+    // × planes. plan_dias tiene DOS FKs (a alumno_planes vía alumno_plan_id,
+    // y directo a alumnos vía alumno_id — verificado: TODAS las filas traen
+    // alumno_id poblado, incluidas las que ya pertenecen a un alumno_plan),
+    // así que se embebe plan_dias UNA sola vez desde alumnos y se agrupa por
+    // alumno_plan_id en memoria — evita traerlo duplicado por los dos
+    // caminos. Verificado contra prod con RLS real (sesión de alumna): la
+    // agrupación coincide exacto con lo que devolvía el camino N+1 viejo.
     const { data: rows, error } = await supabase
       .from("alumnos")
-      .select(COLS_ALUMNO_SIN_FOTO)
+      .select(`${COLS_ALUMNO_SIN_FOTO},
+        alumno_planes(id, dia_semana, nombre, estado),
+        plan_dias(id, dia, subtitulo, orden, alumno_plan_id,
+          plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))`)
       .order("nombre");
 
     if (error) throw error;
@@ -217,50 +256,84 @@ export async function cargarDatos(fallback) {
       return fallback;
     }
 
-    LOG("cargarDatos", `Recibidos ${rows.length} alumno(s). Cargando planes...`);
+    LOG("cargarDatos", `Recibidos ${rows.length} alumno(s) con sus planes.`);
 
-    const alumnos = await Promise.all(
-      rows.map(async (row) => {
-        const planes = await cargarPlanesXDia(row.id, row);
-        // Mantener 'plan' para compatibilidad, apuntando al primer plan
-        const planCompat = planes.length > 0 ? planes[0] : {
-          movilidad:     row.plan_movilidad     || [],
-          calor:         row.plan_calor         || [],
-          activacion:    row.plan_activacion    || [],
-          periodizacion: row.plan_periodizacion || [],
-          dias: [],
-        };
-        return {
-          id:            row.id,
-          nombre:        row.nombre,
-          username:      row.username      || "",
-          codigo:        row.codigo        || "",
-          peso:          row.peso          || "",
-          altura:        row.altura        || "",
-          edad:          row.edad          || "",
-          // slice(0,10) por si la base devuelve timestamp — el input date necesita YYYY-MM-DD
-          fecha_nacimiento: (row.fecha_nacimiento || "").slice(0, 10),
-          email:         row.email         || "",
-          tipo:          row.tipo          || "entrenamiento",
-          plan_type:     row.plan_type     || null,
-          modalidad:     row.modalidad     || "",
-          foto:          "", // se hidrata después con cargarFotos()
-          horarios:      row.horarios      || [],
-          bioimpedancia: row.bioimpedancia || [],
-          rm:            row.rm            || {},
-          asistencia:    row.asistencia    || [],
-          diario:        row.diario        || [],
-          planes,
-          plan: {
-            movilidad:     planCompat.movilidad     || [],
-            calor:         planCompat.calor         || [],
-            activacion:    planCompat.activacion    || [],
-            periodizacion: planCompat.periodizacion || [],
-            dias:          planCompat.dias          || [],
-          },
-        };
-      })
-    );
+    const alumnos = rows.map((row) => {
+      const diasPorPlan = new Map();
+      (row.plan_dias || []).forEach((d) => {
+        const key = d.alumno_plan_id || null;
+        if (!diasPorPlan.has(key)) diasPorPlan.set(key, []);
+        diasPorPlan.get(key).push(d);
+      });
+
+      const alPlanes = row.alumno_planes || [];
+      const planes = alPlanes.length > 0
+        ? alPlanes.map((ap) => ({
+            id:            ap.id,
+            dia_semana:    ap.dia_semana,
+            nombre:        ap.nombre,
+            estado:        ap.estado,
+            dias:          _mapDiasEmbebidos(diasPorPlan.get(ap.id)),
+            movilidad:     row.plan_movilidad     || [],
+            calor:         row.plan_calor         || [],
+            activacion:    row.plan_activacion    || [],
+            periodizacion: row.plan_periodizacion || [],
+          }))
+        : [{
+            id: makeUuid(),
+            dia_semana: "Fijo",
+            nombre: "Plan Único",
+            // Marca que este plan NO existe como fila de alumno_planes: se arma al
+            // vuelo desde plan_dias(alumno_id). Editarlo se persiste por el camino
+            // viejo (al.plan.dias → _guardarAlumno), no por actualizarPlanAlumnoDias.
+            _sintetico: true,
+            estado: "activo",
+            dias:          _mapDiasEmbebidos(diasPorPlan.get(null)),
+            movilidad:     row.plan_movilidad     || [],
+            calor:         row.plan_calor         || [],
+            activacion:    row.plan_activacion    || [],
+            periodizacion: row.plan_periodizacion || [],
+          }];
+
+      // Mantener 'plan' para compatibilidad, apuntando al primer plan
+      const planCompat = planes.length > 0 ? planes[0] : {
+        movilidad:     row.plan_movilidad     || [],
+        calor:         row.plan_calor         || [],
+        activacion:    row.plan_activacion    || [],
+        periodizacion: row.plan_periodizacion || [],
+        dias: [],
+      };
+
+      return {
+        id:            row.id,
+        nombre:        row.nombre,
+        username:      row.username      || "",
+        codigo:        row.codigo        || "",
+        peso:          row.peso          || "",
+        altura:        row.altura        || "",
+        edad:          row.edad          || "",
+        // slice(0,10) por si la base devuelve timestamp — el input date necesita YYYY-MM-DD
+        fecha_nacimiento: (row.fecha_nacimiento || "").slice(0, 10),
+        email:         row.email         || "",
+        tipo:          row.tipo          || "entrenamiento",
+        plan_type:     row.plan_type     || null,
+        modalidad:     row.modalidad     || "",
+        foto:          "", // se hidrata después con cargarFotos()
+        horarios:      row.horarios      || [],
+        bioimpedancia: row.bioimpedancia || [],
+        rm:            row.rm            || {},
+        asistencia:    row.asistencia    || [],
+        diario:        row.diario        || [],
+        planes,
+        plan: {
+          movilidad:     planCompat.movilidad     || [],
+          calor:         planCompat.calor         || [],
+          activacion:    planCompat.activacion    || [],
+          periodizacion: planCompat.periodizacion || [],
+          dias:          planCompat.dias          || [],
+        },
+      };
+    });
 
     LOG("cargarDatos", `✅ ${alumnos.length} alumno(s) listos.`, alumnos.map(a => a.nombre));
     return alumnos;
