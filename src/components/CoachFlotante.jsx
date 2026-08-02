@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import { Headphones, Volume2, Volume, Mic, Play, Pause } from "lucide-react";
+import { supabase } from "../../services/supabase.js";
 
 /**
  * ============================================================
@@ -268,9 +269,17 @@ const CoachFlotante = forwardRef(function CoachFlotante({ alumno, iconWhite, ico
     let respuesta;
     ultimoAudioRef.current = null; // se completa abajo si vino audio de Voicebox
     try {
+      // Auth por JWT (auditoría 2026-08-02): el backend deriva el alumnoId del
+      // token, no del body — cierra el IDOR donde cualquiera con un UUID podía
+      // leer el diario/bioimpedancia de otro alumno. Se sigue mandando alumnoId
+      // por compatibilidad con el web viejo durante el deploy escalonado.
+      const { data: { session } } = await supabase.auth.getSession();
       const r = await fetch("/web/api/coach", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
         body: JSON.stringify({ alumnoId: alumno.id, mensaje: texto, modoVoz: modoVozActivo }),
       });
       const data = await r.json();

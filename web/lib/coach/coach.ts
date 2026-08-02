@@ -42,6 +42,74 @@ function supa(): SupabaseClient {
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// Voicebox (voz local, gratis, 100% en tu compu — github.com/jamiepine/voicebox).
+// Solo se activa si están las tres env vars. En producción (Vercel) no están
+// seteadas a propósito: Vercel no le puede llegar a un servidor en tu compu,
+// así que el chat sigue con la voz del navegador sin ningún cambio. Se usa
+// corriendo local (`npm run dev` acá al lado de Voicebox) con un `.env.local`.
+const VOICEBOX_URL = process.env.VOICEBOX_URL;
+const VOICEBOX_PROFILE_ID = process.env.VOICEBOX_PROFILE_ID;
+// Sin forzar un motor por defecto: si no se pasa, Voicebox usa el
+// default_engine ya configurado en el perfil (así se elige una sola vez).
+const VOICEBOX_ENGINE = process.env.VOICEBOX_ENGINE;
+
+export interface AudioVoicebox {
+  base64: string;
+  mime: string;
+}
+
+/**
+ * Genera el audio de una respuesta con Voicebox. Devuelve null (nunca tira
+ * error) si no está configurado, no está corriendo, o tarda más de 8s — el
+ * front cae solo a SpeechSynthesis del navegador en cualquiera de esos casos.
+ */
+export async function generarAudioVoicebox(texto: string): Promise<AudioVoicebox | null> {
+  if (!VOICEBOX_URL || !VOICEBOX_PROFILE_ID) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const gen = await fetch(`${VOICEBOX_URL}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile_id: VOICEBOX_PROFILE_ID,
+        text: texto,
+        language: 'es',
+        ...(VOICEBOX_ENGINE ? { engine: VOICEBOX_ENGINE } : {}),
+      }),
+      signal: controller.signal,
+    }).then((r) => (r.ok ? r.json() : null));
+    if (!gen?.id) return null;
+
+    // /generate puede tardar en procesar — se espera un toque más si hace
+    // falta (máx. 5 intentos de 1s). Si el status nunca cambia, se intenta
+    // igual bajar el audio: si no está listo, /audio devuelve error y se
+    // corta abajo sin romper nada.
+    let estado = gen;
+    for (
+      let i = 0;
+      i < 5 && estado?.status && estado.status !== 'completed' && estado.status !== 'error';
+      i++
+    ) {
+      await new Promise((r) => setTimeout(r, 1000));
+      estado = await fetch(`${VOICEBOX_URL}/generate/${gen.id}/status`, {
+        signal: controller.signal,
+      }).then((r) => (r.ok ? r.json() : estado));
+    }
+    if (estado?.status === 'error') return null;
+
+    const audioRes = await fetch(`${VOICEBOX_URL}/audio/${gen.id}`, { signal: controller.signal });
+    if (!audioRes.ok) return null;
+    const buffer = Buffer.from(await audioRes.arrayBuffer());
+    const mime = audioRes.headers.get('content-type') || 'audio/wav';
+    return { base64: buffer.toString('base64'), mime };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export type RolCoach = 'user' | 'assistant';
 
 export interface TurnoCoach {
@@ -216,6 +284,23 @@ export async function responderCoach(
   return texto && texto.type === 'text'
     ? texto.text
     : 'Perdoná, no pude generar una respuesta. Probá de nuevo.';
+}
+
+/**
+ * Valida el JWT de Supabase Auth y devuelve el alumnoId REAL de ese usuario
+ * (auditoría 2026-08-02). El endpoint deriva el alumno del token, nunca del
+ * body — así un UUID filtrado ya no alcanza para leer datos de otro alumno.
+ */
+export async function alumnoIdDesdeToken(jwt: string): Promise<string | null> {
+  if (!jwt) return null;
+  const { data: { user } } = await supa().auth.getUser(jwt);
+  if (!user) return null;
+  const { data } = await supa()
+    .from('alumnos')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  return data?.id ?? null;
 }
 
 /** Trae el alumno por id (service_role, del lado del server). null si no existe. */

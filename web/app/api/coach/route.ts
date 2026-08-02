@@ -5,6 +5,8 @@ import {
   traerHistorial,
   mensajesDeHoy,
   guardarTurno,
+  generarAudioVoicebox,
+  alumnoIdDesdeToken,
 } from '@/lib/coach/coach';
 
 /**
@@ -23,26 +25,24 @@ import {
 
 const TOPE_DIARIO = 60; // mensajes por alumno por día
 
-function esUuid(v: unknown): v is string {
-  return (
-    typeof v === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { alumnoId, mensaje, modoVoz } = body as {
-      alumnoId?: unknown;
+    const { mensaje, modoVoz } = body as {
       mensaje?: unknown;
       modoVoz?: unknown;
     };
 
-    if (!esUuid(alumnoId)) {
+    // Auth por JWT (auditoría 2026-08-02): el alumnoId se DERIVA del token de
+    // Supabase Auth, nunca del body. Cierra el IDOR: antes cualquiera con el
+    // UUID de un alumno (visible en su localStorage / en cada request) podía,
+    // desde cualquier máquina, leerle diario/bioimpedancia/peso y quemar API.
+    const jwt = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    const alumnoId = await alumnoIdDesdeToken(jwt);
+    if (!alumnoId) {
       return NextResponse.json(
-        { status: 'error', message: 'Falta alumnoId válido.' },
-        { status: 400 }
+        { status: 'error', message: 'No autorizado.' },
+        { status: 401 }
       );
     }
     if (typeof mensaje !== 'string' || mensaje.trim().length === 0) {
@@ -87,7 +87,16 @@ export async function POST(request: NextRequest) {
     // Persistir el turno (no bloquea la respuesta si falla el insert).
     await guardarTurno(alumnoId, mensaje.trim(), respuesta);
 
-    return NextResponse.json({ status: 'success', respuesta });
+    // Voz con Voicebox (local, gratis) — null si no está configurado o no
+    // responde (lo normal en producción). El front cae solo a la voz del
+    // navegador cuando no viene audio.
+    const audio = await generarAudioVoicebox(respuesta);
+
+    return NextResponse.json({
+      status: 'success',
+      respuesta,
+      ...(audio ? { audioBase64: audio.base64, audioMime: audio.mime } : {}),
+    });
   } catch (error) {
     return NextResponse.json(
       {
