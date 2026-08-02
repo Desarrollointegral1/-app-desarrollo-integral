@@ -456,7 +456,7 @@ export default function PlanDelDia({
                 width: "100%",
                 marginTop: 16,
                 background: diaRegistrado ? S.green : S.white,
-                color: diaRegistrado ? "#fff" : S.bg,
+                color: diaRegistrado ? "#0d1f0d" : S.bg,
                 border: "none",
                 borderRadius: 12,
                 padding: "16px 24px",

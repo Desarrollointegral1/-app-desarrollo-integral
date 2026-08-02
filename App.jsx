@@ -280,23 +280,25 @@ function Toast({ msg }) {
   if (!msg) return null;
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         position: "fixed",
         bottom: 28,
         left: "50%",
         transform: "translateX(-50%)",
-        background: "#1c1c1c",
-        border: "1px solid #333",
+        background: S.card2,
+        border: "1px solid " + S.border2,
         borderRadius: 10,
         padding: "11px 22px",
-        color: "#fff",
-        fontSize: 13,
+        color: S.white,
+        fontSize: TS.chip,
         fontWeight: 600,
         zIndex: 9999,
         pointerEvents: "none",
         maxWidth: 320,
         textAlign: "center",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.7)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
         letterSpacing: 0.3,
       }}
     >
@@ -774,7 +776,7 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
         aria-autocomplete="list"
       />
       {showSugs && sugs.length > 0 && (
-        <div role="listbox" style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, zIndex: 50, maxHeight: 320, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+        <div role="listbox" style={{ position: "absolute", top: "100%", left: 0, right: 0, background: S.card, border: "1px solid " + S.border2, borderRadius: 8, zIndex: 50, maxHeight: 320, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.35)" }}>
           {sugs.map((sug, i) => {
             const gifSug = sug.gif || getEjercicioGif(sug.nombre);
             return (
@@ -784,13 +786,13 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
                 aria-selected={hi === i}
                 onMouseDown={() => elegir(sug)}
                 onMouseEnter={() => setHi(i)}
-                style={{ padding: "8px 14px", minHeight: TAP, cursor: "pointer", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10, background: hi === i ? "#252525" : "transparent" }}
+                style={{ padding: "8px 14px", minHeight: TAP, cursor: "pointer", borderBottom: "1px solid " + S.border, display: "flex", alignItems: "center", gap: 10, background: hi === i ? S.card2 : "transparent" }}
               >
                 {gifSug && (
                   <img src={gifSug} alt="" loading="lazy" style={{ width: 34, height: 34, objectFit: "contain", background: "#fff", borderRadius: 4, flexShrink: 0 }} />
                 )}
                 {sug.codigo && (
-                  <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, letterSpacing: 0.5, background: "#242424", border: "1px solid #333", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                  <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border2, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                     {sug.codigo}
                   </span>
                 )}
@@ -974,7 +976,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     setSugs([]); setShowSugs(false);
   };
   const remove = (i) => {
-    if (!window.confirm("Eliminar?")) return;
+    if (!window.confirm("¿Sacar este ejercicio del plan?")) return;
     onChange(items.filter((_, j) => j !== i));
   };
   const move = (i, dir) => {
@@ -2124,7 +2126,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
       {asistMes === 0 && records.length === 0 && (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <BarChart3 size={32} style={{ marginBottom: 8 }} />
-          <div style={{ color: S.gray, fontSize: 13 }}>Sin actividad este mes todavia</div>
+          <div style={{ color: S.gray, fontSize: 13 }}>Sin actividad este mes todavía</div>
         </div>
       )}{" "}
     </div>
@@ -2171,7 +2173,7 @@ function Diario({ entradas, onAdd, onEdit, onDelete, slotAntesDeEntradas }) {
           directo debajo del botón de asistencia */}
       <div style={{ ...card, padding: 14, marginBottom: 14 }}>
         {" "}
-        <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>Contanos cómo estuvo el entrenamiento hoy?</div>{" "}
+        <div style={{ fontSize: 11, color: S.gray, marginBottom: 6 }}>¿Contanos cómo estuvo el entrenamiento hoy?</div>{" "}
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value.slice(0, MAX))}
@@ -2209,7 +2211,7 @@ function Diario({ entradas, onAdd, onEdit, onDelete, slotAntesDeEntradas }) {
       {entradas.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
           <NotebookPen size={32} style={{ marginBottom: 8 }} />
-          <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavia</div>
+          <div style={{ color: S.gray, fontSize: 13 }}>Sin entradas todavía</div>
         </div>
       ) : (
         entradas
@@ -3033,7 +3035,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
           <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>{al.nombre} todavía no tiene sesiones de rehabilitación.</div>
           <button
             onClick={() => guardarDias([{ dia: "Sesión 1", subtitulo: "", ejercicios: [] }])}
-            style={{ background: S.green, color: "#fff", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}
+            style={{ background: S.green, color: "#0d1f0d", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}
           >
             + Crear primera sesión
           </button>
@@ -3082,7 +3084,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
                 <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
                 {MediaBtns}
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#fff" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>GUARDAR</button>
+                  <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#0d1f0d" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>GUARDAR</button>
                   <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
                 </div>
               </div>
@@ -3132,7 +3134,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
               <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} placeholder="Cómo se hace, series, cuidados..." style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
               {MediaBtns}
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#fff" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
+                <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#0d1f0d" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
                   AGREGAR AL PLAN
                 </button>
                 <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
@@ -3142,7 +3144,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
             editIdx === null && (
               <button
                 onClick={() => { setEditIdx(-1); setForm({ nombre: "", desc: "", video: "" }); }}
-                style={{ width: "100%", marginTop: 8, background: S.green, color: "#fff", border: "none", borderRadius: 10, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+                style={{ width: "100%", marginTop: 8, background: S.green, color: "#0d1f0d", border: "none", borderRadius: 10, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
               >
                 + Agregar ejercicio
               </button>
@@ -6531,7 +6533,7 @@ function Bienvenida({ alumno, plan, semanaData, semanaActual, onContinuar, onIrA
                       </div>
                     )}
                     {cantEj > 0 && (
-                      <div style={{ color: S.gray, fontSize: TS.ui, lineHeight: 1.6 }}>de los {cantEj}</div>
+                      <div style={{ color: S.gray, fontSize: TS.ui, lineHeight: 1.6 }}>de los {cantEj} {pl(cantEj, "ejercicio", "ejercicios")} principales</div>
                     )}
                   </div>
                 );
@@ -6660,9 +6662,11 @@ export default function App() {
   const [historiales, setHistoriales] = useState({});
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
+  const _toastTimer = useRef(null);
   const showToast = (msg, ms = 2500) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(""), ms);
+    if (_toastTimer.current) clearTimeout(_toastTimer.current);
+    _toastTimer.current = setTimeout(() => setToastMsg(""), ms);
   };
   const [darkMode, setDarkMode] = useState(() => {
     try {
@@ -6852,15 +6856,19 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, [_logueado]);
     const handlePeso = (id, val) => {
-    const np = { ...pesos, [id]: val };
-    const nh = { ...historiales, [id]: [...(historiales[id] || []), { fecha: hoy(), peso: val }] };
+    // Cap de sanidad (auditoría 2026-08-02): sin tope, un tap sostenido o un
+    // pegado dejaban pesos absurdos tipo 999999 en la DB y en el historial.
+    // 500kg cubre cualquier levantamiento real.
+    const num = Math.min(Math.max(0, Number(val) || 0), 500);
+    const np = { ...pesos, [id]: num };
+    const nh = { ...historiales, [id]: [...(historiales[id] || []), { fecha: hoy(), peso: num }] };
     setPesos(np);
     setHistoriales(nh);
     // Guarda en Supabase solo ejercicios principales (plan.dias).
     // registros_diarios es la única fuente de verdad de pesos (alimenta el
     // historial del alumno y el reporte mensual del admin). historial_pesos
     // no se usa: su FK apunta a una tabla "ejercicios" que la app no tiene.
-    saveDailyWeight(alumno.id, hoy(), id, Number(val));
+    saveDailyWeight(alumno.id, hoy(), id, num);
   };
   const marcarAsistencia = (fecha) => {
     // La asistencia de HOY se guarda con hora ("YYYY-MM-DD HH:mm"); días

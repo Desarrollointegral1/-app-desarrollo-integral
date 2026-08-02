@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { S, card } from "../utils/theme.js";
-import { cargarMusculosCatalogo } from "../../services/supabase.js";
+import { cargarMusculosCatalogoCached } from "../../services/supabase.js";
 import { RM_EJS } from "../utils/helpers.js";
 
 // 2026-07-31, pedido de Lucas: resumen del plan del día — se abre desde
@@ -47,7 +47,7 @@ export default function ResumenPlanModal({ plan, dia, rm, onClose }) {
   const [catalogo, setCatalogo] = useState(null);
   useEffect(() => {
     let vivo = true;
-    cargarMusculosCatalogo().then((data) => { if (vivo) setCatalogo(data); });
+    cargarMusculosCatalogoCached().then((data) => { if (vivo) setCatalogo(data); });
     return () => { vivo = false; };
   }, []);
 

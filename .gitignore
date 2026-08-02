@@ -6,3 +6,6 @@ dist/
 *.log
 
 .vercel
+
+# nota personal con credenciales — nunca al repo (auditoría 2026-08-02)
+compa.txt

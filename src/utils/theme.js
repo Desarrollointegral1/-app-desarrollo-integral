@@ -101,7 +101,10 @@ export const DARK_T = {
   border2: "#343434",
   white: "#f2f2f2",
   gray: "#9a9a9a",
-  lgray: "#5f5f5f",
+  // 2026-08-02, auditoría de accesibilidad: #5f5f5f daba 2.67–3.15:1 sobre
+  // las superficies (fail WCAG AA). #8a8a8a da ~4.9:1 sobre card2 y sigue
+  // siendo más apagado que `gray` — la jerarquía se mantiene.
+  lgray: "#8a8a8a",
   red: "#e5484d",
   green: "#46a758",
   yellow: "#d4a72c",
@@ -128,7 +131,10 @@ export const LIGHT_T = {
   border2: "#bcbcc4",
   white: "#17171a",
   gray: "#4b4b52",
-  lgray: "#84848c",
+  // 2026-08-02, auditoría de accesibilidad: #84848c daba 3.0–3.47:1 sobre las
+  // superficies claras (fail WCAG AA). #6b6b73 sube a ~5.3:1 sobre card y
+  // sigue siendo más claro que `gray` — la jerarquía se mantiene.
+  lgray: "#6b6b73",
   red: "#c0392b",
   green: "#1e7e34",
   yellow: "#9a6700",

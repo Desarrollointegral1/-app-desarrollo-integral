@@ -2257,6 +2257,16 @@ export async function cargarMusculosCatalogo() {
   return all;
 }
 
+// Cache por sesión (auditoría 2026-08-02): ResumenPlanModal re-bajaba las
+// ~1.344 filas de músculos en cada apertura del resumen. El catálogo de
+// músculos no cambia dentro de una sesión — se cachea la promesa como ya se
+// hace con cargarCatalogoCached.
+let _musculosCache = null;
+export function cargarMusculosCatalogoCached() {
+  if (!_musculosCache) _musculosCache = cargarMusculosCatalogo();
+  return _musculosCache;
+}
+
 // Edición desde la app (biblioteca nueva): nombre, instrucciones, video
 // propio. Marca editado=true para distinguir filas tocadas por Lucas.
 export async function guardarEjercicioCatalogo(id, patch) {
