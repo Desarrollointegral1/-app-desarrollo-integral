@@ -101,6 +101,11 @@ import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power } from "lucide-react";
 import { useSignedUrl } from "./src/utils/useSignedUrl.js";
 
+// PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
+// secuencias ascendentes/descendentes (1234, 4321, 2345...). Sube el piso
+// real de seguridad más que casi cualquier otra cosa por lo barato que es.
+const PIN_TRIVIAL = (p) => /^(\d)\1{3}$/.test(p) || "0123456789".includes(p) || "9876543210".includes(p);
+
 // Preview del media de rehab recién subido: `value` es un PATH de rehab-media
 // (bucket privado), se resuelve a signed URL. Datos viejos (http) pasan igual.
 function RehabMediaPreview({ value }) {
@@ -4161,6 +4166,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       showToast && showToast("Clave debe tener 4 dígitos");
       return false;
     }
+    if (PIN_TRIVIAL(npin)) {
+      showToast && showToast("Elegí una clave menos obvia (nada de 1234 o 0000)");
+      return false;
+    }
     _creandoAlumno.current = true;
     const tpl = clonarPlan(getPlantilla(ntemplate).plan);
     // El plan que se guarda en `planes` tiene que ser un objeto COMPLETO
@@ -5704,6 +5713,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 </div>
                 <button
                   onClick={async () => {
+                    if (admPin.length === 4 && PIN_TRIVIAL(admPin)) {
+                      showToast && showToast("Elegí una clave de admin menos obvia (nada de 1234 o 0000)");
+                      return;
+                    }
                     if (!admNombre || !admCodigo || admPin.length !== 4) {
                       showToast && showToast("Completá todos los campos (clave de 4 dígitos)");
                       return;
@@ -5814,6 +5827,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                               }
                               if (editAdminPin && editAdminPin.length !== 4) {
                                 showToast && showToast("La clave nueva debe tener 4 dígitos");
+                                return;
+                              }
+                              if (editAdminPin && PIN_TRIVIAL(editAdminPin)) {
+                                showToast && showToast("Elegí una clave menos obvia (nada de 1234 o 0000)");
                                 return;
                               }
                               try {
@@ -6762,8 +6779,26 @@ export default function App() {
       sesion = null;
     }
     if (!sesion) return;
+    // Expiración de sesión (auditoría 2026-08-02): sin TTL, un teléfono
+    // perdido/prestado quedaba logueado para siempre. El admin caduca antes
+    // (7 días) que el alumno (30 días) por el alcance de sus datos.
+    const MAX_MS = sesion.type === "admin" ? 7 * 864e5 : 30 * 864e5;
+    if (sesion.at && Date.now() - sesion.at > MAX_MS) {
+      try { localStorage.removeItem("di_session"); } catch (e) {}
+      cerrarSesionAuth();
+      return;
+    }
     if (sesion.type === "admin") {
-      setAdminMode(true);
+      // adminMode se deriva del JWT, no del localStorage (auditoría
+      // 2026-08-02): antes alcanzaba con escribir di_session='{"type":"admin"}'
+      // en la consola para entrar al panel. La RLS lo contenía (is_admin() da
+      // false, no ve datos ajenos), pero esto cierra el agujero de raíz:
+      // app_metadata.role solo lo escribe el service_role en auth-bridge.
+      (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.app_metadata?.role === "admin") setAdminMode(true);
+        else { try { localStorage.removeItem("di_session"); } catch (e) {} }
+      })();
     } else if (sesion.type === "alumno" && sesion.id) {
       const f = alumnos.find((x) => x.id === sesion.id);
       if (f) {
@@ -6792,10 +6827,10 @@ export default function App() {
     setTabGroup("entrenamiento");
     setTab("Ejercicios");
     setDiaIdx(0);
-    try { localStorage.setItem("di_session", JSON.stringify({ type: "alumno", id: f.id })); } catch (e) {}
+    try { localStorage.setItem("di_session", JSON.stringify({ type: "alumno", id: f.id, at: Date.now() })); } catch (e) {}
   };
   const loginAsAdmin = async () => {
-    try { localStorage.setItem("di_session", JSON.stringify({ type: "admin" })); } catch (e) {}
+    try { localStorage.setItem("di_session", JSON.stringify({ type: "admin", at: Date.now() })); } catch (e) {}
     await recargarDatos(); // con la sesión admin ya se ven todos los alumnos
     setAdminMode(true);
   };
