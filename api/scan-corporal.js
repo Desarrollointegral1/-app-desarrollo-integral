@@ -15,7 +15,11 @@
 // web/app/api/coalition/route.ts, etc.).
 import Anthropic from "@anthropic-ai/sdk";
 
-const MODEL = "claude-sonnet-4-6";
+// Corregido 2026-08-03: el agente que escribió este archivo copió el ID
+// "claude-sonnet-4-6" de web/lib/llm/multi-llm-executor.ts, pero ese modelo no
+// existe — la API lo habría rechazado y el scan nunca habría funcionado.
+// claude-sonnet-5 es el modelo con visión vigente.
+const MODEL = "claude-sonnet-5";
 
 function log10(n) {
   return Math.log(n) / Math.LN10;
@@ -97,8 +101,8 @@ export default async function handler(req, res) {
     `- cuello_cm: circunferencia del cuello\n` +
     `- cintura_cm: circunferencia de cintura (a la altura del ombligo)\n` +
     (pideCadera ? `- cadera_cm: circunferencia de cadera (punto más ancho)\n` : "") +
-    `\nEstas son ESTIMACIONES visuales aproximadas, no una medición exacta — dá tu mejor estimación igual ` +
-    `así con incertidumbre. Respondé ÚNICAMENTE con un objeto JSON, sin texto adicional ni markdown, con esta forma ` +
+    `\nEstas son ESTIMACIONES visuales aproximadas, no una medición exacta — dá tu mejor estimación ` +
+    `aunque haya incertidumbre. Respondé ÚNICAMENTE con un objeto JSON, sin texto adicional ni markdown, con esta forma ` +
     `exacta: {"cuello_cm": number, "cintura_cm": number${pideCadera ? ', "cadera_cm": number' : ""}}`;
 
   let respuestaTexto;
