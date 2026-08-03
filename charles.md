@@ -9,7 +9,7 @@
 - **Raíz**: `C:\Users\lucas\OneDrive\Documentos\Claude\Projects\App Desarrollo integral\` (la RAÍZ es la app; la subcarpeta `web\` es OTRO proyecto — ver Cuidados)
 - **Stack**: Vite 5 + React 18 + Supabase — JavaScript, sin TypeScript (no migrar sin pedido)
 - **Verificación**: `npm run build` desde la raíz
-- **Prod**: https://app-desarrollo-integral.vercel.app · **Dev**: localhost:5173
+- **Prod**: https://desarrollointegral.app (dominio real — corregido 2026-08-03; `app-desarrollo-integral.vercel.app` es el mismo deploy pero NUNCA usar esa URL de acá en más) · **Dev**: localhost:5173
 - **Deploy**: commit + push al repo (GitHub `Desarrollointegral1/-app-desarrollo-integral`, Vercel deploya solo); alternativa: MCP de Vercel (teamId `desarrollointegral1s-projects`). Política: la define Charles (checks verdes → directo, sin preguntar; nunca un deploy que la tarea no pedía).
 - **La tarea dice**: app, alumnos DI, gestión, bioimpedancia, planes, coach
 - **Marca**: Brand Kit DI — `G:\Mi unidad\Cerebro\desarrollo-integral\marca\claude-design\BRAND-KIT-DESARROLLO-INTEGRAL.md`. Esta app es EL estándar de terminación del ecosistema (seguridad, diseño, estructura).
