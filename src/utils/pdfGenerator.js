@@ -1,18 +1,21 @@
 import { hoy, mesActual, getSemanaActual, RM_EJS } from "./helpers.js";
 
-const loadJsPDF = () => new Promise((resolve, reject) => {
-  if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-  s.onload = () => resolve(window.jspdf.jsPDF);
-  s.onerror = () => reject(new Error('Error cargando jsPDF'));
-  document.head.appendChild(s);
-});
+// jsPDF se carga del paquete local, NO de un CDN (arreglado 2026-08-03).
+// Antes esto inyectaba un <script src="https://cdnjs.cloudflare.com/...">, y
+// desde que se agregó la CSP con `script-src 'self'` el navegador lo bloqueaba:
+// la generación de PDF estaba ROTA en producción y el usuario veía "verificá tu
+// conexión", que no tenía nada que ver. Verificado en prod real antes de tocar.
+// El import() dinámico mantiene el beneficio original: jsPDF no viaja en el
+// bundle inicial, se busca recién cuando alguien genera un PDF.
+const loadJsPDF = async () => {
+  const { jsPDF } = await import('jspdf');
+  return jsPDF;
+};
 
 export const generarPDF = async (al, historiales) => {
   let JsPDF;
   try { JsPDF = await loadJsPDF(); }
-  catch(e) { alert('No se pudo generar el PDF. Verificá tu conexión.'); return; }
+  catch(e) { alert('No se pudo generar el PDF. Si acabás de actualizar la app, recargá la página y probá de nuevo.'); return; }
   const doc = new JsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const W=210, pad=16;
   let y=0;
