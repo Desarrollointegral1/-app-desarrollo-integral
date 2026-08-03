@@ -2528,6 +2528,67 @@ function HistorialAdmin({ al }) {
     </div>
   );
 }
+// ── REPORTES DEL ALUMNO (repuesto 2026-08-03) ───────────────────────────
+// PDF del historial + Resumen mensual + Evolución de cargas: las tres
+// existían enteras desde antes de la refactorización de menús del 19/07
+// (commit 7516b50), que rehizo la navegación y las dejó sin ningún botón que
+// llevara a ellas — nadie las borró, quedaron huérfanas. Repuestas por pedido
+// de Lucas (03/08) dentro de Evaluación → Reportes, "por ahora" — mismo
+// patrón de carga que ya usa HistorialAdmin (cargarPesos bajo demanda, no en
+// cada tecla).
+function ReportesAlumno({ al }) {
+  const [historiales, setHistoriales] = useState({});
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  useEffect(() => {
+    if (!al?.id) return;
+    setHistoriales({});
+    cargarPesos(al.id, null).then((data) => {
+      setHistoriales(data?.historiales || {});
+    });
+  }, [al?.id]);
+
+  const handleGenerarPDF = async () => {
+    setGenerandoPDF(true);
+    try {
+      await generarPDF(al, historiales);
+    } finally {
+      setGenerandoPDF(false);
+    }
+  };
+
+  if (!al) return null;
+  return (
+    <div>
+      <button
+        onClick={handleGenerarPDF}
+        disabled={generandoPDF}
+        style={{
+          width: "100%",
+          background: generandoPDF ? S.card : S.white,
+          color: generandoPDF ? S.gray : S.bg,
+          border: "none",
+          borderRadius: 8,
+          padding: "13px",
+          fontSize: 13,
+          fontWeight: 900,
+          cursor: generandoPDF ? "default" : "pointer",
+          marginBottom: 14,
+          letterSpacing: 1,
+        }}
+      >
+        {generandoPDF ? "⏳ GENERANDO PDF..." : "📄 DESCARGAR HISTORIAL PDF"}
+      </button>
+      <ResumenMensual
+        asistencia={al.asistencia || []}
+        historiales={historiales}
+        plan={al.plan || { dias: [], periodizacion: [] }}
+        diario={al.diario || []}
+      />
+      <div style={{ height: 20 }} />
+      <EvolucionCargas historiales={historiales} plan={al.plan || { dias: [], periodizacion: [] }} />
+    </div>
+  );
+}
 // ── ASIGNAR PLAN (punto 6, 2026-07-21) ──────────────────────────────────
 // Modal en 2 pasos, disparado desde Admin → Alumno → "＋ Asignar plan":
 //   1) Elegir una PLANTILLA (planes_predeterminados) + el día de la
@@ -5508,9 +5569,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
               Evaluación — {al.nombre}
             </div>
-            {/* Sub-módulos: Evaluación integral · Bioimpedancia */}
+            {/* Sub-módulos: Evaluación integral · Bioimpedancia · Reportes
+                ("Reportes" es donde vuelven a vivir, dentro de Evaluación, las
+                tres funciones que la refactorización del 19/07 dejó
+                desconectadas del menú — PDF del historial, resumen mensual y
+                evolución de cargas. Nadie las borró, solo quedaron sin botón;
+                ver PLAN-MAESTRO. Van acá "por ahora" según pidió Lucas —
+                el 03/08 puede pedir moverlas a otro lugar). */}
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-              {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"]].map(([l, k]) => (
+              {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"], ["Reportes", "reportesAlumno"]].map(([l, k]) => (
                 <button
                   key={k}
                   onClick={() => setEvalTab(k)}
@@ -5532,6 +5599,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             </div>
             {evalTab === "integral" && <ProtocoloEvaluacionSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
             {evalTab === "bio" && <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
+            {evalTab === "reportesAlumno" && <ReportesAlumno al={al} />}
           </div>
         )}{" "}
         {sec === "reportes" && repTab === "asistencia" && al && (() => {
@@ -6890,20 +6958,35 @@ export default function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, [_logueado]);
+    // Timers del debounce de guardado de peso, uno por ejercicio (auditoría
+    // 2026-08-02, ver handlePeso).
+    const _pesoSaveTimers = useRef(new Map());
     const handlePeso = (id, val) => {
     // Cap de sanidad (auditoría 2026-08-02): sin tope, un tap sostenido o un
     // pegado dejaban pesos absurdos tipo 999999 en la DB y en el historial.
     // 500kg cubre cualquier levantamiento real.
     const num = Math.min(Math.max(0, Number(val) || 0), 500);
     const np = { ...pesos, [id]: num };
-    const nh = { ...historiales, [id]: [...(historiales[id] || []), { fecha: hoy(), peso: num }] };
+    // Reemplaza la entrada de HOY en vez de appendear (auditoría 2026-08-02):
+    // antes cada tecla/tap armaba una entrada nueva en el historial local
+    // ("1kg", "12kg", "125kg" como si fueran 3 registros del día).
+    const hoyStr = hoy();
+    const restoHist = (historiales[id] || []).filter((h) => h.fecha !== hoyStr);
+    const nh = { ...historiales, [id]: [...restoHist, { fecha: hoyStr, peso: num }] };
     setPesos(np);
     setHistoriales(nh);
     // Guarda en Supabase solo ejercicios principales (plan.dias).
     // registros_diarios es la única fuente de verdad de pesos (alimenta el
     // historial del alumno y el reporte mensual del admin). historial_pesos
     // no se usa: su FK apunta a una tabla "ejercicios" que la app no tiene.
-    saveDailyWeight(alumno.id, hoy(), id, num);
+    // Debounce de 600ms (auditoría 2026-08-02): sin esto, cada tecla/tap
+    // dispara 2 requests (select+update) — escribir "125" eran 6 requests.
+    // El estado local (arriba) sigue instantáneo; solo se pospone la red.
+    // registrarDia() re-sincroniza todo igual, así que un debounce que queda
+    // colgado (el alumno cierra la app antes de los 600ms) no pierde el dato.
+    const timers = _pesoSaveTimers.current;
+    clearTimeout(timers.get(id));
+    timers.set(id, setTimeout(() => saveDailyWeight(alumno.id, hoyStr, id, num), 600));
   };
   const marcarAsistencia = (fecha) => {
     // La asistencia de HOY se guarda con hora ("YYYY-MM-DD HH:mm"); días
