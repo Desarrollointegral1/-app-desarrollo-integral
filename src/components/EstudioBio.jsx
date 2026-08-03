@@ -19,6 +19,7 @@ import {
 } from "../../services/supabase.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 import { generarFlyerBio } from "../utils/flyerBio.js";
+import { ScanCorporalForm } from "./ScanCorporal.jsx";
 
 const BIO_BUCKET = "bioimpedancia-archivos";
 
@@ -170,6 +171,12 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
           de Lucas de que viva separado del formulario de estudio nuevo. */}
       {!readOnly && !editando && (
         <EstudioAnteriorForm onGuardar={guardar} guardando={guardando} />
+      )}
+      {/* Scan corporal (Fase 1): composición corporal estimada por IA a
+          partir de 2 fotos, sin balanza. Guarda en la misma tabla con
+          metadata.tipo="scan_2fotos" para distinguirlo de una medición manual. */}
+      {!readOnly && !editando && (
+        <ScanCorporalForm alumno={alumno} onGuardar={guardar} />
       )}
       {/* El requerimiento energético y la alerta de disponibilidad son
           entrenador-only por veto de seguridad: un número de kcal mostrado al
@@ -772,12 +779,14 @@ export function EstudioBioHistorial({ registros, onEliminar, onEditar, alumnoFly
         // propia): se marca distinto para no mostrar una grilla de 6 métricas
         // todas en "—", que se lee como un registro roto.
         const esAnterior = bio.metadata?.tipo === "estudio_anterior";
+        const esScan = bio.metadata?.tipo === "scan_2fotos";
         return (
         <div key={bio.id} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 11, color: S.lgray, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Calendar size={14} strokeWidth={2} />{bio.fecha} {bio.hora ? `· ${String(bio.hora).slice(0, 5)}` : ""}
               {esAnterior && <span style={{ color: S.gray, textTransform: "uppercase", letterSpacing: 1, fontSize: 9 }}>· Estudio anterior</span>}
+              {esScan && <span style={{ color: S.gray, textTransform: "uppercase", letterSpacing: 1, fontSize: 9 }}>· Scan 2 fotos (IA)</span>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               {alumnoFlyer && !esAnterior && (
