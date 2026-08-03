@@ -93,7 +93,10 @@ export function useIsWide() {
 }
 
 export const DARK_T = {
-  bg: "#070707",
+  // #070707 -> #0d0d0d (auditoría UX 2026-08-03): con negro casi puro las
+  // sombras/elevación de las cards perdían contraste contra el fondo — un
+  // escalón más claro (rango recomendado 0d0d0d-121212) les da dónde apoyarse.
+  bg: "#0d0d0d",
   card: "#131313",
   card2: "#1c1c1c",
   card3: "#262626",

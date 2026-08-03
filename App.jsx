@@ -88,7 +88,12 @@ import PlanDelDia from "./src/components/PlanDelDia.jsx";
 // Patrones de las apps que el alumno ya sabe usar (Instagram / Mercado Libre
 // / Facebook), incorporados en la auditoría del 2026-07-30.
 import { useDeshacer } from "./src/components/ToastDeshacer.jsx";
-import { SkeletonListaAlumnos, SkeletonCard } from "./src/components/Skeleton.jsx";
+// SkeletonListaAlumnos sacado 2026-08-03: import muerto, nunca tuvo un lugar
+// real — toda la app carga detrás de un único splash (Logo3D, ver !cargado)
+// antes de que exista ninguna lista que mostrar; no hay un momento async
+// separado de "lista de alumnos cargando" para conectarlo sin inventar un
+// estado nuevo. SkeletonCard sigue en uso donde sí aplica.
+import { SkeletonCard } from "./src/components/Skeleton.jsx";
 import PullToRefresh from "./src/components/PullToRefresh.jsx";
 import CoachFlotante from "./src/components/CoachFlotante.jsx";
 import ResumenPlanModal from "./src/components/ResumenPlanModal.jsx";
@@ -3226,6 +3231,7 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
 }
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
 function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect, onToggleAsistencia }) {
+  const [soloSinEntrenar, setSoloSinEntrenar] = useState(false);
   const lunesStr = (() => {
     const d = new Date();
     const l = new Date(d);
@@ -3233,11 +3239,50 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
     return l.toISOString().split("T")[0];
   })();
 
+  // Acceso rápido real (auditoría UX 2026-08-03, patrón "círculos" tipo
+  // Mercado Pago — pero solo donde resuelve algo, no de adorno): quién NO
+  // entrenó hoy es la pregunta que un coach se hace al abrir la app a la
+  // mañana. "Crear alumno" ya tiene su botón prominente abajo y no se toca
+  // — no todo accesorio necesita volverse un círculo.
+  const sinEntrenarHoy = alumnos.filter((al) => {
+    const ultima = ([...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0] || "").slice(0, 10);
+    return ultima !== hoy();
+  }).length;
+
   return (
     <div onClick={onDeselect}>
       {/* El buscador de alumno vive UNA sola vez en el layout del AdminPanel
           (arriba de los submenús) — acá adentro no se repite (ronda 4). */}
-      {/* Crear alumno — abre pantalla aparte (modal), ronda 9 */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 16 }} onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => setSoloSinEntrenar((v) => !v)}
+          style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            background: "transparent", border: "none", cursor: "pointer", flex: 1,
+          }}
+          aria-pressed={soloSinEntrenar}
+        >
+          <div
+            style={{
+              width: 52, height: 52, borderRadius: "50%",
+              background: soloSinEntrenar ? S.white : S.card3,
+              border: "1px solid " + (soloSinEntrenar ? S.white : S.border2),
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16, fontWeight: 900, color: soloSinEntrenar ? S.bg : S.white,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+          >
+            {sinEntrenarHoy}
+          </div>
+          <span style={{ fontSize: 10.5, color: soloSinEntrenar ? S.white : S.gray, fontWeight: soloSinEntrenar ? 800 : 500, textAlign: "center" }}>
+            Sin entrenar hoy
+          </span>
+        </button>
+      </div>
+
+      {/* Crear alumno — abre pantalla aparte (modal), ronda 9. Queda como
+          botón ancho (acción primaria de alta frecuencia): un círculo la
+          demotaría, no la mejoraría. */}
       <button
         onClick={(e) => { e.stopPropagation(); onNuevo(); }}
         style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: "11px 14px", fontWeight: 900, fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", marginBottom: 14 }}
@@ -3251,7 +3296,7 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
           legacy sin uso directo en este componente. */}
 
       <div style={{ ...eyebrow, letterSpacing: 2, marginBottom: 10 }}>
-        Todos los alumnos ({alumnos.length})
+        {soloSinEntrenar ? `Sin entrenar hoy (${sinEntrenarHoy})` : `Todos los alumnos (${alumnos.length})`}
       </div>
 
       {/* Ronda 18: el alumno seleccionado va PRIMERO en la lista (la card
@@ -3261,7 +3306,13 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
           siempre — el breakpoint vive en CSS, no en JS, para que no dependa
           de un re-render. */}
       <div className="di-grid-cards">
-      {[...alumnos].sort((a, b) => (a.id === selId ? -1 : 0) - (b.id === selId ? -1 : 0)).map((al) => {
+      {[...alumnos]
+        .filter((al) => {
+          if (!soloSinEntrenar) return true;
+          const ultima = ([...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0] || "").slice(0, 10);
+          return ultima !== hoy();
+        })
+        .sort((a, b) => (a.id === selId ? -1 : 0) - (b.id === selId ? -1 : 0)).map((al) => {
         const asistSemana = (al.asistencia || []).filter((d) => d >= lunesStr).length;
         const asistMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
         const ultimaAsist = ([...(al.asistencia || [])].sort((a, b) => b.localeCompare(a))[0] || "").slice(0, 10) || undefined;
@@ -6193,7 +6244,17 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           disabled={cargando}
         />
 
-        {err && <div role="alert" style={{ color: S.red, fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "10px 12px", background: "rgba(229,62,62,0.08)", borderRadius: 6, border: "1px solid rgba(229,62,62,0.2)" }}>{err}</div>}
+        {/* Auditoría UX 2026-08-03: el contenedor ya existía, pero con 8% de
+            opacidad de fondo era prácticamente invisible contra un dark mode
+            casi negro — se leía como "texto rojo suelto". Mismo layout,
+            fondo/borde con más peso para que se note que es un estado, no
+            solo una palabra roja. */}
+        {err && (
+          <div role="alert" style={{ display: "flex", alignItems: "center", gap: 8, color: "#ff8080", fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "11px 14px", background: "rgba(229,62,62,0.16)", borderRadius: 8, border: "1px solid rgba(229,62,62,0.45)" }}>
+            <span aria-hidden="true" style={{ fontSize: 15, flexShrink: 0 }}>⚠</span>
+            {err}
+          </div>
+        )}
 
         <button
           // 2026-07-30: NO poner onClick={go} directo — React pasa el
@@ -7594,6 +7655,18 @@ export default function App() {
                     const objetivo = diasPorSemana * semanasTranscurridas;
                     const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
                     const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
+                    // Racha — misma lógica que el componente Asistencia (vista rehab),
+                    // extendida acá para que el alumno de entrenamiento normal también la vea.
+                    const tieneDiaAsistido = (d) => (al.asistencia || []).some((x) => x.slice(0, 10) === d);
+                    let racha = 0;
+                    let checkDate = new Date();
+                    checkDate.setHours(0, 0, 0, 0);
+                    for (let i = 0; i < 60; i++) {
+                      const ds = checkDate.toISOString().split("T")[0];
+                      if (tieneDiaAsistido(ds)) racha++;
+                      else if (i > 0) break;
+                      checkDate.setDate(checkDate.getDate() - 1);
+                    }
                     return (
                       <>
                       {/* Asistencia — ronda 17 (punto 4): fecha editable, hoy
@@ -7645,6 +7718,14 @@ export default function App() {
                             : "Marcar presente"}
                         </button>
                       </div>
+                      {racha > 0 && (
+                        <div style={{ ...card, padding: "12px 10px", textAlign: "center", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                          <div style={{ color: S.green, fontWeight: 900, fontSize: 28 }}>{racha}</div>
+                          <div style={{ color: S.gray, fontSize: 13, letterSpacing: 0.5, textTransform: "uppercase", textAlign: "left", lineHeight: 1.3 }}>
+                            {racha === 1 ? "día seguido entrenando" : "días seguidos entrenando"}
+                          </div>
+                        </div>
+                      )}
                       <div style={{ ...card, padding: "16px", marginBottom: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                           <div style={{ color: S.gray, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -7679,76 +7760,110 @@ export default function App() {
         <div
           style={{
             position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: 12,
+            right: 12,
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
             zIndex: 500,
-            display: "flex",
-            background: S.card,
-            borderTop: "1px solid " + S.border2,
-            paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
-          {/* 2026-07-31, pedido de Lucas: Historial a la izquierda,
-              Entrenamiento en el medio (el destino principal), Luqui a la
-              derecha — desde ahí se abre el chat directo, sin duplicar el
-              botón flotante (ver mostrarBoton en CoachFlotante). */}
-          {[
-            ["diario", "Historial", ClipboardList],
-            ["entrenamiento", "Entrenamiento", Dumbbell],
-            ["luqui", "Luqui", null],
-          ].map(([id, label, Icono]) => {
-            const activo = id !== "luqui" && tabGroup === id;
-            return (
-              <button
-                key={id}
-                /* 2026-07-31 — Lucas: Luqui hace toggle (cierra si ya está
-                    abierto); los OTROS botones (Historial/Entrenamiento)
-                    también lo cierran si estaba abierto, para no navegar
-                    con el chat tapando la pantalla. */
-                onClick={() => {
-                  if (id === "luqui") coachRef.current?.toggle();
-                  else {
-                    // 2026-07-31 — Lucas: "al clickear en Entrenamiento que
-                    // no me baje toda la pantalla" — al cambiar de sección
-                    // el scroll quedaba en la misma posición de píxeles de
-                    // la sección anterior (con otra altura de contenido),
-                    // dando un salto brusco. Reset a arriba en cada cambio.
-                    coachRef.current?.cerrar();
-                    setTabGroup(id);
-                    window.scrollTo({ top: 0 });
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  minHeight: TAP + 20,
-                  background: "transparent",
-                  border: "none",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  padding: "8px 0",
-                  cursor: "pointer",
-                }}
-              >
-                {id === "luqui" ? (
-                  // 2026-07-31 — Lucas: "Luqui tiene que quedar en blanco...
-                  // ya que es negro ese menú abajo". La barra usa S.card
-                  // (oscuro en dark mode), así que necesita el ícono BLANCO
-                  // en dark mode — estaba al revés (mostraba el negro,
-                  // invisible sobre el fondo oscuro).
-                  <img src={darkMode ? ICON_WHITE_CROP : ICON_BLACK_CROP} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
-                ) : (
-                  <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
-                )}
-                <span style={{ fontSize: 11, fontWeight: activo ? 800 : 500, color: activo ? S.white : S.gray }}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+          {/* Barra flotante (2026-08-03, auditoría UX): antes tocaba los 3
+              bordes de la pantalla, sin sombra ni cápsula — el patrón "tabbar
+              plana de hace unos años". La estructura y los 3 accesos NO
+              cambian (Historial/Entrenamiento/Luqui siguen siendo lo
+              correcto — Instagram/Airbnb la mantienen en 2026), solo la
+              terminación: separada del borde, cápsula redondeada, sombra, y
+              un indicador que se desliza al cambiar de pestaña en vez de
+              un cambio de color instantáneo. */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              background: S.card,
+              borderRadius: 22,
+              border: "1px solid " + S.border2,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+              padding: 6,
+            }}
+          >
+            {/* Indicador que se desliza detrás del ícono activo. Solo cubre
+                Historial/Entrenamiento (índices 0-1) — Luqui es un toggle de
+                chat, no un estado seleccionado, así que no lleva pastilla. */}
+            <div
+              style={{
+                position: "absolute",
+                top: 6,
+                bottom: 6,
+                left: 6,
+                width: "calc((100% - 12px) / 3)",
+                borderRadius: 16,
+                background: tabGroup === "diario" || tabGroup === "entrenamiento" ? S.card2 : "transparent",
+                transform: `translateX(${tabGroup === "entrenamiento" ? 100 : tabGroup === "diario" ? 0 : 200}%)`,
+                transition: "transform 0.25s cubic-bezier(0.23,1,0.32,1), background 0.15s",
+              }}
+            />
+            {/* 2026-07-31, pedido de Lucas: Historial a la izquierda,
+                Entrenamiento en el medio (el destino principal), Luqui a la
+                derecha — desde ahí se abre el chat directo, sin duplicar el
+                botón flotante (ver mostrarBoton en CoachFlotante). */}
+            {[
+              ["diario", "Historial", ClipboardList],
+              ["entrenamiento", "Entrenamiento", Dumbbell],
+              ["luqui", "Luqui", null],
+            ].map(([id, label, Icono]) => {
+              const activo = id !== "luqui" && tabGroup === id;
+              return (
+                <button
+                  key={id}
+                  /* 2026-07-31 — Lucas: Luqui hace toggle (cierra si ya está
+                      abierto); los OTROS botones (Historial/Entrenamiento)
+                      también lo cierran si estaba abierto, para no navegar
+                      con el chat tapando la pantalla. */
+                  onClick={() => {
+                    if (id === "luqui") coachRef.current?.toggle();
+                    else {
+                      // 2026-07-31 — Lucas: "al clickear en Entrenamiento que
+                      // no me baje toda la pantalla" — al cambiar de sección
+                      // el scroll quedaba en la misma posición de píxeles de
+                      // la sección anterior (con otra altura de contenido),
+                      // dando un salto brusco. Reset a arriba en cada cambio.
+                      coachRef.current?.cerrar();
+                      setTabGroup(id);
+                      window.scrollTo({ top: 0 });
+                    }
+                  }}
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    flex: 1,
+                    minHeight: TAP + 12,
+                    background: "transparent",
+                    border: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 3,
+                    padding: "8px 0",
+                    cursor: "pointer",
+                  }}
+                >
+                  {id === "luqui" ? (
+                    // 2026-07-31 — Lucas: "Luqui tiene que quedar en blanco...
+                    // ya que es negro ese menú abajo". La barra usa S.card
+                    // (oscuro en dark mode), así que necesita el ícono BLANCO
+                    // en dark mode — estaba al revés (mostraba el negro,
+                    // invisible sobre el fondo oscuro).
+                    <img src={darkMode ? ICON_WHITE_CROP : ICON_BLACK_CROP} alt="" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                  ) : (
+                    <Icono size={22} strokeWidth={activo ? 2.4 : 1.8} color={activo ? S.white : S.gray} />
+                  )}
+                  <span style={{ fontSize: 11, fontWeight: activo ? 800 : 500, color: activo ? S.white : S.gray }}>
+                    {label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </>
