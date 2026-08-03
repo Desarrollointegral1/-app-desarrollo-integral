@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/scan-corporal.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/web", "destination": "https://luquigivi.vercel.app/web" },
     { "source": "/web/:path*", "destination": "https://luquigivi.vercel.app/web/:path*" },

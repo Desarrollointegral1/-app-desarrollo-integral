@@ -2016,6 +2016,11 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
   // estaba incompleto — en ese caso no se guarda nada, ni parcial ni NaN.
   if (datos.requerimiento) metadata.requerimiento = datos.requerimiento;
   if (datos.tipo) metadata.tipo = datos.tipo;
+  // Scan corporal (2 fotos + IA): mismo patrón que el resto de metadata,
+  // solo se guardan si vienen — no agregan columnas nuevas a la tabla.
+  if (datos.medidas_estimadas) metadata.medidas_estimadas = datos.medidas_estimadas;
+  if (datos.masa_magra_kg != null && datos.masa_magra_kg !== "") metadata.masa_magra_kg = Number(datos.masa_magra_kg);
+  if (datos.masa_grasa_kg != null && datos.masa_grasa_kg !== "") metadata.masa_grasa_kg = Number(datos.masa_grasa_kg);
 
   const payload = limpiarPayload({
     alumno_id,
@@ -2088,6 +2093,9 @@ export async function actualizarBioimpedancia(id, datos, foto = null, quitarFoto
   if (datos.objetivo) metadata.objetivo = datos.objetivo;
   if (datos.requerimiento) metadata.requerimiento = datos.requerimiento;
   if (datos.tipo) metadata.tipo = datos.tipo;
+  if (datos.medidas_estimadas) metadata.medidas_estimadas = datos.medidas_estimadas;
+  if (datos.masa_magra_kg != null && datos.masa_magra_kg !== "") metadata.masa_magra_kg = Number(datos.masa_magra_kg);
+  if (datos.masa_grasa_kg != null && datos.masa_grasa_kg !== "") metadata.masa_grasa_kg = Number(datos.masa_grasa_kg);
 
   const payload = limpiarPayload({
     fecha: datos.fecha,
