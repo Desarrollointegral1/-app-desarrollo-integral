@@ -9,3 +9,9 @@ dist/
 
 # nota personal con credenciales — nunca al repo (auditoría 2026-08-02)
 compa.txt
+
+# Temporales de Google Drive: esta carpeta vive dentro de la unidad sincronizada,
+# así que Drive deja archivos de transferencia acá mientras sube. Llegaron a
+# haber 1699 trackeados en git (auditoría 2026-08-03) — no son del proyecto.
+.tmp.driveupload/
+.tmp.drivedownload/
