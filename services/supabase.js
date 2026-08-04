@@ -247,6 +247,9 @@ export async function cargarDatos(fallback) {
         alumno_planes(id, dia_semana, nombre, estado),
         plan_dias(id, dia, subtitulo, orden, alumno_plan_id,
           plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))`)
+      // 2026-08-04: los archivados (ver deleteAlumno/migración 030) no
+      // aparecen en el listado normal del Dashboard.
+      .eq("archivado", false)
       .order("nombre");
 
     if (error) throw error;
@@ -1129,12 +1132,37 @@ export async function cambiarPINAlumno(alumno_id, nuevoPIN) {
   }
 }
 
+// 2026-08-04: "eliminar" un alumno ARCHIVA, nunca borra de verdad — un click
+// equivocado en la lista del Dashboard (sin confirmación, solo el toast de
+// "Deshacer" de 6s) borró en serio a un alumno y, por los ON DELETE CASCADE
+// de las tablas relacionadas (bioimpedancia, planes, entrenamientos,
+// registros_diarios, evaluaciones, historial_pesos), se llevó todo su
+// historial con él, sin forma de deshacerlo pasados los 6s. Ver migración
+// 030. `restaurarAlumno` es el camino de vuelta.
 export async function deleteAlumno(alumno_id) {
-  LOG("deleteAlumno", `⏳ Eliminando alumno ${alumno_id}...`);
-  const { error } = await supabase.from("alumnos").delete().eq("id", alumno_id);
-  if (error) { ERR("deleteAlumno", `No se pudo eliminar ${alumno_id}`, error); return false; }
-  LOG("deleteAlumno", `✅ Alumno ${alumno_id} eliminado.`);
+  LOG("deleteAlumno", `⏳ Archivando alumno ${alumno_id}...`);
+  const { error } = await supabase.from("alumnos").update({ archivado: true, archivado_en: new Date().toISOString() }).eq("id", alumno_id);
+  if (error) { ERR("deleteAlumno", `No se pudo archivar ${alumno_id}`, error); return false; }
+  LOG("deleteAlumno", `✅ Alumno ${alumno_id} archivado.`);
   return true;
+}
+
+export async function restaurarAlumno(alumno_id) {
+  LOG("restaurarAlumno", `⏳ Restaurando alumno ${alumno_id}...`);
+  const { error } = await supabase.from("alumnos").update({ archivado: false, archivado_en: null }).eq("id", alumno_id);
+  if (error) { ERR("restaurarAlumno", `No se pudo restaurar ${alumno_id}`, error); return false; }
+  LOG("restaurarAlumno", `✅ Alumno ${alumno_id} restaurado.`);
+  return true;
+}
+
+export async function cargarAlumnosArchivados() {
+  const { data, error } = await supabase
+    .from("alumnos")
+    .select("id, nombre, username, codigo, archivado_en")
+    .eq("archivado", true)
+    .order("archivado_en", { ascending: false });
+  if (error) { ERR("cargarAlumnosArchivados", "Error al cargar archivados", error); return []; }
+  return data || [];
 }
 
 export async function getAlumno(alumno_id) {
@@ -1194,12 +1222,19 @@ export async function loginConCodigo(codigo, pin) {
 
     const { data: alumno, error } = await supabase
       .from("alumnos")
-      .select(COLS_ALUMNO_SIN_FOTO)
+      .select(COLS_ALUMNO_SIN_FOTO + ", archivado")
       .ilike("codigo", codigo.trim())
       .single();
 
     if (error || !alumno) {
       throw new Error("No se pudo cargar el alumno");
+    }
+    // 2026-08-04: un alumno archivado (ver migración 030) no puede loguearse
+    // aunque el PIN sea correcto — la RPC de sesión no distingue esto, así
+    // que se corta acá, del lado del cliente, apenas se conoce el estado.
+    if (alumno.archivado) {
+      await cerrarSesionAuth();
+      throw new Error("Este usuario ya no está activo");
     }
 
     LOG("loginConCodigo", `✅ Login exitoso para ${alumno.nombre}`);

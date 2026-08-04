@@ -26,7 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
-import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight } from "lucide-react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
@@ -510,6 +510,46 @@ export default function CatalogoExplorer({
       : base.sort(az);
   }, [cat, q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, verRevisar, revisarIds, orden]);
 
+  // 2026-08-04, pedido de Lucas: "reclasificar la biblioteca por movimiento"
+  // — hallazgo real: ejercicios como "Press Militar" viven en 14 filas
+  // separadas por variante de equipo, difícil de escanear en una grilla
+  // plana. En vez de reescribir 1.343 filas con una clasificación adivinada
+  // (riesgo real: agrupar mal en una app de entrenamiento confunde al
+  // coach), esto es puramente VISUAL y no toca la base — agrupa por el
+  // prefijo de palabras que comparten items YA ADYACENTES en el orden
+  // actual (mismo criterio con el que un entrenador escanea la grilla).
+  // Sin dato falso: si dos ítems no comparten como mínimo 3 palabras
+  // iniciales seguidas, quedan sueltos, tal cual se veían antes.
+  const normPrefijo = (s) =>
+    (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const palabrasCompartidas = (a, b) => {
+    const wa = normPrefijo(a).split(/\s+/);
+    const wb = normPrefijo(b).split(/\s+/);
+    let n = 0;
+    while (n < wa.length && n < wb.length && wa[n] === wb[n]) n++;
+    return n;
+  };
+  const clusters = useMemo(() => {
+    const info = new Array(filtrados.length).fill(null);
+    let inicio = 0;
+    for (let i = 1; i <= filtrados.length; i++) {
+      const corte =
+        i === filtrados.length ||
+        filtrados[i].categoria !== filtrados[i - 1].categoria ||
+        palabrasCompartidas(filtrados[i].nombre_es, filtrados[i - 1].nombre_es) < 3;
+      if (corte) {
+        const size = i - inicio;
+        if (size >= 2) {
+          const nPrefijo = palabrasCompartidas(filtrados[inicio].nombre_es, filtrados[i - 1].nombre_es);
+          const label = filtrados[inicio].nombre_es.trim().split(/\s+/).slice(0, nPrefijo).join(" ");
+          if (label) info[inicio] = { size, label };
+        }
+        inicio = i;
+      }
+    }
+    return info;
+  }, [filtrados]);
+
   useEffect(() => { setVisibles(PAGE); }, [q, fCat, fEq, fTg, fPre, fNivel, soloDI, verArchivados, verRevisar, orden]);
 
   const toggle = (setter) => (v) =>
@@ -911,6 +951,10 @@ export default function CatalogoExplorer({
                 const grupo = orden === "categoria" && (i === 0 || arr[i - 1].categoria !== e.categoria)
                   ? labelCat(e.categoria || "Sin categoría")
                   : null;
+                // 2026-08-04: cluster de variantes por movimiento (ver
+                // `clusters` arriba) — badge chico, sin competir con el
+                // acento rojo de marca que ya usa el encabezado de categoría.
+                const cluster = clusters[i];
                 return (
                   <Fragment key={e.id}>
                     {grupo && (
@@ -918,6 +962,16 @@ export default function CatalogoExplorer({
                         <span style={{ width: 24, height: 2, background: S.red, flexShrink: 0 }} />
                         <span style={{ ...eyebrow, fontSize: TS.chip, color: S.white }}>{grupo}</span>
                         <span style={{ flex: 1, height: 1, background: S.border }} />
+                      </div>
+                    )}
+                    {cluster && (
+                      <div style={{ gridColumn: "1 / -1", marginTop: grupo ? 4 : i === 0 ? 0 : 10 }}>
+                        <span
+                          title={`${cluster.size} variantes de "${cluster.label}" — mismo movimiento, distinto equipo/ejecución`}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: TS.chip, fontWeight: 700, color: S.lgray, background: S.card2, border: "1px solid " + S.border, borderRadius: 20, padding: "4px 10px 4px 8px" }}
+                        >
+                          <Layers size={13} strokeWidth={2} />{cluster.label} · {cluster.size} variantes
+                        </span>
                       </div>
                     )}
                     <article

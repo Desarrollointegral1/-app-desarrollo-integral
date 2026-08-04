@@ -9,6 +9,8 @@ import {
   guardarPesos,
   insertAlumno,
   deleteAlumno,
+  restaurarAlumno,
+  cargarAlumnosArchivados,
   cambiarPINAlumno,
   loginConCodigo,
   loginAdmin,
@@ -103,7 +105,7 @@ import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
-import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power } from "lucide-react";
+import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 import { useSignedUrl } from "./src/utils/useSignedUrl.js";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
@@ -3230,8 +3232,29 @@ function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh
   );
 }
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
-function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect, onToggleAsistencia }) {
+function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect, onToggleAsistencia, showToast }) {
   const [soloSinEntrenar, setSoloSinEntrenar] = useState(false);
+  // 2026-08-04: recuperar alumnos archivados (ver migración 030 — "eliminar"
+  // ya no borra, archiva). Se carga bajo demanda, no en cada render del
+  // Dashboard, porque en el uso normal nadie la abre.
+  const [archivados, setArchivados] = useState(null); // null = no cargado todavía
+  const [verArchivados, setVerArchivados] = useState(false);
+  const [restaurando, setRestaurando] = useState(null);
+  const abrirArchivados = () => {
+    setVerArchivados((v) => !v);
+    if (archivados === null) cargarAlumnosArchivados().then(setArchivados);
+  };
+  const restaurar = async (al) => {
+    setRestaurando(al.id);
+    const ok = await restaurarAlumno(al.id);
+    setRestaurando(null);
+    if (ok) {
+      setArchivados((prev) => prev.filter((a) => a.id !== al.id));
+      showToast && showToast(`${al.nombre} restaurado`);
+    } else {
+      showToast && showToast("No se pudo restaurar — revisá la consola");
+    }
+  };
   const lunesStr = (() => {
     const d = new Date();
     const l = new Date(d);
@@ -3278,7 +3301,63 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
             Sin entrenar hoy
           </span>
         </button>
+        {/* 2026-08-04: acceso a los archivados — mismo patrón de círculo,
+            para recuperar a alguien que se borró (a propósito o por error,
+            ver migración 030). Sin contador precargado (no vale la pena una
+            consulta extra en cada apertura del Dashboard solo para esto). */}
+        <button
+          onClick={abrirArchivados}
+          style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            background: "transparent", border: "none", cursor: "pointer", flex: 1,
+          }}
+          aria-pressed={verArchivados}
+        >
+          <div
+            style={{
+              width: 52, height: 52, borderRadius: "50%",
+              background: verArchivados ? S.white : S.card3,
+              border: "1px solid " + (verArchivados ? S.white : S.border2),
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+          >
+            <Archive size={20} strokeWidth={2} color={verArchivados ? S.bg : S.white} />
+          </div>
+          <span style={{ fontSize: 10.5, color: verArchivados ? S.white : S.gray, fontWeight: verArchivados ? 800 : 500, textAlign: "center" }}>
+            Archivados
+          </span>
+        </button>
       </div>
+
+      {verArchivados && (
+        <div style={{ ...card, padding: 12, marginBottom: 14 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...eyebrow, marginBottom: 8 }}>
+            {archivados === null ? "Cargando…" : `Archivados (${archivados.length})`}
+          </div>
+          {archivados !== null && archivados.length === 0 && (
+            <div style={{ color: S.gray, fontSize: 13 }}>Nadie archivado por ahora.</div>
+          )}
+          {(archivados || []).map((al) => (
+            <div key={al.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid " + S.border }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{al.nombre}</div>
+                <div style={{ color: S.gray, fontSize: 12 }}>
+                  {al.username || al.codigo}
+                  {al.archivado_en ? ` · archivado el ${al.archivado_en.slice(8, 10)}/${al.archivado_en.slice(5, 7)}` : ""}
+                </div>
+              </div>
+              <button
+                onClick={() => restaurar(al)}
+                disabled={restaurando === al.id}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: S.white, color: S.bg, border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 800, cursor: restaurando === al.id ? "default" : "pointer", flexShrink: 0, opacity: restaurando === al.id ? 0.6 : 1 }}
+              >
+                <RotateCcw size={14} strokeWidth={2} />{restaurando === al.id ? "Restaurando…" : "Restaurar"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Crear alumno — abre pantalla aparte (modal), ronda 9. Queda como
           botón ancho (acción primaria de alta frecuencia): un círculo la
@@ -3875,6 +3954,72 @@ const MODALIDAD_LEGACY = {
   "Rehabilitacion": MODALIDAD_REHAB,
 };
 const modalidadLabel = (m) => (m ? MODALIDAD_LEGACY[m] || m : "");
+// 2026-08-04, pedido de Lucas (captura de una app de coaching real): dock de
+// accesos redondos — mismo patrón que el manual de UX ya recomendaba (grid
+// de íconos tipo Mercado Pago/Afitz) para accesos secundarios AGRUPADOS
+// dentro de una pantalla, nunca como reemplazo de una tabbar primaria. Un
+// solo componente reusado en dos lugares (ficha de alumno del admin +
+// sub-nav de Historial del alumno) para que el patrón se sienta igual en
+// toda la app, no una pieza suelta.
+function IconDock({ items, activo, onSelect }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 4, padding: "4px 2px 14px" }}>
+      {items.map(([key, label, Icono]) => {
+        const on = activo === key;
+        return (
+          <button
+            key={key}
+            onClick={() => onSelect(key)}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 6,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "2px 0",
+              minWidth: 0,
+            }}
+          >
+            <span
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                background: on ? S.white : S.card2,
+                border: "1px solid " + (on ? S.white : S.border2),
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s, border-color 0.2s",
+                flexShrink: 0,
+              }}
+            >
+              <Icono size={22} strokeWidth={2} color={on ? S.bg : S.lgray} />
+            </span>
+            <span
+              style={{
+                fontSize: 10.5,
+                fontWeight: on ? 800 : 600,
+                color: on ? S.white : S.gray,
+                textAlign: "center",
+                lineHeight: 1.2,
+                maxWidth: 66,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 // Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
 // ("por más que entrene solo, algún día lo voy a ir a ver").
 function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
@@ -4597,12 +4742,17 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           (Ejercicios/Planificación/Reportes) — antes aparecían también en
           Configuración porque la condición solo excluía "dashboard". */}
       {sec !== "dashboard" && sec !== "config" && (
-      <div style={{ display: "flex", gap: 6, padding: "0 16px", marginBottom: 10 }}>
-        {[["Ejercicios", "plan"], ["Planificación", "planes"], ["Reportes", "reportes"], ["Evaluación", "evaluacion"]].map(([l, k]) => (
-          <button key={k} onClick={() => { setSec(k); setForm(null); }} style={{ ...tabN2(sec === k), padding: "10px 4px" }}>
-            {l}
-          </button>
-        ))}
+      <div style={{ padding: "0 16px" }}>
+        <IconDock
+          items={[
+            ["plan", "Ejercicios", Dumbbell],
+            ["planes", "Planificación", Calendar],
+            ["reportes", "Reportes", BarChart3],
+            ["evaluacion", "Evaluación", Stethoscope],
+          ]}
+          activo={sec}
+          onSelect={(k) => { setSec(k); setForm(null); }}
+        />
       </div>
       )}{" "}
       <div style={{ padding: "0 16px" }}>
@@ -4628,7 +4778,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 onUpdate(nuevos);
                 if (selId === id) setSelId(nuevos[0]?.id);
                 ejecutarConDeshacer({
-                  mensaje: `${nombre} eliminado`,
+                  // 2026-08-04: ya no es un borrado real (ver deleteAlumno,
+                  // migración 030) — el mensaje lo dice, para que quede
+                  // claro que se puede recuperar después desde "Archivados",
+                  // no solo dentro de los 6s del Deshacer.
+                  mensaje: `${nombre} archivado`,
                   alDeshacer: () => {
                     onUpdate(alumnos);
                     setSelId(id);
@@ -4637,11 +4791,11 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     try {
                       await deleteAlumno(id);
                     } catch (e) {
-                      // Si la base rechaza el borrado, se repone en pantalla:
+                      // Si la base rechaza el archivado, se repone en pantalla:
                       // nunca queda "borrado" acá y vivo allá.
                       console.error("[onDelete alumno]", e);
                       if (alumnoBorrado) onUpdate(alumnos);
-                      showToast && showToast(`No se pudo eliminar a ${nombre}`);
+                      showToast && showToast(`No se pudo archivar a ${nombre}`);
                     }
                   },
                 });
@@ -4649,6 +4803,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               onNuevo={() => setShowCrearAlumno((v) => !v)}
               onBiblioteca={() => setShowCatalogo(true)}
               onDeselect={() => setSelId(null)}
+              showToast={showToast}
               onToggleAsistencia={async (id, marcar) => {
                 await saveDailyAttendance(id, hoy(), marcar);
                 // Auditoría 2026-07-30: este toggle guardaba la fecha pelada,
@@ -7619,26 +7774,34 @@ export default function App() {
           {/* ── DIARIO: asistencia de hoy + cómo estuvo el día ── */}{" "}
           {tabGroup === "diario" && (
           <div>
-              {/* 2026-07-31, pedido de Lucas: Bioimpedancia/Diario pasan a
-                  verse como el selector Preparación/Principales de
-                  PlanDelDia (mismo tabN2), no como el menú chico anterior. */}
-              <div style={{ display: "flex", gap: 8, margin: "4px 0 16px" }}>
-                {[["bio", "Bioimpedancia", TrendingUp], ["diario", "Diario", NotebookPen]].map(([id, label, Icono]) => {
-                  const activo = historialSub === id;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setHistorialSub(id)}
-                      style={{ ...tabN2(activo), display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-                    >
-                      <Icono size={15} color={activo ? S.white : S.gray} />
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+              {/* 2026-08-04, pedido de Lucas: Bioimpedancia/Diario/Evolución
+                  pasan del selector chico tabN2 al dock de íconos redondos
+                  (mismo componente que la ficha de alumno del admin) — un
+                  tercer acceso (Evolución) entra sin amontonar la tabbar de
+                  abajo, que se queda en 3 ítems. */}
+              <IconDock
+                items={[
+                  ["bio", "Bioimpedancia", TrendingUp],
+                  ["diario", "Diario", NotebookPen],
+                  ["evolucion", "Evolución", BarChart3],
+                ]}
+                activo={historialSub}
+                onSelect={setHistorialSub}
+              />
               {historialSub === "bio" && (
                 <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly />
+              )}
+              {historialSub === "evolucion" && (
+                <>
+                  <ResumenMensual
+                    asistencia={al.asistencia || []}
+                    historiales={historiales}
+                    plan={al.plan || { dias: [], periodizacion: [] }}
+                    diario={al.diario || []}
+                  />
+                  <div style={{ height: 20 }} />
+                  <EvolucionCargas historiales={historiales} plan={al.plan || { dias: [], periodizacion: [] }} />
+                </>
               )}
               {historialSub === "diario" && (
                 <Diario
