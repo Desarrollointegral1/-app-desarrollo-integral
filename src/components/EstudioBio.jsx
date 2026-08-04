@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { BarChart3, X, Camera, Inbox, Calendar, FileText, Trash2, Flame, TriangleAlert } from "lucide-react";
-import { S, card, inp, innerCard, TS, TAP } from "../utils/theme.js";
+import { BarChart3, X, Camera, Inbox, Calendar, FileText, Trash2, Flame, TriangleAlert, Sparkles } from "lucide-react";
+import { S, card, inp, innerCard, TS, TAP, tabN2 } from "../utils/theme.js";
 import { hoy, calcularEdad } from "../utils/helpers.js";
 import {
   SEXOS,
@@ -104,6 +104,12 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
   // estudio" se reemplaza por el mismo EstudioBioForm precargado (pedido de
   // Lucas: "falta poder modificar lo que grabé"). null = modo alta normal.
   const [editando, setEditando] = useState(null);
+  // 2026-08-04, pedido de Lucas: Bioimpedancia pasa a tener 2 módulos con
+  // selector arriba (antes todo apilado: form manual + estudio anterior +
+  // scan corporal, uno abajo del otro) — "Estudio manual" (con el link chico
+  // de "Subir estudio anterior" adentro, no cuenta como módulo aparte) y
+  // "Scan corporal (IA)".
+  const [modulo, setModulo] = useState("manual"); // 'manual' | 'scan'
 
   useEffect(() => {
     if (!alumnoId) return;
@@ -153,6 +159,16 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
 
   return (
     <div>
+      {!readOnly && !editando && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <button onClick={() => setModulo("manual")} style={{ ...tabN2(modulo === "manual"), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <BarChart3 size={15} strokeWidth={2} />Estudio manual
+          </button>
+          <button onClick={() => setModulo("scan")} style={{ ...tabN2(modulo === "scan"), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Sparkles size={15} strokeWidth={2} />Scan corporal (IA)
+          </button>
+        </div>
+      )}
       {!readOnly && editando ? (
         <EstudioBioForm
           key={editando.id}
@@ -163,19 +179,22 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
           guardando={guardando}
         />
       ) : (
-        !readOnly && (
-          <EstudioBioForm key="nuevo" alumno={alumno} onGuardar={guardar} guardando={guardando} historialAlumno={registros} />
+        !readOnly &&
+        modulo === "manual" && (
+          <>
+            <EstudioBioForm key="nuevo" alumno={alumno} onGuardar={guardar} guardando={guardando} historialAlumno={registros} />
+            {/* Estudio anterior: solo fecha + foto, sin medición — pedido
+                explícito de Lucas de que viva separado del formulario de
+                estudio nuevo, pero adentro del módulo manual (no es un
+                módulo aparte). */}
+            <EstudioAnteriorForm onGuardar={guardar} guardando={guardando} />
+          </>
         )
-      )}
-      {/* Estudio anterior: solo fecha + foto, sin medición — pedido explícito
-          de Lucas de que viva separado del formulario de estudio nuevo. */}
-      {!readOnly && !editando && (
-        <EstudioAnteriorForm onGuardar={guardar} guardando={guardando} />
       )}
       {/* Scan corporal (Fase 1): composición corporal estimada por IA a
           partir de 2 fotos, sin balanza. Guarda en la misma tabla con
           metadata.tipo="scan_2fotos" para distinguirlo de una medición manual. */}
-      {!readOnly && !editando && (
+      {!readOnly && !editando && modulo === "scan" && (
         <ScanCorporalForm alumno={alumno} onGuardar={guardar} />
       )}
       {/* El requerimiento energético y la alerta de disponibilidad son
