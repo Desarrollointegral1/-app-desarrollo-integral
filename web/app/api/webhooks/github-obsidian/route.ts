@@ -1,11 +1,21 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy: createClient() tira si la URL viene vacía, y Next la evalúa en build
+// time al "recolectar page data" — con el módulo top-level eso rompía el
+// build entero (`supabaseUrl is required`). Mismo patrón que lib/coach/coach.ts,
+// donde este bug ya se había resuelto. Se crea recién en el primer uso.
+let _supabase: SupabaseClient | null = null;
+function supa(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+  }
+  return _supabase;
+}
 
 // Verificar firma del webhook de GitHub
 function verifyGitHubWebhook(payload: string, signature: string): boolean {
@@ -97,7 +107,7 @@ export async function POST(request: NextRequest) {
       console.log(`✅ ${filePath} → ${domain}`);
 
       // Obtener el brain correspondiente
-      const { data: brain, error: brainError } = await supabase
+      const { data: brain, error: brainError } = await supa()
         .from('brains')
         .select('id')
         .eq('domain', domain)
@@ -125,7 +135,7 @@ export async function POST(request: NextRequest) {
       // Agregar documento al brain
       const title = filePath.split('/').pop()?.replace('.md', '') || 'Documento';
 
-      const { error: addError } = await supabase
+      const { error: addError } = await supa()
         .from('brain_documents')
         .insert({
           brainId: brain.id,

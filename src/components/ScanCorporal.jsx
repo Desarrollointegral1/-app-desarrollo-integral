@@ -18,8 +18,11 @@ import { SEXOS } from "../utils/energia.js";
 // guardan — ni acá ni en Supabase. Solo el resultado (números) se persiste
 // si el entrenador aprieta "Guardar en historial".
 
+// theme.js: "por debajo de 15px no se baja". Este archivo tenía labels a 10px y
+// las unidades del resultado a 8px — ilegibles, y encima es la pantalla donde
+// alguien decide si se saca dos fotos del cuerpo.
 const label = (t) => (
-  <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+  <div style={{ fontSize: TS.chip, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
     {t}
   </div>
 );
@@ -96,20 +99,20 @@ function CameraCapture({ tipo, onCapturar, onCancelar }) {
       <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
         <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px", textAlign: "center", background: "linear-gradient(rgba(0,0,0,0.6), transparent)" }}>
-          <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
+          <span style={{ color: "#fff", fontSize: TS.ui, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
             {tipo === "frontal" ? "Foto de frente, cuerpo completo" : "Foto de perfil, cuerpo completo"}
           </span>
         </div>
         {error && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-            <div style={{ color: "#fff", fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>{error}</div>
+            <div style={{ color: "#fff", fontSize: TS.body, textAlign: "center", lineHeight: 1.5 }}>{error}</div>
           </div>
         )}
       </div>
       <div style={{ display: "flex", gap: 12, padding: "16px", background: "#000", alignItems: "center", justifyContent: "center" }}>
         <button
           onClick={onCancelar}
-          style={{ background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: TAP }}
+          style={{ background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8, padding: "12px 20px", fontSize: TS.label, fontWeight: 700, cursor: "pointer", minHeight: TAP }}
         >
           Cancelar
         </button>
@@ -148,7 +151,7 @@ function FotoInput({ tipo, titulo, preview, onFile, onQuitar }) {
           <img src={preview} alt={titulo} style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8 }} />
           <button
             onClick={onQuitar}
-            style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
+            style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "8px 10px", minHeight: TAP, cursor: "pointer", fontSize: TS.chip, display: "inline-flex", alignItems: "center", gap: 4 }}
           >
             <X size={14} strokeWidth={2} />Quitar
           </button>
@@ -162,7 +165,7 @@ function FotoInput({ tipo, titulo, preview, onFile, onQuitar }) {
           >
             <Camera size={16} strokeWidth={2} />Usar cámara
           </button>
-          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 12px", textAlign: "center", color: S.gray, fontSize: 11, cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 12px", minHeight: TAP, boxSizing: "border-box", textAlign: "center", color: S.gray, fontSize: TS.chip, cursor: "pointer" }}>
             <Images size={14} strokeWidth={2} />Subir desde galería
             <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
           </label>
@@ -282,21 +285,45 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
     color: activo ? S.bg : S.gray,
     border: "1px solid " + (activo ? S.white : S.border),
     borderRadius: 8,
-    padding: "9px 4px",
-    fontSize: 11,
+    padding: "11px 4px",
+    minHeight: TAP,
+    fontSize: TS.chip,
     fontWeight: 700,
     cursor: "pointer",
   });
 
   return (
     <div style={{ ...card, padding: "14px 16px", marginBottom: 14 }}>
-      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 13, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
         <Sparkles size={16} strokeWidth={2} />Scan corporal (2 fotos)
       </div>
 
-      <div style={{ fontSize: 11, color: S.gray, lineHeight: 1.5, marginBottom: 12 }}>
+      <div style={{ fontSize: TS.chip, color: S.gray, lineHeight: 1.5, marginBottom: 10 }}>
         Estimación de composición corporal a partir de una foto de frente y una de perfil. No reemplaza una
-        bioimpedancia física, es una primera aproximación. Las fotos se usan solo para el análisis y no se guardan.
+        bioimpedancia física, es una primera aproximación.
+      </div>
+
+      {/* El costo se declara ANTES de empezar, no después: qué hay que poner,
+          qué pasa con las fotos y qué se recibe. Sin esto, la persona descubre
+          que necesitaba dos fotos de cuerpo entero recién al llegar al final. */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "4px 10px",
+          fontSize: TS.chip,
+          color: S.lgray,
+          borderTop: "1px solid " + S.border,
+          borderBottom: "1px solid " + S.border,
+          padding: "8px 0",
+          marginBottom: 12,
+        }}
+      >
+        <span>2 fotos de cuerpo entero</span>
+        <span aria-hidden="true">·</span>
+        <span>las fotos no se guardan</span>
+        <span aria-hidden="true">·</span>
+        <span>devuelve % de grasa estimado</span>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -348,7 +375,7 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
       </div>
 
       {error && (
-        <div style={{ marginTop: 12, color: S.red, fontSize: 12, lineHeight: 1.5 }}>{error}</div>
+        <div style={{ marginTop: 12, color: S.red, fontSize: TS.chip, lineHeight: 1.5 }}>{error}</div>
       )}
 
       {!resultado ? (
@@ -387,16 +414,16 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
                 ["Cintura", resultado.medidasEstimadas.cintura, " cm"],
                 ["Cuello", resultado.medidasEstimadas.cuello, " cm"],
               ].map(([labelTxt, val, unit]) => (
-                <div key={labelTxt} style={{ textAlign: "center", background: S.card3, borderRadius: 6, padding: "6px 4px" }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{val != null ? `${val}${unit}` : "—"}</div>
-                  <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>{labelTxt}</div>
+                <div key={labelTxt} style={{ textAlign: "center", background: S.card3, borderRadius: 6, padding: "8px 4px" }}>
+                  <div style={{ color: S.white, fontWeight: 700, fontSize: TS.ui }}>{val != null ? `${val}${unit}` : "—"}</div>
+                  <div style={{ color: S.gray, fontSize: TS.chip, marginTop: 2 }}>{labelTxt}</div>
                 </div>
               ))}
             </div>
             {resultado.medidasEstimadas.cadera != null && (
-              <div style={{ marginTop: 6, textAlign: "center", background: S.card3, borderRadius: 6, padding: "6px 4px" }}>
-                <div style={{ color: S.white, fontWeight: 700, fontSize: 12 }}>{resultado.medidasEstimadas.cadera} cm</div>
-                <div style={{ color: S.gray, fontSize: 8, marginTop: 2 }}>Cadera</div>
+              <div style={{ marginTop: 6, textAlign: "center", background: S.card3, borderRadius: 6, padding: "8px 4px" }}>
+                <div style={{ color: S.white, fontWeight: 700, fontSize: TS.ui }}>{resultado.medidasEstimadas.cadera} cm</div>
+                <div style={{ color: S.gray, fontSize: TS.chip, marginTop: 2 }}>Cadera</div>
               </div>
             )}
           </div>

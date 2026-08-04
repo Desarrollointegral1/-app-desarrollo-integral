@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Play } from "lucide-react";
+import { Play, ChevronDown } from "lucide-react";
 import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
+import { pasosDeInstrucciones } from "../utils/pasosInstrucciones.js";
 import { getEjercicioGif } from "../utils/ejerciciosMedia.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 
@@ -33,6 +34,11 @@ export default function ItemCard({
   // nombre es la red de seguridad para planes viejos sin el campo.
   const enSegundos = unidad === "segundos" || /^plancha\b/i.test((nombre || "").trim());
   const [open, setOpen] = useState(false);
+  // Las instrucciones vienen del catálogo como un párrafo corrido de ~493
+  // caracteres, y el alumno las lee de pie en medio de la serie: se muestran
+  // como pasos numerados. Si el texto no se deja partir en una lista razonable,
+  // `pasos` es null y abajo cae al párrafo de siempre.
+  const pasos = pasosDeInstrucciones(desc);
   const ytId = getYTId(video);
   // `video` puede ser un path de rehab-media (bucket privado): se resuelve a
   // signed URL. Si ya es http/data/YouTube, el hook lo devuelve tal cual.
@@ -63,7 +69,7 @@ export default function ItemCard({
     // Path de rehab-media aún resolviéndose a signed URL: mostrar loading.
     if (mediaPendiente)
       return (
-        <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center", color: S.gray, fontSize: 15 }}>
+        <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center", color: S.gray, fontSize: TS.chip }}>
           Cargando media…
         </div>
       );
@@ -103,9 +109,23 @@ export default function ItemCard({
     // automático por nombre no encuentra match) tiene prioridad sobre el
     // automático — mismo componente para Preparación y Principales.
     const gifResuelto = gif || getEjercicioGif(nombre);
+    // El fondo blanco de abajo NO es un descuido: los GIFs del dataset vienen
+    // con fondo blanco quemado, oscurecerlo los rompe. Lo que se arregla es que
+    // dentro de una card oscura leía como un agujero — con marco, radio propio
+    // y sombra interna lee como visor deliberado.
     if (gifResuelto)
       return (
-        <div style={{ background: "#fff", borderRadius: 8, marginBottom: 12, padding: "10px 0 4px", textAlign: "center" }}>
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid " + S.border2,
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.05)",
+            borderRadius: 10,
+            marginBottom: 12,
+            padding: "10px 0 4px",
+            textAlign: "center",
+          }}
+        >
           {/* Ronda 18: loading lazy — el GIF solo se baja al abrir la
               tarjeta y entrar en viewport (además el SW lo cachea). */}
           <img
@@ -119,7 +139,7 @@ export default function ItemCard({
     return (
       <div style={{ background: S.card2, borderRadius: 8, marginBottom: 12, padding: 16, textAlign: "center" }}>
         <div style={{ marginBottom: 4, display: "flex", justifyContent: "center" }}><Play size={22} color={S.gray} strokeWidth={2} /></div>
-        <div style={{ color: S.lgray, fontSize: 15 }}>Video proximamente</div>
+        <div style={{ color: S.lgray, fontSize: TS.chip }}>Video proximamente</div>
       </div>
     );
   };
@@ -147,7 +167,7 @@ export default function ItemCard({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 15,
+              fontSize: TS.chip,
               color: S.gray,
               fontWeight: 700,
               flexShrink: 0,
@@ -156,7 +176,15 @@ export default function ItemCard({
             {numero}
           </div>
           <div style={{ flex: 1, color: S.white, fontSize: TS.ui, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>
-          <div style={{ color: S.gray, flexShrink: 0 }}>{open ? "▲" : "▼"}</div>
+          {/* Chevron de lucide (mismo set de íconos que el resto de la app) en
+              vez de los caracteres ▲/▼, que se renderizaban con la fuente de
+              emoji del sistema y cambiaban de forma según el celular. */}
+          <ChevronDown
+            size={18}
+            color={S.gray}
+            strokeWidth={2}
+            style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+          />
         </div>
         {showPeso && (
           /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta.
@@ -167,7 +195,7 @@ export default function ItemCard({
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, paddingLeft: 36 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ color: S.gray, fontSize: 15 }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
+            <div style={{ color: S.gray, fontSize: TS.chip }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
             <div style={stepperTrack()}>
               <button
                 onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
@@ -199,9 +227,30 @@ export default function ItemCard({
       </div>
       {open && (
         <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
-          {desc && (
-            <div style={{ color: S.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
-          )}
+          {desc &&
+            (pasos ? (
+              <ol style={{ listStyle: "none", margin: "0 0 14px", padding: 0, display: "grid", gap: 9 }}>
+                {pasos.map((paso, i) => (
+                  <li key={i} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                    <span
+                      style={{
+                        color: S.lgray,
+                        fontSize: TS.chip,
+                        fontWeight: 700,
+                        fontVariantNumeric: "tabular-nums",
+                        minWidth: 15,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.45 }}>{paso}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
+            ))}
           {renderMedia()}
           {showPeso && (pesoAnterior || maxHistorico > 0) && (
             <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
@@ -219,10 +268,10 @@ export default function ItemCard({
                   }}
                 >
                   <div>
-                    <div style={{ color: S.gray, fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
-                    <div style={{ color: S.lgray, fontSize: 15 }}>{pesoAnterior.fecha}</div>
+                    <div style={{ color: S.gray, fontSize: TS.chip, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
+                    <div style={{ color: S.lgray, fontSize: TS.chip }}>{pesoAnterior.fecha}</div>
                   </div>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
                 </div>
               )}
               {/* 2026-07-31 — Lucas: "no quiero que aparezca tu peso de hoy
@@ -242,8 +291,8 @@ export default function ItemCard({
                     alignItems: "center",
                   }}
                 >
-                  <div style={{ color: S.gray, fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>TU MÁXIMO EN ESTE EJERCICIO</div>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: 18 }}>{maxHistorico} {enSegundos ? "seg" : "kg"}</div>
+                  <div style={{ color: S.gray, fontSize: TS.chip, fontWeight: 700, letterSpacing: 1 }}>TU MÁXIMO EN ESTE EJERCICIO</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{maxHistorico} {enSegundos ? "seg" : "kg"}</div>
                 </div>
               )}
             </div>
