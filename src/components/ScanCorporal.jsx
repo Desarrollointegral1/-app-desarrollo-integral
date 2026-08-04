@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Camera, X, Sparkles, Loader2 } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Camera, X, Sparkles, Loader2, Images } from "lucide-react";
 import { S, card, inp, innerCard, TS, TAP } from "../utils/theme.js";
 import { hoy, calcularEdad } from "../utils/helpers.js";
 import { SEXOS } from "../utils/energia.js";
@@ -37,7 +37,141 @@ async function comprimirFoto(file, maxLado = 900, calidad = 0.8) {
   return canvas.toDataURL("image/jpeg", calidad);
 }
 
-function FotoInput({ titulo, preview, onChange, onQuitar }) {
+// Silueta de referencia — frontal: cuerpo de frente, brazos separados del
+// torso, piernas abiertas. Guía visual, no un diagrama anatómico: el trazo
+// discontinuo semitransparente alcanza para que la persona se alinee sin
+// tapar la cámara real de abajo.
+function SiluetaFrontal() {
+  return (
+    <g fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="7 6">
+      <circle cx="150" cy="60" r="30" />
+      <path d="M105,100 L195,100 L188,260 L205,300 L200,560 L180,560 L185,320 L150,300 L115,320 L120,560 L100,560 L95,300 L112,260 Z" />
+      <path d="M105,100 L75,110 L65,280 L85,280 L100,140 Z" />
+      <path d="M195,100 L225,110 L235,280 L215,280 L200,140 Z" />
+    </g>
+  );
+}
+
+// Lateral: perfil de costado — curva de pecho adelante, espalda atrás, una
+// sola pierna y un brazo apoyado (así se ve un cuerpo real de perfil).
+function SiluetaLateral() {
+  return (
+    <g fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="7 6">
+      <circle cx="170" cy="58" r="28" />
+      <path d="M193,92 C213,108 219,150 214,200 C210,232 204,252 198,278 C213,300 218,332 208,372 L198,560 L170,570 L150,560 L155,400 L150,320 C140,280 138,230 145,180 C148,138 154,108 160,88 Z" />
+      <path d="M198,120 C220,132 228,168 224,215 C222,245 217,265 208,280 L190,272 C198,255 202,228 200,198 C198,168 192,145 182,128 Z" />
+    </g>
+  );
+}
+
+// Overlay full-screen: cámara en vivo (getUserMedia, trasera por defecto en
+// celular) + silueta de referencia dibujada encima + botón de captura. Al
+// capturar, dibuja el frame actual en un canvas y lo entrega como File —
+// mismo tipo de dato que ya esperaba el <input type="file">, así el resto
+// del flujo (comprimirFoto, análisis) no cambia nada.
+function CameraCapture({ tipo, onCapturar, onCancelar }) {
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [listo, setListo] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelado = false;
+    navigator.mediaDevices
+      ?.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false })
+      .then((stream) => {
+        if (cancelado) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => setListo(true);
+        }
+      })
+      .catch(() => setError("No se pudo acceder a la cámara. Revisá los permisos del navegador, o subí una foto desde la galería."));
+    return () => {
+      cancelado = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const capturar = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        onCapturar(new File([blob], `${tipo}.jpg`, { type: "image/jpeg" }));
+      },
+      "image/jpeg",
+      0.9
+    );
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 1000, display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+        <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        {listo && !error && (
+          <svg
+            viewBox="0 0 300 600"
+            preserveAspectRatio="xMidYMid slice"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+          >
+            {tipo === "frontal" ? <SiluetaFrontal /> : <SiluetaLateral />}
+          </svg>
+        )}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px", textAlign: "center", background: "linear-gradient(rgba(0,0,0,0.6), transparent)" }}>
+          <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
+            {tipo === "frontal" ? "Alineate con la silueta — de frente" : "Alineate con la silueta — de perfil"}
+          </span>
+        </div>
+        {error && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <div style={{ color: "#fff", fontSize: 13, textAlign: "center", lineHeight: 1.5 }}>{error}</div>
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 12, padding: "16px", background: "#000", alignItems: "center", justifyContent: "center" }}>
+        <button
+          onClick={onCancelar}
+          style={{ background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: TAP }}
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={capturar}
+          disabled={!listo || !!error}
+          style={{
+            width: 68,
+            height: 68,
+            borderRadius: "50%",
+            background: "#fff",
+            border: "4px solid rgba(255,255,255,0.35)",
+            cursor: listo && !error ? "pointer" : "default",
+            opacity: listo && !error ? 1 : 0.4,
+          }}
+          aria-label="Capturar foto"
+        />
+      </div>
+    </div>
+  );
+}
+
+function FotoInput({ tipo, titulo, preview, onFile, onQuitar }) {
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (file) onFile(file);
+  };
+
   return (
     <div>
       {label(titulo)}
@@ -52,10 +186,29 @@ function FotoInput({ titulo, preview, onChange, onQuitar }) {
           </button>
         </div>
       ) : (
-        <label style={{ display: "block", border: "1px dashed " + S.border, borderRadius: 8, padding: "18px 12px", textAlign: "center", color: S.gray, fontSize: TS.chip, cursor: "pointer" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Camera size={16} strokeWidth={2} />Tocar para subir foto</span>
-          <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={onChange} />
-        </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => setCamaraAbierta(true)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 12px", textAlign: "center", color: S.lgray, fontSize: TS.chip, fontWeight: 700, cursor: "pointer", background: "transparent" }}
+          >
+            <Camera size={16} strokeWidth={2} />Usar cámara (con guía)
+          </button>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px solid " + S.border, borderRadius: 8, padding: "8px 12px", textAlign: "center", color: S.gray, fontSize: 11, cursor: "pointer" }}>
+            <Images size={14} strokeWidth={2} />Subir desde galería
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+          </label>
+        </div>
+      )}
+      {camaraAbierta && (
+        <CameraCapture
+          tipo={tipo}
+          onCancelar={() => setCamaraAbierta(false)}
+          onCapturar={(file) => {
+            setCamaraAbierta(false);
+            onFile(file);
+          }}
+        />
       )}
     </div>
   );
@@ -79,8 +232,7 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
   const edadCalculada = useMemo(() => calcularEdad(alumno?.fecha_nacimiento), [alumno?.fecha_nacimiento]);
   const edad = edadCalculada ?? (edadManual ? Number(edadManual) : null);
 
-  const handleFoto = (setFile, setPreview) => (e) => {
-    const file = e.target.files[0];
+  const handleFoto = (setFile, setPreview) => (file) => {
     if (!file) return;
     setFile(file);
     const r = new FileReader();
@@ -249,15 +401,17 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
         <FotoInput
+          tipo="frontal"
           titulo="Foto frontal"
           preview={previewFrontal}
-          onChange={handleFoto(setFotoFrontal, setPreviewFrontal)}
+          onFile={handleFoto(setFotoFrontal, setPreviewFrontal)}
           onQuitar={() => { setFotoFrontal(null); setPreviewFrontal(null); }}
         />
         <FotoInput
+          tipo="lateral"
           titulo="Foto lateral"
           preview={previewLateral}
-          onChange={handleFoto(setFotoLateral, setPreviewLateral)}
+          onFile={handleFoto(setFotoLateral, setPreviewLateral)}
           onQuitar={() => { setFotoLateral(null); setPreviewLateral(null); }}
         />
       </div>
