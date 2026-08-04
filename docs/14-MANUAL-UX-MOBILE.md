@@ -104,224 +104,192 @@ como vía real para forzar la vista de alumno, documentado en el manifest de DI 
   "Acceso administrador" como texto casi invisible, error rojo suelto sin contenedor. Propuesta:
   ícono de marca protagonista, más aire entre campos, el rojo de marca reservado SOLO para error.
 
-## 9 · Comparación Afitz vs DI App — qué copiar y qué no (agregado 2026-08-04)
+## 9 · Comparación Afitz vs DI App — inventario, veredictos e implementación (2026-08-04)
 
-> **Nota de método — leer antes que el resto de la sección.** Esta comparación se
-> hizo desde un entorno remoto cuya política de egress **bloqueó `afitz.com.br`**
-> (403 en el CONNECT del proxy, verificado también contra `example.com`: el bloqueo
-> es de todo el tráfico directo, no del sitio). **No hay capturas propias de Afitz
-> en esta ronda.** Por lo tanto:
+> **Nota de método.** La primera pasada de esta sección se escribió con
+> `afitz.com.br` **bloqueado** por la política de egress del entorno de build
+> (403 en el CONNECT; el bloqueo alcanza a todo el tráfico directo). Ese mismo
+> día Lucas aportó **5 capturas reales** de la app y la landing de Afitz, así
+> que §9.1 pasó de "observación sin confirmar" a **inventario verificado sobre
+> imagen**. El sitio sigue sin ser alcanzable desde el entorno: **lo que no
+> aparece en esas 5 capturas sigue sin verificar** y está marcado como tal.
 >
-> - Todo lo que se afirma de **DI App está verificado** contra código real y SQL
->   real contra Supabase, con archivo y línea citados.
-> - Todo lo que se afirma de **Afitz viene de dos fuentes secundarias**: la
->   observación directa de Lucas (navegando el sitio él mismo) y material público
->   (web del producto, ficha de Google Play / App Store). Está marcado como tal.
-> - Lo que queda **pendiente de verificación visual** está listado al final en §9.6.
->
-> Esta distinción no es burocracia: el 2026-08-03 ya hubo un hallazgo de este mismo
-> manual que resultó falso por haberse basado en una sola pantalla vista de paso
-> (el de "ilustraciones genéricas" en §8). El criterio es no repetirlo.
+> Todo lo de DI está verificado contra código y SQL real, con archivo y línea.
 
-### 9.1 · El menú "Funcionalidades" (mega menú) — no entra en DI, y el motivo importa
+### 9.1 · Inventario de Afitz — todo lo que se ve, no sólo lo que saltaba a la vista
 
-Fuentes: [NN/g — Mega Menus Work Well for Site Navigation](https://www.nngroup.com/articles/mega-menus-work-well/) · [NN/g — Menu-Design Checklist](https://www.nngroup.com/articles/menu-design/) · [IxDF — What are Mega Menus](https://ixdf.org/literature/topics/mega-menus)
+La primera versión de esta sección se quedó en tres patrones. Revisando las
+capturas con detalle hay bastante más, y conviene tenerlo listado entero antes
+de decidir qué entra:
 
-Lo que dice la investigación: un mega menú puede reducir hasta **50% los clicks**
-para llegar a un contenido; el punto dulce es **3-4 columnas** (más produce *choice
-overload*); el techo razonable es ~28-36 links en total; y **cada columna necesita
-encabezado de grupo** — Baymard midió 23% más abandono en mega menús sin títulos de
-grupo.
+**Pantalla "Detalhes do Exercício"**
 
-**Veredicto para DI: no aplica, y no por falta de ganas sino por diagnóstico.** Un
-mega menú resuelve el problema de *"tengo demasiados destinos y no entran en la
-navegación"*. Ese problema DI no lo tiene:
+| Elemento | Detalle |
+| --- | --- |
+| Reproductor de video | Controles propios: velocidad, retroceso 10s, pausa, tiempo, mute |
+| Tabs de variante | `Bilateral` / `Aberto` / `Unilateral` — un video por variante |
+| `+ Adicionar vídeo` / `Gerenciar` | El entrenador sube **su propio** video por ejercicio |
+| Corazón de favorito | Marcar ejercicio, arriba a la derecha |
+| Chips de músculo | `GLÚTEOS` `COXA` bajo el nombre |
+| Fila meta en 2 columnas | `Equipamentos: Máquina` \| `Dificuldade: Médio` |
+| "Como Executar" | Pasos numerados con **línea de tiempo conectora** entre círculos |
+| "Erros Comuns" | Card aparte, con ⚠ y viñetas ❌ |
 
-- **DI no tiene landing.** Verificado en `index.html`: la app es una PWA que abre
-  directo en login, con meta de PWA/OG pero sin ninguna ruta de marketing. El menú
-  "Funcionalidades" de Afitz es un patrón de **sitio comercial**, y Afitz lo necesita
-  porque vende a personal trainers; DI se entrega a alumnos ya captados.
-- **La navegación del alumno son 3 accesos** (Historial / Entrenamiento / Luqui).
-  El §2 de este manual ya cerró esa discusión con dato medido: tabbar plana para
-  navegación primaria, no se reemplaza porque sí.
-- **Del lado admin**, donde sí hay muchos destinos, el §2 ya prescribe otra cosa:
-  grid de íconos agrupados, no un desplegable. Traer un mega menú acá sería resolver
-  el mismo problema dos veces con dos lenguajes distintos.
+**Pantalla "Detalhes do Aluno" (vista del entrenador)**
 
-**Dónde sí revisitarlo:** el día que se construya una landing comercial de DI (hoy no
-existe), esta es la referencia correcta y las cifras de arriba son el criterio.
-Anotado como pendiente, no como deuda.
+| Elemento | Detalle |
+| --- | --- |
+| Dock de íconos redondos | `Iniciar Treino` `Treinos` `Evolução` `Calendário` `Avaliação` |
+| Tira "Esta Semana" | Un chip por día con **estado**: ✕ falta, hoy resaltado, futuro apagado |
+| "Evolução Física" | 2 stat cards con **sparkline + delta**: `PESO 71.0kg +11.0kg`, `GORDURA 12.0% -4.0%`, con ventana ("últimos 9.9 meses") |
+| "Notifique" | Acciones rápidas con emoji — `Parabenizar` `Saudade` `Cobrança` `Motivar` — **con cooldown visible** ("11h 44min") |
 
-### 9.2 · Callouts flotantes sobre mockups — el globito no; el dato concreto sí
+**Pantalla "Meu Treino" (alumno)**
 
-Fuentes: [Screenhance — How to Display Screenshots on Your SaaS Landing Page](https://screenhance.com/blog/saas-landing-page-screenshots) · [Framiq — Make SaaS Screenshots Look Professional](https://framiq.app/blog/make-saas-screenshots-look-professional)
+| Elemento | Detalle |
+| --- | --- |
+| Fila de ejercicio | Thumbnail + nombre + chip de músculo + **chip de series (`3x8-10`)** + **chip de descanso (`90s`)** |
+| CTA principal | `Iniciar Treino` — sesión guiada, no sólo lista |
+| Tabbar | `Treino` / `Cardio` / `Evolução` |
+| Secundario | `Ver Histórico`, fecha de creación del plan |
 
-Lo que dice la investigación sobre anotar capturas: **máximo 3 callouts por imagen**
-(más y la captura pasa a ser un diagrama), **un solo color de acento**, anotar sólo
-lo que no es obvio por sí mismo, y mantener la tipografía/color de la marca.
+**Landing** — 4 cards de feature: *Vídeo de execução rápida*, *Mini aula
+explicativa*, *Descrição textual passo a passo*, *Erros comuns e como evitá-los*.
+Es la promesa comercial de la misma pantalla de ejercicio de arriba.
 
-Igual que §9.1, el globito flotante sobre un mockup de celular es un **patrón de
-landing**, no de app — y DI no tiene landing. Copiarlo *como elemento gráfico* sería
-exactamente el error que prohíbe el §7 de este manual.
+### 9.2 · Contra DI: qué ya tenemos, qué falta y qué no aplica
 
-**Pero hay una traducción real y vale la pena.** Lo que hace valioso a un callout
-como "2 fotos" o "1 minuto" no es el globito: es que **declara por adelantado cuánto
-esfuerzo cuesta la cosa**. Ese principio sí es de app, y DI tiene un hueco concreto
-donde aplicarlo:
+| Patrón de Afitz | Estado en DI | Veredicto |
+| --- | --- | --- |
+| Pasos numerados "Cómo ejecutar" | Era un párrafo gris | ✅ **Implementado** (§9.3) |
+| Declarar el costo por adelantado | El dato existía, enterrado en prosa a 11px | ✅ **Implementado** en Scan Corporal |
+| Dock de íconos redondos | **Ya existe** — `IconDock`, commit `8cf9f2a` | Ya resuelto, y el §2 ya lo prescribía |
+| Racha / asistencia | **Ya existe** — componente `Asistencia`, extendido al Diario el 2026-08-03 | Ya resuelto |
+| Video propio del entrenador por ejercicio | **Ya existe** — `SubirVideoInline`, bucket `ejercicios-videos` | Ya resuelto |
+| Evolución con gráfico | **Ya existe** — `MiniChart`, `EvolucionCargas`, `ResumenMensual` | Existe; falta el formato *stat card con delta* |
+| Tira semanal con estado por día | Hay asistencia, no la tira | Gap real, chico |
+| Chips de series/descanso en la fila | **Columnas muertas** (§9.5) | Bloqueado: falta el alta |
+| Sesión guiada "Iniciar Treino" | No existe | Proyecto grande, no un fix de UI |
+| Nudge del entrenador con cooldown | No existe (Luqui es coach→alumno, no entrenador→alumno) | Candidato interesante, decisión de producto |
+| Caja "Errores Comunes" | **6 de 1343 fichas** tienen el dato | Bloqueado: es contenido, no UI |
+| Tabs de variante de ejecución | Las variantes son **filas separadas** del catálogo | Bloqueado por la reclasificación del §8 |
+| Equipamiento / Dificultad del ejercicio | **El dato existe** (`equipment_es`, `nivel`) pero nunca llega al alumno | Gap real, barato — pendiente |
+| Favorito por ejercicio | No existe | Bajo valor para DI (el plan lo arma el entrenador) |
+| Paleta naranja | — | ❌ No se copia (§7 + Brand Kit v1.0) |
 
-- **Scan Corporal** (`src/components/ScanCorporal.jsx`, documentado en
-  `NOTAS-SCAN-CORPORAL.md`) le pide al alumno 2 fotos + peso/altura/género/edad, y
-  llama a una función serverless con `maxDuration: 60`. Es decir: **puede tardar hasta
-  un minuto** y requiere sacarse dos fotos. Hoy nada de eso se anuncia antes de
-  empezar.
-- El §1.3 de este manual (onboarding corto) y el §5 (feedback dentro de los 100ms,
-  nunca dejar al usuario sin saber) apuntan al mismo lugar: **el costo se declara
-  antes, no se descubre a mitad de camino.**
+### 9.3 · La ficha de ejercicio — el hallazgo fuerte, ya implementado
 
-Traducción concreta: una línea de texto arriba del formulario — *"2 fotos · ~1 minuto
-· no guardamos las fotos"* — hace el trabajo del callout de Afitz sin importar su
-estética. Y el tercer dato (privacidad) es material real de DI, ya implementado a
-propósito según `NOTAS-SCAN-CORPORAL.md`, hoy invisible para el alumno.
+`CatalogoExplorer.jsx` **no** es donde el alumno ve un ejercicio: su modal es el
+editor del admin ("Crear ejercicio nuevo" / "Editar ejercicio",
+`CatalogoExplorer.jsx:1398`). El alumno lo ve en **`ItemCard.jsx`**.
 
-### 9.3 · Ficha de ejercicio — el hallazgo fuerte de esta ronda (verificado)
+**SQL real contra Supabase (2026-08-04)** sobre `catalogo_ejercicios`:
 
-Fuentes: [NN/g — Concise, SCANNABLE, and Objective](https://www.nngroup.com/articles/concise-scannable-and-objective-how-to-write-for-the-web/) · [NN/g — Be Succinct!](https://www.nngroup.com/articles/be-succinct-writing-for-the-web/) · [UXmatters — Scannability: Principle and Practice](https://www.uxmatters.com/mt/archives/2015/06/scannability-principle-and-practice.php) · [U. of Utah — How Chunking Boosts UX](https://websites.it.utah.edu/announcements/posts/2025/july/chunking.php)
-
-**Primera corrección de rumbo: el archivo a mirar no era el que parecía.**
-`CatalogoExplorer.jsx` **no** es donde el alumno ve un ejercicio. Su modal `detalle`
-es el **formulario de edición del admin** — el título literal dice "Crear ejercicio
-nuevo" / "Editar ejercicio" (`CatalogoExplorer.jsx:1398`) y el campo `instrucciones_es`
-ahí es un `<textarea>` (`:1449`). Comparar eso contra la pantalla de detalle de Afitz
-sería comparar un panel de carga contra una ficha de consumo.
-
-**Dónde ve el alumno un ejercicio de verdad: `src/components/ItemCard.jsx`.** La
-tarjeta se abre y, en `ItemCard.jsx:202-204`, renderiza así:
-
-```jsx
-{desc && (
-  <div style={{ color: S.gray, fontSize: 15, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
-)}
-```
-
-Un `<div>` plano, gris, sin estructura. Y esto es lo que hay adentro — **SQL real
-contra Supabase, proyecto `Desarrollo Integral`, 2026-08-04**:
-
-| Métrica sobre `catalogo_ejercicios` | Valor |
+| Métrica | Valor |
 | --- | --- |
 | Ejercicios totales | 1343 |
-| Con `instrucciones_es` vacías | **0** |
+| Con instrucciones vacías | 0 |
 | **Sin un solo salto de línea** | **1343 de 1343** |
-| Largo promedio | **493 caracteres** |
-| Largo máximo | 990 caracteres |
-| Que mencionan algo tipo error/evitar/cuidado | **6 de 1343** |
+| Largo promedio / máximo | **493** / 990 caracteres |
+| Que mencionan error/evitar/cuidado | **6 de 1343** |
 
-O sea: **el 100% del catálogo son párrafos corridos de ~493 caracteres, renderizados
-en gris a 15px**, para alguien que los lee **de pie, en medio de la serie,
-transpirado** — el mismo escenario de uso que en §8 justificó subir los `+/-` al piso
-táctil de 44px. La investigación es contundente para ese contexto: NN/g midió que
-**79% de los usuarios escanea y sólo 16% lee palabra por palabra**; los estudios de
-eye-tracking muestran que **los numerales detienen la mirada** incluso dentro de una
-masa de texto que si no se ignoraría; y el troceado (*chunking*) reduce la carga
-cognitiva frente al párrafo narrativo.
+Un párrafo gris de ~493 caracteres, leído **de pie, en medio de la serie** — el
+mismo escenario que en §8 justificó el piso táctil de 44px. NN/g midió que
+**79% escanea y sólo 16% lee palabra por palabra**, y el eye-tracking muestra
+que **los numerales detienen la mirada** dentro de una masa de texto.
 
-**El hallazgo que abarata el arreglo:** el texto **ya está escrito como pasos
-ordenados**, sólo que no se renderiza como tales. Ejemplo textual de la base
-(*"45° prensa de piernas en prensa"*, 669 caracteres):
+Fuentes: [NN/g — Concise, SCANNABLE, and Objective](https://www.nngroup.com/articles/concise-scannable-and-objective-how-to-write-for-the-web/) · [NN/g — Be Succinct!](https://www.nngroup.com/articles/be-succinct-writing-for-the-web/) · [UXmatters — Scannability](https://www.uxmatters.com/mt/archives/2015/06/scannability-principle-and-practice.php) · [U. of Utah — Chunking](https://websites.it.utah.edu/announcements/posts/2025/july/chunking.php)
 
-> "Ajusta el asiento y la placa de la máquina de trineo a una posición cómoda.
-> **Siéntate** en la máquina de trineo con la espalda contra el respaldo y los pies
-> separados a la altura de los hombros sobre la placa. **Sujeta** las asas a los
-> lados del asiento para mayor estabilidad. **Empuja** la placa alejándola de tu
-> cuerpo extendien…"
+**Lo que abarató el arreglo:** el texto **ya venía escrito como pasos**
+("Ajusta… Siéntate… Sujeta… Empuja…"). No hizo falta migrar nada: se parte por
+oración al renderizar.
 
-Son imperativos en secuencia. Convertir eso en pasos numerados es **partir por
-oración**, no reescribir 1343 fichas. Es un cambio de *render*, barato y reversible.
+**El método de verificación es la parte importante.** Antes de tocar la UI se
+corrió el mismo algoritmo del split **en SQL contra las 1343 fichas**:
 
-**Lo que Afitz tiene y DI no puede copiar sólo con render** (según observación de
-Lucas, pendiente de verificación visual — ver §9.6):
+- **1335 (99.4%)** dan entre 2 y 12 pasos → reciben el formato numerado.
+- **8** dan una sola oración → caen al párrafo de siempre.
+- **0** superan 12 → la guarda superior nunca se dispara, o sea que no hay
+  ningún texto que el split rompa.
+- Promedio 5.6 pasos, máximo 11.
 
-- **Caja de "Errores Comunes" con ❌** — DI **no tiene ese dato**: sólo 6 de 1343
-  filas mencionan algo parecido. Esto **no es un problema de UI, es contenido nuevo**,
-  y es un proyecto de redacción (o de IA + revisión humana, igual que la
-  reclasificación por movimiento del §8).
-- **Tabs de variante de ejecución (Bilateral / Abierto / Unilateral)** — DI hoy
-  modela las variantes como **filas separadas del catálogo**, que es exactamente la
-  duplicación ya diagnosticada en §8 ("Press Militar" con 8+ filas). Los tabs de
-  Afitz son la *interfaz* de una taxonomía que DI todavía no tiene. **Primero la
-  reclasificación, después los tabs** — al revés no se puede.
+Esto es lo que convierte "parece que anda" en "está medido sobre el 100% del
+catálogo", y es el patrón a repetir: **validar la transformación contra todos
+los datos reales antes de cambiar la pantalla**, no después.
 
-**La conclusión operativa es separar las tres cosas**, que tienen costos muy
-distintos: (a) renderizar pasos numerados = barato, datos ya existen; (b) errores
-comunes = contenido nuevo; (c) tabs de variante = depende de la reclasificación.
+### 9.4 · Landing — el veredicto se invierte
 
-### 9.4 · Botones, color y cards — por qué "se ve más terminado" (y por qué no es la paleta)
+La primera versión descartó el mega menú "Funcionalidades" y los callouts
+flotantes **porque DI no tenía landing**. Lucas confirmó el 2026-08-04 que
+**el próximo paso es hacer una landing propia** con servicios, información y
+marca de DI. El diagnóstico cambia, así que el veredicto también:
 
-**Primero, una corrección al §8 de este manual:** el hallazgo de `#070707` en
-`theme.js:96` **ya está corregido**. Hoy `theme.js:99` dice `bg: "#0d0d0d"`, dentro
-del rango recomendado, y el comentario del código cita la auditoría del 2026-08-03
-como motivo. El manual estaba desactualizado respecto del código.
+- **Mega menú**: pasa de descartado a **aplicable**. Criterio medido para
+  cuando se construya: **3-4 columnas** es el punto dulce (más produce *choice
+  overload*), techo de ~28-36 links, y **cada columna con encabezado de grupo**
+  — Baymard midió **23% más abandono** en mega menús sin títulos de grupo.
+  Fuentes: [NN/g — Mega Menus](https://www.nngroup.com/articles/mega-menus-work-well/) · [NN/g — Menu-Design Checklist](https://www.nngroup.com/articles/menu-design/)
+- **Callouts sobre mockups**: pasa de descartado a **aplicable en la landing**.
+  Criterio: **máximo 3 por imagen**, un solo color de acento, anotar sólo lo
+  que no es obvio, tipografía y color de la marca propia.
+  Fuente: [Screenhance — SaaS landing screenshots](https://screenhance.com/blog/saas-landing-page-screenshots)
+- **Las 4 cards de feature** de Afitz son un buen molde estructural: cada una
+  es *un beneficio concreto + una frase de por qué*, no una lista de features.
 
-**Segundo, y es lo importante: el sistema de diseño de DI no es el problema.**
-`src/utils/theme.js` tiene niveles de superficie documentados (0 a 3), escala
-tipográfica con piso duro de 15px, `TAP = 44` declarado en cada helper interactivo,
-grises auditados contra WCAG AA (`lgray` se corrigió el 2026-08-02 de `#5f5f5f` a
-`#8a8a8a` por dar 2.67:1) y sombras por nivel. Eso está **por encima del promedio de
-apps en producción**. Copiar tokens de Afitz sería un retroceso.
+**Condición previa:** el manual de marca de DI está en producción con Claude
+Diseño. Hasta que esté, la landing no arranca — el §7 sigue rigiendo: no se
+copia estética, y el naranja de Afitz no entra. Lo que se copia es la
+**estructura**, y el color sale del manual de marca propio.
 
-**Lo que falta no son tokens: es aplicación consistente de los que ya existen.**
-Evidencia concreta, en el mismo componente que ve el alumno:
+### 9.5 · Hallazgos nuevos de DI (verificados esta ronda)
 
-- **`ItemCard.jsx` importa `TS` pero usa números sueltos.** Usa `TS.ui` en la línea
-  158 y después escribe `fontSize: 15` a mano en las líneas 150, 170, 222 y 223, y
-  `fontSize: 18` en 225 y 246. La escala existe y en la misma tarjeta se saltea. Es
-  justo lo que el §3 llama "improvisada pantalla por pantalla".
-- **El indicador de abrir/cerrar son caracteres de texto** — `{open ? "▲" : "▼"}`
-  (`ItemCard.jsx:159`) — mientras el resto de la app usa íconos `lucide`. Un detalle
-  chico que lee como "sin terminar" más que cualquier tema de color.
-- **La caja blanca de media.** El GIF se muestra sobre `background: "#fff"`
-  (`ItemCard.jsx:108`, y lo mismo en `CatalogoExplorer.jsx:1407`): un rectángulo
-  blanco puro incrustado en una card oscura. Tiene motivo real (los GIFs del dataset
-  vienen con fondo blanco), pero el resultado es el elemento de mayor contraste de
-  toda la pantalla puesto en algo que no es la acción principal.
+- **`plan_ejercicios.series` y `.reps` existen pero están 100% vacías** — 0 de
+  84 filas. El esquema anticipó series×reps y **ninguna UI las escribe ni las
+  lee**. Por eso los chips `3x8-10` / `90s` de Afitz **no son implementables
+  hoy**: primero hay que construir el alta en el armador de planes. Y de
+  descanso no hay ni columna.
+- **`equipment_es` y `nivel` viven en `catalogo_ejercicios` pero nunca llegan
+  al alumno**: el plan copia sólo `{nombre, desc, video, codigo, gif, unidad}`.
+  La fila `Equipamentos | Dificuldade` de Afitz es dato que DI ya tiene y no
+  muestra. Gap real y barato, pero requiere pasarlo por el modelo del plan.
+- **Corrección al §8**: el `#070707` ya estaba resuelto — `theme.js:99` dice
+  `#0d0d0d`. El manual estaba desactualizado respecto del código.
+- **El gap visual no eran los tokens, era su aplicación**: `ItemCard.jsx`
+  importaba `TS` y aun así escribía `fontSize` a mano en 6 lugares, usaba los
+  caracteres `▲`/`▼` donde el resto de la app usa `lucide`, y metía un
+  rectángulo `#fff` a sangre dentro de una card oscura. Los tres corregidos.
 
-**Y tercero, el sesgo de comparación:** una landing es **una composición
-controlada de una sola pantalla, sin estados**. Una app real tiene vacío, carga,
-error, offline, nombre largo, texto de 990 caracteres. Afitz "se ve más terminado"
-en parte porque se está comparando su mejor pantalla curada contra el uso real de
-DI. La comparación honesta es contra la app de Afitz, no contra su home.
+### 9.6 · Qué se implementó en esta ronda
 
-**Lo que NO se copia:** el naranja. El Brand Kit v1.0 ya fijó rojo como acento único
-y verde reservado a estado real; el §7 de este manual ya prohíbe traer estética sin
-motivo de uso. La paleta de DI no está en discusión en esta ronda.
+1. **`ItemCard`: "Cómo ejecutar" con pasos numerados** y línea conectora, con
+   `pasosDe()` — corta por punto seguido de mayúscula usando **sólo lookahead**
+   (sin lookbehind, que Safari viejo no soporta), así los decimales (`2.5 kg`) y
+   las abreviaturas seguidas de minúscula (`aprox. el ancho`) quedan intactos.
+   Fuera del rango 2-12 cae al párrafo. Validado en SQL sobre las 1343 fichas y
+   probado contra decimales, abreviaturas, grados, vacío y `null`.
+2. **La media pasa arriba de los pasos** — primero se ve el movimiento, después
+   se lee.
+3. **`ItemCard` sin un solo `fontSize` numérico** (todos a tokens `TS`),
+   chevron `lucide` en vez de `▲`/`▼`, y la caja del gif sigue blanca (los gifs
+   del dataset traen fondo blanco) pero **enmarcada**, para que lea como visor
+   deliberado y no como un rectángulo que sangra.
+4. **`ScanCorporal` declara el costo antes de empezar** — `2 fotos` ·
+   `~1 minuto` · `No se guardan las fotos`, como chips escaneables. El dato ya
+   existía pero enterrado en prosa a 11px, por debajo del piso de 15px.
 
-### 9.5 · Resumen — qué se lleva DI de Afitz
+### 9.7 · Pendiente, y por qué
 
-| Patrón de Afitz | ¿Entra en DI? | Por qué |
-| --- | --- | --- |
-| Mega menú "Funcionalidades" | **No** | Patrón de landing; DI no tiene landing y su nav ya está resuelta (§2). Revisitar si se construye sitio comercial. |
-| Callouts flotantes en mockups | **No como gráfico** | Pero sí el principio: declarar el costo por adelantado (Scan Corporal: "2 fotos · ~1 min · no guardamos las fotos"). |
-| Pasos numerados "Cómo Ejecutar" | **Sí** | El dato ya está y ya viene en forma de pasos. Cambio de render, barato. Máximo respaldo de investigación. |
-| Caja "Errores Comunes" ❌ | **Sí, pero es contenido** | Sólo 6/1343 fichas lo tienen. No es UI: es un proyecto de redacción. |
-| Tabs de variante de ejecución | **Bloqueado** | Depende de la reclasificación por movimiento del §8. Primero la taxonomía. |
-| Paleta / naranja | **No** | Prohibido por §7 + Brand Kit v1.0. |
-
-### 9.6 · Pendiente de verificar (no dar por cierto hasta confirmarlo)
-
-Lo siguiente **no pudo verificarse en esta ronda** por el bloqueo de red y queda
-explícitamente marcado como no confirmado:
-
-1. La estructura real del submenú "Funcionalidades" de Afitz (¿2 columnas?,
-   ¿cuántos ítems?, ¿tiene encabezados de grupo?) — importa porque el criterio de
-   Baymard/NN/g depende justamente de eso.
-2. Los textos exactos de los callouts ("15 segundos", "1 minuto", "2 fotos") y a qué
-   feature acompaña cada uno.
-3. La pantalla de detalle de ejercicio de Afitz: si los tabs son Bilateral/Abierto/
-   Unilateral, cómo se numeran los pasos, y qué formato tiene la caja de errores.
-4. Cualquier medición de contraste/tamaño sobre la UI de Afitz.
-
-Para cerrarlos alcanza con capturas propias de Lucas o correr esta comparación desde
-un entorno con salida a internet. **Hasta entonces, los puntos 1-4 son observación de
-Lucas, no hallazgo verificado de este manual.**
+- **"Errores Comunes"**: bloqueado por **contenido**, no por UI — sólo 6 de 1343
+  fichas lo tienen. Es un proyecto de redacción (o IA + revisión humana, igual
+  que la reclasificación del §8).
+- **Tabs de variante de ejecución**: bloqueado por la **reclasificación por
+  movimiento** del §8. Los tabs son la interfaz de una taxonomía que DI no
+  tiene; primero la taxonomía.
+- **Chips de series/descanso**: bloqueado por las columnas muertas (§9.5).
+- **Equipamiento/dificultad en la ficha**: disponible, requiere pasar 2 campos
+  por el modelo del plan. Candidato claro para la próxima ronda.
+- **Sesión guiada / nudge con cooldown**: decisiones de producto, no de UI.
+- **Todo lo de Afitz que no esté en las 5 capturas**: sigue sin verificar.
 
 ---
 
