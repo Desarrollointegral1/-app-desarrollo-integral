@@ -259,23 +259,43 @@ copia estética, y el naranja de Afitz no entra. Lo que se copia es la
   caracteres `▲`/`▼` donde el resto de la app usa `lucide`, y metía un
   rectángulo `#fff` a sangre dentro de una card oscura. Los tres corregidos.
 
-### 9.6 · Qué se implementó en esta ronda
+### 9.6 · Qué se implementó, y una corrección de autoría
 
-1. **`ItemCard`: "Cómo ejecutar" con pasos numerados** y línea conectora, con
-   `pasosDe()` — corta por punto seguido de mayúscula usando **sólo lookahead**
-   (sin lookbehind, que Safari viejo no soporta), así los decimales (`2.5 kg`) y
-   las abreviaturas seguidas de minúscula (`aprox. el ancho`) quedan intactos.
-   Fuera del rango 2-12 cae al párrafo. Validado en SQL sobre las 1343 fichas y
-   probado contra decimales, abreviaturas, grados, vacío y `null`.
-2. **La media pasa arriba de los pasos** — primero se ve el movimiento, después
-   se lee.
-3. **`ItemCard` sin un solo `fontSize` numérico** (todos a tokens `TS`),
-   chevron `lucide` en vez de `▲`/`▼`, y la caja del gif sigue blanca (los gifs
-   del dataset traen fondo blanco) pero **enmarcada**, para que lea como visor
-   deliberado y no como un rectángulo que sangra.
-4. **`ScanCorporal` declara el costo antes de empezar** — `2 fotos` ·
-   `~1 minuto` · `No se guardan las fotos`, como chips escaneables. El dato ya
-   existía pero enterrado en prosa a 11px, por debajo del piso de 15px.
+Todo lo de abajo **entró por `main` en el commit `ba90a33`**, no por la rama de
+esta investigación. Se escribieron dos implementaciones en paralelo el mismo día
+y la de `main` es la que quedó: es mejor y cubre más. Vale registrarlo porque el
+patrón de trabajo importa más que quién lo escribió.
+
+1. **`ItemCard`: "Cómo ejecutar" con pasos numerados.** El corte por oración
+   sólo cuando sigue mayúscula, con guarda de 2-12 pasos y caída al párrafo
+   fuera de ese rango.
+2. **Lookahead y no lookbehind, con un motivo más fuerte del que yo había
+   escrito.** Yo puse "Safari viejo no lo soporta". La versión de `main` lo
+   precisa: en iOS Safari < 16.4 el lookbehind es un **error de sintaxis al
+   parsear el regex**, y como es un literal de módulo **tira abajo el bundle
+   entero** en esos celulares. No es degradación, es pantalla en blanco.
+3. **El helper vive en su propio módulo** (`src/utils/pasosInstrucciones.js`)
+   **con self-check** (`pasosInstrucciones.test.mjs`, node sin framework), en
+   vez de estar embebido en el componente. Es la decisión correcta: la regla de
+   negocio se testea sola, sin montar React.
+4. **La validación fue más fina**: además del rango, se verificó que hay **0
+   textos con "número. Mayúscula", 0 con abreviatura + mayúscula y 0 con
+   decimales** — o sea, **0 cortes falsos posibles**, no "improbables". Y que
+   82% cae en 5-7 pasos.
+5. **Tokens `TS`** en los 8 `fontSize` a mano, **chevron `lucide`** en vez de
+   `▲`/`▼` (que se renderizaban con la fuente de emoji del sistema), y la caja
+   del GIF con marco, radio y sombra interna.
+6. **`ScanCorporal`**: costo declarado antes de empezar, y la tipografía
+   ilegible (labels a 10px, unidades del resultado a **8px**) subida al piso de
+   15px — en la pantalla donde alguien decide si se saca dos fotos del cuerpo.
+7. **El build de preview de `web/` arreglado** — el `supabaseUrl is required`
+   que esta investigación había diagnosticado pero dejado sin tocar.
+
+**La lección para el manual, que es lo que hay que retener:** las dos
+implementaciones coincidieron en el algoritmo porque **las dos partieron de
+medir los 1343 textos reales antes de escribir una línea de UI**. Cuando el
+diagnóstico se hace contra los datos y no contra la intuición, dos personas
+distintas llegan al mismo lugar. Ese es el método, no el resultado.
 
 ### 9.7 · Pendiente, y por qué
 
