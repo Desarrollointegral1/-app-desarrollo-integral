@@ -6,6 +6,20 @@ import { pasosDeInstrucciones } from "../utils/pasosInstrucciones.js";
 import { getEjercicioGif } from "../utils/ejerciciosMedia.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 
+// Chip de la fila meta (series×reps, equipo). Nivel 3 del sistema de la app:
+// fondo card2, borde de borde, texto al piso de 15px (TS.chip) — no inventa
+// tamaños, misma escala que el resto de los chips.
+const metaChip = {
+  background: S.card2,
+  border: "1px solid " + S.border,
+  borderRadius: 6,
+  padding: "3px 8px",
+  fontSize: TS.chip,
+  color: S.lgray,
+  fontWeight: 700,
+  letterSpacing: 0.3,
+};
+
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
 // `pesoAnterior` ({peso, fecha}) muestra el último peso registrado en días
 // anteriores, para comparar contra el peso de hoy.
@@ -25,6 +39,7 @@ export default function ItemCard({
   pesoAnterior,
   intensidad,
   unidad,
+  equipo,
 }) {
   peso = peso || 0;
   historial = historial || [];
@@ -39,6 +54,12 @@ export default function ItemCard({
   // como pasos numerados. Si el texto no se deja partir en una lista razonable,
   // `pasos` es null y abajo cae al párrafo de siempre.
   const pasos = pasosDeInstrucciones(desc);
+  // "3x8-10" de la periodización semanal. Se arma solo si vienen las dos
+  // puntas: media prescripción ("3x") confunde más de lo que informa.
+  const chipSeries =
+    semana && semana.series != null && semana.reps != null
+      ? `${semana.series}x${semana.reps}`
+      : null;
   const ytId = getYTId(video);
   // `video` puede ser un path de rehab-media (bucket privado): se resuelve a
   // signed URL. Si ya es http/data/YouTube, el hook lo devuelve tal cual.
@@ -186,6 +207,25 @@ export default function ItemCard({
             style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
           />
         </div>
+        {/* Fila meta: lo que hay que hacer y con qué, SIN abrir la tarjeta.
+            · series×reps salen de la periodización de la semana, que ya
+              llegaba hasta acá (`semana`) y se descartaba: el prop estaba
+              declarado y no se usaba en ningún lado. No es dato nuevo ni
+              requiere alta — `plan_ejercicios.series/reps` sigue vacía, la
+              prescripción es semanal (planTemplates.js: PERIODIZACION_BASE).
+            · equipo es `catalogo_ejercicios.equipment_es`, poblado en los
+              1343 del catálogo y que hasta ahora moría en el buscador del
+              armador de planes: nunca se copiaba al plan.
+            La dificultad (`nivel`) NO está acá a propósito: la columna existe
+            pero está vacía en los 1343, así que no hay nada que mostrar. */}
+        {(chipSeries || equipo) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, paddingLeft: 36 }}>
+            {chipSeries && (
+              <span style={metaChip}>{chipSeries}</span>
+            )}
+            {equipo && <span style={metaChip}>{equipo}</span>}
+          </div>
+        )}
         {showPeso && (
           /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta.
              Auditoría 2026-07-30: los +/- medían 28x28 reales. Es el botón
@@ -227,6 +267,12 @@ export default function ItemCard({
       </div>
       {open && (
         <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
+          {/* La media va ARRIBA de los pasos: primero se ve el movimiento,
+              después se lee cómo hacerlo. Es el orden de la ficha de Afitz
+              (video → "Como Executar") y el que el manual daba por hecho
+              desde el 2026-08-04 — pero en el código estaba al revés: el
+              gif/video se renderizaba DEBAJO del párrafo de instrucciones. */}
+          {renderMedia()}
           {desc &&
             (pasos ? (
               <ol style={{ listStyle: "none", margin: "0 0 14px", padding: 0, display: "grid", gap: 9 }}>
@@ -251,7 +297,6 @@ export default function ItemCard({
             ) : (
               <div style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
             ))}
-          {renderMedia()}
           {showPeso && (pesoAnterior || maxHistorico > 0) && (
             <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
               {pesoAnterior && (

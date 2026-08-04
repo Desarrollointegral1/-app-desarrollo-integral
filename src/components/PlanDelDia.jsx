@@ -315,6 +315,7 @@ export default function PlanDelDia({
                 video={ej.video}
                 mediaLocal={ej.mediaLocal}
                 gif={ej.gif}
+                equipo={ej.equipo}
               />
             ))
           )}
@@ -432,6 +433,7 @@ export default function PlanDelDia({
                 video={ej.video}
                 mediaLocal={ej.mediaLocal}
                 gif={ej.gif}
+                equipo={ej.equipo}
                 showPeso
                 semana={sem}
                 peso={pesos[ej.id] || 0}

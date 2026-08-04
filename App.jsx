@@ -843,17 +843,18 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
       video: items[i].video || "",
       mediaLocal: items[i].mediaLocal || "",
       gif: items[i].gif || "",
+      equipo: items[i].equipo || "",
     });
     setSugs([]); setShowSugs(false);
   };
   const startNew = () => {
     setEditIdx(-1);
-    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
+    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "", equipo: "" });
     setSugs([]); setShowSugs(false);
   };
   const cancel = () => {
     setEditIdx(null);
-    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
+    setForm({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "", equipo: "" });
     setSugs([]); setShowSugs(false);
   };
   const save = () => {
@@ -935,6 +936,11 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
           video: c.video || "",
           codigo: c.codigo_di || null,
           gif: catalogoMediaUrl(c.gif_url || ""),
+          // equipment_es está poblado en los 1343 del catálogo (verificado por
+          // SQL, 2026-08-04) pero hasta acá moría: el plan copiaba nombre,
+          // desc, video, código y gif, y el equipo se perdía. Ahora viaja con
+          // el resto para que la ficha del alumno pueda mostrarlo.
+          equipo: c.equipment_es || "",
           _catalogo: c,
         }));
       const matches = [
@@ -961,6 +967,10 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
         // 2026-07-30: ver nota de abajo — el GIF se reemplaza por el del
         // ejercicio elegido, nunca se arrastra el del anterior.
         gif: sug.gif || "",
+        // Mismo criterio que el gif: se pisa siempre con el del ejercicio
+        // elegido (aunque venga vacío), para no arrastrar el equipo del
+        // ejercicio anterior.
+        equipo: sug.equipo || "",
         ...(sug.codigo ? { codigo: sug.codigo } : {}),
       }));
       agregarCatalogoABiblioteca(sug._catalogo).then((codigo) => {
@@ -6561,6 +6571,7 @@ function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
                           desc={ej.desc}
                           video={ej.video}
                           mediaLocal={ej.mediaLocal}
+                          equipo={ej.equipo}
                         />
                       ))
                     )}
