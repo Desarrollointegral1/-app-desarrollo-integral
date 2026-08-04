@@ -7921,10 +7921,21 @@ export default function App() {
           fuera del scroll para que el alumno siempre sepa dónde está. */}
       {!wideAlumno && (
         <div
+          // 2026-08-04, bug real encontrado por Lucas: con `left:12;right:12`
+          // la cápsula se estira contra el borde de la PANTALLA real, pero el
+          // contenido de arriba vive en una columna centrada de max 480px
+          // (línea ~7452). En una pantalla ancha (desktop con ?vista=movil,
+          // o una tablet donde wideAlumno igual da false) la cápsula quedaba
+          // gigante y pegada a los bordes reales — se veía "plana" de nuevo,
+          // como si el rediseño no hubiera pasado. Centrada y con el mismo
+          // maxWidth que el contenido, en un celular real (viewport <480px)
+          // se ve exactamente igual que antes (ese es su ancho real).
           style={{
             position: "fixed",
-            left: 12,
-            right: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 24px)",
+            maxWidth: 456,
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
             zIndex: 500,
           }}

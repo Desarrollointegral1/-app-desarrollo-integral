@@ -159,10 +159,16 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
 
   return (
     <div>
+      {/* 2026-08-04, pedido de Lucas: "Estudio manual" pasa a llamarse
+          "Balanza" (es más claro para qué es: cargar el número que da la
+          báscula de bioimpedancia física). El selector de 2 módulos sigue
+          siendo solo-admin — Lucas pidió abrirle Scan Corporal al alumno y
+          después dijo explícitamente que no, que se quede como estaba
+          (revertido en la misma sesión). */}
       {!readOnly && !editando && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <button onClick={() => setModulo("manual")} style={{ ...tabN2(modulo === "manual"), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <BarChart3 size={15} strokeWidth={2} />Estudio manual
+            <BarChart3 size={15} strokeWidth={2} />Balanza
           </button>
           <button onClick={() => setModulo("scan")} style={{ ...tabN2(modulo === "scan"), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <Sparkles size={15} strokeWidth={2} />Scan corporal (IA)
@@ -185,7 +191,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
             <EstudioBioForm key="nuevo" alumno={alumno} onGuardar={guardar} guardando={guardando} historialAlumno={registros} />
             {/* Estudio anterior: solo fecha + foto, sin medición — pedido
                 explícito de Lucas de que viva separado del formulario de
-                estudio nuevo, pero adentro del módulo manual (no es un
+                estudio nuevo, pero adentro del módulo Balanza (no es un
                 módulo aparte). */}
             <EstudioAnteriorForm onGuardar={guardar} guardando={guardando} />
           </>
@@ -193,7 +199,8 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
       )}
       {/* Scan corporal (Fase 1): composición corporal estimada por IA a
           partir de 2 fotos, sin balanza. Guarda en la misma tabla con
-          metadata.tipo="scan_2fotos" para distinguirlo de una medición manual. */}
+          metadata.tipo="scan_2fotos" para distinguirlo de una medición manual.
+          Solo-admin (Lucas pidió y después descartó abrirlo al alumno). */}
       {!readOnly && !editando && modulo === "scan" && (
         <ScanCorporalForm alumno={alumno} onGuardar={guardar} />
       )}
