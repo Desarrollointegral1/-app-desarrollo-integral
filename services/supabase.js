@@ -1507,6 +1507,34 @@ async function _fotoADataUrl(file, maxLado = 900, calidad = 0.8) {
   return canvas.toDataURL("image/jpeg", calidad);
 }
 
+// Sube UNA foto al bucket privado de bioimpedancia y devuelve el path del
+// objeto. Si Storage está bloqueado por RLS cae al data URL embebido, que es
+// el fallback que ya tenía saveBioimpedanciaCompleta — se extrajo acá para
+// poder subir más de una foto por registro (scan corporal: frontal + lateral)
+// sin duplicar el manejo de errores.
+async function _subirFotoBio(alumno_id, foto, etiqueta = "") {
+  if (!foto) return { path: null, nombre: null };
+  const sufijo = etiqueta ? `-${etiqueta}` : "";
+  try {
+    await _ensureBioBucket();
+    const ext = (foto.name.split(".").pop() || "jpg").toLowerCase();
+    // Math.random evita que dos fotos del mismo scan colisionen si caen en el
+    // mismo milisegundo (upsert:false haría fallar la segunda).
+    const key = `${alumno_id}/${Date.now()}${sufijo}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from(BIO_BUCKET)
+      .upload(key, foto, { cacheControl: "3600", upsert: false });
+    if (upErr) throw upErr;
+    return { path: key, nombre: foto.name }; // path del objeto — signed URL al mostrar
+  } catch (e) {
+    // Storage puede estar bloqueado por RLS (ver migrations/006). Mientras
+    // tanto la foto se guarda embebida en el registro, redimensionada para
+    // que no pese: mismo patrón que ya usa la foto de perfil del alumno.
+    LOG("_subirFotoBio", "⚠️ Storage bloqueado, guardando foto embebida.", e?.message);
+    return { path: await _fotoADataUrl(foto), nombre: foto.name };
+  }
+}
+
 async function _ensureBioBucket() {
   const { data: buckets } = await supabase.storage.listBuckets();
   if (buckets && buckets.find(b => b.name === BIO_BUCKET)) return;
@@ -1546,16 +1574,20 @@ export async function guardarBioimpedancia(alumno_id, datos) {
   return data;
 }
 
-export async function eliminarBioimpedancia(id, archivo_url) {
-  // Eliminar archivo de storage si existe. archivo_url ahora guarda el PATH
+export async function eliminarBioimpedancia(id, archivo_url, archivosExtra = []) {
+  // Eliminar archivos de storage si existen. archivo_url ahora guarda el PATH
   // directo; se contempla el formato viejo (URL pública) y se saltean las
   // fotos embebidas (data:), que no tienen objeto en storage.
-  if (archivo_url && !/^data:/i.test(archivo_url)) {
+  // `archivosExtra` cubre las fotos que no viven en la columna: hoy, la
+  // lateral del scan corporal (metadata.scan_foto_lateral). Sin esto, borrar
+  // un scan dejaba la foto de perfil huérfana en el bucket.
+  const paths = [archivo_url, ...(archivosExtra || [])]
+    .filter((u) => u && !/^data:/i.test(u))
+    .map((u) => (u.includes(`/${BIO_BUCKET}/`) ? u.split(`/${BIO_BUCKET}/`)[1].split("?")[0] : u))
+    .filter(Boolean);
+  if (paths.length) {
     try {
-      const path = archivo_url.includes(`/${BIO_BUCKET}/`)
-        ? archivo_url.split(`/${BIO_BUCKET}/`)[1].split("?")[0]
-        : archivo_url;
-      if (path) await supabase.storage.from(BIO_BUCKET).remove([path]);
+      await supabase.storage.from(BIO_BUCKET).remove(paths);
     } catch (e) { /* no bloquear si falla el storage */ }
   }
   const { error } = await supabase.from("bioimpedancia").delete().eq("id", id);
@@ -2020,28 +2052,16 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
   // numérica propia (pedido de Lucas). No agrega columna: es un valor más
   // dentro del mismo `metadata` jsonb que ya usan conclusion/objetivo.
 
-  let archivo_url = null;
-  let nombre_archivo = null;
-  if (foto) {
-    try {
-      await _ensureBioBucket();
-      const ext = (foto.name.split(".").pop() || "jpg").toLowerCase();
-      const key = `${alumno_id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(BIO_BUCKET)
-        .upload(key, foto, { cacheControl: "3600", upsert: false });
-      if (upErr) throw upErr;
-      archivo_url = key; // path del objeto (bucket privado) — signed URL al mostrar
-      nombre_archivo = foto.name;
-    } catch (e) {
-      // Storage puede estar bloqueado por RLS (ver migrations/006). Mientras
-      // tanto la foto se guarda embebida en el registro, redimensionada para
-      // que no pese: mismo patrón que ya usa la foto de perfil del alumno.
-      LOG("saveBioimpedanciaCompleta", "⚠️ Storage bloqueado, guardando foto embebida.", e?.message);
-      archivo_url = await _fotoADataUrl(foto);
-      nombre_archivo = foto.name;
-    }
-  }
+  const esScan = datos.tipo === "scan_2fotos";
+  const subida = await _subirFotoBio(alumno_id, foto, esScan ? "frontal" : "");
+  let archivo_url = subida.path;
+  let nombre_archivo = subida.nombre;
+  // Scan corporal: la foto de perfil (lateral) va como segundo objeto en el
+  // mismo bucket privado. La frontal viaja por `foto` y queda en archivo_url,
+  // así el historial, el flyer y el borrado existentes la siguen encontrando
+  // sin cambios; la lateral se referencia desde metadata, igual que el resto
+  // de los datos del scan (no agrega columnas a la tabla).
+  const lateral = await _subirFotoBio(alumno_id, datos.foto_lateral, "lateral");
 
   const metadata = {};
   if (datos.conclusion) metadata.conclusion = datos.conclusion;
@@ -2056,6 +2076,9 @@ export async function saveBioimpedanciaCompleta(alumno_id, datos, foto = null) {
   if (datos.medidas_estimadas) metadata.medidas_estimadas = datos.medidas_estimadas;
   if (datos.masa_magra_kg != null && datos.masa_magra_kg !== "") metadata.masa_magra_kg = Number(datos.masa_magra_kg);
   if (datos.masa_grasa_kg != null && datos.masa_grasa_kg !== "") metadata.masa_grasa_kg = Number(datos.masa_grasa_kg);
+  // Path (o data URL de fallback) de la foto de perfil del scan corporal.
+  // La frontal vive en la columna archivo_url; esta es la segunda.
+  if (lateral.path) metadata.scan_foto_lateral = lateral.path;
 
   const payload = limpiarPayload({
     alumno_id,
@@ -2102,9 +2125,33 @@ export async function actualizarBioimpedancia(id, datos, foto = null, quitarFoto
   let archivo_url = datos.archivo_url_actual ?? null;
   let nombre_archivo = datos.nombre_archivo_actual ?? null;
 
+  // Metadata que YA tiene el registro. Sin esto, editar un scan corporal lo
+  // desarmaba: el formulario de edición no conoce tipo/medidas_estimadas/
+  // masa_magra_kg/masa_grasa_kg, así que al reconstruir metadata desde cero
+  // esos campos se perdían y el registro dejaba de reconocerse como scan.
+  // Se usa como base y lo que venga en `datos` la pisa campo por campo.
+  let metadataPrevia = {};
+  {
+    const { data: actual } = await supabase
+      .from("bioimpedancia")
+      .select("metadata")
+      .eq("id", id)
+      .maybeSingle();
+    if (actual?.metadata && typeof actual.metadata === "object") metadataPrevia = { ...actual.metadata };
+  }
+
   if (quitarFoto) {
     archivo_url = null;
     nombre_archivo = null;
+    // En un scan, "quitar la foto" son las dos: dejar la lateral colgada sin
+    // la frontal no tiene sentido y el objeto quedaría sin forma de borrarse.
+    if (metadataPrevia.scan_foto_lateral) {
+      const p = metadataPrevia.scan_foto_lateral;
+      if (!/^data:/i.test(p)) {
+        try { await supabase.storage.from(BIO_BUCKET).remove([p]); } catch (e) { /* no bloquear */ }
+      }
+      delete metadataPrevia.scan_foto_lateral;
+    }
   } else if (foto) {
     try {
       await _ensureBioBucket();
@@ -2114,6 +2161,13 @@ export async function actualizarBioimpedancia(id, datos, foto = null, quitarFoto
         .from(BIO_BUCKET)
         .upload(key, foto, { cacheControl: "3600", upsert: false });
       if (upErr) throw upErr;
+      // Reemplazar la foto dejaba el objeto anterior colgado en el bucket sin
+      // ninguna fila que lo referencie: ya no hay forma de borrarlo desde la
+      // app. Se limpia acá, después de que la nueva subió bien.
+      const previa = datos.archivo_url_actual;
+      if (previa && previa !== key && !/^data:/i.test(previa)) {
+        try { await supabase.storage.from(BIO_BUCKET).remove([previa]); } catch (e2) { /* no bloquear */ }
+      }
       archivo_url = key;
       nombre_archivo = foto.name;
     } catch (e) {
@@ -2123,7 +2177,7 @@ export async function actualizarBioimpedancia(id, datos, foto = null, quitarFoto
     }
   }
 
-  const metadata = {};
+  const metadata = { ...metadataPrevia };
   if (datos.conclusion) metadata.conclusion = datos.conclusion;
   if (datos.objetivo) metadata.objetivo = datos.objetivo;
   if (datos.requerimiento) metadata.requerimiento = datos.requerimiento;

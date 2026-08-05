@@ -25,17 +25,22 @@ const BIO_BUCKET = "bioimpedancia-archivos";
 
 // Foto de un estudio: archivo_url guarda el PATH del objeto (bucket privado),
 // se resuelve a signed URL on-demand. Datos viejos (http/data) pasan tal cual.
-function BioFoto({ bio }) {
-  const url = useSignedUrl(BIO_BUCKET, bio.archivo_url);
+function BioFoto({ path, alt = "foto estudio", pie = null }) {
+  const url = useSignedUrl(BIO_BUCKET, path);
   if (!url) return null;
   return (
-    <a href={url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
+    <a href={url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10, flex: 1, minWidth: 0 }}>
       <img
         src={url}
-        alt={bio.nombre_archivo || "foto estudio"}
+        alt={alt}
         style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }}
-        onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
+        onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${alt}</div>`; }}
       />
+      {pie && (
+        <div style={{ color: S.gray, fontSize: TS.chip, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 4 }}>
+          {pie}
+        </div>
+      )}
     </a>
   );
 }
@@ -149,7 +154,9 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
   const eliminar = async (bio) => {
     if (!window.confirm(`¿Eliminar el estudio del ${bio.fecha}?`)) return;
     try {
-      await eliminarBioimpedancia(bio.id, bio.archivo_url);
+      // La lateral del scan no vive en una columna: si no se pasa acá, borrar
+      // el registro dejaba el objeto huérfano en el bucket.
+      await eliminarBioimpedancia(bio.id, bio.archivo_url, [bio.metadata?.scan_foto_lateral]);
       setRegistros((prev) => prev.filter((r) => r.id !== bio.id));
       showToast && showToast("Estudio eliminado");
     } catch (e) {
@@ -904,7 +911,16 @@ export function EstudioBioHistorial({ registros, onEliminar, onEditar, alumnoFly
               )}
             </div>
           )}
-          {bio.archivo_url && <BioFoto bio={bio} />}
+          {/* Scan corporal: las dos fotos del análisis, lado a lado y
+              rotuladas. El resto de los estudios sigue con una sola. */}
+          {esScan && bio.metadata?.scan_foto_lateral ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <BioFoto path={bio.archivo_url} alt="foto frontal del scan" pie="Frontal" />
+              <BioFoto path={bio.metadata.scan_foto_lateral} alt="foto lateral del scan" pie="Perfil" />
+            </div>
+          ) : (
+            bio.archivo_url && <BioFoto path={bio.archivo_url} alt={bio.nombre_archivo || "foto estudio"} />
+          )}
         </div>
         );
       })}

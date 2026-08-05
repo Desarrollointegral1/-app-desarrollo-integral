@@ -14,9 +14,15 @@ import { SEXOS } from "../utils/energia.js";
 // se guarda en el historial de bioimpedancia con metadata.tipo="scan_2fotos"
 // para distinguirlo de una medición manual.
 //
-// PRIVACIDAD: las fotos se mandan al endpoint para el análisis y nunca se
-// guardan — ni acá ni en Supabase. Solo el resultado (números) se persiste
-// si el entrenador aprieta "Guardar en historial".
+// FOTOS (cambiado 2026-08-04, pedido de Lucas): antes se descartaban después
+// del análisis. Ahora, al apretar "Guardar en historial", las dos fotos se
+// guardan junto con el resultado — la frontal en la columna archivo_url del
+// registro y la lateral en metadata.scan_foto_lateral. Van al bucket
+// `bioimpedancia-archivos`, que es PRIVADO y admin-only desde migrations/023:
+// no hay URL pública, se sirven con signed URLs que expiran. Se guardan las
+// versiones comprimidas (máx. 900px), las mismas que se mandan a analizar,
+// no los originales de la cámara.
+// Si NO se guarda en historial, las fotos no se persisten en ningún lado.
 
 // theme.js: "por debajo de 15px no se baja". Este archivo tenía labels a 10px y
 // las unidades del resultado a 8px — ilegibles, y encima es la pantalla donde
@@ -27,17 +33,25 @@ const label = (t) => (
   </div>
 );
 
-// Redimensiona a máx. 900px de lado y devuelve un data URL JPEG — mismo
-// criterio que ya usa el resto de la app para fotos (services/supabase.js),
-// así el payload que viaja al endpoint pesa poco.
-async function comprimirFoto(file, maxLado = 900, calidad = 0.8) {
+// Redimensiona a máx. 900px de lado — mismo criterio que ya usa el resto de la
+// app para fotos (services/supabase.js), así el payload que viaja al endpoint
+// pesa poco.
+// Devuelve las dos formas del MISMO canvas: el data URL que se manda a
+// /api/scan-corporal y un File para subir a Storage. Comprimir una sola vez
+// garantiza que lo que se guarda es exactamente lo que se analizó.
+async function comprimirFoto(file, nombre, maxLado = 900, calidad = 0.8) {
   const bitmap = await createImageBitmap(file);
   const escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * escala);
   canvas.height = Math.round(bitmap.height * escala);
   canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", calidad);
+  const dataUrl = canvas.toDataURL("image/jpeg", calidad);
+  const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", calidad));
+  // toBlob puede devolver null en navegadores viejos: en ese caso se sigue
+  // con el análisis igual (dataUrl está) y solo no se puede guardar la foto.
+  const archivo = blob ? new File([blob], nombre, { type: "image/jpeg" }) : null;
+  return { dataUrl, archivo };
 }
 
 // Overlay full-screen: cámara en vivo (getUserMedia, trasera por defecto en
@@ -198,6 +212,9 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState(null);
+  // Versiones comprimidas (File) de las dos fotos, las mismas que se mandaron
+  // a analizar. Se suben recién al guardar en historial.
+  const [comprimidas, setComprimidas] = useState({ frontal: null, lateral: null });
 
   const edadCalculada = useMemo(() => calcularEdad(alumno?.fecha_nacimiento), [alumno?.fecha_nacimiento]);
   const edad = edadCalculada ?? (edadManual ? Number(edadManual) : null);
@@ -205,6 +222,12 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
   const handleFoto = (setFile, setPreview) => (file) => {
     if (!file) return;
     setFile(file);
+    // Cambiar una foto invalida el análisis anterior: si no se limpia, se
+    // podía guardar el resultado de las fotos VIEJAS junto con las nuevas.
+    // Antes solo quedaban mal los números; ahora que las fotos se persisten,
+    // quedaría un registro con fotos que no corresponden a esas medidas.
+    setResultado(null);
+    setComprimidas({ frontal: null, lateral: null });
     const r = new FileReader();
     r.onload = (ev) => setPreview(ev.target.result);
     r.readAsDataURL(file);
@@ -218,13 +241,19 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
     setError("");
     setResultado(null);
     try {
-      const [dataFrontal, dataLateral] = await Promise.all([comprimirFoto(fotoFrontal), comprimirFoto(fotoLateral)]);
+      const [frontal, lateral] = await Promise.all([
+        comprimirFoto(fotoFrontal, "scan-frontal.jpg"),
+        comprimirFoto(fotoLateral, "scan-lateral.jpg"),
+      ]);
+      // Se guardan para el momento del "Guardar en historial": son las mismas
+      // imágenes que se analizan, ya comprimidas.
+      setComprimidas({ frontal: frontal.archivo, lateral: lateral.archivo });
       const r = await fetch("/api/scan-corporal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fotoFrontal: dataFrontal,
-          fotoLateral: dataLateral,
+          fotoFrontal: frontal.dataUrl,
+          fotoLateral: lateral.dataUrl,
           peso: Number(peso),
           altura: Number(altura),
           genero,
@@ -253,20 +282,28 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
         (resultado.medidasEstimadas.cadera ? `, cadera ${resultado.medidasEstimadas.cadera}cm.` : "."),
       `Masa magra ${resultado.masaMagraKg}kg, masa grasa ${resultado.masaGrasaKg}kg.`,
     ];
-    const ok = await onGuardar({
-      fecha: hoy(),
-      hora: new Date().toTimeString().slice(0, 5),
-      peso: Number(peso),
-      altura: Number(altura),
-      edad,
-      imc: resultado.imc,
-      grasa_corporal: resultado.porcentajeGrasa,
-      tipo: "scan_2fotos",
-      conclusion: partes.join(" "),
-      medidas_estimadas: resultado.medidasEstimadas,
-      masa_magra_kg: resultado.masaMagraKg,
-      masa_grasa_kg: resultado.masaGrasaKg,
-    });
+    const ok = await onGuardar(
+      {
+        fecha: hoy(),
+        hora: new Date().toTimeString().slice(0, 5),
+        peso: Number(peso),
+        altura: Number(altura),
+        edad,
+        imc: resultado.imc,
+        grasa_corporal: resultado.porcentajeGrasa,
+        tipo: "scan_2fotos",
+        conclusion: partes.join(" "),
+        medidas_estimadas: resultado.medidasEstimadas,
+        masa_magra_kg: resultado.masaMagraKg,
+        masa_grasa_kg: resultado.masaGrasaKg,
+        // La lateral viaja por acá; el guardado la sube y deja el path en
+        // metadata.scan_foto_lateral (no es una columna).
+        foto_lateral: comprimidas.lateral,
+      },
+      // La frontal usa el canal de foto que ya existía: termina en la columna
+      // archivo_url, que es la que ya leen el historial y el flyer.
+      comprimidas.frontal
+    );
     setGuardando(false);
     if (ok) {
       setFotoFrontal(null);
@@ -276,6 +313,7 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
       setResultado(null);
       setGenero("");
       setEdadManual("");
+      setComprimidas({ frontal: null, lateral: null });
     }
   };
 
@@ -305,7 +343,11 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
 
       {/* El costo se declara ANTES de empezar, no después: qué hay que poner,
           qué pasa con las fotos y qué se recibe. Sin esto, la persona descubre
-          que necesitaba dos fotos de cuerpo entero recién al llegar al final. */}
+          que necesitaba dos fotos de cuerpo entero recién al llegar al final.
+          2026-08-04: el chip del medio decía "las fotos no se guardan" y desde
+          este cambio se guardan — el texto sigue al comportamiento, nunca al
+          revés. Un chip que miente sobre qué pasa con una foto del cuerpo es
+          peor que no tener chip. */}
       <div
         style={{
           display: "flex",
@@ -321,7 +363,7 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
       >
         <span>2 fotos de cuerpo entero</span>
         <span aria-hidden="true">·</span>
-        <span>las fotos no se guardan</span>
+        <span>quedan guardadas en el historial</span>
         <span aria-hidden="true">·</span>
         <span>devuelve % de grasa estimado</span>
       </div>
@@ -363,14 +405,14 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
           titulo="Foto frontal"
           preview={previewFrontal}
           onFile={handleFoto(setFotoFrontal, setPreviewFrontal)}
-          onQuitar={() => { setFotoFrontal(null); setPreviewFrontal(null); }}
+          onQuitar={() => { setFotoFrontal(null); setPreviewFrontal(null); setResultado(null); setComprimidas({ frontal: null, lateral: null }); }}
         />
         <FotoInput
           tipo="lateral"
           titulo="Foto lateral"
           preview={previewLateral}
           onFile={handleFoto(setFotoLateral, setPreviewLateral)}
-          onQuitar={() => { setFotoLateral(null); setPreviewLateral(null); }}
+          onQuitar={() => { setFotoLateral(null); setPreviewLateral(null); setResultado(null); setComprimidas({ frontal: null, lateral: null }); }}
         />
       </div>
 
