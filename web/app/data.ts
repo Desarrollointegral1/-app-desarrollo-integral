@@ -26,7 +26,7 @@ export const METODO_DETAIL: Record<string, MetodoDetail> = {
   },
   "02": {
     descripcion:
-      "Un plan de entrenamiento diseñado para vos: ejercicios, cargas y progresión según tu evaluación.",
+      "Un plan de entrenamiento diseñado para vos: ejercicios, cargas y progresión según tu evaluación. Toda progresión es gradual.",
     items: [
       "Selección de ejercicios según movilidad, fuerza y objetivos individuales",
       "Periodización estructurada con ciclos de volumen, fuerza e intensidad",
@@ -36,12 +36,12 @@ export const METODO_DETAIL: Record<string, MetodoDetail> = {
   },
   "03": {
     descripcion:
-      "Cada sesión guiada por un profesional que observa, corrige y ajusta en el momento.",
+      "Cada sesión guiada por un profesional que observa, corrige y ajusta en el momento. La técnica no se negocia.",
     items: [
       "Registro de cargas, series y repeticiones en cada entrenamiento",
       "Corrección técnica en vivo, ejercicio por ejercicio",
       "Ajuste de cargas e intensidad según cómo llegás a cada sesión",
-      "Comunicación directa entre coach y alumno para ajustes inmediatos",
+      "Comunicación directa entre entrenador y alumno para ajustes inmediatos",
     ],
   },
   "04": {
@@ -110,7 +110,7 @@ export type Stat = {
 };
 
 export const STATS: Stat[] = [
-  { value: "30+", label: "años de experiencia de nuestro head coach" },
+  { value: "30+", label: "años de experiencia de nuestro entrenador principal" },
   { value: "1 a 1", label: "cada plan se diseña desde una evaluación individual" },
   { value: "Cada sesión", label: "queda registrada: cargas, series y mediciones" },
   { value: "4 pasos", label: "evaluar, planificar, entrenar, evolucionar" },
@@ -141,7 +141,7 @@ export const PLATFORM_FEATURES: Feature[] = [
   },
   {
     icon: "",
-    title: "Canal coach · alumno",
+    title: "Canal entrenador · alumno",
     desc: "Mensajería integrada para ajustes y consultas",
   },
   {
@@ -192,8 +192,8 @@ export type TeamMember = {
 
 export const TEAM: TeamMember[] = [
   {
-    name: "Ariel Rebisberger",
-    role: "Coach, Entrenador de Movimiento",
+    name: "Ariel Rebesberger",
+    role: "Entrenador de Movimiento",
     bio: "30+ años especializándose en fuerza, rendimiento y movimiento humano. Trabaja con atletas, ejecutivos y personas en rehabilitación con una filosofía: datos, personalización, resultados verificables.",
     image: "/equipo/ariel.jpg",
   },
@@ -213,26 +213,12 @@ export type Testimonial = {
   avatar?: string;
 };
 
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    quote:
-      "Nunca vi una evolución tan medida y personalizada. Ariel adapta cada sesión a mis necesidades reales, no a un plan genérico.",
-    author: "Marco G.",
-    role: "Atleta",
-  },
-  {
-    quote:
-      "El proceso de bioimpedancia cambió mi forma de entrenar. Ahora veo exactamente qué está pasando con mi cuerpo.",
-    author: "Florencia R.",
-    role: "Emprendedora",
-  },
-  {
-    quote:
-      "Después de la lesión, este fue el único plan que realmente funcionó. Combina rigor científico con flexibilidad humana.",
-    author: "Carlos B.",
-    role: "Cliente de Rehabilitación",
-  },
-];
+// Pendiente 2026-08-06: estos 3 testimonios eran inventados, no alumnos reales — sacados.
+// Lucas va a reemplazar este bloque por videos cortos de testimonios reales, grabados
+// cuando haya alumnos disponibles (ver BRIEF-AUDIOVISUAL-WEB-2026-08-06.md). Hasta que
+// existan esos videos, el array queda vacío a propósito — TestimonialSlider ya maneja
+// el caso vacío devolviendo null, no se rellena con placeholders.
+export const TESTIMONIALS: Testimonial[] = [];
 
 // IDENTITY PILLARS
 export type IdentityPillar = {
@@ -265,15 +251,15 @@ export const IDENTITY_PILLARS: IdentityPillar[] = [
   {
     number: 5,
     title: "Relación humana",
-    description: "Comunicación abierta entre coach y alumno. Ajustes basados en feedback real, no en protocolos rígidos.",
+    description: "Comunicación abierta entre entrenador y alumno. Ajustes basados en feedback real, no en protocolos rígidos.",
   },
 ];
 
 // SEO / META
 export const META = {
   title: "Desarrollo Integral | Entrenamiento Personalizado con Datos",
-  description: "Planes de entrenamiento, fuerza y movimiento basados en bioimpedancia y periodización científica. Coaching personalizado con Ariel Rebisberger.",
-  keywords: ["entrenamiento", "coach", "fuerza", "movimiento", "personalizado", "bioimpedancia"],
+  description: "Planes de entrenamiento, fuerza y movimiento basados en bioimpedancia y periodización científica. Entrenamiento personalizado con Ariel Rebesberger.",
+  keywords: ["entrenamiento", "entrenador", "fuerza", "movimiento", "personalizado", "bioimpedancia"],
 };
 
 // LOCATION

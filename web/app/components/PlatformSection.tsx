@@ -14,7 +14,7 @@ export function PlatformSection({ features }: PlatformSectionProps) {
         <h2 className="section-h2 fade-in">Tu plan, tus datos, en un solo lugar</h2>
         <p className="section-body fade-in">
           La plataforma acompaña lo que pasa en el centro: registrás cada sesión, ves tu
-          evolución y hablás directo con tu coach.
+          evolución y hablás directo con tu entrenador.
         </p>
 
         <div className="platform-grid">

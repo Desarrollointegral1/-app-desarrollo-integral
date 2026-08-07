@@ -11,6 +11,8 @@ interface TestimonialSliderProps {
 export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
   const [current, setCurrent] = useState(0);
 
+  if (!testimonials.length) return null;
+
   const next = () => {
     setCurrent((prev) => (prev + 1) % testimonials.length);
   };

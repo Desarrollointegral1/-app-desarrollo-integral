@@ -5,7 +5,7 @@
 
 ## What It Is
 
-**Desarrollo Integral** is a premium movement and physical therapy practice founded by Ariel Rebisberger. The landing page communicates expertise, trust, and motion-focused methodology to potential clients seeking professional training, rehabilitation, and sports performance optimization.
+**Desarrollo Integral** is a premium movement and physical therapy practice founded by Ariel Rebesberger. The landing page communicates expertise, trust, and motion-focused methodology to potential clients seeking professional training, rehabilitation, and sports performance optimization.
 
 **Dual-founder model**: Main brand (Ariel, movement/training) with sidebar product (Griselda, osteopathy). Cross-promotion between pages.
 

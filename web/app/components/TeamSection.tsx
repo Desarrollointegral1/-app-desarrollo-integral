@@ -18,7 +18,7 @@ export function TeamSection() {
         <div className="ariel-photo-wrap">
           <img
             src="/web/equipo/ariel.jpg"
-            alt="Ariel Rebisberger — Head Coach de Desarrollo Integral"
+            alt="Ariel Rebesberger, entrenador principal de Desarrollo Integral"
             className="ariel-photo"
             loading="lazy"
           />
@@ -32,10 +32,10 @@ export function TeamSection() {
 
         <h2 className="ariel-name">
           Ariel<br />
-          <em>Rebisberger</em>
+          <em>Rebesberger</em>
         </h2>
 
-        <p className="ariel-role">Head Coach · Desarrollo Integral</p>
+        <p className="ariel-role">Entrenador principal · Desarrollo Integral</p>
 
         <p className="ariel-bio">
           30 años especializándose en fuerza, rendimiento y movimiento humano. Trabaja
