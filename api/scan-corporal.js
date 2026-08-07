@@ -61,9 +61,66 @@ function imagenAContenido(foto) {
   return null;
 }
 
+// Tamaño máximo por foto, ya comprimida por el cliente. Una foto de celular sin comprimir puede
+// pasar los 5 MB, y como acá cada imagen se paga en tokens de visión, alguien mandando dos fotos
+// enormes multiplica la factura de una sola llamada. El cliente ya comprime a ~1024px; 2 MB deja
+// margen de sobra para eso y corta el abuso.
+const MAX_BYTES_FOTO = 2 * 1024 * 1024;
+
+/**
+ * Confirma que quien llama tiene una sesión válida de Supabase.
+ *
+ * Este endpoint estaba ABIERTO: cualquiera con la URL podía mandar dos fotos y disparar una
+ * llamada a Claude con visión, que se paga con la cuenta de Lucas. Hallazgo crítico de la ronda
+ * del 2026-08-07.
+ *
+ * Se valida contra `/auth/v1/user` de Supabase en vez de decodificar el JWT a mano: es la
+ * autoridad real (contempla expiración, revocación y sesiones cerradas) y no necesita ninguna
+ * dependencia nueva ni el service_role acá.
+ */
+async function sesionValida(req) {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !anon) return { ok: false, motivo: "El servidor no tiene configurado Supabase." };
+
+  const auth = req.headers?.authorization || "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  // Fail-closed: sin token no se gasta un centavo.
+  if (!token) return { ok: false, motivo: "Necesitás iniciar sesión para usar el scan." };
+  // El anon key también es un JWT y Supabase lo acepta en este endpoint: hay que rechazarlo
+  // explícitamente, si no cualquiera lo copia del frontend y pasa el control.
+  if (token === anon) return { ok: false, motivo: "Necesitás iniciar sesión para usar el scan." };
+
+  try {
+    const r = await fetch(`${url}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: anon },
+    });
+    if (!r.ok) return { ok: false, motivo: "Tu sesión venció. Volvé a entrar y probá de nuevo." };
+    const u = await r.json();
+    if (!u?.id) return { ok: false, motivo: "Tu sesión venció. Volvé a entrar y probá de nuevo." };
+    return { ok: true, usuario: u.id };
+  } catch {
+    return { ok: false, motivo: "No se pudo validar la sesión contra Supabase." };
+  }
+}
+
+/** Peso real de una imagen en base64, sin decodificarla. */
+function bytesDeBase64(foto) {
+  const s = typeof foto === "string" ? foto : foto?.base64 || "";
+  const crudo = s.replace(/^data:.*;base64,/, "");
+  return Math.floor(crudo.length * 0.75);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Método no permitido" });
+    return;
+  }
+
+  // Antes que nada: quién sos. Todo lo de abajo cuesta plata.
+  const sesion = await sesionValida(req);
+  if (!sesion.ok) {
+    res.status(401).json({ error: sesion.motivo });
     return;
   }
 
@@ -74,6 +131,11 @@ export default async function handler(req, res) {
   }
 
   const { fotoFrontal, fotoLateral, peso, altura, genero, edad } = req.body || {};
+
+  if (bytesDeBase64(fotoFrontal) > MAX_BYTES_FOTO || bytesDeBase64(fotoLateral) > MAX_BYTES_FOTO) {
+    res.status(413).json({ error: "Las fotos son muy pesadas. Sacalas de nuevo desde la app, que las comprime sola." });
+    return;
+  }
 
   const pesoKg = Number(peso);
   const alturaCm = Number(altura);
