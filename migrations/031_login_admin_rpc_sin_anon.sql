@@ -1,0 +1,32 @@
+-- 031 — Cerrar la fuerza bruta de PINs de admin por PostgREST
+-- Aplicada el 2026-08-07. Hallazgo CRÍTICO de la ronda de seguridad de Ítaca (tarea #220).
+--
+-- EL PROBLEMA
+-- `login_admin_rpc` tenía `GRANT EXECUTE TO anon` desde la migración 004. Eso quiere decir que
+-- cualquiera, sin ninguna sesión, podía llamarla directo contra
+-- `POST /rest/v1/rpc/login_admin_rpc` y probar PINs uno atrás del otro sin ningún freno.
+--
+-- El login de verdad —la Edge Function `auth-bridge`— tiene bcrypt y bloqueo tras 10 intentos
+-- fallidos. Pero esta RPC seguía viva por su cuenta y lo esquivaba por completo: el candado
+-- estaba puesto en la puerta y la ventana quedaba abierta.
+--
+-- POR QUÉ NO ROMPE EL LOGIN
+-- Se verificó contra el código que la llama, no se supuso. En `services/supabase.js`,
+-- `loginAdmin()` hace primero `await establecerSesion(codigo, pin, "admin")` —que es el
+-- auth-bridge, con su bcrypt y su rate-limit— y RECIÉN DESPUÉS llama a esta RPC, y solo para
+-- traer los datos del admin sin el `pin_hash`. Cuando la RPC corre, la sesión ya está abierta:
+-- el rol es `authenticated`, no `anon`. Es la única llamada en todo el código fuente.
+--
+-- CÓMO SE VERIFICÓ
+--   SELECT has_function_privilege('anon', 'public.login_admin_rpc(text,text)', 'EXECUTE');
+--   -- false (antes: true)
+-- Y el linter de seguridad de Supabase dejó de reportar
+-- `anon_security_definer_function_executable` para esta función.
+--
+-- CÓMO SE REVIERTE, si algún día el login lo necesitara:
+--   GRANT EXECUTE ON FUNCTION public.login_admin_rpc(text, text) TO anon;
+-- Ojo: revertir reabre la fuerza bruta. Si hiciera falta, la salida correcta es meterle el
+-- conteo de intentos adentro de la propia función, no volver a abrirla.
+
+REVOKE EXECUTE ON FUNCTION public.login_admin_rpc(text, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.login_admin_rpc(text, text) TO authenticated;
