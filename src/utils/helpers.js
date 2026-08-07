@@ -20,7 +20,14 @@ export const uid = () => crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxx
 export function calcularEdad(fechaNac) {
   if (!fechaNac) return null;
   const hoy = new Date();
-  const nac = new Date(fechaNac);
+  // OJO (encontrado por los tests, 2026-08-06): `new Date("1996-08-07")` se
+  // interpreta como medianoche UTC. En Buenos Aires (UTC-3) eso cae el día
+  // ANTERIOR, así que la edad salía un año de más justo en el cumpleaños y en
+  // los bordes de mes. Se arma la fecha a mano para que sea local de verdad.
+  const partes = String(fechaNac).slice(0, 10).split("-").map(Number);
+  const nac = partes.length === 3 && partes.every(Number.isFinite)
+    ? new Date(partes[0], partes[1] - 1, partes[2])
+    : new Date(fechaNac);
   let edad = hoy.getFullYear() - nac.getFullYear();
   const m = hoy.getMonth() - nac.getMonth();
   if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;

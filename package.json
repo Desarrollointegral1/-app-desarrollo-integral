@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "setup-migrations": "node setup-migrations.js",
-    "deploy": "git add App.jsx services/supabase.js src/ public/ package.json && git diff --cached --quiet || git commit -m \"deploy: update $(date +%Y-%m-%d)\" && git push origin main && npx vercel --prod"
+    "deploy": "git add App.jsx services/supabase.js src/ public/ package.json && git diff --cached --quiet || git commit -m \"deploy: update $(date +%Y-%m-%d)\" && git push origin main && npx vercel --prod",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:node": "node --test src/utils/"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^4.1.10"
   }
 }
