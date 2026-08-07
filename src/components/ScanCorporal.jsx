@@ -3,6 +3,7 @@ import { Camera, X, Sparkles, Loader2, Images } from "lucide-react";
 import { S, card, inp, innerCard, TS, TAP } from "../utils/theme.js";
 import { hoy, calcularEdad } from "../utils/helpers.js";
 import { SEXOS } from "../utils/energia.js";
+import { supabase } from "../../services/supabase.js";
 
 // ============================================================
 // SCAN CORPORAL (Fase 1) — composición corporal a partir de 2 fotos
@@ -219,9 +220,22 @@ export function ScanCorporalForm({ alumno, onGuardar }) {
     setResultado(null);
     try {
       const [dataFrontal, dataLateral] = await Promise.all([comprimirFoto(fotoFrontal), comprimirFoto(fotoLateral)]);
+
+      // El scan cuesta plata (Claude con visión sobre dos fotos), así que el endpoint pide
+      // sesión. Se manda el token del usuario logueado, el mismo patrón que usa el resto de la
+      // app contra el auth-bridge. Sin sesión ni se intenta: es más claro fallar acá que comerse
+      // un 401 después de esperar la subida de las fotos.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Tu sesión venció. Volvé a entrar a la app y probá de nuevo.");
+      }
+
       const r = await fetch("/api/scan-corporal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           fotoFrontal: dataFrontal,
           fotoLateral: dataLateral,

@@ -24,6 +24,7 @@ import {
   detectMediaType,
   type CreativeRequest,
 } from '@/lib/creative-media';
+import { requireApiKey } from '@/lib/api-auth';
 
 // ─── GET — Documentación ──────────────────────────────────────────────────────
 
@@ -83,6 +84,18 @@ interface RequestBody {
 
 export async function POST(req: NextRequest) {
   const startMs = Date.now();
+
+  // ── Gate: este endpoint gasta plata de verdad ─────────────────────────────
+  // Cada llamada dispara Claude para refinar el prompt y después FAL.ai para
+  // generar la imagen o el video (hasta US$0,05 por imagen, más caro en video).
+  // Estaba abierto: cualquiera con la URL podía hacer correr esa factura.
+  //
+  // Va `requireApiKey` y no un login de página porque a este endpoint no lo
+  // llama el navegador — lo invoca /charles de forma programática (ver
+  // lib/parallel-agents.ts). Es exactamente el caso para el que se escribió
+  // ese helper, y es fail-closed: sin BRAIN_API_KEY en el server, cerrado.
+  const denied = requireApiKey(req);
+  if (denied) return denied;
 
   // ── Validación de body ────────────────────────────────────────────────────
   let body: RequestBody;
