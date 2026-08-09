@@ -5,6 +5,11 @@ import puppeteer from "file:///C:/Users/lucas/.agents/skills/chrome-devtools/scr
 
 const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const ANCHO = Number(process.argv[2]) || 375; // iPhone SE/13 mini: el más angosto real
+// Segundo argumento: qué banco de pruebas medir. Rehab Integral (2026-08-09)
+// tiene el suyo, y sus pantallas también se usan desde el celular.
+//   node dev/medir-mobile.mjs 375              → harness.html (entrenamiento)
+//   node dev/medir-mobile.mjs 375 harness-rehab → harness-rehab.html
+const PAGINA = process.argv[3] || "harness";
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox", "--disable-gpu"] });
 const page = await browser.newPage();
@@ -12,11 +17,14 @@ const page = await browser.newPage();
 // meta y escala la página, así que TODO "entra" y la medición miente: un
 // desborde real (la cuarta pastilla de vuelta saliéndose en 375px) daba cero.
 await page.setViewport({ width: ANCHO, height: 800, isMobile: false, hasTouch: true });
-await page.goto("http://localhost:5173/dev/harness.html", { waitUntil: "networkidle0", timeout: 60000 });
-await page.waitForSelector("[data-fila-ej]");
+await page.goto(`http://localhost:5173/dev/${PAGINA}.html`, { waitUntil: "networkidle0", timeout: 60000 });
+// El banco de entrenamiento tiene filas de ejercicio; el de rehab no. Se espera
+// lo que corresponda en cada uno en vez de colgarse 30 segundos.
+await page.waitForSelector(PAGINA === "harness" ? "[data-fila-ej]" : "[data-panel]");
 
 // Comprobación puntual: todas las pastillas de vuelta tienen que ser
 // visibles y tocables. Es lo que se rompió al agregar el peso por vuelta.
+// En bancos sin pastillas devuelve 0 y no molesta.
 const vueltas = await page.evaluate((ancho) => {
   const grupos = [...document.querySelectorAll('[aria-label^="Vuelta "]')];
   const fuera = grupos.filter((b) => {
