@@ -207,7 +207,8 @@ window.fetch = (entrada, opciones = {}) => {
 function BibliotecaDemo() {
   // Abre sola con /dev/harness.html#catalogo — así se puede capturar en
   // headless, que no tiene forma de tocar un botón.
-  const [abierto, setAbierto] = useState(() => window.location.hash === "#catalogo");
+  const [abierto, setAbierto] = useState(() =>
+    window.location.hash === "#catalogo" || new URLSearchParams(window.location.search).has("biblioteca"));
   return (
     <>
       <button
@@ -221,6 +222,7 @@ function BibliotecaDemo() {
           onClose={() => setAbierto(false)}
           showToast={(m) => console.log("[toast]", m)}
           onAbrirPropia={() => alert("Abre la biblioteca propia (movilidad/elástico/calor)")}
+          pantallaInicial={new URLSearchParams(window.location.search).get("biblioteca") || "biblioteca"}
         />
       )}
     </>

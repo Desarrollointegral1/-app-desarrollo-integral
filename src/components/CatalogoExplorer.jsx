@@ -318,6 +318,8 @@ export default function CatalogoExplorer({
   onClose,
   showToast,
   onAbrirPropia,
+  // Pantalla con la que abre (deep-link). Default: el catálogo de siempre.
+  pantallaInicial = "biblioteca",
 }) {
   const [cat, setCat] = useState(null); // null = cargando
   const [q, setQ] = useState("");
@@ -341,7 +343,7 @@ export default function CatalogoExplorer({
   //     sobre la misma): búsqueda + lista + plan en construcción.
   //   · "planes"     — "Ver todos los planes": listar/renombrar/editar/
   //     eliminar las plantillas existentes.
-  const [pantalla, setPantalla] = useState("biblioteca");
+  const [pantalla, setPantalla] = useState(pantallaInicial);
   const armadorAbierto = pantalla === "armador";
   // carrito (armador): arma la plantilla (nombre + categoría + nivel).
   const [carrito, setCarrito] = useState([]);
