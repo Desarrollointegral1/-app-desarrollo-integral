@@ -37,9 +37,10 @@ import {
   saveBioimpedanciaCompleta,
   cargarBioimpedanciaCompleta,
   cargarPesosPorDia,
-  // REHABILITACIÓN (ronda 7)
+  // Subida al bucket privado rehab-media. Se llama así por el bucket, no por
+  // la rehabilitación: desde 2026-08-09 la rehabilitación es otra app (rehab/)
+  // y acá esto quedó para el video de movilidad del alumno "solo video".
   subirMediaRehab,
-  guardarEjercicioBibliotecaRehab,
   // CATÁLOGO (ronda 14)
   cargarCatalogoCached,
   catalogoMediaUrl,
@@ -111,24 +112,13 @@ import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./sr
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
-import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
-import { useSignedUrl } from "./src/utils/useSignedUrl.js";
+import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
 // secuencias ascendentes/descendentes (1234, 4321, 2345...). Sube el piso
 // real de seguridad más que casi cualquier otra cosa por lo barato que es.
 const PIN_TRIVIAL = (p) => /^(\d)\1{3}$/.test(p) || "0123456789".includes(p) || "9876543210".includes(p);
 
-// Preview del media de rehab recién subido: `value` es un PATH de rehab-media
-// (bucket privado), se resuelve a signed URL. Datos viejos (http) pasan igual.
-function RehabMediaPreview({ value }) {
-  const url = useSignedUrl("rehab-media", value);
-  const esImg = /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(value || "");
-  if (!url) return <div style={{ color: "#8a8a8a", fontSize: 12, padding: 8 }}>Cargando media…</div>;
-  return esImg
-    ? <img src={url} alt="media" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8, display: "block" }} />
-    : <video src={url} controls preload="metadata" style={{ width: "100%", maxHeight: 220, borderRadius: 8, display: "block" }} />;
-}
 // ── LOGO ──────────────────────────────────────────────────────────────
 // Ronda 18: el SVG original (viewBox 0 0 1500 1500) tiene ~30% de aire
 // interno arriba y ~21% abajo (los paths ocupan y≈437-1181, x≈399-1101).
@@ -459,8 +449,7 @@ function comprimirFoto(dataUrl, maxLado = 512, calidad = 0.82) {
   });
 }
 // Foto del alumno — editable: cámara EN EL MOMENTO o elegir de la galería
-// (pedido de Lucas 2026-07-21, mismo patrón que ya usa PlanRehabAdmin con
-// capture="environment"). Dos inputs de archivo separados (uno con
+// (pedido de Lucas 2026-07-21, con capture="environment"). Dos inputs de archivo separados (uno con
 // capture, uno sin) detrás de un mini menú de 2 opciones, así el navegador
 // no decide por Lucas — las dos vías quedan siempre disponibles, en alta
 // y en edición. Mantiene la compresión a 512px/JPEG de rondas anteriores.
@@ -3224,272 +3213,6 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
     </div>
   );
 }
-// ── PLAN DE REHABILITACIÓN (ADMIN) ────────────────────────────────────
-// Editor pensado para Griselda, desde el celular y EN el momento: agrega un
-// ejercicio con nombre + explicación + foto/video sacado ahí mismo (input con
-// capture → abre la cámara). El media sube a Storage (bucket rehab-media,
-// migración 010) y la URL queda en el campo `video` del ejercicio — el mismo
-// campo que ya persiste plan_ejercicios, sin esquema nuevo. Cada ejercicio se
-// guarda además en biblioteca_ejercicios con categoria='rehab' para
-// reutilizarlo con el próximo paciente.
-function PlanRehabAdmin({ al, alumnos, onUpdate, biblioteca, onBibliotecaRefresh, showToast }) {
-  const planes = al.planes || [];
-  const plan = planes[0] || null;
-  const dias = plan && plan.dias && plan.dias.length > 0 ? plan.dias : (al.plan?.dias || []);
-  const [sesionIdx, setSesionIdx] = useState(0);
-  const [editIdx, setEditIdx] = useState(null); // null = nada · -1 = nuevo · i = editando
-  const [form, setForm] = useState({ nombre: "", desc: "", video: "" });
-  const [subiendo, setSubiendo] = useState(false);
-  const camRef = useRef();
-  const fileRef = useRef();
-  const bibliotecaRehab = (biblioteca || []).filter((b) => b.categoria === "rehab");
-  const safeIdx = Math.min(sesionIdx, Math.max(0, dias.length - 1));
-  const sesion = dias[safeIdx] || null;
-
-  // Mismo criterio de persistencia que PlanesPrincipales: plan real →
-  // actualizarPlanAlumnoDias; plan sintético "Fijo" → camino viejo (al.plan).
-  const guardarDias = (nuevosDias) => {
-    onUpdate(alumnos.map((a) => a.id === al.id
-      ? {
-          ...a,
-          planes: plan ? (a.planes || []).map((p) => (p.id === plan.id ? { ...p, dias: nuevosDias } : p)) : a.planes,
-          plan: !plan || plan._sintetico ? { ...a.plan, dias: nuevosDias } : a.plan,
-        }
-      : a));
-    if (plan && !plan._sintetico) {
-      actualizarPlanAlumnoDias(plan.id, nuevosDias).then((ok) => {
-        if (!ok) showToast && showToast("Error guardando el plan. Reintentá");
-      });
-    }
-  };
-
-  const esImagen = (url) => /\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i.test(url || "");
-
-  const handleMediaFile = async (file) => {
-    if (!file) return;
-    const esVideo = file.type.startsWith("video/");
-    if (esVideo && file.size > 50 * 1024 * 1024) {
-      window.alert("El video pesa más de 50MB. Grabá un clip más corto (10-20 segundos alcanza para mostrar el ejercicio).");
-      return;
-    }
-    setSubiendo(true);
-    try {
-      let paraSubir = file;
-      if (!esVideo) {
-        // Comprimir la foto antes de subir (las de cámara pesan varios MB)
-        const dataUrl = await new Promise((res, rej) => {
-          const r = new FileReader();
-          r.onload = (e) => res(e.target.result);
-          r.onerror = rej;
-          r.readAsDataURL(file);
-        });
-        const comp = await comprimirFoto(dataUrl, 1280, 0.85);
-        const blob = await (await fetch(comp)).blob();
-        paraSubir = new File([blob], "foto.jpg", { type: "image/jpeg" });
-      }
-      const url = await subirMediaRehab(paraSubir);
-      setForm((f) => ({ ...f, video: url }));
-      showToast && showToast(esVideo ? "Video subido" : "Foto subida");
-    } catch (e) {
-      console.error("[PlanRehabAdmin] upload", e);
-      window.alert("No se pudo subir el archivo: " + (e.message || "error desconocido"));
-    } finally {
-      setSubiendo(false);
-    }
-  };
-
-  const saveEjercicio = () => {
-    if (!form.nombre.trim() || !sesion) return;
-    const arr = dias.map((d, i) => {
-      if (i !== safeIdx) return d;
-      const ejs = [...(d.ejercicios || [])];
-      if (editIdx === -1) ejs.push({ id: uid(), nombre: form.nombre.trim(), desc: form.desc, video: form.video, mediaLocal: "", historial: [] });
-      else ejs[editIdx] = { ...ejs[editIdx], nombre: form.nombre.trim(), desc: form.desc, video: form.video };
-      return { ...d, ejercicios: ejs };
-    });
-    guardarDias(arr);
-    // A la biblioteca de rehab siempre — así queda para el próximo paciente
-    guardarEjercicioBibliotecaRehab({ nombre: form.nombre.trim(), desc: form.desc, video: form.video })
-      .then(() => onBibliotecaRefresh && onBibliotecaRefresh());
-    setEditIdx(null);
-    setForm({ nombre: "", desc: "", video: "" });
-    showToast && showToast("Ejercicio guardado");
-  };
-
-  const removeEjercicio = (i) => {
-    if (!window.confirm("¿Eliminar este ejercicio del plan?")) return;
-    guardarDias(dias.map((d, di) => (di === safeIdx ? { ...d, ejercicios: (d.ejercicios || []).filter((_, j) => j !== i) } : d)));
-  };
-
-  const MediaBtns = (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, color: S.gray, marginBottom: 6, textTransform: "uppercase" }}>Foto o video del ejercicio</div>
-      {form.video ? (
-        <div style={{ marginBottom: 8 }}>
-          <RehabMediaPreview value={form.video} />
-          <button onClick={() => setForm((f) => ({ ...f, video: "" }))} style={{ marginTop: 6, background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><X size={13} />Quitar</span>
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => !subiendo && camRef.current && camRef.current.click()}
-            disabled={subiendo}
-            style={{ flex: 1, background: S.card2, color: S.white, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, fontWeight: 700, cursor: subiendo ? "wait" : "pointer" }}
-          >
-            {subiendo ? "Subiendo..." : <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Camera size={14} />Sacar foto / grabar</span>}
-          </button>
-          <button
-            onClick={() => !subiendo && fileRef.current && fileRef.current.click()}
-            disabled={subiendo}
-            style={{ flex: 1, background: S.card2, color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "14px 8px", fontSize: 12, cursor: subiendo ? "wait" : "pointer" }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><FolderOpen size={14} />Elegir archivo</span>
-          </button>
-        </div>
-      )}
-      {/* capture abre directamente la cámara del celular */}
-      <input ref={camRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
-      <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(e) => { handleMediaFile(e.target.files?.[0]); e.target.value = ""; }} />
-      <div style={{ fontSize: 14, color: S.lgray, marginTop: 6 }}>Videos hasta 50MB. Con 10-20 segundos alcanza.</div>
-    </div>
-  );
-
-  return (
-    <div>
-      <div style={{ fontSize: 11, color: S.green, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Stethoscope size={16} />Plan de rehabilitación — {al.nombre}</span>
-      </div>
-
-      {dias.length === 0 ? (
-        <div style={{ ...card, padding: 24, textAlign: "center", marginBottom: 12 }}>
-          <div style={{ color: S.gray, fontSize: 13, marginBottom: 12 }}>{al.nombre} todavía no tiene sesiones de rehabilitación.</div>
-          <button
-            onClick={() => guardarDias([{ dia: "Sesión 1", subtitulo: "", ejercicios: [] }])}
-            style={{ background: S.green, color: "#0d1f0d", border: "none", borderRadius: 8, padding: "10px 18px", fontWeight: 900, fontSize: 13, cursor: "pointer" }}
-          >
-            + Crear primera sesión
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Sesiones */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-            {dias.map((d, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <button
-                  onClick={() => { setSesionIdx(i); setEditIdx(null); }}
-                  style={{ background: safeIdx === i ? S.white : S.card, color: safeIdx === i ? S.bg : S.gray, border: "1px solid " + (safeIdx === i ? S.white : S.border), borderRadius: 8, padding: "7px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                >
-                  {d.dia || `Sesión ${i + 1}`}
-                </button>
-                {dias.length > 1 && (
-                  <button
-                    onClick={() => {
-                      if (!window.confirm(`¿Eliminar ${d.dia || "esta sesión"} con sus ejercicios?`)) return;
-                      guardarDias(dias.filter((_, j) => j !== i));
-                      setSesionIdx(0);
-                    }}
-                    style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "3px 6px", fontSize: 14, cursor: "pointer" }}
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              onClick={() => { guardarDias([...dias, { dia: "Sesión " + (dias.length + 1), subtitulo: "", ejercicios: [] }]); setSesionIdx(dias.length); }}
-              style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer" }}
-            >
-              + Sesión
-            </button>
-          </div>
-
-          {/* Ejercicios de la sesión */}
-          {(sesion?.ejercicios || []).map((ej, i) =>
-            editIdx === i ? (
-              <div key={ej.id || i} style={{ ...card, padding: 14, marginBottom: 8 }}>
-                <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nombre</div>
-                <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} style={{ ...inp, marginBottom: 8 }} />
-                <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Explicación</div>
-                <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
-                {MediaBtns}
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#0d1f0d" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>GUARDAR</button>
-                  <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
-                </div>
-              </div>
-            ) : (
-              <div key={ej.id || i} style={{ ...card, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ minWidth: 22, height: 22, borderRadius: "50%", background: S.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: S.gray, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{ej.nombre}</div>
-                  {ej.desc && <div style={{ color: S.gray, fontSize: 11, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.desc}</div>}
-                  {ej.video && <div style={{ color: S.green, fontSize: 14, marginTop: 2, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>{esImagen(ej.video) ? <><Camera size={11} />Foto</> : <><Play size={11} />Video</>}</div>}
-                </div>
-                <button onClick={() => { setEditIdx(i); setForm({ nombre: ej.nombre, desc: ej.desc || "", video: ej.video || "" }); }} style={smallBtn(S.white)}><Pencil size={14} /></button>
-                <button onClick={() => removeEjercicio(i)} style={smallBtn(S.red)}><X size={16} /></button>
-              </div>
-            ),
-          )}
-
-          {/* Agregar ejercicio */}
-          {editIdx === -1 ? (
-            <div style={{ ...card, padding: 14, marginTop: 6 }}>
-              <div style={{ color: S.white, fontWeight: 700, marginBottom: 12 }}>Nuevo ejercicio de rehabilitación</div>
-              {/* Elegir de la biblioteca de rehab (los ya guardados, con su media) */}
-              {bibliotecaRehab.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: S.gray, marginBottom: 6, textTransform: "uppercase" }}>Elegir de la biblioteca</div>
-                  <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid " + S.border, borderRadius: 8 }}>
-                    {bibliotecaRehab.map((b) => (
-                      <div
-                        key={b.id}
-                        onClick={() => setForm({ nombre: b.nombre, desc: b.descripcion || "", video: b.video || "" })}
-                        style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid " + S.border, display: "flex", alignItems: "center", gap: 8, background: form.nombre === b.nombre ? S.card2 : "transparent" }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ color: S.white, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.nombre}</div>
-                          {b.descripcion && <div style={{ color: S.gray, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.descripcion}</div>}
-                        </div>
-                        {b.video && <span style={{ color: S.green, fontSize: 14, fontWeight: 700, flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3 }}>{esImagen(b.video) ? <Camera size={10} /> : <Play size={10} />} MEDIA</span>}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 14, color: S.lgray, marginTop: 4 }}>Tocá uno para precargarlo — o escribí uno nuevo abajo.</div>
-                </div>
-              )}
-              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Nombre</div>
-              <input value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej: Movilidad de tobillo con banda" style={{ ...inp, marginBottom: 8 }} />
-              <div style={{ fontSize: 11, color: S.gray, marginBottom: 4, textTransform: "uppercase" }}>Explicación</div>
-              <textarea value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} rows={3} placeholder="Cómo se hace, series, cuidados..." style={{ ...inp, resize: "vertical", marginBottom: 10 }} />
-              {MediaBtns}
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={saveEjercicio} disabled={!form.nombre.trim() || subiendo} style={{ flex: 1, background: form.nombre.trim() && !subiendo ? S.green : S.card2, color: form.nombre.trim() && !subiendo ? "#0d1f0d" : S.lgray, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, fontSize: 13, cursor: "pointer" }}>
-                  AGREGAR AL PLAN
-                </button>
-                <button onClick={() => { setEditIdx(null); setForm({ nombre: "", desc: "", video: "" }); }} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "12px 16px", cursor: "pointer" }}>Cancelar</button>
-              </div>
-            </div>
-          ) : (
-            editIdx === null && (
-              <button
-                onClick={() => { setEditIdx(-1); setForm({ nombre: "", desc: "", video: "" }); }}
-                style={{ width: "100%", marginTop: 8, background: S.green, color: "#0d1f0d", border: "none", borderRadius: 10, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
-              >
-                + Agregar ejercicio
-              </button>
-            )
-          )}
-          <div style={{ fontSize: 14, color: S.lgray, marginTop: 10, textAlign: "center" }}>
-            Cada ejercicio queda en el plan de {al.nombre} y en la biblioteca de rehabilitación para reutilizarlo.
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 // ── DASHBOARD ADMIN ───────────────────────────────────────────────────
 function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, onDeselect, onToggleAsistencia, showToast }) {
   const [soloSinEntrenar, setSoloSinEntrenar] = useState(false);
@@ -3692,7 +3415,7 @@ function Dashboard({ alumnos, selId, onSelect, onDelete, onNuevo, onBiblioteca, 
                   </button>
                 </div>
                 <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
-                  {al.username || al.codigo} · {al.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Stethoscope size={12} />Rehab</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Dumbbell size={12} />Entreno</span>}
+                  {al.username || al.codigo}
                 </div>
               </div>
             </div>
@@ -3770,7 +3493,6 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
   // tira una excepción que rompe TODA la pantalla; simplemente se trata
   // como si no matcheara el filtro/búsqueda en vez de crashear.
   const lista = (biblioteca || [])
-    .filter((b) => b && b.categoria !== "rehab")
     .filter((b) => {
       if (filtro === "todos") return true;
       if (filtro === "principales")
@@ -3785,7 +3507,7 @@ function BibliotecaScreen({ biblioteca, onGuardado, showToast, onClose }) {
   // automático por nombre (getEjercicioGif) — sin duplicar.
   const asociadosDe = (path) => {
     const porBiblioteca = (biblioteca || []).filter(
-      (b) => b && b.categoria !== "rehab" && ((b.gif || "") === path || (!b.gif && getEjercicioGif(b.nombre) === path))
+      (b) => b && ((b.gif || "") === path || (!b.gif && getEjercicioGif(b.nombre) === path))
     );
     const nombres = new Set(porBiblioteca.map((b) => (b.codigo ? b.codigo + " · " : "") + (b.nombre || "")));
     if (nombres.size === 0)
@@ -4074,7 +3796,6 @@ function NovedadesAdmin({ novedades, onCrear, onToggle, onEliminar }) {
           <select value={dirigido} onChange={(e) => setDirigido(e.target.value)} style={inp}>
             <option value="todos">Todos los alumnos</option>
             <option value="entrenamiento">Solo Entrenamiento</option>
-            <option value="rehabilitacion">Solo Rehabilitación</option>
           </select>
         </div>
         <button onClick={publicar} style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 12, fontWeight: 900, cursor: "pointer", fontSize: 13 }}>
@@ -4184,20 +3905,17 @@ function DiarioAdmin({ alumnos, onUpdate, showToast }) {
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────
 // Modalidades de entrenamiento del alumno (pedido de Lucas 2026-07-20).
-// "Rehabilitación" (ronda 7) es la modalidad de los pacientes de Griselda:
-// elegirla setea/equivale a tipo="rehabilitacion" (el campo que activa la
-// vista y el plan de rehabilitación). tipo sigue siendo la fuente de verdad;
-// la modalidad es la forma visible de elegirlo — se sincronizan al guardar.
 // 2026-07-30 (pedido de Lucas): las categorías se reescriben en términos de
 // CON QUIÉN entrena, no de "presencial/a distancia" — "entrena solo en
-// Desarrollo Integral" sonaba a que el alumno está abandonado. Cuatro
+// Desarrollo Integral" sonaba a que el alumno está abandonado. Tres
 // categorías fijas, ni una más.
-const MODALIDAD_REHAB = "Paciente de Griselda";
+// 2026-08-09: se saca "Paciente de Griselda". La rehabilitación dejó de ser
+// una modalidad de alumno y pasó a ser su propia app (rehab/), con pacientes
+// en tablas propias — acá no queda ni el tipo ni la modalidad.
 const MODALIDADES = [
   "Entrena con Lucas",
   "Entrena con Ariel",
   "Entrena en Desarrollo Integral",
-  MODALIDAD_REHAB,
 ];
 // Los 7 alumnos que ya existen tienen guardado el texto VIEJO en la columna
 // `modalidad`. No se toca la base: se traduce al mostrar y al abrir el
@@ -4209,8 +3927,6 @@ const MODALIDAD_LEGACY = {
   "Presencial con Lucas": "Entrena con Lucas",
   "Presencial con Ariel": "Entrena con Ariel",
   "Entrena solo en Desarrollo Integral": "Entrena en Desarrollo Integral",
-  "Rehabilitación": MODALIDAD_REHAB,
-  "Rehabilitacion": MODALIDAD_REHAB,
 };
 const modalidadLabel = (m) => (m ? MODALIDAD_LEGACY[m] || m : "");
 // 2026-08-04, pedido de Lucas (captura de una app de coaching real): dock de
@@ -4439,9 +4155,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   const [ntemplate, setNtemplate] = useState("bilateral");
   const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
   const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
-  // Los ejercicios de rehab (categoria='rehab') no se mezclan en el
-  // autocompletado de los planes de entrenamiento.
-  const bibliotecaEntreno = biblioteca.filter((b) => b.categoria !== "rehab");
   const al = alumnos.find((a) => a.id === selId) || alumnos[0];
   const startEdit = () =>
     setForm({
@@ -4453,14 +4166,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       altura: al.altura,
       edad: al.edad,
       fecha_nacimiento: (al.fecha_nacimiento || "").slice(0, 10),
-      // Los rehab viejos sin modalidad guardada se muestran como paciente de
-      // Griselda. 2026-07-30: modalidadLabel traduce el valor viejo guardado
+      // 2026-07-30: modalidadLabel traduce el valor viejo guardado
       // ("Presencial con Lucas"...) al nombre nuevo, para que el chip que
       // corresponde aparezca marcado en vez de "Sin definir".
-      modalidad: modalidadLabel(al.modalidad) || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
+      modalidad: modalidadLabel(al.modalidad),
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
-      // 2026-08-09 · alumno "Solo video": el tipo se edita explícito acá (no
-      // se deriva de la modalidad como rehab) y el video viaja con la ficha.
+      // 2026-08-09 · alumno "Solo video": el tipo se edita explícito acá y el
+      // video viaja con la ficha.
       tipo: al.tipo || "entrenamiento",
       video_movilidad: al.video_movilidad || "",
       // Género (ronda 12): vive en rm.genero, no es columna de alumnos —
@@ -4475,15 +4187,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     // spread para no mandarlo como campo top-level al upsert.
     const { genero, ...formSinGenero } = form;
     const formNormalizado = { ...formSinGenero, codigo: (form.codigo || "").toUpperCase() };
-    // Sincronizar tipo con la modalidad (ronda 7): "Rehabilitación" activa la
-    // vista/plan de rehab; elegir otra modalidad lo vuelve a entrenamiento.
-    // Si la modalidad quedó vacía, el tipo no se toca (datos viejos intactos).
+    // Elegir una modalidad de entrenamiento implica que el alumno entrena.
     // 2026-08-09: tipo="video" se elige a mano y NO se deriva de la modalidad
     // — sin este guard, un alumno "solo video" que además tenga modalidad
     // cargada volvía a "entrenamiento" solo con abrir y guardar la ficha.
-    if (formNormalizado.tipo !== "video") {
-      if (formNormalizado.modalidad === MODALIDAD_REHAB) formNormalizado.tipo = "rehabilitacion";
-      else if (formNormalizado.modalidad) formNormalizado.tipo = "entrenamiento";
+    if (formNormalizado.tipo !== "video" && formNormalizado.modalidad) {
+      formNormalizado.tipo = "entrenamiento";
     }
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado, rm: { ...a.rm, genero: genero || undefined } } : a)));
     setForm(null);
@@ -4603,7 +4312,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         ["Peso corporal", alumno.peso ? alumno.peso + " kg" : "—"],
         ["Altura", alumno.altura ? alumno.altura + " cm" : "—"],
         ["Modalidad", modalidadLabel(alumno.modalidad) || "Sin definir"],
-        ["Tipo", alumno.tipo === "rehabilitacion" ? "Rehabilitación" : "Entrenamiento"],
         ["Días de entrenamiento", (alumno.horarios || []).map((h) => h.dia).join(" · ") || "—"],
       ].map(([l, v]) => `<div class="dato"><span>${l}</span><strong>${esc(v)}</strong></div>`).join("");
 
@@ -5161,9 +4869,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                           onClick={() => {
                             const nueva = activa ? "" : m;
                             setNmodalidad(nueva);
-                            // Modalidad ↔ tipo (ronda 7): Rehabilitación activa el tipo rehab
-                            if (nueva === MODALIDAD_REHAB) setNtipo("rehabilitacion");
-                            else if (nueva) setNtipo("entrenamiento");
+                            // Elegir con quién entrena implica que entrena.
+                            if (nueva) setNtipo("entrenamiento");
                           }}
                           style={{ background: activa ? S.white : S.card2, color: activa ? S.bg : S.gray, border: "1px solid " + (activa ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
                         >
@@ -5217,14 +4924,9 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 {/* "Solo video" (2026-08-09): el alumno entra y ve únicamente
                     el video que Lucas le grabó. No lleva plan, ni días, ni
                     modalidad — por eso el resto del formulario se esconde. */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
-                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stethoscope size={14} />Rehabilitación</span>, "rehabilitacion"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Play size={14} />Solo video</span>, "video"]].map(([l, k]) => (
-                    <button key={k} onClick={() => {
-                      setNtipo(k);
-                      // Tipo ↔ modalidad (ronda 7): mantenerlos coherentes
-                      if (k === "rehabilitacion") setNmodalidad(MODALIDAD_REHAB);
-                      else if (nmodalidad === MODALIDAD_REHAB) setNmodalidad("");
-                    }} style={{ background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Play size={14} />Solo video</span>, "video"]].map(([l, k]) => (
+                    <button key={k} onClick={() => setNtipo(k)} style={{ background: ntipo === k ? S.white : S.card, color: ntipo === k ? S.bg : S.gray, border: "1px solid " + (ntipo === k ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                   ))}
                 </div>
                 {ntipo === "video" && (
@@ -5239,8 +4941,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                         if (!f) return;
                         setNsubiendo(true);
                         try {
-                          // Misma subida que ya usa rehab (bucket privado
-                          // rehab-media): no se escribe una nueva.
+                          // Va al bucket privado rehab-media, el mismo que ya
+                          // se usaba para media grabada con el celular.
                           setNvideo(await subirMediaRehab(f));
                           showToast && showToast("Video subido");
                         } catch (err) {
@@ -5274,7 +4976,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     const ok = await crearAlumno();
                     if (ok) setShowCrearAlumno(false);
                   }}
-                  style={{ width: "100%", background: ntipo === "rehabilitacion" ? S.green : S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
+                  style={{ width: "100%", background: S.white, color: S.bg, border: "none", borderRadius: 8, padding: 14, fontSize: 14, fontWeight: 900, cursor: "pointer" }}
                 >
                   CREAR ALUMNO
                 </button>
@@ -5506,7 +5208,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                       <div>
                         <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>
                         <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>@{al.username || al.codigo}</div>
-                        <div style={{ color: S.lgray, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>{al.tipo === "rehabilitacion" ? <><Stethoscope size={12} />Rehabilitación</> : <><Dumbbell size={12} />Entrenamiento</>}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
@@ -5654,19 +5355,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             </>)}
           </div>
         )}{" "}
-        {/* Alumnos de REHAB: la sección Plan es directamente el editor de
-            Griselda (sin tabs de movilidad/periodización de entrenamiento) */}
-        {sec === "plan" && al && al.tipo === "rehabilitacion" && (
-          <PlanRehabAdmin
-            al={al}
-            alumnos={alumnos}
-            onUpdate={onUpdate}
-            biblioteca={biblioteca}
-            onBibliotecaRefresh={onBibliotecaRefresh}
-            showToast={showToast}
-          />
-        )}{" "}
-        {sec === "plan" && (!al || al.tipo !== "rehabilitacion") && (
+        {sec === "plan" && (
           <div>
             {" "}
             {/* ── Ronda 10: la reorganización/ocultado de secciones vive DIRECTO
@@ -5770,7 +5459,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 al={al}
                 alumnos={alumnos}
                 onUpdate={onUpdate}
-                biblioteca={bibliotecaEntreno}
+                biblioteca={biblioteca}
                 onGuardarBiblioteca={onGuardarBiblioteca}
                 onGuardarParaTodos={(payload) => guardarParaTodos("principales", payload)}
                 showToast={showToast}
@@ -5805,7 +5494,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   items={al.plan.movilidad}
                   onChange={(v) => updatePlan("movilidad", v)}
                   showVideo={true}
-                  biblioteca={bibliotecaEntreno}
+                  biblioteca={biblioteca}
                   onGuardarBiblioteca={onGuardarBiblioteca}
                   onGuardarParaTodos={(payload) => guardarParaTodos("movilidad", payload)}
                 />
@@ -5813,10 +5502,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               </>
             )}{" "}
             {planTab === "calor" && al && (
-              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("calor", payload)} />
+              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("calor", payload)} />
             )}{" "}
             {planTab === "activacion" && al && (
-              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={bibliotecaEntreno} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("activacion", payload)} />
+              <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("activacion", payload)} />
             )}{" "}
           </div>
         )}{" "}
@@ -6828,111 +6517,6 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
     </div>
   );
 }
-// ── VISTA REHABILITACIÓN ─────────────────────────────────────────────
-function VistaRehabilitacion({ al, onSalir, marcarAsistencia }) {
-  // Ronda 7: el menú principal del alumno de rehab dice "Plan de rehabilitación"
-  const [tabR, setTabR] = useState("Plan de rehabilitación");
-  const [sesionIdx, setSesionIdx] = useState(0);
-  const plan = al.plan || {};
-  const sesiones = plan.dias || [];
-  const sesion = sesiones[sesionIdx] || null;
-
-  return (
-    <div style={{ minHeight: "100vh", background: S.bg, maxWidth: 480, margin: "0 auto", fontFamily: "inherit", paddingBottom: 48 }}>
-      {/* Header */}
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #1c1c1c", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src={ICON} width={34} height={34} alt="DI" />
-          <div>
-            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{al.nombre}</div>
-            <div style={{ color: S.green, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>Rehabilitación</div>
-          </div>
-        </div>
-        <button onClick={onSalir} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "5px 10px", fontSize: 11, cursor: "pointer" }}>
-          Salir
-        </button>
-      </div>
-
-      {/* Datos del alumno — reusa calcularEdad, igual que la vista de entrenamiento */}
-      <div style={{ padding: "0 16px 12px", display: "flex", gap: 8 }}>
-        {[
-          ["PESO", al.peso],
-          ["ALTURA", al.altura],
-          ["EDAD", calcularEdad(al.fecha_nacimiento) || al.edad],
-        ].map(([l, v]) => (
-          <div key={l} style={{ flex: 1, background: S.card2, borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-            <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{v || "—"}</div>
-            <div style={{ color: S.gray, fontSize: 14, letterSpacing: 1, marginTop: 1 }}>{l}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 6, padding: "0 16px 12px" }}>
-        {["Plan de rehabilitación", "Asistencia"].map((t) => (
-          <button key={t} onClick={() => setTabR(t)} style={{ ...tabBtn(tabR === t), padding: "8px 12px", fontSize: 12 }}>{t}</button>
-        ))}
-      </div>
-
-      <div style={{ padding: "0 16px" }}>
-        {tabR === "Plan de rehabilitación" && (
-          <div>
-            {sesiones.length === 0 ? (
-              <div style={{ ...card, padding: 40, textAlign: "center" }}>
-                <ClipboardList size={32} style={{ marginBottom: 12 }} />
-                <div style={{ color: S.white, fontWeight: 700, marginBottom: 8 }}>Sin sesiones asignadas</div>
-                <div style={{ color: S.gray, fontSize: 13 }}>Tu profesional todavía no cargó ejercicios.</div>
-              </div>
-            ) : (
-              <>
-                {/* Selector de sesión */}
-                {sesiones.length > 1 && (
-                  <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-                    {sesiones.map((s, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSesionIdx(i)}
-                        style={{ ...tabBtn(sesionIdx === i), padding: "7px 14px", fontSize: 11, flex: "none" }}
-                      >
-                        {s.dia || `Sesión ${i + 1}`}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {sesion && (
-                  <>
-                    {sesion.subtitulo && (
-                      <div style={{ fontSize: 13, color: S.white, fontWeight: 700, textAlign: "center", letterSpacing: 1, textTransform: "uppercase", marginBottom: 16, background: S.card, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 16px" }}>
-                        {sesion.subtitulo}
-                      </div>
-                    )}
-                    {(sesion.ejercicios || []).length === 0 ? (
-                      <div style={{ ...card, padding: 30, textAlign: "center", color: S.gray, fontSize: 13 }}>Sin ejercicios en esta sesión</div>
-                    ) : (
-                      (sesion.ejercicios || []).map((ej, i) => (
-                        <ItemCard
-                          key={i}
-                          numero={i + 1}
-                          nombre={ej.nombre}
-                          desc={ej.desc}
-                          video={ej.video}
-                          mediaLocal={ej.mediaLocal}
-                        />
-                      ))
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        )}
-        {tabR === "Asistencia" && (
-          <Asistencia asistencia={al.asistencia || []} onMarcar={marcarAsistencia} />
-        )}
-      </div>
-    </div>
-  );
-}
 // ── MODO ENTRENADOR (ronda 9) ─────────────────────────────────────────
 // Barra fija que deja INEQUÍVOCO que se está operando como entrenador
 // sobre la cuenta de un alumno, con salida directa al panel admin.
@@ -7000,7 +6584,6 @@ function SelectorAlumnoEntrenador({ alumnos, onElegir, onCerrar }) {
               <div style={{ color: S.white, fontWeight: 700, fontSize: 13 }}>{a.nombre}</div>
               <div style={{ color: S.gray, fontSize: 11 }}>
                 {a.username || a.codigo}
-                {a.tipo === "rehabilitacion" ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}> · <Stethoscope size={12} />Rehabilitación</span> : ""}
               </div>
             </div>
             <span style={{ color: S.gray }}>›</span>
@@ -7342,10 +6925,9 @@ export default function App() {
       localStorage.setItem("di_theme", next ? "dark" : "light");
     } catch (e) {}
   };
-  const isRehabMode = alumno && alumno.tipo === "rehabilitacion";
-  applyTheme(isRehabMode ? false : darkMode);
-  ICON = (isRehabMode ? false : darkMode) ? ICON_WHITE : ICON_BLACK;
-  ICON_CROP = (isRehabMode ? false : darkMode) ? ICON_WHITE_CROP : ICON_BLACK_CROP;
+  applyTheme(darkMode);
+  ICON = darkMode ? ICON_WHITE : ICON_BLACK;
+  ICON_CROP = darkMode ? ICON_WHITE_CROP : ICON_BLACK_CROP;
   // Arranque: carga desde Supabase. Fallback [] = nunca usa datos locales.
   // Con la RLS activa, los datos solo se pueden leer con una sesión de Auth.
   // Al arrancar: si hay sesión (F5 con login vigente) se cargan; si no, se
@@ -7771,20 +7353,6 @@ export default function App() {
       </>
     );
   }
-  // Vista rehabilitación — interfaz simplificada para pacientes de kinesiología
-  if (al.tipo === "rehabilitacion") {
-    return (
-      <>
-        {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}
-        <VistaRehabilitacion
-          al={al}
-          onSalir={modoEntrenador ? salirModoEntrenador : logout}
-          marcarAsistencia={marcarAsistencia}
-        />
-        <Toast msg={toastMsg} />
-      </>
-    );
-  }
   const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"];
   const hoyTexto = DIAS_SEMANA[new Date().getDay()];
   // Elección del plan a mostrar (bug Vic, 2026-07-21): antes, un día sin plan
@@ -7950,11 +7518,7 @@ export default function App() {
               {/* 2026-07-31, pedido de Lucas: "saca Entrenamiento de arriba
                   del nombre, ya dice App de Entrenamiento arriba" — el
                   header (HeaderAlumno) ya lo dice, este eyebrow repetía el
-                  mismo dato. Se saca salvo para rehabilitación, que sí es
-                  información nueva (no aparece en ningún otro lado). */}
-              {al.tipo === "rehabilitacion" && (
-                <div style={{ ...eyebrow, marginBottom: 2 }}>Rehabilitación</div>
-              )}
+                  mismo dato. */}
               <div style={{ color: S.white, fontFamily: FONT_BODY, fontWeight: 800, fontSize: 20, letterSpacing: -0.2, lineHeight: 1.1 }}>
                 {(al.nombre || "").trim().split(/\s+/).slice(1).join(" ") || al.nombre}
               </div>{" "}
@@ -8261,8 +7825,7 @@ export default function App() {
                     const objetivo = diasPorSemana * semanasTranscurridas;
                     const entrenosMes = (al.asistencia || []).filter((d) => d.startsWith(mesActual().slice(0, 7))).length;
                     const pct = objetivo > 0 ? Math.min(100, Math.round((entrenosMes / objetivo) * 100)) : 0;
-                    // Racha — misma lógica que el componente Asistencia (vista rehab),
-                    // extendida acá para que el alumno de entrenamiento normal también la vea.
+                    // Racha — misma lógica que el componente Asistencia.
                     const tieneDiaAsistido = (d) => (al.asistencia || []).some((x) => x.slice(0, 10) === d);
                     let racha = 0;
                     let checkDate = new Date();

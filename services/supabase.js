@@ -1846,10 +1846,14 @@ export async function propagarEjercicioATodos({ categoria, codigo, nombreOrigina
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// REHABILITACIÓN (migración 010 — 2026-07-20)
-// El media (foto/video del celular) va al bucket público "rehab-media" y la
-// URL se guarda en el campo `video` del ejercicio (plan_ejercicios ya
-// persiste nombre/descripcion/video — no hace falta esquema nuevo).
+// MEDIA GRABADA CON EL CELULAR — bucket privado "rehab-media"
+//
+// El bucket se llama así porque nació con la rehabilitación (migración 010,
+// 2026-07-20). Desde el 2026-08-09 la rehabilitación es su propia app
+// (rehab/, ver services/rehab.js) y esta función quedó acá porque la usan las
+// dos: el video de movilidad del alumno "solo video" y el armador asistido de
+// la app de entrenamiento, y la foto/video del ejercicio en Rehab Integral.
+// El bucket NO se renombra: renombrarlo invalidaría los paths ya guardados.
 // ──────────────────────────────────────────────────────────────────────
 
 const REHAB_BUCKET = "rehab-media";
@@ -1864,35 +1868,6 @@ export async function subirMediaRehab(archivo) {
   if (error) { ERR("subirMediaRehab", error.message, error); throw new Error(error.message || "Error al subir"); }
   LOG("subirMediaRehab", `✅ Subido: ${key}`);
   return key; // path del objeto (bucket privado) — signed URL se resuelve al mostrar
-}
-
-// Igual que guardarEjercicioBiblioteca pero en la categoría 'rehab' (los
-// ejercicios de Griselda no se mezclan con los de entrenamiento).
-export async function guardarEjercicioBibliotecaRehab(ej) {
-  const nombreNorm = ej.nombre.trim();
-  const { data: existente } = await supabase
-    .from("biblioteca_ejercicios")
-    .select("id, usos")
-    .ilike("nombre", nombreNorm)
-    .eq("categoria", "rehab")
-    .maybeSingle();
-
-  if (existente) {
-    const update = { usos: (existente.usos || 0) + 1, actualizado_en: new Date().toISOString() };
-    if (ej.desc) update.descripcion = ej.desc;
-    if (ej.video) update.video = ej.video;
-    const { error } = await supabase.from("biblioteca_ejercicios").update(update).eq("id", existente.id);
-    if (error) ERR("guardarEjercicioBibliotecaRehab:update", error.message, error);
-  } else {
-    const { error } = await supabase.from("biblioteca_ejercicios").insert([{
-      nombre: nombreNorm,
-      descripcion: ej.desc || "",
-      video: ej.video || "",
-      usos: 1,
-      categoria: "rehab",
-    }]);
-    if (error) ERR("guardarEjercicioBibliotecaRehab:insert", error.message, error);
-  }
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -2594,7 +2569,6 @@ export async function agregarCatalogoABiblioteca(item) {
       descripcion: item.instrucciones_es || "",
       video: item.video || "",
       gif: catalogoMediaUrl(item.gif_url || ""),
-      categoria: "entrenamiento",
       codigo,
       grupo: null,
     });
