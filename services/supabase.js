@@ -247,8 +247,19 @@ export async function cargarDatos(fallback) {
     // agrupación coincide exacto con lo que devolvía el camino N+1 viejo.
     const { data: rows, error } = await supabase
       .from("alumnos")
+      // 2026-08-10 (bug de Lucas: "no aparecen los ejercicios de Maria
+      // Agustina"): los días de un plan por día se piden ANIDADOS bajo
+      // alumno_planes, no colgados de alumnos. El embebido por alumno_id
+      // asumía que toda fila de plan_dias traía alumno_id, y _savePlanDias
+      // con isAlumnoPlan=true nunca lo llena: los 3 planes de ella tenían
+      // alumno_id NULL, así que la consulta no devolvía NINGÚN día y sus 14
+      // ejercicios (Jueves y Sábado) eran invisibles en toda la app. El
+      // embebido suelto se queda solo para el plan sintético "Fijo", que sí
+      // se guarda por alumno_id.
       .select(`${COLS_ALUMNO_SIN_FOTO},
-        alumno_planes(id, dia_semana, nombre, estado),
+        alumno_planes(id, dia_semana, nombre, estado,
+          plan_dias(id, dia, subtitulo, orden,
+            plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))),
         plan_dias(id, dia, subtitulo, orden, alumno_plan_id,
           plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))`)
       // 2026-08-04: los archivados (ver deleteAlumno/migración 030) no
@@ -266,12 +277,8 @@ export async function cargarDatos(fallback) {
     LOG("cargarDatos", `Recibidos ${rows.length} alumno(s) con sus planes.`);
 
     const alumnos = rows.map((row) => {
-      const diasPorPlan = new Map();
-      (row.plan_dias || []).forEach((d) => {
-        const key = d.alumno_plan_id || null;
-        if (!diasPorPlan.has(key)) diasPorPlan.set(key, []);
-        diasPorPlan.get(key).push(d);
-      });
+      // Solo los días SUELTOS (sin plan por día): los del plan sintético "Fijo".
+      const diasSueltos = (row.plan_dias || []).filter((d) => !d.alumno_plan_id);
 
       const alPlanes = row.alumno_planes || [];
       const planes = alPlanes.length > 0
@@ -280,7 +287,7 @@ export async function cargarDatos(fallback) {
             dia_semana:    ap.dia_semana,
             nombre:        ap.nombre,
             estado:        ap.estado,
-            dias:          _mapDiasEmbebidos(diasPorPlan.get(ap.id)),
+            dias:          _mapDiasEmbebidos(ap.plan_dias),
             movilidad:     row.plan_movilidad     || [],
             calor:         row.plan_calor         || [],
             activacion:    row.plan_activacion    || [],
@@ -295,7 +302,7 @@ export async function cargarDatos(fallback) {
             // viejo (al.plan.dias → _guardarAlumno), no por actualizarPlanAlumnoDias.
             _sintetico: true,
             estado: "activo",
-            dias:          _mapDiasEmbebidos(diasPorPlan.get(null)),
+            dias:          _mapDiasEmbebidos(diasSueltos),
             movilidad:     row.plan_movilidad     || [],
             calor:         row.plan_calor         || [],
             activacion:    row.plan_activacion    || [],
@@ -878,7 +885,7 @@ export async function crearPlanAlumno(alumno_id, dia_semana, plan_template, orig
     }
 
     if (dias.length > 0) {
-      await _savePlanDias(nuevoAlPlan.id, dias, true);
+      await _savePlanDias(nuevoAlPlan.id, dias, true, alumno_id);
     }
 
     LOG("crearPlanAlumno", `✅ Plan creado para ${dia_semana}`);
@@ -967,9 +974,11 @@ export async function actualizarPlanAlumnoDias(alumno_plan_id, dias) {
     // otra sesión (prod y dev comparten la misma base; crearPlanAlumno
     // reemplaza planes con delete+insert de id nuevo). Escribir plan_dias con
     // ese id huérfano era la causa del FK 23503 recurrente en consola.
+    // Se trae también alumno_id: los días tienen que quedar con el dueño
+    // puesto o el alumno no los ve (rls_pd_select filtra por alumno_id).
     const { data: existe, error: exErr } = await supabase
       .from("alumno_planes")
-      .select("id")
+      .select("id, alumno_id")
       .eq("id", alumno_plan_id)
       .maybeSingle();
     if (exErr) throw exErr;
@@ -977,7 +986,7 @@ export async function actualizarPlanAlumnoDias(alumno_plan_id, dias) {
       ERR("actualizarPlanAlumnoDias", `El plan ${alumno_plan_id} ya no existe en alumno_planes (reemplazado o borrado desde otra sesión) — no se guardan días huérfanos`, null);
       return false;
     }
-    return (await _savePlanDias(alumno_plan_id, dias, true)) !== false;
+    return (await _savePlanDias(alumno_plan_id, dias, true, existe.alumno_id)) !== false;
   } catch (e) {
     ERR("actualizarPlanAlumnoDias", "Error actualizando plan", e);
     return false;
@@ -989,21 +998,24 @@ export async function actualizarPlanAlumnoDias(alumno_plan_id, dias) {
 // ejercicios quedan huérfanos (FK 23503). Se serializan por destino.
 const _colasPlanDias = new Map();
 
-function _savePlanDias(idParam, dias, isAlumnoPlan = false) {
+function _savePlanDias(idParam, dias, isAlumnoPlan = false, alumnoId = null) {
   const prev = _colasPlanDias.get(idParam) || Promise.resolve();
-  const run = prev.then(() => _savePlanDiasImpl(idParam, dias, isAlumnoPlan));
+  const run = prev.then(() => _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId));
   _colasPlanDias.set(idParam, run.catch(() => {}));
   return run;
 }
 
-async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
-  const deleteFilter = isAlumnoPlan ? "alumno_plan_id" : "alumno_id";
+async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
   LOG("_savePlanDias", `⏳ Guardando ${dias.length} día(s) para ${idParam}`);
 
-  const { error: delErr } = await supabase
-    .from("plan_dias")
-    .delete()
-    .eq(deleteFilter, idParam);
+  // El borrado del camino viejo se limita a los días SUELTOS (alumno_plan_id
+  // null): desde que los días de un plan por día también guardan alumno_id
+  // (ver abajo), borrar por alumno_id a secas se llevaría puestos los planes
+  // por día del alumno. 2026-08-10.
+  const q = supabase.from("plan_dias").delete();
+  const { error: delErr } = await (isAlumnoPlan
+    ? q.eq("alumno_plan_id", idParam)
+    : q.eq("alumno_id", idParam).is("alumno_plan_id", null));
 
   if (delErr) {
     ERR("_savePlanDias", "Error al borrar plan anterior", delErr);
@@ -1014,6 +1026,11 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
     const insertData = { id: makeUuid(), dia: dias[i].dia||"Día", subtitulo: dias[i].subtitulo||"", orden: i };
     if (isAlumnoPlan) {
       insertData.alumno_plan_id = idParam;
+      // alumno_id NO es decorativo (mismo caso que alumno_plan_id en
+      // plan_ejercicios, 2026-08-09): la política rls_pd_select deja al ALUMNO
+      // leer sus días SOLO por alumno_id. Sin llenarlo, el día existe, el admin
+      // lo ve y el alumno no ve nada — bug de Maria Agustina, 2026-08-10.
+      if (alumnoId) insertData.alumno_id = alumnoId;
     } else {
       insertData.alumno_id = idParam;
     }

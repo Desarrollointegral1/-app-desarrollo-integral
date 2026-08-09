@@ -10,7 +10,7 @@
 // Se corre con: npm test
 
 import { describe, expect, it } from "vitest";
-import { calcularEdad, getYTId, hoy } from "./helpers.js";
+import { calcularEdad, getYTId, hoy, aplicarSemanaPeriodizacion } from "./helpers.js";
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
 import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
 import { _columnasCambiadas } from "../../services/supabase.js";
@@ -125,6 +125,50 @@ describe("_columnasCambiadas (guardado parcial del alumno)", () => {
   it("nunca incluye el id entre las columnas a escribir", () => {
     const actual = { ...base, nombre: "Maria Agustina" };
     expect(_columnasCambiadas(base, actual)).toEqual({ nombre: "Maria Agustina" });
+  });
+});
+
+// 2026-08-10 — bug de Lucas: "al cambiar sigue igual, no se puede cambiar un
+// día en la periodización". Editaba la semana 1 (3 series x 8 reps), guardaba,
+// y la lista seguía mostrando 2x6. Causa: el editor guardaba en DOS pasos
+// (primero el cambio, después el recálculo de fechas sobre el array VIEJO) y
+// el segundo pisaba al primero. Ya había vuelto una vez; con estos tests no
+// vuelve en silencio.
+describe("aplicarSemanaPeriodizacion (guardar una semana del plan)", () => {
+  const data = [
+    { semana: 1, series: 2, reps: 6, intensidad: "70%", fecha: "10/8", anio: 2026 },
+    { semana: 2, series: 2, reps: 6, intensidad: "70%", fecha: "17/8", anio: 2026 },
+    { semana: 3, series: 2, reps: 6, intensidad: "70%", fecha: "24/8", anio: 2026 },
+  ];
+
+  it("guarda series y reps aunque la semana tenga fecha (el bug: se perdían)", () => {
+    const r = aplicarSemanaPeriodizacion(data, 0, { series: "3", reps: "8", intensidad: "70%", fecha: "10/8" });
+    expect(r[0].series).toBe(3);
+    expect(r[0].reps).toBe(8);
+  });
+
+  it("series y reps quedan como números, no como el texto del input", () => {
+    const r = aplicarSemanaPeriodizacion(data, 1, { series: "5", reps: "4", intensidad: "80%", fecha: "" });
+    expect(r[1].series).toBe(5);
+    expect(r[1].reps).toBe(4);
+  });
+
+  it("cambiar la fecha recorre las semanas siguientes de a 7 días", () => {
+    const r = aplicarSemanaPeriodizacion(data, 0, { series: "3", reps: "8", intensidad: "70%", fecha: "12/8" });
+    expect(r.map((x) => x.fecha)).toEqual(["12/8", "19/8", "26/8"]);
+    expect(r[0].series).toBe(3); // y el cambio sigue ahí
+  });
+
+  it("no toca las semanas anteriores a la editada", () => {
+    const r = aplicarSemanaPeriodizacion(data, 2, { series: "4", reps: "4", intensidad: "85%", fecha: "26/8" });
+    expect(r[0]).toEqual(data[0]);
+    expect(r[1]).toEqual(data[1]);
+  });
+
+  it("sin fecha guarda igual y no inventa fechas", () => {
+    const sinFecha = [{ semana: 1, series: 2, reps: 6, intensidad: "70%", fecha: "" }];
+    const r = aplicarSemanaPeriodizacion(sinFecha, 0, { series: "3", reps: "8", intensidad: "75%", fecha: "" });
+    expect(r[0]).toEqual({ semana: 1, series: 3, reps: 8, intensidad: "75%", fecha: "" });
   });
 });
 

@@ -66,6 +66,7 @@ import {
   initH,
   uid,
   getSemanaActual,
+  aplicarSemanaPeriodizacion,
   calcularEdad,
   registroAsistencia,
 } from "./src/utils/helpers.js";
@@ -1736,28 +1737,12 @@ function PeriodizacionEditor({ data, onChange }) {
       fecha: data[i].fecha || "",
     });
   };
-  const autoFechas = (fechaBase, desde) => {
-    if (!fechaBase) return;
-    const parts = fechaBase.split("/");
-    if (parts.length < 2) return;
-    const year = new Date().getFullYear();
-    let base = new Date(year, Number(parts[1]) - 1, Number(parts[0]));
-    const arr = data.map((r, i) => {
-      if (i < desde) return r;
-      const d = new Date(base.getTime() + (i - desde) * 7 * 24 * 60 * 60 * 1000);
-      return { ...r, fecha: d.getDate() + "/" + (d.getMonth() + 1) };
-    });
-    onChange(arr);
-  };
+  // 2026-08-10: un solo onChange con el resultado final. Antes eran dos
+  // (el cambio y después el recálculo de fechas sobre el array viejo), y el
+  // segundo revertía al primero — ver aplicarSemanaPeriodizacion en helpers.js.
   const save = () => {
     if (!form.series || !form.reps) return;
-    const arr = data.map((r, i) =>
-      i === editIdx
-        ? { ...r, series: Number(form.series), reps: Number(form.reps), intensidad: form.intensidad, fecha: form.fecha }
-        : r,
-    );
-    onChange(arr);
-    if (form.fecha) autoFechas(form.fecha, editIdx);
+    onChange(aplicarSemanaPeriodizacion(data, editIdx, form));
     setEditIdx(null);
   };
   // Fecha de inicio del plan: con elegirla una vez, todas las semanas se
@@ -4032,7 +4017,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // Módulo Evaluación (accesible por el botón "Evaluar" de la ficha): dos
   // sub-módulos — "integral" (protocolo de escalas 1-5) y "bio" (bioimpedancia,
   // antes vivía en Reportes).
-  const [evalTab, setEvalTab] = useState(navGuardada.evalTab || "integral");
+  // 2026-08-10: solo se aceptan las pestañas que hoy existen. sessionStorage
+  // puede traer el "reportesAlumno" viejo (esa pestaña se fusionó en Reportes)
+  // y dejaría la pantalla de Evaluación en blanco.
+  const [evalTab, setEvalTab] = useState(navGuardada.evalTab === "bio" ? "bio" : "integral");
   useEffect(() => {
     try { sessionStorage.setItem(NAV_KEY, JSON.stringify({ sec, selId, planTab, planesTab, repTab, evalTab })); } catch {}
   }, [sec, selId, planTab, planesTab, repTab, evalTab]);
@@ -4807,16 +4795,8 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               }}
             />
 
-            {/* Biblioteca PROPIA (movilidad/elástico/calor + GIFs manuales) —
-                se abre desde adentro del catálogo (ronda 14) */}
-            {showBiblioteca && (
-              <BibliotecaScreen
-                biblioteca={biblioteca}
-                onGuardado={onBibliotecaRefresh}
-                showToast={showToast}
-                onClose={() => setShowBiblioteca(false)}
-              />
-            )}
+            {/* 2026-08-10 — BibliotecaScreen se mudó al final del render,
+                fuera de este bloque. Ver el comentario allá. */}
 
             {/* Formulario nuevo alumno — PANTALLA APARTE (modal, ronda 9):
                 antes era inline y la página quedaba larguísima */}
@@ -5806,6 +5786,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             {[
               ["Asistencia", "asistencia"],
               ["Historial de pesos máximos", "historial"],
+              // 2026-08-10, pedido de Lucas ("el módulo evaluación, reportes
+              // debería estar fusionado en reportes"): esta pestaña es la que
+              // vivía en Evaluación → Reportes. Se llama por lo que hace, no
+              // "Reportes" — estando ya dentro de Reportes, ese nombre no
+              // distinguía nada de las otras dos pestañas.
+              ["Resumen y evolución", "resumen"],
             ].map(([l, k]) => (
               <button key={k} onClick={() => setRepTab(k)} style={segChip(repTab === k)}>
                 {l}
@@ -5814,6 +5800,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           </div>
         )}{" "}
         {sec === "reportes" && repTab === "historial" && <HistorialAdmin al={al} />}{" "}
+        {sec === "reportes" && repTab === "resumen" && <ReportesAlumno al={al} />}{" "}
         {sec === "diario" && <DiarioAdmin alumnos={alumnos} onUpdate={onUpdate} showToast={showToast} />}{" "}
         {sec === "evaluacion" && al && (
           <div>
@@ -5828,7 +5815,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                 ver PLAN-MAESTRO. Van acá "por ahora" según pidió Lucas —
                 el 03/08 puede pedir moverlas a otro lugar). */}
             <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
-              {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"], ["Reportes", "reportesAlumno"]].map(([l, k]) => (
+              {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"]].map(([l, k]) => (
                 <button
                   key={k}
                   onClick={() => setEvalTab(k)}
@@ -5850,7 +5837,6 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             </div>
             {evalTab === "integral" && <ProtocoloEvaluacionSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
             {evalTab === "bio" && <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} />}
-            {evalTab === "reportesAlumno" && <ReportesAlumno al={al} />}
           </div>
         )}{" "}
         {sec === "reportes" && repTab === "asistencia" && al && (() => {
@@ -6221,6 +6207,22 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
           // 220 — ya se ve por encima sin pisarlo) y reaparece solo al
           // cerrar BibliotecaScreen, respetando la pantalla anterior.
           onAbrirPropia={() => setShowBiblioteca(true)}
+        />
+      )}
+      {/* Biblioteca PROPIA (movilidad/elástico/calor + GIFs manuales).
+          2026-08-10 — BUG que reportó Lucas ("ese módulo Otra biblioteca no
+          hace nada"): este render vivía DENTRO del bloque `sec === "dashboard"`,
+          pero el catálogo se abre desde el botón de la barra superior, que
+          está en TODAS las secciones. Fuera del Dashboard, el botón "Otra
+          biblioteca" ponía showBiblioteca en true y no se montaba nada — un
+          control muerto. Ahora se monta al lado del catálogo, así que el
+          control hace lo que promete desde cualquier sección. */}
+      {showBiblioteca && (
+        <BibliotecaScreen
+          biblioteca={biblioteca}
+          onGuardado={onBibliotecaRefresh}
+          showToast={showToast}
+          onClose={() => setShowBiblioteca(false)}
         />
       )}
     </div>
@@ -6991,7 +6993,10 @@ export default function App() {
       return;
     }
     console.log(`%c[APP] Cambio en alumnos → guardando ${cambiados.length}/${alumnos.length}...`, "color:#a5b4fc;font-weight:bold");
-    guardarDatos(cambiados, _ultimoPayload.current);
+    // COPIA del mapa (2026-08-10): guardarDatos es async y lee `previos` alumno
+    // por alumno, pero abajo se pisa _ultimoPayload en el mismo tick — a partir
+    // del segundo alumno comparaba contra el payload NUEVO y no veía cambios.
+    guardarDatos(cambiados, new Map(_ultimoPayload.current));
     cambiados.forEach((a) => {
       _ultimoGuardado.current.set(a.id, _snapAlumno(a));
       _ultimoPayload.current.set(a.id, payloadAlumno(a));

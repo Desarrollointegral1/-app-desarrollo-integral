@@ -47,6 +47,37 @@ export function registroAsistencia(fecha) {
   return `${fecha} ${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
 }
 
+// Guarda una semana de la periodización: pisa series/reps/intensidad/fecha de
+// la fila `idx` y, si esa semana tiene fecha, recalcula las siguientes (una
+// por semana) A PARTIR DEL ARRAY YA MODIFICADO.
+//
+// 2026-08-10 — bug de Lucas "al cambiar sigue igual, no se puede cambiar un
+// día en la periodización": el editor hacía onChange(arr) con el cambio y
+// después llamaba a autoFechas(), que recalculaba las fechas sobre el `data`
+// VIEJO del closure y volvía a llamar onChange con ese array — el segundo
+// onChange pisaba al primero y el cambio de series/reps se perdía siempre que
+// la semana tuviera fecha cargada (que es el caso normal). Dos onChange
+// seguidos con dos bases distintas: por eso se revertía. Acá es un solo
+// resultado, calculado en un solo paso, y por eso es testeable.
+export function aplicarSemanaPeriodizacion(data, idx, form) {
+  const base = (data || []).map((r, i) =>
+    i === idx
+      ? { ...r, series: Number(form.series), reps: Number(form.reps), intensidad: form.intensidad, fecha: form.fecha }
+      : r,
+  );
+  if (!form.fecha) return base;
+  const parts = String(form.fecha).split("/");
+  if (parts.length < 2) return base;
+  const anio = base[idx]?.anio || new Date().getFullYear();
+  const inicio = new Date(anio, Number(parts[1]) - 1, Number(parts[0]));
+  if (isNaN(inicio.getTime())) return base;
+  return base.map((r, i) => {
+    if (i < idx) return r;
+    const f = new Date(inicio.getTime() + (i - idx) * 7 * 24 * 60 * 60 * 1000);
+    return { ...r, fecha: f.getDate() + "/" + (f.getMonth() + 1), anio: f.getFullYear() };
+  });
+}
+
 export function getSemanaActual(periodizacion) {
   if(periodizacion[0]&&periodizacion[0].fecha) {
     const hoyDate=new Date(); hoyDate.setHours(0,0,0,0);
