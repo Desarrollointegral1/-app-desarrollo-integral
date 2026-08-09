@@ -150,6 +150,23 @@ describe("resolverGif", () => {
     expect(resolverGif("", "ejercicio que no existe en ningun mapa")).toBe("");
     expect(resolverGif(undefined, undefined)).toBe("");
   });
+
+  // Los 7 ejercicios de la entrada en calor vienen con gif:null en el plan de
+  // los alumnos: si el mapa no los resuelve por nombre, la pantalla queda sin
+  // ninguna imagen (que es como estaban hasta hoy). Van escritos exactamente
+  // como los guarda alumnos.plan_calor, con tildes y paréntesis incluidos.
+  it("los 7 de la entrada en calor resuelven todos por nombre", () => {
+    const calor = [
+      "Jalón con banda (desde arriba)",
+      "Movilidad de tobillo (pie elevado, avance)",
+      "Pasadas con banda (hombros)",
+      "Remo con banda (doble)",
+      "Remo con palo (codos atrás)",
+      "Retracción escapular con palo",
+      "Rotación interna con banda (codo al cuerpo)",
+    ];
+    for (const nombre of calor) expect(resolverGif(null, nombre)).not.toBe("");
+  });
 });
 
 describe("calcularEdad", () => {

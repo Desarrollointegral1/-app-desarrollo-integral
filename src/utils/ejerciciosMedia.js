@@ -246,6 +246,32 @@ const M = {
     "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/levantada-cadera-unilateral-peso.webp",
   "hip thrust con peso": "/ejercicios/hip-thrust.gif",
   "crunch abdominal": "/ejercicios/core-crunch.gif",
+
+  // ── Entrada en calor (2026-08-09) ──────────────────────────────────────
+  // Los 7 ejercicios de alumnos.plan_calor venían sin gif propio (el campo
+  // gif es null en los 49 items) y sólo dos se resolvían por nombre: "Jalón
+  // con banda (desde arriba)" y "Remo con banda (doble)", los dos con GIF
+  // correcto (verificados frame por frame). Para los otros cinco se buscó en
+  // catalogo_ejercicios y no hay nada: no existe el knee-to-wall de tobillo,
+  // ni las pasadas de hombro con banda, ni ningún ejercicio con palo, y la
+  // única rotación interna de hombro (0216) es en POLEA y sentado — otro
+  // implemento. Los cinco llevan ilustración propia generada con IA, con las
+  // dos figuras (partida y fase media) y el implemento inconfundible: banda
+  // elástica de goma que se ve estirada, o palo recto de madera.
+  //
+  // Las claves van sin el paréntesis a propósito: getEjercicioGif() prueba en
+  // tercera pasada el nombre sin la aclaración, así que "Remo con palo (codos
+  // atrás)" cae en "remo con palo".
+  "movilidad de tobillo":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/movilidad-tobillo-pie-elevado.webp",
+  "pasadas con banda":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/pasadas-con-banda-hombros.webp",
+  "remo con palo":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/remo-con-palo-codos-atras.webp",
+  "retraccion escapular con palo":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/retraccion-escapular-con-palo.webp",
+  "rotacion interna con banda":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/rotacion-interna-banda-codo-al-cuerpo.webp",
 };
 
 const norm = (s) =>
