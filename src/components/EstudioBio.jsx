@@ -96,7 +96,22 @@ function generarObjetivoAutomatico(f, req) {
 
 // Sección completa: formulario + historial, conectada a Supabase.
 // La usan tal cual el panel admin (sección Bioimp.) y la vista del alumno.
-export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = false }) {
+/**
+ * `readOnly`  — el alumno sólo mira (como estaba hasta el 2026-08-08).
+ * `puedeCargar` — 2026-08-09, pedido de Lucas: "el alumno tiene que poder
+ *   registrar el scan corporal y la bioimpedancia/balanza". Con readOnly +
+ *   puedeCargar el alumno CARGA y CORRIGE lo suyo, pero:
+ *     · no puede ELIMINAR registros (borrar historial queda del lado del
+ *       entrenador, que es quien lo usa para decidir);
+ *     · no ve el requerimiento energético ni la alerta de disponibilidad.
+ *       Eso es un veto de seguridad anterior y sigue en pie: un número de
+ *       kcal mostrado al alumno se lee como prescripción, y la alerta de
+ *       RED-S tiene que derivar a un profesional, no aparecer en pantalla.
+ */
+export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = false, puedeCargar = false }) {
+  // Puede operar los formularios: el admin siempre; el alumno sólo si se le
+  // habilitó explícitamente.
+  const cargaHabilitada = !readOnly || puedeCargar;
   const [registros, setRegistros] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -161,11 +176,14 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
     <div>
       {/* 2026-08-04, pedido de Lucas: "Estudio manual" pasa a llamarse
           "Balanza" (es más claro para qué es: cargar el número que da la
-          báscula de bioimpedancia física). El selector de 2 módulos sigue
-          siendo solo-admin — Lucas pidió abrirle Scan Corporal al alumno y
-          después dijo explícitamente que no, que se quede como estaba
-          (revertido en la misma sesión). */}
-      {!readOnly && !editando && (
+          báscula de bioimpedancia física).
+          2026-08-09: el selector deja de ser solo-admin. Lucas lo había
+          abierto al alumno, lo revirtió el 04/08, y ahora lo pidió de nuevo
+          explícitamente ("el alumno tiene que poder registrar el scan
+          corporal y la bioimpedancia balanza"). Se habilita con puedeCargar,
+          no sacando readOnly, para que el alumno siga sin poder borrar
+          registros ni ver el requerimiento energético. */}
+      {cargaHabilitada && !editando && (
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
           <button onClick={() => setModulo("manual")} style={{ ...tabN2(modulo === "manual"), display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <BarChart3 size={15} strokeWidth={2} />Balanza
@@ -175,7 +193,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
           </button>
         </div>
       )}
-      {!readOnly && editando ? (
+      {cargaHabilitada && editando ? (
         <EstudioBioForm
           key={editando.id}
           alumno={alumno}
@@ -185,7 +203,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
           guardando={guardando}
         />
       ) : (
-        !readOnly &&
+        cargaHabilitada &&
         modulo === "manual" && (
           <>
             <EstudioBioForm key="nuevo" alumno={alumno} onGuardar={guardar} guardando={guardando} historialAlumno={registros} />
@@ -200,8 +218,8 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
       {/* Scan corporal (Fase 1): composición corporal estimada por IA a
           partir de 2 fotos, sin balanza. Guarda en la misma tabla con
           metadata.tipo="scan_2fotos" para distinguirlo de una medición manual.
-          Solo-admin (Lucas pidió y después descartó abrirlo al alumno). */}
-      {!readOnly && !editando && modulo === "scan" && (
+          Abierto al alumno desde el 2026-08-09 (ver puedeCargar arriba). */}
+      {cargaHabilitada && !editando && modulo === "scan" && (
         <ScanCorporalForm alumno={alumno} onGuardar={guardar} />
       )}
       {/* El requerimiento energético y la alerta de disponibilidad son
@@ -217,7 +235,7 @@ export function EstudioBioSeccion({ alumnoId, alumno, showToast, readOnly = fals
         <EstudioBioHistorial
           registros={registros}
           onEliminar={readOnly ? null : eliminar}
-          onEditar={readOnly ? null : setEditando}
+          onEditar={cargaHabilitada ? setEditando : null}
           alumnoFlyer={readOnly ? null : alumno}
           showToast={showToast}
           mostrarRequerimiento={!readOnly}

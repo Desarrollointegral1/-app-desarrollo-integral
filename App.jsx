@@ -8041,7 +8041,11 @@ export default function App() {
                 onSelect={setHistorialSub}
               />
               {historialSub === "bio" && (
-                <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly />
+                /* puedeCargar (2026-08-09, pedido de Lucas): el alumno carga
+                   su balanza y su scan corporal. Sigue sin poder borrar
+                   registros ni ver el requerimiento energético — ver el
+                   comentario de EstudioBioSeccion. */
+                <EstudioBioSeccion alumnoId={al.id} alumno={al} showToast={showToast} readOnly puedeCargar />
               )}
               {historialSub === "evolucion" && (
                 <>
