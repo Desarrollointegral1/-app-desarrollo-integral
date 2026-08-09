@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { ClipboardList, Check, Move, Zap, Flame } from "lucide-react";
 import { S, card, tabBtn, tabN2, segTrack, segChip, n4Track, chipN4 } from "../utils/theme.js";
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
-import { getAppConfig } from "../../services/supabase.js";
-import { MOVILIDAD_ARTICULACIONES, MOVILIDAD_CORTA } from "../utils/planTemplates.js";
+import { getAppConfig, getPrepGlobales } from "../../services/supabase.js";
+import { listaDeAlumno } from "../utils/preparacion.js";
 import ItemCard from "./ItemCard.jsx";
 import ResumenPlanModal from "./ResumenPlanModal.jsx";
 
@@ -65,6 +65,8 @@ export default function PlanDelDia({
     ["superrapida", "corta", "completa"].includes(rm?.movilidad_default) ? rm.movilidad_default : "corta"
   );
   const [videosGlobal, setVideosGlobal] = useState(null);
+  // Predeterminados de preparación (movilidad x3 · entrada en calor).
+  const [prepGlobales, setPrepGlobales] = useState({});
   // Dos tabs del mismo tamaño: Preparación | Principales.
   const [seccion, setSeccion] = useState("preparacion");
   // 2026-07-30 — en Modo Entrenador no hay Preparación, así que tampoco hay
@@ -75,6 +77,7 @@ export default function PlanDelDia({
   // Videos de movilidad globales (Admin → Plan → Videos de movilidad).
   useEffect(() => {
     getAppConfig("videos_movilidad").then(setVideosGlobal);
+    getPrepGlobales().then(setPrepGlobales);
   }, []);
 
   // Ronda 17 (punto 4): atajo desde las pills de día de la ficha del
@@ -94,8 +97,13 @@ export default function PlanDelDia({
     }
   }, [irAPrincipales]);
 
-  const movilidad = plan?.movilidad || [];
-  const calor = plan?.calor || [];
+  // 2026-08-10: las listas de preparación salen del sistema de dos niveles
+  // (predeterminado global de app_config + copia propia del alumno) — ver
+  // src/utils/preparacion.js. `alPrep` es el alumno visto desde acá: la vista
+  // recibe plan y rm sueltos, que es justo donde viven los overrides.
+  const alPrep = { plan, rm };
+  const movilidad = listaDeAlumno(alPrep, "movilidad_completa", prepGlobales);
+  const calor = listaDeAlumno(alPrep, "calor", prepGlobales);
   const activacion = plan?.activacion || [];
 
   // Último peso registrado ANTES de hoy (para comparar contra el de hoy)
@@ -156,8 +164,8 @@ export default function PlanDelDia({
   // 2026-07-31, pedido de Lucas: subtítulo propio para cada versión (qué
   // hace/para qué sirve), no solo el detalle de repeticiones.
   const MOVI_VERSIONES = [
-    { id: "superrapida", label: "Superrápida", subtitulo: "Activación express de tu cuerpo", detalle: { prefijo: "activación express:", cantidad: 5, tipo: "lado" }, items: MOVILIDAD_ARTICULACIONES, video: videos.superrapida, videoDur: "3 min" },
-    { id: "corta", label: "Corta", subtitulo: "Pensada para conectar con tu cuerpo", detalle: { cantidad: 6, tipo: "lado", sufijo: "(versión corta)" }, items: MOVILIDAD_CORTA, video: videos.corta, videoDur: "8 min" },
+    { id: "superrapida", label: "Superrápida", subtitulo: "Activación express de tu cuerpo", detalle: { prefijo: "activación express:", cantidad: 5, tipo: "lado" }, items: listaDeAlumno(alPrep, "movilidad_superrapida", prepGlobales), video: videos.superrapida, videoDur: "3 min" },
+    { id: "corta", label: "Corta", subtitulo: "Pensada para conectar con tu cuerpo", detalle: { cantidad: 6, tipo: "lado", sufijo: "(versión corta)" }, items: listaDeAlumno(alPrep, "movilidad_corta", prepGlobales), video: videos.corta, videoDur: "8 min" },
     { id: "completa", label: "Completa", subtitulo: "Para mejorar tu movilidad total", detalle: { cantidad: 6, tipo: "lado" }, items: movilidad, video: videos.larga, videoDur: "15+ min" },
   ];
   const moviActiva = MOVI_VERSIONES.find((v) => v.id === moviVersion) || MOVI_VERSIONES[2];

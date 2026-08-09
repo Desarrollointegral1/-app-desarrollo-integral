@@ -26,10 +26,11 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
-import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers } from "lucide-react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
+import { useDeshacer } from "./ToastDeshacer.jsx";
 import {
   cargarCatalogoCached,
   catalogoMediaUrl,
@@ -44,8 +45,11 @@ import {
   listarPlanesPredeterminados,
   actualizarPlanPredeterminado,
   eliminarPlanPredeterminado,
+  getPrepGlobales,
+  setAppConfig,
   supabase,
 } from "../../services/supabase.js";
+import { PREP_LISTAS, claveConfigPrep, listaGlobal } from "../utils/preparacion.js";
 
 // Niveles asignables a un ejercicio o a una plantilla de plan (ronda 18).
 const NIVELES = [
@@ -382,6 +386,51 @@ export default function CatalogoExplorer({
     if (pantalla === "planes") listarPlanesPredeterminados().then(setPlantillas);
   }, [pantalla]);
 
+  // ── Predeterminados de PREPARACIÓN (2026-08-10) ───────────────────────
+  // Edición del NIVEL 1 (app_config): borrador en memoria por lista, se
+  // persiste con "GUARDAR PREDETERMINADO". Mientras no haya nada guardado, el
+  // borrador arranca con el contenido del método (fallback de PREP_LISTAS).
+  const [prepGlobales, setPrepGlobales] = useState({});
+  const [prepDraft, setPrepDraft] = useState({});
+  const [prepSel, setPrepSel] = useState(PREP_LISTAS[0].id);
+  const [qPrepAdd, setQPrepAdd] = useState("");
+  const [guardandoPrep, setGuardandoPrep] = useState(false);
+  useEffect(() => {
+    if (pantalla === "preparacion") getPrepGlobales().then(setPrepGlobales);
+  }, [pantalla]);
+  const prepLista = (id) => prepDraft[id] || listaGlobal(id, prepGlobales);
+  const setPrepLista = (id, lista) => setPrepDraft((d) => ({ ...d, [id]: lista }));
+  const moverPrep = (i, dir) => {
+    const lista = [...prepLista(prepSel)];
+    const j = i + dir;
+    if (j < 0 || j >= lista.length) return;
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+    setPrepLista(prepSel, lista);
+  };
+  const quitarPrep = (i) => setPrepLista(prepSel, prepLista(prepSel).filter((_, x) => x !== i));
+  // El nombre se copia TAL CUAL del catálogo: es la clave con la que
+  // ejerciciosMedia.js encuentra la imagen del ejercicio.
+  const agregarPrep = (e) => {
+    setPrepLista(prepSel, [...prepLista(prepSel), {
+      nombre: e.nombre_es,
+      desc: e.instrucciones_es || "",
+      video: e.video || "",
+      gif: catalogoMediaUrl(e.gif_url || ""),
+      mediaLocal: "",
+    }]);
+    setQPrepAdd("");
+  };
+  const guardarPrep = async () => {
+    setGuardandoPrep(true);
+    const lista = prepLista(prepSel);
+    const ok = await setAppConfig(claveConfigPrep(prepSel), lista);
+    setGuardandoPrep(false);
+    if (!ok) { showToast && showToast("Error guardando el predeterminado — revisá la consola"); return; }
+    setPrepGlobales((g) => ({ ...g, [prepSel]: lista }));
+    setPrepDraft((d) => { const n = { ...d }; delete n[prepSel]; return n; });
+    showToast && showToast("Predeterminado guardado — lo heredan los alumnos sin lista propia");
+  };
+
   useEffect(() => {
     let vivo = true;
     cargarCatalogoCached().then((c) => vivo && setCat(c));
@@ -647,6 +696,33 @@ export default function CatalogoExplorer({
     setDetalle(null);
     setCreando(false);
     showToast && showToast(nuevo ? "Ejercicio archivado (se oculta de los listados)" : "Ejercicio recuperado");
+  };
+
+  // 2026-08-10, pedido de Lucas: "tiene que ser más fácil archivar un
+  // ejercicio, que tenga un botón ahí". Va a repasar los 1.343 ejercicios
+  // uno por uno; con el flujo viejo (abrir la tarjeta → botón al pie del
+  // detalle → cerrar) son horas. Acá se archiva de UN toque, sin
+  // confirmación: la tarjeta sale de la lista al instante y el toast con
+  // "Deshacer" es la red de seguridad (además del chip "Archivados").
+  // Por qué no reusa toggleArchivado: ese escribe en la base al toque y
+  // cierra el detalle. Este sigue el contrato de useDeshacer — la UI se
+  // actualiza ya, el UPDATE real corre recién cuando vence el toast, así
+  // "Deshacer" no necesita una segunda escritura para volver atrás.
+  const { ejecutarConDeshacer, ToastUI } = useDeshacer();
+  const archivarRapido = (e) => {
+    const nuevo = !e.archivado;
+    const marcar = (v) => setCat((prev) => (prev || []).map((x) => (x.id === e.id ? { ...x, archivado: v } : x)));
+    marcar(nuevo);
+    ejecutarConDeshacer({
+      mensaje: `${nuevo ? "Archivado" : "Recuperado"}: ${e.nombre_es}`,
+      alDeshacer: () => marcar(e.archivado),
+      alConfirmar: async () => {
+        const ok = await guardarEjercicioCatalogo(e.id, { archivado: nuevo });
+        // Si la base rechaza el cambio hay que devolver la tarjeta a la
+        // lista: si no, queda "archivada" solo en pantalla hasta recargar.
+        if (!ok) { marcar(e.archivado); showToast && showToast("No se pudo archivar — revisá la consola"); }
+      },
+    });
   };
 
   // Flujo "Crear ejercicio nuevo" (punto 4): único lugar donde se sube
@@ -1044,14 +1120,33 @@ export default function CatalogoExplorer({
                             </span>
                           )}
                         </div>
-                        {/* Dato terciario: el código no compite con el
-                            nombre (antes era un badge sobre la imagen). */}
-                        {(e.codigo_di || e.editado) && (
-                          <div style={{ fontSize: TS.chip, color: S.lgray, display: "flex", alignItems: "center", gap: 6 }}>
+                        {/* Pie de la tarjeta. El código queda (identifica el
+                            ejercicio); la marquita "editado" se fue: era
+                            informativa y ocupaba el lugar donde Lucas
+                            necesita la acción que sí usa 1.343 veces
+                            (2026-08-10). El botón archiva de un toque y
+                            frena la propagación para que tocar la tarjeta
+                            siga abriendo el detalle. */}
+                        {/* En el celular van apilados: con dos columnas de
+                            tarjetas, en fila el código quedaba en "A…" y el
+                            código es justamente lo que identifica al
+                            ejercicio. */}
+                        <div style={{ display: "flex", flexDirection: isWide ? "row" : "column", alignItems: isWide ? "center" : "stretch", gap: 8 }}>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: TS.chip, color: S.lgray, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {e.codigo_di}
-                            {e.editado && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Pencil size={13} strokeWidth={2} />editado</span>}
-                          </div>
-                        )}
+                          </span>
+                          <button
+                            onClick={(ev) => { ev.stopPropagation(); archivarRapido(e); }}
+                            onKeyDown={(ev) => ev.stopPropagation()}
+                            title={e.archivado ? "Sacar del archivo" : "Archivar (se oculta de los listados; se recupera con el chip Archivados)"}
+                            className="di-tap"
+                            style={{ flexShrink: 0, minHeight: TAP, minWidth: TAP, padding: "0 12px", background: "transparent", color: e.archivado ? S.green : S.gray, border: "1px solid " + (e.archivado ? S.green : S.border2), borderRadius: 8, fontSize: TS.chip, fontWeight: 700, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                          >
+                            {e.archivado
+                              ? <><RotateCcw size={14} strokeWidth={2} />Recuperar</>
+                              : <><Archive size={14} strokeWidth={2} />Archivar</>}
+                          </button>
+                        </div>
                       </div>
                     </article>
                   </Fragment>
@@ -1212,6 +1307,89 @@ export default function CatalogoExplorer({
     ? cat.filter((e) => !e.archivado && `${e.nombre_es} ${e.codigo_di || ""}`.toLowerCase().includes(qPlanAdd.trim().toLowerCase())).slice(0, 8)
     : [];
 
+  // ── PREPARACIÓN: los PREDETERMINADOS globales (2026-08-10) ──────────
+  // Pedido de Lucas: "en biblioteca de ejercicios en la parte de planes de
+  // entrenamiento tengo que tener una parte de entrada en calor y otra de
+  // movilidad para poder editar esas también". Lo que se edita acá es el
+  // NIVEL 1 (app_config, claves prep_*): la lista con la que arranca todo
+  // alumno que no tenga la suya propia. Mismo editor de lista que las
+  // plantillas de plan (buscar en el catálogo · ＋ · ▲▼ · ✕) — no se
+  // inventa un editor nuevo.
+  //
+  // Los ejercicios se guardan con {nombre, desc}: el nombre es la clave con
+  // la que ejerciciosMedia.js resuelve la imagen, así que se copia tal cual
+  // viene del catálogo y no se toca en ningún paso.
+  const pantallaPreparacion = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => setPantalla("biblioteca")} style={{ ...smallBtn(S.gray) }}>← Volver</button>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+          Preparación (predeterminados)
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ ...card, padding: "10px 14px", marginBottom: 10, color: S.gray, fontSize: TS.body }}>
+          Estas son las listas con las que arrancan TODOS los alumnos. El alumno que tenga
+          una lista propia (editada desde su ficha) no se pisa: sigue con la suya.
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          {PREP_LISTAS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setPrepSel(l.id)}
+              className="di-tap"
+              style={{ ...smallBtn(prepSel === l.id ? S.white : S.gray) }}
+            >
+              {l.grupo === "movilidad" ? `Movilidad · ${l.label}` : l.label}
+            </button>
+          ))}
+        </div>
+        {(() => {
+          const lista = prepLista(prepSel);
+          const sugerencias = qPrepAdd.trim().length >= 2 && cat
+            ? cat.filter((e) => !e.archivado && `${e.nombre_es} ${e.codigo_di || ""}`.toLowerCase().includes(qPrepAdd.trim().toLowerCase())).slice(0, 8)
+            : [];
+          return (
+            <div style={{ maxWidth: 560 }}>
+              <div style={{ ...card, padding: 12, marginBottom: 10 }}>
+                {lista.length === 0 && <div style={{ color: S.gray, fontSize: TS.body, padding: "6px 2px" }}>Lista vacía.</div>}
+                {lista.map((ej, i) => (
+                  <div key={i} style={{ background: S.card2, border: "1px solid " + S.border2, borderRadius: 10, padding: "7px 9px", marginBottom: 6, display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ color: S.gray, fontSize: TS.chip, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: TS.ui, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ej.nombre}</span>
+                    <button onClick={() => moverPrep(i, -1)} title="Subir" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▲</button>
+                    <button onClick={() => moverPrep(i, 1)} title="Bajar" className="di-tap" style={{ ...smallBtn(S.gray), padding: "0 10px", minWidth: 40 }}>▼</button>
+                    <button onClick={() => quitarPrep(i)} title="Quitar" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 10px", minWidth: 40, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={16} strokeWidth={2} /></button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ ...card, padding: 12, marginBottom: 12 }}>
+                <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>Agregar ejercicio</div>
+                <input value={qPrepAdd} onChange={(e) => setQPrepAdd(e.target.value)} placeholder="Buscar en el catálogo…" style={inp} />
+                {sugerencias.map((e) => (
+                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", borderBottom: "1px solid " + S.border }}>
+                    <span style={{ flex: 1, minWidth: 0, color: S.white, fontSize: TS.ui, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {e.nombre_es}{e.codigo_di ? <span style={{ color: S.lgray }}>{" · " + e.codigo_di}</span> : ""}
+                    </span>
+                    <button onClick={() => agregarPrep(e)} title="Agregar" className="di-tap" style={{ ...smallBtn(S.white), padding: "0 14px" }}>＋</button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={guardarPrep}
+                disabled={guardandoPrep}
+                className="di-tap"
+                style={{ width: "100%", marginBottom: 20, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, cursor: "pointer", opacity: guardandoPrep ? 0.6 : 1, fontFamily: FONT_BODY }}
+              >
+                {guardandoPrep ? "GUARDANDO..." : "GUARDAR PREDETERMINADO"}
+              </button>
+            </div>
+          );
+        })()}
+      </div>
+    </>
+  );
+
   const pantallaPlanes = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -1340,7 +1518,10 @@ export default function CatalogoExplorer({
   const pantallaBiblioteca = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+        {/* minWidth:0 (2026-08-10): sin esto el título no baja de su
+            min-content y empujaba el botón "Cerrar" 13px fuera de la pantalla
+            en 375px — medido con dev/medir-mobile. */}
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, minWidth: 0, fontFamily: FONT_DISPLAY }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><BookOpen size={24} strokeWidth={2} />Biblioteca de ejercicios</span>
         </div>
         {!isWide && (
@@ -1375,6 +1556,15 @@ export default function CatalogoExplorer({
         >
           <FolderTree size={16} strokeWidth={2} />Ver todos los planes
         </button>
+        {/* 2026-08-10, pedido de Lucas: la movilidad (3 versiones) y la
+            entrada en calor también se editan acá, no solo alumno por alumno. */}
+        <button
+          onClick={() => setPantalla("preparacion")}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+        >
+          <Move size={16} strokeWidth={2} />Movilidad y entrada en calor
+        </button>
       </div>
       {navPropia}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
@@ -1387,7 +1577,7 @@ export default function CatalogoExplorer({
   return (
     <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: isWide ? "24px 24px 16px" : "14px 12px", overflow: "hidden" }}>
       <style>{cssCatalogo()}</style>
-      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantallaBiblioteca}
+      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantalla === "preparacion" ? pantallaPreparacion : pantallaBiblioteca}
 
       {/* detalle */}
       {detalle && form && (
@@ -1530,6 +1720,8 @@ export default function CatalogoExplorer({
           </div>
         </div>
       )}
+      {/* Toast con "Deshacer" del archivado rápido (2026-08-10) */}
+      {ToastUI}
     </div>
   );
 }

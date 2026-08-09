@@ -14,6 +14,7 @@ import { calcularEdad, getYTId, hoy, aplicarSemanaPeriodizacion } from "./helper
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
 import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
 import { _columnasCambiadas } from "../../services/supabase.js";
+import { listaDeAlumno, conPrepPropia, sinPrepPropia, esPrepPropia } from "./preparacion.js";
 import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
   setVuelta, cantidadDeVueltas, resumenVueltas,
@@ -134,6 +135,58 @@ describe("_columnasCambiadas (guardado parcial del alumno)", () => {
 // (primero el cambio, después el recálculo de fechas sobre el array VIEJO) y
 // el segundo pisaba al primero. Ya había vuelto una vez; con estos tests no
 // vuelve en silencio.
+// 2026-08-10 — bug de Lucas: "al cambiar la movilidad no cambia los
+// ejercicios". Las 3 versiones ahora son 3 listas distintas, con
+// predeterminado global + copia por alumno. Lo que se testea es la regla de
+// herencia, que es donde se rompe en silencio: quien nunca tocó una lista
+// tiene que heredar los cambios del predeterminado, y quien tiene lista propia
+// no se puede pisar NUNCA desde arriba.
+describe("preparacion (predeterminado global + lista propia del alumno)", () => {
+  const globales = {
+    movilidad_corta: [{ nombre: "Gato-vaca" }],
+    calor: [{ nombre: "Banda x10" }],
+  };
+  const alumno = { plan: { movilidad: [], calor: [] }, rm: {} };
+
+  it("sin lista propia, el alumno ve el predeterminado global", () => {
+    expect(listaDeAlumno(alumno, "movilidad_corta", globales)).toEqual(globales.movilidad_corta);
+  });
+
+  it("sin predeterminado guardado todavía, cae en los ejercicios del método (nunca vacío)", () => {
+    const lista = listaDeAlumno(alumno, "movilidad_superrapida", {});
+    expect(lista.length).toBeGreaterThan(0);
+  });
+
+  it("editar la lista de un alumno la marca como propia y no toca a los demás", () => {
+    const editado = conPrepPropia(alumno, "movilidad_corta", [{ nombre: "Solo esto" }]);
+    expect(esPrepPropia(editado, "movilidad_corta")).toBe(true);
+    expect(listaDeAlumno(editado, "movilidad_corta", globales)).toEqual([{ nombre: "Solo esto" }]);
+    // el original no se mutó: otro alumno sigue heredando
+    expect(listaDeAlumno(alumno, "movilidad_corta", globales)).toEqual(globales.movilidad_corta);
+  });
+
+  it("cambiar el predeterminado NO pisa al alumno que tiene lista propia", () => {
+    const editado = conPrepPropia(alumno, "calor", [{ nombre: "Mi entrada en calor" }]);
+    const nuevosGlobales = { ...globales, calor: [{ nombre: "Otra cosa" }] };
+    expect(listaDeAlumno(editado, "calor", nuevosGlobales)).toEqual([{ nombre: "Mi entrada en calor" }]);
+    expect(listaDeAlumno(alumno, "calor", nuevosGlobales)).toEqual([{ nombre: "Otra cosa" }]);
+  });
+
+  it("volver al predeterminado saca la marca y devuelve la lista global", () => {
+    const editado = conPrepPropia(alumno, "calor", [{ nombre: "Mi entrada en calor" }]);
+    const vuelto = sinPrepPropia(editado, "calor", globales);
+    expect(esPrepPropia(vuelto, "calor")).toBe(false);
+    expect(listaDeAlumno(vuelto, "calor", globales)).toEqual(globales.calor);
+  });
+
+  it("la movilidad completa y el calor siguen viviendo en las columnas de siempre", () => {
+    const a = conPrepPropia(alumno, "movilidad_completa", [{ nombre: "X" }]);
+    expect(a.plan.movilidad).toEqual([{ nombre: "X" }]);
+    const b = conPrepPropia(alumno, "calor", [{ nombre: "Y" }]);
+    expect(b.plan.calor).toEqual([{ nombre: "Y" }]);
+  });
+});
+
 describe("aplicarSemanaPeriodizacion (guardar una semana del plan)", () => {
   const data = [
     { semana: 1, series: 2, reps: 6, intensidad: "70%", fecha: "10/8", anio: 2026 },

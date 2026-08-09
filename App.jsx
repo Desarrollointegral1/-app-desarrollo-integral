@@ -83,6 +83,7 @@ import {
   clonarPlan,
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
+import { conPrepPropia, sinPrepPropia, esPrepPropia, listaDeAlumno } from "./src/utils/preparacion.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell, checkboxWrap, checkboxBox } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
@@ -112,7 +113,7 @@ import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
-import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
+import { actualizarEjercicioBibliotecaPorId, getPrepGlobales } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
@@ -1725,6 +1726,44 @@ export function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBibl
   );
 }
 // ── PERIODIZACION EDITOR ──────────────────────────────────────────────
+// ── PREPARACIÓN DE UN ALUMNO (movilidad x3 · entrada en calor) ─────────
+// 2026-08-10. Envuelve al EjercicioEditor de siempre con lo único que hacía
+// falta para que el sistema de dos niveles no sea adivinanza: decir en la
+// pantalla si esta lista es la predeterminada (y entonces un cambio en
+// Biblioteca la actualiza sola) o si es propia de este alumno (y entonces no
+// se toca nunca desde arriba), con la vuelta atrás a mano.
+function PrepEditorAlumno({ al, id, globales, onGuardar, onVolverGlobal, biblioteca, onGuardarBiblioteca, onGuardarParaTodos }) {
+  const propia = esPrepPropia(al, id);
+  const items = listaDeAlumno(al, id, globales);
+  return (
+    <div>
+      <div style={{ ...card, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: propia ? S.white : S.green, fontWeight: 700 }}>
+          {propia ? "Lista propia de este alumno" : "Heredada del predeterminado"}
+        </span>
+        <span style={{ fontSize: 13, color: S.gray, flex: 1, minWidth: 160 }}>
+          {propia
+            ? "Editar el predeterminado ya no le cambia nada."
+            : "Si cambiás el predeterminado en Biblioteca, se le actualiza sola. Editar acá la vuelve propia."}
+        </span>
+        {propia && (
+          <button onClick={() => onVolverGlobal(id)} style={smallBtn(S.gray)}>
+            Volver al predeterminado
+          </button>
+        )}
+      </div>
+      <EjercicioEditor
+        items={items}
+        onChange={(v) => onGuardar(id, v)}
+        showVideo={true}
+        biblioteca={biblioteca}
+        onGuardarBiblioteca={onGuardarBiblioteca}
+        onGuardarParaTodos={onGuardarParaTodos}
+      />
+    </div>
+  );
+}
+
 function PeriodizacionEditor({ data, onChange }) {
   const [editIdx, setEditIdx] = useState(null);
   const [form, setForm] = useState({ series: "", reps: "", intensidad: "", fecha: "" });
@@ -3982,7 +4021,9 @@ function IconDock({ items, activo, onSelect }) {
 }
 // Ronda 7: Peso Max aplica a TODOS los alumnos, sin filtro por modalidad
 // ("por más que entrene solo, algún día lo voy a ir a ver").
-function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
+// `export` para poder montarlo en dev/harness.jsx (banco de pruebas) — la app
+// lo sigue usando desde este mismo archivo (2026-08-10).
+export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], onGuardarBiblioteca, onBibliotecaRefresh, novedades = [], onNovedadesChange, darkMode, onToggleTheme, onModoEntrenador }) {
   // 2026-07-30, pedido de Lucas: "dos versiones, una web para usarla de casa
   // y una de celular para la clase o el alumno". Se resuelve con UN código
   // base y este breakpoint, no con dos apps (dos bases se desincronizan).
@@ -4072,6 +4113,14 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   // (superrapida/corta/completa) arranca el alumno al entrar. Vive en el jsonb
   // `rm` como `movilidad_default` — sin migración nueva. El alumno puede
   // cambiarla en el momento con los 3 botones de su vista.
+  // Predeterminados globales de preparación (app_config): la lista que ve el
+  // alumno que nunca fue editado a mano. Se cargan una vez por sesión de admin.
+  const [prepGlobales, setPrepGlobales] = useState({});
+  useEffect(() => { getPrepGlobales().then(setPrepGlobales); }, []);
+  // Versión de movilidad que se está VIENDO/EDITANDO en la pantalla de admin.
+  // Es distinta de movilidad_default (con cuál arranca el alumno): antes había
+  // un solo control para las dos cosas y por eso "no cambiaban los ejercicios".
+  const [moviVer, setMoviVer] = useState("completa");
   const setMoviDefault = (v) => {
     if (!al) return;
     setRm((r) => ({ ...r, [al.id]: { ...r[al.id], movilidad_default: v } }));
@@ -4196,6 +4245,15 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
   };
   const updatePlan = (campo, valor) =>
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, plan: { ...a.plan, [campo]: valor } } : a)));
+  // PREPARACIÓN EN DOS NIVELES (2026-08-10) — ver src/utils/preparacion.js.
+  // Acá se edita la lista DE ESTE ALUMNO: tocarla la convierte en propia (deja
+  // de heredar el predeterminado), y "Volver al predeterminado" la devuelve.
+  const guardarPrepAlumno = (id, lista) =>
+    onUpdate(alumnos.map((a) => (a.id === al.id ? conPrepPropia(a, id, lista) : a)));
+  const volverPrepGlobal = (id) => {
+    onUpdate(alumnos.map((a) => (a.id === al.id ? sinPrepPropia(a, id, prepGlobales) : a)));
+    showToast && showToast("Vuelve a usar el predeterminado");
+  };
   // Ronda 11: "Guardar para todos" — actualiza el maestro (biblioteca) y
   // propaga a todos los alumnos que tengan el mismo ejercicio (matched por
   // código o, si es viejo y no tiene, por nombre exacto). Ver
@@ -5451,29 +5509,40 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
             )}{" "}
             {planTab === "movilidad" && al && (
               <>
-                {/* Ronda 12: mismo control que ve el alumno (n4Track/chipN4 de
-                    PlanDelDia.jsx) en vez del selector con estilo propio y la
-                    palabra "predeterminada" — visualmente es EL MISMO
-                    selector, acá además setea la preferencia default. */}
+                {/* 2026-08-10 — bug de Lucas: "al cambiar la movilidad no
+                    cambia los ejercicios". El selector cambiaba SOLO la
+                    preferencia (rm.movilidad_default) y abajo se mostraba
+                    siempre la misma lista, así que parecía un filtro roto.
+                    Ahora las 3 versiones son 3 listas de verdad: el selector
+                    elige cuál se ve y se edita, y "arranca acá" es un control
+                    aparte — un botón, un trabajo. */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ ...n4Track(), justifyContent: "center" }}>
-                    {[["superrapida", "Superrápida"], ["corta", "Corta"], ["completa", "Completa"]].map(([id, l]) => {
-                      const activa = (al.rm?.movilidad_default || "completa") === id;
-                      return (
-                        <button key={id} onClick={() => setMoviDefault(id)} style={chipN4(activa)}>
-                          {l}
-                        </button>
-                      );
-                    })}
+                    {[["superrapida", "Superrápida"], ["corta", "Corta"], ["completa", "Completa"]].map(([id, l]) => (
+                      <button key={id} onClick={() => setMoviVer(id)} style={chipN4(moviVer === id)}>
+                        {l}
+                      </button>
+                    ))}
                   </div>
                   <div style={{ fontSize: 14, color: S.lgray, textAlign: "center", marginTop: 6 }}>
-                    Con cuál versión arranca {al.nombre} al entrar — puede cambiarla en el momento.
+                    Estás viendo los ejercicios de la versión {moviVer === "superrapida" ? "Superrápida" : moviVer === "corta" ? "Corta" : "Completa"}.
+                  </div>
+                  <div style={{ textAlign: "center", marginTop: 8 }}>
+                    {(al.rm?.movilidad_default || "corta") === moviVer ? (
+                      <span style={{ fontSize: 13, color: S.green }}>✓ {al.nombre} arranca en esta versión</span>
+                    ) : (
+                      <button onClick={() => setMoviDefault(moviVer)} style={smallBtn(S.gray)}>
+                        Que {al.nombre} arranque en esta versión
+                      </button>
+                    )}
                   </div>
                 </div>
-                <EjercicioEditor
-                  items={al.plan.movilidad}
-                  onChange={(v) => updatePlan("movilidad", v)}
-                  showVideo={true}
+                <PrepEditorAlumno
+                  al={al}
+                  id={"movilidad_" + moviVer}
+                  globales={prepGlobales}
+                  onGuardar={guardarPrepAlumno}
+                  onVolverGlobal={volverPrepGlobal}
                   biblioteca={biblioteca}
                   onGuardarBiblioteca={onGuardarBiblioteca}
                   onGuardarParaTodos={(payload) => guardarParaTodos("movilidad", payload)}
@@ -5482,7 +5551,16 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
               </>
             )}{" "}
             {planTab === "calor" && al && (
-              <EjercicioEditor items={al.plan.calor} onChange={(v) => updatePlan("calor", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("calor", payload)} />
+              <PrepEditorAlumno
+                al={al}
+                id="calor"
+                globales={prepGlobales}
+                onGuardar={guardarPrepAlumno}
+                onVolverGlobal={volverPrepGlobal}
+                biblioteca={biblioteca}
+                onGuardarBiblioteca={onGuardarBiblioteca}
+                onGuardarParaTodos={(payload) => guardarParaTodos("calor", payload)}
+              />
             )}{" "}
             {planTab === "activacion" && al && (
               <EjercicioEditor items={al.plan.activacion || []} onChange={(v) => updatePlan("activacion", v)} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={(payload) => guardarParaTodos("activacion", payload)} />
@@ -5784,16 +5862,24 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
         {sec === "reportes" && (
           <div style={{ ...segTrack(), marginBottom: 14 }}>
             {[
-              ["Asistencia", "asistencia"],
-              ["Historial de pesos máximos", "historial"],
               // 2026-08-10, pedido de Lucas ("el módulo evaluación, reportes
-              // debería estar fusionado en reportes"): esta pestaña es la que
-              // vivía en Evaluación → Reportes. Se llama por lo que hace, no
-              // "Reportes" — estando ya dentro de Reportes, ese nombre no
-              // distinguía nada de las otras dos pestañas.
-              ["Resumen y evolución", "resumen"],
+              // debería estar fusionado en reportes"): la tercera pestaña es la
+              // que vivía en Evaluación → Reportes. No se llama "Reportes"
+              // porque, ya adentro de Reportes, ese nombre no la distinguía de
+              // las otras dos. Los rótulos son cortos porque con tres pestañas
+              // el segmented control da ~113px por chip en un celular de 375px
+              // y el texto se cortaba en "ASISTEN…"; el título completo de cada
+              // pantalla aparece igual arriba del contenido.
+              ["Asistencia", "asistencia"],
+              ["Pesos máximos", "historial"],
+              ["Resumen", "resumen"],
             ].map(([l, k]) => (
-              <button key={k} onClick={() => setRepTab(k)} style={segChip(repTab === k)}>
+              // Con tres pestañas cada chip mide 96px en un celular de 375px y
+              // segChip (theme.js, compartido) trae whiteSpace:nowrap: los
+              // rótulos salían cortados ("ASISTEN…", "PESOS M…"). Se permite
+              // que envuelvan en dos renglones sólo acá — cortar el nombre de
+              // una pestaña es peor que un chip un poco más alto.
+              <button key={k} onClick={() => setRepTab(k)} style={{ ...segChip(repTab === k), minWidth: 0, whiteSpace: "normal", lineHeight: 1.2, padding: "12px 4px", letterSpacing: 0 }}>
                 {l}
               </button>
             ))}

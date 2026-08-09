@@ -2393,6 +2393,26 @@ export async function setAppConfig(clave, valor) {
   return true;
 }
 
+// Predeterminados de PREPARACIÓN (2026-08-10): las 3 versiones de movilidad y
+// la entrada en calor que arrancan para todos los alumnos. Viven en app_config
+// (claves prep_*) — ver src/utils/preparacion.js para la regla de herencia.
+// Se traen las 4 de una sola consulta: la vista del alumno ya hace un
+// getAppConfig para los videos y no vale la pena sumarle 4 roundtrips.
+export async function getPrepGlobales() {
+  try {
+    const { data, error } = await supabase
+      .from("app_config")
+      .select("clave, valor")
+      .like("clave", "prep_%");
+    if (error) { LOG("getPrepGlobales", `⚠️ ${error.message}`); return {}; }
+    const mapa = {};
+    (data || []).forEach((r) => { mapa[String(r.clave).replace(/^prep_/, "")] = r.valor; });
+    return mapa;
+  } catch (e) {
+    return {};
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // CATÁLOGO DE EJERCICIOS (dataset ExerciseDB + custom DI — migración 015)
 // La media vive en el bucket público `catalogo-ejercicios`; la tabla

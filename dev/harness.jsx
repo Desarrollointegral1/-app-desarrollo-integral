@@ -17,9 +17,10 @@
 // como entrada, y esta carpeta no se importa desde ningún lado de la app.
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { EjercicioEditor, DiasEditor, GlobalStyles } from "../App.jsx";
+import { EjercicioEditor, DiasEditor, GlobalStyles, AdminPanel } from "../App.jsx";
 import { SIN_GIF } from "../src/utils/ejerciciosMedia.js";
 import ItemCard from "../src/components/ItemCard.jsx";
+import CatalogoExplorer from "../src/components/CatalogoExplorer.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
@@ -176,6 +177,117 @@ function VistaVideoDemo() {
   );
 }
 
+// ── BIBLIOTECA DE EJERCICIOS (2026-08-10) ─────────────────────────────
+// CatalogoExplorer pega contra Supabase directo (cargarCatalogoCached), y con
+// la clave anónima la tabla devuelve [] por RLS: sin login no hay ni una
+// tarjeta que mirar. Se intercepta `fetch` SOLO para esa tabla y se le
+// devuelven filas de mentira — el componente que se monta es el real, igual
+// que con los demás paneles. El PATCH (archivar) contesta 204 como PostgREST,
+// así que el toast "Deshacer" corre su ciclo completo.
+const FILAS_CATALOGO = [
+  { id: "c1", nombre_es: "Abdominal corto en el piso", categoria: "waist", target_es: "Abdominales", equipment_es: "Peso corporal", codigo_di: "AN025", nivel: "inicial", archivado: false },
+  { id: "c2", nombre_es: "Abdominal con piernas elevadas", categoria: "waist", target_es: "Abdominales", equipment_es: "Peso corporal", codigo_di: "AN026", nivel: null, archivado: false },
+  { id: "c3", nombre_es: "Plancha frontal con apoyo de antebrazos", categoria: "waist", target_es: "Core", equipment_es: "Peso corporal", codigo_di: "CO003", nivel: "intermedio", archivado: false },
+  { id: "c4", nombre_es: "Press de banca plano con barra", categoria: "chest", target_es: "Pectoral mayor", equipment_es: "Barra", codigo_di: "PE002", nivel: "avanzado", archivado: false },
+  { id: "c5", nombre_es: "Press de banca inclinado con mancuernas", categoria: "chest", target_es: "Pectoral mayor", equipment_es: "Mancuernas", codigo_di: "PE003", nivel: null, archivado: false },
+  { id: "c6", nombre_es: "Remo con barra a la cintura", categoria: "back", target_es: "Dorsal ancho", equipment_es: "Barra", codigo_di: "RO004", nivel: "intermedio", archivado: false },
+  { id: "c7", nombre_es: "Ejercicio ya archivado de prueba", categoria: "back", target_es: "Dorsal ancho", equipment_es: "Polea", codigo_di: "RO099", nivel: null, archivado: true },
+];
+const RESPUESTA_JSON = (datos) => new Response(JSON.stringify(datos), { status: 200, headers: { "Content-Type": "application/json" } });
+const fetchOriginal = window.fetch.bind(window);
+window.fetch = (entrada, opciones = {}) => {
+  const url = typeof entrada === "string" ? entrada : entrada.url || "";
+  if (!url.includes("/rest/v1/catalogo_ejercicios")) return fetchOriginal(entrada, opciones);
+  const metodo = (opciones.method || "GET").toUpperCase();
+  if (metodo === "PATCH") return Promise.resolve(new Response(null, { status: 204 }));
+  if (url.includes("revisar=eq.true")) return Promise.resolve(RESPUESTA_JSON([])); // bandeja "Para revisar" vacía
+  return Promise.resolve(RESPUESTA_JSON(FILAS_CATALOGO));
+};
+
+function BibliotecaDemo() {
+  // Abre sola con /dev/harness.html#catalogo — así se puede capturar en
+  // headless, que no tiene forma de tocar un botón.
+  const [abierto, setAbierto] = useState(() => window.location.hash === "#catalogo");
+  return (
+    <>
+      <button
+        onClick={() => setAbierto(true)}
+        style={{ minHeight: 44, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, background: "#fff", color: "#111", border: "1px solid #343434" }}
+      >
+        Abrir la Biblioteca
+      </button>
+      {abierto && (
+        <CatalogoExplorer
+          onClose={() => setAbierto(false)}
+          showToast={(m) => console.log("[toast]", m)}
+          onAbrirPropia={() => alert("Abre la biblioteca propia (movilidad/elástico/calor)")}
+        />
+      )}
+    </>
+  );
+}
+
+// ── PANEL ADMIN COMPLETO (2026-08-10) ─────────────────────────────────
+// Para poder mirar las pestañas de Reportes y Evaluación sin el PIN. Se
+// siembra la navegación en sessionStorage ANTES de montar (AdminPanel la lee
+// en el primer render) y se abre con /dev/harness.html#reportes o #evaluacion.
+const ALUMNO_DEMO = {
+  id: "al-1",
+  nombre: "Rosa Beatriz Giménez",
+  asistencia: ["2026-08-04 09:15", "2026-08-06 09:05", "2026-08-08 10:00"],
+  diario: [],
+  rm: {},
+  plan: { dias: DIAS_INICIALES, periodizacion: [] },
+};
+function AdminDemo() {
+  const [alumnos, setAlumnos] = useState([ALUMNO_DEMO]);
+  const [abierto, setAbierto] = useState(() => {
+    // Se acepta ?admin=movilidad además del hash: las capturas headless
+    // pierden el fragmento y así se puede fotografiar la pantalla real.
+    const h = window.location.hash || (new URLSearchParams(window.location.search).get("admin") ? "#" + new URLSearchParams(window.location.search).get("admin") : "");
+    // 2026-08-10: #movilidad y #calor abren el panel en Plan → esa pestaña,
+    // para poder mirar el sistema de preparación en dos niveles sin login.
+    if (h === "#movilidad" || h === "#calor") {
+      sessionStorage.setItem("di_admin_nav", JSON.stringify({
+        sec: "plan", selId: "al-1", planTab: h.slice(1),
+      }));
+      return true;
+    }
+    if (h !== "#reportes" && h !== "#evaluacion") return false;
+    sessionStorage.setItem("di_admin_nav", JSON.stringify({
+      sec: h === "#reportes" ? "reportes" : "evaluacion",
+      selId: "al-1",
+      repTab: h === "#reportes" ? "resumen" : "asistencia",
+    }));
+    return true;
+  });
+  if (!abierto)
+    return (
+      <button
+        onClick={() => { sessionStorage.setItem("di_admin_nav", JSON.stringify({ sec: "reportes", selId: "al-1", repTab: "resumen" })); setAbierto(true); }}
+        style={{ minHeight: 44, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, background: "#fff", color: "#111", border: "1px solid #343434" }}
+      >
+        Abrir el panel admin en Reportes
+      </button>
+    );
+  return (
+    <AdminPanel
+      alumnos={alumnos}
+      onUpdate={setAlumnos}
+      onClose={() => setAbierto(false)}
+      showToast={(m) => console.log("[toast]", m)}
+      biblioteca={BIBLIOTECA}
+      onGuardarBiblioteca={() => {}}
+      onBibliotecaRefresh={() => {}}
+      novedades={[]}
+      onNovedadesChange={() => {}}
+      darkMode
+      onToggleTheme={() => {}}
+      onModoEntrenador={() => {}}
+    />
+  );
+}
+
 function Panel({ titulo, children, nota }) {
   return (
     <section style={{ marginBottom: 40 }}>
@@ -242,6 +354,20 @@ function Harness() {
           nota="Lo que ve un adulto mayor al entrar: saludo, video y nada más. Probar los tres estados con los botones. El texto no baja de 20px, el botón de reproducir mide 72px de alto y Salir queda abajo, chico y separado."
         >
           <VistaVideoDemo />
+        </Panel>
+
+        <Panel
+          titulo="Panel admin · Reportes y Evaluación"
+          nota="Reportes tiene ahora tres pestañas: Asistencia · Historial de pesos máximos · Resumen y evolución (esta última venía de Evaluación → Reportes). Evaluación queda con Evaluación integral y Bioimpedancia. Se abre solo con /dev/harness.html#reportes o #evaluacion."
+        >
+          <AdminDemo />
+        </Panel>
+
+        <Panel
+          titulo="Biblioteca de ejercicios · archivar de un toque"
+          nota="Cada tarjeta tiene abajo el código y el botón Archivar (44px). Tocarlo saca la tarjeta de la lista al instante y deja abajo el aviso con Deshacer; tocar la tarjeta (no el botón) sigue abriendo el detalle. Con el chip «Archivados» se ve el que ya está archivado, con el botón en «Recuperar». Arriba, «Otra biblioteca» avisa que navega."
+        >
+          <BibliotecaDemo />
         </Panel>
 
         <Panel
