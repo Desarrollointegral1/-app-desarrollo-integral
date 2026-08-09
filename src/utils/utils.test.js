@@ -18,6 +18,9 @@ import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
   setVuelta, cantidadDeVueltas, resumenVueltas,
 } from "./pesos.js";
+import {
+  normalizarBusqueda, buscarEnCatalogo, ordenarSugerencias, normalizarGrupo, GRUPOS_DI,
+} from "./ejercicioAsistido.js";
 
 describe("peso por vuelta", () => {
   it("un dato viejo (un número suelto) se lee como una sola vuelta", () => {
@@ -179,6 +182,102 @@ describe("getYTId", () => {
     expect(getYTId("")).toBe(null);
     expect(getYTId(null)).toBe(null);
     expect(getYTId("https://vimeo.com/12345")).toBe(null);
+  });
+});
+
+// ── armador de ejercicios asistido ────────────────────────────────
+// Lo que se protege acá: que el profe encuentre lo que ya existe (si no, el
+// catálogo se llena de duplicados escritos a mano) y que el modelo no meta un
+// grupo inventado, que dejaría el ejercicio afuera de todos los filtros.
+const CATALOGO = [
+  { id: 1, nombre_es: "Sentadilla búlgara", nombre_en: "Bulgarian split squat", gif_url: "a.gif" },
+  { id: 2, nombre_es: "Sentadilla búlgara con mancuernas en step", nombre_en: null, gif_url: null },
+  { id: 3, nombre_es: "Press de banca", nombre_en: "Bench press", image: "b.png" },
+  { id: 4, nombre_es: "Zancada búlgara alterna", nombre_en: null },
+];
+
+describe("normalizarBusqueda", () => {
+  it("saca tildes, mayúsculas y puntuación para poder comparar", () => {
+    expect(normalizarBusqueda("Sentadilla BÚLGARA (con mancuernas)")).toBe("sentadilla bulgara con mancuernas");
+    expect(normalizarBusqueda("  press   de   banca  ")).toBe("press de banca");
+  });
+
+  it("no explota con basura", () => {
+    expect(normalizarBusqueda(null)).toBe("");
+    expect(normalizarBusqueda(undefined)).toBe("");
+    expect(normalizarBusqueda(123)).toBe("123");
+  });
+});
+
+describe("buscarEnCatalogo", () => {
+  it("encuentra aunque el profe escriba sin tilde y a medias", () => {
+    const r = buscarEnCatalogo(CATALOGO, "sentadilla bul");
+    expect(r.map((s) => s.nombre)).toEqual([
+      "Sentadilla búlgara",
+      "Sentadilla búlgara con mancuernas en step",
+    ]);
+  });
+
+  it("el que empieza con lo escrito va antes que el que solo lo contiene", () => {
+    const r = buscarEnCatalogo(CATALOGO, "bulgara");
+    expect(r[0].nombre).toBe("Sentadilla búlgara");
+    expect(r.map((s) => s.nombre)).toContain("Zancada búlgara alterna");
+  });
+
+  it("también busca por el nombre en inglés del dataset original", () => {
+    expect(buscarEnCatalogo(CATALOGO, "bench")[0].nombre).toBe("Press de banca");
+  });
+
+  it("marca si el ejercicio ya tiene imagen (gif o foto)", () => {
+    const [conGif] = buscarEnCatalogo(CATALOGO, "sentadilla bulgara");
+    expect(conGif.tiene_imagen).toBe(true);
+    expect(conGif.origen).toBe("catalogo");
+    expect(conGif.catalogo_id).toBe("1");
+    expect(buscarEnCatalogo(CATALOGO, "sentadilla bulgara con mancuernas")[0].tiene_imagen).toBe(false);
+  });
+
+  it("sin texto o sin catálogo no devuelve nada (no muestra el catálogo entero)", () => {
+    expect(buscarEnCatalogo(CATALOGO, "")).toEqual([]);
+    expect(buscarEnCatalogo(CATALOGO, "   ")).toEqual([]);
+    expect(buscarEnCatalogo(null, "press")).toEqual([]);
+    expect(buscarEnCatalogo(CATALOGO, "zzzzz")).toEqual([]);
+  });
+});
+
+describe("ordenarSugerencias", () => {
+  it("los del catálogo van SIEMPRE primero: si existe, se usa ese y no uno nuevo", () => {
+    const delCatalogo = buscarEnCatalogo(CATALOGO, "press");
+    const r = ordenarSugerencias(delCatalogo, ["Press militar", "Press francés"]);
+    expect(r[0].origen).toBe("catalogo");
+    expect(r.slice(1).every((s) => s.origen === "nuevo")).toBe(true);
+  });
+
+  it("no propone como nuevo un nombre que ya está en el catálogo, aunque venga sin tilde", () => {
+    const delCatalogo = buscarEnCatalogo(CATALOGO, "sentadilla bulgara");
+    const r = ordenarSugerencias(delCatalogo, ["sentadilla bulgara", "Sentadilla búlgara con barra"]);
+    expect(r.filter((s) => normalizarBusqueda(s.nombre) === "sentadilla bulgara")).toHaveLength(1);
+    expect(r.find((s) => s.nombre === "Sentadilla búlgara con barra").origen).toBe("nuevo");
+  });
+
+  it("nunca devuelve más del máximo pedido", () => {
+    const muchos = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    expect(ordenarSugerencias([], muchos, 6)).toHaveLength(6);
+    expect(ordenarSugerencias(buscarEnCatalogo(CATALOGO, "sentadilla"), muchos, 6)).toHaveLength(6);
+  });
+});
+
+describe("normalizarGrupo", () => {
+  it("acepta los 15 grupos reales escritos como los escriba el modelo", () => {
+    expect(GRUPOS_DI).toHaveLength(15);
+    expect(normalizarGrupo("gluteos")).toBe("Glúteos");
+    expect(normalizarGrupo("PRED. RODILLA")).toBe("Pred. Rodilla");
+    expect(normalizarGrupo("  bíceps ")).toBe("Bíceps");
+  });
+
+  it("rechaza el grupo inventado en vez de guardarlo", () => {
+    expect(normalizarGrupo("Piernas")).toBe(null);
+    expect(normalizarGrupo("")).toBe(null);
+    expect(normalizarGrupo(null)).toBe(null);
   });
 });
 
