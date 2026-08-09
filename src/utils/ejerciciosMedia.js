@@ -9,16 +9,31 @@ const M = {
   // con disco" mostraba buenos-dias.gif, que es un good morning con BARRA
   // sobre la espalda: implemento distinto. En el catálogo no hay good morning
   // con disco (lo más cercano, 0044, es la misma versión con barra), así que
-  // el nombre sale del mapa y queda SIN GIF hasta generar uno propio.
-  // "buenos dias con disco" → sin GIF (falta generar)
+  // el nombre salió del mapa. 2026-08-09 (tarde): ya tiene ilustración propia
+  // generada con IA — disco redondo contra el pecho, bisagra de cadera,
+  // isquiotibiales marcados en rojo.
+  "buenos dias con disco":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/buenos-dias-disco.webp",
   "buenos dias con mancuerna": "/ejercicios/buenos-dias-mancuerna.gif",
   // 2026-08-09 — Auditoría visual: los 5 nombres del cajón ("cajon con peso",
   // "levantada del cajon", "levantada del cajon con peso", "levantada de
   // cajon", "sentarse y pararse del cajon con peso al pecho") apuntaban a
   // sentarse-pararse-cajon.gif, donde NO se ve ningún cajón: es una sentadilla
   // goblet libre, prácticamente igual a goblet-squat.gif. En el catálogo no
-  // hay box squat ni sit-to-stand (0750 es en máquina Smith). Todos salen del
-  // mapa y quedan SIN GIF hasta generar uno con cajón de verdad.
+  // hay box squat ni sit-to-stand (0750 es en máquina Smith). Salieron del
+  // mapa. 2026-08-09 (tarde): ya tienen ilustración propia generada con IA,
+  // con el cajón bien visible detrás — una versión con kettlebell al pecho
+  // para los nombres "con peso" y una a peso corporal para los otros dos.
+  "cajon con peso":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/cajon-con-peso.webp",
+  "levantada del cajon con peso":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/cajon-con-peso.webp",
+  "sentarse y pararse del cajon con peso al pecho":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/cajon-con-peso.webp",
+  "levantada de cajon":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/levantada-cajon-sin-peso.webp",
+  "levantada del cajon":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/levantada-cajon-sin-peso.webp",
   "core": "/ejercicios/core-crunch.gif",
   "core (crunch)": "/ejercicios/core-crunch.gif",
   "crunch": "/ejercicios/core-crunch.gif",
@@ -31,9 +46,13 @@ const M = {
   // fuerza-impulso-barra.gif, que en realidad es un push press con DOS
   // MANCUERNAS (idéntico al 1700 del catálogo). En el catálogo no existe el
   // push press con barra; lo único con barra es 3305, que es un thruster
-  // (sentadilla + press) — otro movimiento, así que no se usa. Sin GIF hasta
-  // generar el push press con barra.
-  // "fuerza con impulso con barra" → sin GIF (falta generar)
+  // (sentadilla + press) — otro movimiento, así que no se usa. 2026-08-09
+  // (tarde): ya tiene ilustración propia generada con IA — barra en rack
+  // frontal, el dip y el envión sobre la cabeza, deltoides en rojo.
+  "fuerza con impulso con barra":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/push-press-barra.webp",
+  "push press con barra":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/push-press-barra.webp",
   "goblet squat": "/ejercicios/goblet-squat.gif",
   "hip thrust": "/ejercicios/hip-thrust.gif",
   "hip thrust bilateral": "/ejercicios/hip-thrust.gif",
@@ -59,8 +78,11 @@ const M = {
   // 2026-08-09 — Auditoría visual: "peso muerto a una pierna sin peso" seguía
   // mostrando el GIF de la variante CON mancuerna (ya reportado el 2026-07-31
   // y nunca resuelto). El catálogo tampoco tiene la versión sin carga (1757,
-  // 1756 y 2805 son todas con peso). Sale del mapa: sin GIF hasta generarlo.
-  // "peso muerto a una pierna sin peso" → sin GIF (falta generar)
+  // 1756 y 2805 son todas con peso). Salió del mapa. 2026-08-09 (tarde): ya
+  // tiene ilustración propia generada con IA — cuerpo en T, manos libres sin
+  // ningún implemento, isquiotibiales de la pierna de apoyo en rojo.
+  "peso muerto a una pierna sin peso":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-una-pierna-sin-peso.webp",
   "peso muerto barra": "/ejercicios/peso-muerto-barra.gif",
   "peso muerto con barra": "/ejercicios/peso-muerto-barra.gif",
   // 2026-08-09 — Auditoría visual: los 4 nombres con kettlebell ("peso muerto
@@ -68,12 +90,28 @@ const M = {
   // con kb") mostraban peso-muerto-kettlebell.gif, que es un peso muerto con
   // DOS MANCUERNAS y stance convencional — ni kettlebell ni sumo. En el
   // catálogo no hay ningún deadlift con kettlebell (se revisó toda la familia)
-  // y 0117 sumo es con barra. Los cuatro salen del mapa: sin GIF.
+  // y 0117 sumo es con barra. Los cuatro salieron del mapa. 2026-08-09
+  // (tarde): ya tienen ilustración propia generada con IA — kettlebell de
+  // verdad entre los pies, una convencional (isquiotibiales en rojo) y una
+  // sumo con los pies bien abiertos (glúteo mayor en rojo).
+  "peso muerto con kettlebell":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-kettlebell.webp",
+  "peso muerto kb":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-kettlebell.webp",
+  "peso muerto con kb":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-kettlebell.webp",
+  "peso muerto sumo con kb":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-sumo-kettlebell.webp",
+  "peso muerto sumo con kettlebell":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/peso-muerto-sumo-kettlebell.webp",
   // 2026-08-09 — Auditoría visual: "press arriba con disco" mostraba
   // press-arriba.gif, que es un press de hombros con DOS MANCUERNAS. El único
   // con disco del catálogo (0834) es una elevación frontal, no un press sobre
-  // la cabeza. Sale del mapa: sin GIF hasta generarlo.
-  // "press arriba con disco" → sin GIF (falta generar)
+  // la cabeza. Salió del mapa. 2026-08-09 (tarde): ya tiene ilustración propia
+  // generada con IA — disco tomado con las dos manos por los costados,
+  // extendido arriba de la cabeza, deltoides en rojo.
+  "press arriba con disco":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/press-arriba-disco.webp",
   "press banca": "/ejercicios/press-pecho-barra.gif",
   "press banca barra": "/ejercicios/press-pecho-barra.gif",
   "press de banca": "/ejercicios/press-pecho-barra.gif",
@@ -105,8 +143,11 @@ const M = {
   "remo con banda o polea baja": "/ejercicios/remo-un-brazo-banda.gif",
   // 2026-08-09 — Auditoría visual: "remo con disco" mostraba
   // remo-inclinado-peso.gif, que es un remo inclinado con DOS MANCUERNAS.
-  // No hay remo con disco en el catálogo. Sin GIF hasta generarlo.
-  // "remo con disco" → sin GIF (falta generar)
+  // No hay remo con disco en el catálogo. 2026-08-09 (tarde): ya tiene
+  // ilustración propia generada con IA — un solo disco tomado con las dos
+  // manos, torso inclinado, dorsal ancho en rojo.
+  "remo con disco":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/remo-con-disco.webp",
   "remo con mancuerna": "/ejercicios/remo-inclinado-peso.gif",
   "remo con mancuernas": "/ejercicios/remo-inclinado-peso.gif",
   "remo en trx": "/ejercicios/remo-trx.gif",
@@ -119,8 +160,11 @@ const M = {
   // 2026-08-09 — Auditoría visual: "sentadilla bulgara sin peso" mostraba
   // sentadilla-bulgara.gif, que es con DOS MANCUERNAS. El 2368 del catálogo
   // es peso corporal pero con el pie trasero en el piso (split squat), no
-  // búlgara. Sale del mapa: sin GIF hasta generarlo.
-  // "sentadilla bulgara sin peso" → sin GIF (falta generar)
+  // búlgara. Salió del mapa. 2026-08-09 (tarde): ya tiene ilustración propia
+  // generada con IA — empeine de atrás sobre el banco, manos libres sin peso,
+  // cuádriceps de la pierna de adelante en rojo.
+  "sentadilla bulgara sin peso":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/sentadilla-bulgara-sin-peso.webp",
   "sentadilla con barra": "/ejercicios/sentadilla-barra.gif",
   // 2026-08-09 — Auditoría visual: "vuelta al mundo con disco" mostraba
   // vuelta-al-mundo.gif, que es el círculo sobre la cabeza con DOS
@@ -168,22 +212,32 @@ const M = {
   // 2026-08-09 — Auditoría visual: "jalon con trx vertical" mostraba
   // remo-trx.gif, que es una tracción HORIZONTAL (remo invertido en anillas),
   // otro patrón de movimiento. En la familia suspended del catálogo solo está
-  // 0808, que es el mismo remo horizontal. Sale del mapa: sin GIF.
-  // "jalon con trx vertical" → sin GIF (falta generar)
+  // 0808, que es el mismo remo horizontal. Salió del mapa. 2026-08-09 (tarde):
+  // ya tiene ilustración propia generada con IA — arrodillado bajo el anclaje,
+  // cintas cayendo de arriba, tracción vertical, dorsal ancho en rojo.
+  "jalon con trx vertical":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/jalon-trx-vertical.webp",
   "jalon unilateral con mancuerna": "/ejercicios/remo-un-brazo.gif",
   "levantada de cadera": "/ejercicios/puente-gluteos-peso.gif",
   // 2026-08-09 — Auditoría visual: "levantada de cadera con elastico entre
   // rodillas" mostraba puente-gluteos-peso.gif, que es un puente con BARRA
   // sobre la cadera y sin ninguna banda. El 1408 del catálogo tiene banda,
   // pero también sobre la cadera (carga), no entre las rodillas (abducción):
-  // es otro estímulo. Sale del mapa: sin GIF hasta generarlo.
-  // "levantada de cadera con elastico entre rodillas" → sin GIF (falta generar)
+  // es otro estímulo. Salió del mapa. 2026-08-09 (tarde): ya tiene ilustración
+  // propia generada con IA — banda circular por encima de las rodillas, sin
+  // ninguna carga sobre la cadera, glúteo mayor en rojo.
+  "levantada de cadera con elastico entre rodillas":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/levantada-cadera-elastico-rodillas.webp",
   "levantada de cadera con peso": "/ejercicios/puente-gluteos-peso.gif",
   // 2026-08-09 — Auditoría visual: "levantada de cadera unilateral con peso"
   // mostraba levantada-cadera-una-pierna.gif, que es peso corporal puro, sin
   // ningún implemento. En el catálogo tampoco hay la versión con carga (3645
-  // también es sin peso). Sale del mapa: sin GIF hasta generarlo.
-  // "levantada de cadera unilateral con peso" → sin GIF (falta generar)
+  // también es sin peso). Salió del mapa. 2026-08-09 (tarde): ya tiene
+  // ilustración propia generada con IA — una sola pierna apoyada, la otra
+  // extendida en el aire, mancuerna apoyada sobre la cadera, glúteo mayor de
+  // la pierna de apoyo en rojo.
+  "levantada de cadera unilateral con peso":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/levantada-cadera-unilateral-peso.webp",
   "hip thrust con peso": "/ejercicios/hip-thrust.gif",
   "crunch abdominal": "/ejercicios/core-crunch.gif",
 };
