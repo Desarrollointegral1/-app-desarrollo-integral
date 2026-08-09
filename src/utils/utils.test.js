@@ -16,6 +16,10 @@ import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
 import { _columnasCambiadas } from "../../services/supabase.js";
 import { listaDeAlumno, conPrepPropia, sinPrepPropia, esPrepPropia } from "./preparacion.js";
 import {
+  conPeriodizacionDe, conPeriodizacionEditada, esPeriodizacionPropia,
+  refPeriodizacion, propagarPeriodizacion,
+} from "./periodizacion.js";
+import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
   setVuelta, cantidadDeVueltas, resumenVueltas,
 } from "./pesos.js";
@@ -429,5 +433,49 @@ describe("requerimiento energético", () => {
     expect(r).not.toBe(null);
     const numeros = JSON.stringify(r).match(/null|NaN/g) || [];
     expect(numeros).not.toContain("NaN");
+  });
+});
+
+// ── PERIODIZACIÓN EN DOS NIVELES (2026-08-10) ─────────────────────────
+// Las 3 reglas que, si se rompen, rompen en silencio: que asignar un
+// predeterminado no le borre las fechas al alumno, que editar la prescripción
+// corte la herencia, y que poner la fecha de inicio NO la corte.
+describe("periodizacion — herencia de dos niveles", () => {
+  const GLOBAL = [
+    { semana: 1, series: 2, reps: 8, intensidad: "60%" },
+    { semana: 2, series: 3, reps: 8, intensidad: "70%" },
+  ];
+  const alumno = () => ({
+    id: "a1",
+    rm: {},
+    plan: { periodizacion: [{ semana: 1, series: 5, reps: 5, intensidad: "80%", fecha: "10/8", anio: 2026 }] },
+  });
+
+  it("asignar un predeterminado copia las semanas y conserva las fechas del alumno", () => {
+    const r = conPeriodizacionDe(alumno(), "hipertrofia", "principiante", GLOBAL);
+    expect(r.plan.periodizacion.length).toBe(2);
+    expect(r.plan.periodizacion[0]).toMatchObject({ semana: 1, series: 2, reps: 8, fecha: "10/8", anio: 2026 });
+    expect(r.plan.periodizacion[1].fecha).toBeUndefined();
+    expect(esPeriodizacionPropia(r)).toBe(false);
+    expect(refPeriodizacion(r)).toEqual({ objetivo: "hipertrofia", nivel: "principiante" });
+  });
+
+  it("cambiar series/reps la vuelve propia; cambiar solo la fecha NO", () => {
+    const heredado = conPeriodizacionDe(alumno(), "fuerza", "avanzado", GLOBAL);
+    const soloFecha = heredado.plan.periodizacion.map((s) => ({ ...s, fecha: "1/9" }));
+    expect(esPeriodizacionPropia(conPeriodizacionEditada(heredado, soloFecha))).toBe(false);
+    const conCambio = heredado.plan.periodizacion.map((s, i) => (i === 0 ? { ...s, series: 4 } : s));
+    expect(esPeriodizacionPropia(conPeriodizacionEditada(heredado, conCambio))).toBe(true);
+  });
+
+  it("propagar actualiza a los que heredan y nunca pisa al que tiene la suya", () => {
+    const hereda = conPeriodizacionDe({ ...alumno(), id: "hereda" }, "fuerza", "avanzado", GLOBAL);
+    const propio = conPeriodizacionEditada(hereda, [{ semana: 1, series: 9, reps: 9, intensidad: "99%" }]);
+    const otroObjetivo = conPeriodizacionDe({ ...alumno(), id: "otro" }, "hipertrofia", "avanzado", GLOBAL);
+    const nuevas = [{ semana: 1, series: 7, reps: 3, intensidad: "88%" }];
+    const [a, b, c] = propagarPeriodizacion([hereda, propio, otroObjetivo], "fuerza", "avanzado", nuevas);
+    expect(a.plan.periodizacion[0].series).toBe(7);
+    expect(b.plan.periodizacion[0].series).toBe(9);
+    expect(c.plan.periodizacion.length).toBe(2);
   });
 });

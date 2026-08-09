@@ -239,7 +239,16 @@ const ALUMNO_DEMO = {
   asistencia: ["2026-08-04 09:15", "2026-08-06 09:05", "2026-08-08 10:00"],
   diario: [],
   rm: {},
-  plan: { dias: DIAS_INICIALES, periodizacion: [] },
+  // 2026-08-10: con semanas cargadas se puede mirar la pestaña Periodización
+  // (marca de herencia + editor) sin login y sin base.
+  plan: {
+    dias: DIAS_INICIALES,
+    periodizacion: [
+      { semana: 1, series: 2, reps: 8, intensidad: "60%", fecha: "10/8", anio: 2026 },
+      { semana: 2, series: 3, reps: 8, intensidad: "70%", fecha: "17/8", anio: 2026 },
+      { semana: 3, series: 2, reps: 10, intensidad: "60%", fecha: "24/8", anio: 2026 },
+    ],
+  },
 };
 function AdminDemo() {
   const [alumnos, setAlumnos] = useState([ALUMNO_DEMO]);
@@ -249,6 +258,14 @@ function AdminDemo() {
     const h = window.location.hash || (new URLSearchParams(window.location.search).get("admin") ? "#" + new URLSearchParams(window.location.search).get("admin") : "");
     // 2026-08-10: #movilidad y #calor abren el panel en Plan → esa pestaña,
     // para poder mirar el sistema de preparación en dos niveles sin login.
+    // 2026-08-10: #periodizacion abre Planes → Periodización, para mirar la
+    // marca de herencia y el editor del alumno sin login.
+    if (h === "#periodizacion") {
+      sessionStorage.setItem("di_admin_nav", JSON.stringify({
+        sec: "planes", selId: "al-1", planesTab: "periodizacion",
+      }));
+      return true;
+    }
     if (h === "#movilidad" || h === "#calor") {
       sessionStorage.setItem("di_admin_nav", JSON.stringify({
         sec: "plan", selId: "al-1", planTab: h.slice(1),

@@ -26,7 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
-import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move } from "lucide-react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move, CalendarRange } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import labels from "../utils/catalogoLabels.json";
@@ -47,9 +47,20 @@ import {
   eliminarPlanPredeterminado,
   getPrepGlobales,
   setAppConfig,
+  listarPeriodizaciones,
+  guardarPeriodizacion,
   supabase,
 } from "../../services/supabase.js";
 import { PREP_LISTAS, claveConfigPrep, listaGlobal } from "../utils/preparacion.js";
+// NIVELES ya existe acá abajo con otro significado (nivel del ejercicio), así
+// que los de periodización entran con alias.
+import {
+  OBJETIVOS as OBJETIVOS_PER,
+  NIVELES as NIVELES_PER,
+  clavePeriodizacion,
+  objetivoLabel,
+  nivelLabel,
+} from "../utils/periodizacion.js";
 
 // Niveles asignables a un ejercicio o a una plantilla de plan (ronda 18).
 const NIVELES = [
@@ -318,6 +329,10 @@ export default function CatalogoExplorer({
   onClose,
   showToast,
   onAbrirPropia,
+  // 2026-08-10: al guardar un predeterminado de periodización hay que bajarlo
+  // a los alumnos que lo heredan. Los alumnos viven en App.jsx, así que la
+  // propagación se delega ahí; devuelve cuántos se actualizaron.
+  onPeriodizacionGuardada,
   // Pantalla con la que abre (deep-link). Default: el catálogo de siempre.
   pantallaInicial = "biblioteca",
 }) {
@@ -431,6 +446,62 @@ export default function CatalogoExplorer({
     setPrepGlobales((g) => ({ ...g, [prepSel]: lista }));
     setPrepDraft((d) => { const n = { ...d }; delete n[prepSel]; return n; });
     showToast && showToast("Predeterminado guardado — lo heredan los alumnos sin lista propia");
+  };
+
+  // ── Predeterminados de PERIODIZACIÓN (2026-08-10) ─────────────────────
+  // Mismo esquema de dos niveles que la preparación, mismo borrador en
+  // memoria: se elige objetivo + nivel, se editan las semanas y se persisten
+  // en la tabla `periodizaciones` con "GUARDAR PREDETERMINADO".
+  const [perGlobales, setPerGlobales] = useState({});
+  const [perDraft, setPerDraft] = useState({});
+  const [perObj, setPerObj] = useState(OBJETIVOS_PER[0].id);
+  const [perNiv, setPerNiv] = useState(NIVELES_PER[0].id);
+  const [guardandoPer, setGuardandoPer] = useState(false);
+  useEffect(() => {
+    if (pantalla === "periodizacion") listarPeriodizaciones().then(setPerGlobales);
+  }, [pantalla]);
+  const perClave = clavePeriodizacion(perObj, perNiv);
+  const perSemanas = perDraft[perClave] || perGlobales[perClave] || [];
+  // Toda escritura renumera: sacar la semana 3 de un plan de 6 no puede dejar
+  // las semanas 1,2,4,5,6.
+  const setPerSemanas = (semanas) =>
+    setPerDraft((d) => ({ ...d, [perClave]: semanas.map((s, i) => ({ ...s, semana: i + 1 })) }));
+  const setPerCampo = (i, campo, valor) =>
+    setPerSemanas(perSemanas.map((s, x) => (x === i ? { ...s, [campo]: valor } : s)));
+  const agregarSemana = () => {
+    // La semana nueva copia a la última: casi siempre se retoca un número, no
+    // se carga todo de cero.
+    const ultima = perSemanas[perSemanas.length - 1] || { series: 3, reps: 8, intensidad: "" };
+    setPerSemanas([...perSemanas, { ...ultima }]);
+  };
+  const quitarSemana = (i) => setPerSemanas(perSemanas.filter((_, x) => x !== i));
+  const guardarPer = async () => {
+    setGuardandoPer(true);
+    // series y reps se editan como texto libre (el input controlado tiene que
+    // dejar borrar el campo para tipear otro número) y se normalizan recién
+    // acá, al guardar.
+    const semanas = perSemanas.map((s, i) => ({
+      semana: i + 1,
+      series: Number(s.series) || 0,
+      reps: Number(s.reps) || 0,
+      intensidad: String(s.intensidad || ""),
+    }));
+    const ok = await guardarPeriodizacion(perObj, perNiv, semanas);
+    setGuardandoPer(false);
+    if (!ok) { showToast && showToast("Error guardando la periodización — revisá la consola"); return; }
+    setPerGlobales((g) => ({ ...g, [perClave]: semanas }));
+    setPerDraft((d) => { const n = { ...d }; delete n[perClave]; return n; });
+    // Baja el cambio a los alumnos que heredan este predeterminado (los que
+    // tienen periodización propia no se tocan) — lo hace App.jsx, que es
+    // quien tiene los alumnos y su guardado.
+    const propagados = onPeriodizacionGuardada
+      ? onPeriodizacionGuardada(perObj, perNiv, semanas)
+      : 0;
+    showToast && showToast(
+      propagados > 0
+        ? `Periodización guardada — actualizada en ${propagados} alumno(s) que la heredan`
+        : "Periodización guardada — la heredan los alumnos sin periodización propia",
+    );
   };
 
   useEffect(() => {
@@ -1392,6 +1463,103 @@ export default function CatalogoExplorer({
     </>
   );
 
+  // ── PERIODIZACIÓN: los PREDETERMINADOS globales (2026-08-10) ────────
+  // Pedido de Lucas: "lo tendría que poder cambiar el predeterminado desde la
+  // biblioteca de ejercicios, después también debería poder personalizar el de
+  // cada alumno si quiero". Las 8 tablas (4 objetivos × 2 niveles) se editan
+  // acá; la del alumno se sigue editando en su ficha, igual que antes.
+  //
+  // Las semanas se editan en línea (sin modal): son 3 campos por fila y Lucas
+  // va a llenar a mano las 6 tablas que faltan, así que tiene que poder pasar
+  // de campo en campo sin abrir y cerrar nada.
+  const pantallaPeriodizacion = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => setPantalla("biblioteca")} style={{ ...smallBtn(S.gray) }}>← Volver</button>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, fontFamily: FONT_DISPLAY }}>
+          Periodizaciones
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ ...card, padding: "10px 14px", marginBottom: 10, color: S.gray, fontSize: TS.body }}>
+          Estas son las tablas con las que arranca cada alumno según su objetivo y su nivel.
+          El alumno que tenga una periodización propia (editada desde su ficha) no se pisa: sigue con la suya.
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          {OBJETIVOS_PER.map((o) => (
+            <button key={o.id} onClick={() => setPerObj(o.id)} className="di-tap" style={{ ...smallBtn(perObj === o.id ? S.white : S.gray) }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+          {NIVELES_PER.map((n) => (
+            <button key={n.id} onClick={() => setPerNiv(n.id)} className="di-tap" style={{ ...smallBtn(perNiv === n.id ? S.white : S.gray) }}>
+              {n.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ maxWidth: 560 }}>
+          <div style={{ ...card, padding: 12, marginBottom: 10 }}>
+            <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>
+              {objetivoLabel(perObj)} · {nivelLabel(perNiv)} · {perSemanas.length} semana(s)
+            </div>
+            <div style={{ display: "flex", gap: 6, color: S.lgray, fontSize: TS.chip, fontWeight: 800, padding: "0 2px 6px" }}>
+              <span style={{ width: 26, flexShrink: 0 }}>#</span>
+              <span style={{ flex: 1, minWidth: 0 }}>SERIES</span>
+              <span style={{ flex: 1, minWidth: 0 }}>REPS</span>
+              <span style={{ flex: 1, minWidth: 0 }}>INTENSIDAD</span>
+              <span style={{ width: 40, flexShrink: 0 }} />
+            </div>
+            {perSemanas.length === 0 && (
+              <div style={{ color: S.gray, fontSize: TS.body, padding: "6px 2px" }}>
+                Sin semanas cargadas — agregá la primera con “＋ Agregar semana”.
+              </div>
+            )}
+            {perSemanas.map((s, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <span style={{ width: 26, flexShrink: 0, color: S.gray, fontSize: TS.chip, fontWeight: 800 }}>{i + 1}</span>
+                <input
+                  value={String(s.series ?? "")}
+                  onChange={(e) => setPerCampo(i, "series", e.target.value)}
+                  inputMode="numeric"
+                  style={{ ...inp, flex: 1, minWidth: 0 }}
+                />
+                <input
+                  value={String(s.reps ?? "")}
+                  onChange={(e) => setPerCampo(i, "reps", e.target.value)}
+                  inputMode="numeric"
+                  placeholder="8"
+                  style={{ ...inp, flex: 1, minWidth: 0 }}
+                />
+                <input
+                  value={String(s.intensidad ?? "")}
+                  onChange={(e) => setPerCampo(i, "intensidad", e.target.value)}
+                  placeholder="75%"
+                  style={{ ...inp, flex: 1, minWidth: 0 }}
+                />
+                <button onClick={() => quitarSemana(i)} title="Quitar semana" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 8px", minWidth: 40, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <X size={16} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+            <button onClick={agregarSemana} className="di-tap" style={{ ...smallBtn(S.white), width: "100%", marginTop: 6 }}>
+              ＋ Agregar semana
+            </button>
+          </div>
+          <button
+            onClick={guardarPer}
+            disabled={guardandoPer}
+            className="di-tap"
+            style={{ width: "100%", marginBottom: 20, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, cursor: "pointer", opacity: guardandoPer ? 0.6 : 1, fontFamily: FONT_BODY }}
+          >
+            {guardandoPer ? "GUARDANDO..." : "GUARDAR PREDETERMINADO"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   const pantallaPlanes = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -1567,6 +1735,15 @@ export default function CatalogoExplorer({
         >
           <Move size={16} strokeWidth={2} />Movilidad y entrada en calor
         </button>
+        {/* 2026-08-10, pedido de Lucas: "lo tendría que poder cambiar el
+            predeterminado desde la biblioteca de ejercicios". */}
+        <button
+          onClick={() => setPantalla("periodizacion")}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+        >
+          <CalendarRange size={16} strokeWidth={2} />Periodizaciones
+        </button>
       </div>
       {navPropia}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
@@ -1579,7 +1756,7 @@ export default function CatalogoExplorer({
   return (
     <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: isWide ? "24px 24px 16px" : "14px 12px", overflow: "hidden" }}>
       <style>{cssCatalogo()}</style>
-      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantalla === "preparacion" ? pantallaPreparacion : pantallaBiblioteca}
+      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantalla === "preparacion" ? pantallaPreparacion : pantalla === "periodizacion" ? pantallaPeriodizacion : pantallaBiblioteca}
 
       {/* detalle */}
       {detalle && form && (

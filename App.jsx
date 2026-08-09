@@ -84,6 +84,18 @@ import {
   GRUPOS_MUSCULARES,
 } from "./src/utils/planTemplates.js";
 import { conPrepPropia, sinPrepPropia, esPrepPropia, listaDeAlumno } from "./src/utils/preparacion.js";
+import {
+  OBJETIVOS as OBJETIVOS_PER,
+  NIVELES as NIVELES_PER,
+  clavePeriodizacion,
+  objetivoLabel,
+  nivelLabel,
+  esPeriodizacionPropia,
+  refPeriodizacion,
+  conPeriodizacionDe,
+  conPeriodizacionEditada,
+  propagarPeriodizacion,
+} from "./src/utils/periodizacion.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell, checkboxWrap, checkboxBox } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
@@ -113,7 +125,7 @@ import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
-import { actualizarEjercicioBibliotecaPorId, getPrepGlobales } from "./services/supabase.js";
+import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizaciones } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
@@ -4117,6 +4129,11 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   // alumno que nunca fue editado a mano. Se cargan una vez por sesión de admin.
   const [prepGlobales, setPrepGlobales] = useState({});
   useEffect(() => { getPrepGlobales().then(setPrepGlobales); }, []);
+  // Predeterminados de PERIODIZACIÓN (tabla `periodizaciones`): los mismos dos
+  // niveles que la preparación. Se cargan una vez para poder asignarle a un
+  // alumno "Hipertrofia · Principiante" desde su ficha.
+  const [perGlobales, setPerGlobales] = useState({});
+  useEffect(() => { listarPeriodizaciones().then(setPerGlobales); }, []);
   // Versión de movilidad que se está VIENDO/EDITANDO en la pantalla de admin.
   // Es distinta de movilidad_default (con cuál arranca el alumno): antes había
   // un solo control para las dos cosas y por eso "no cambiaban los ejercicios".
@@ -4253,6 +4270,34 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   const volverPrepGlobal = (id) => {
     onUpdate(alumnos.map((a) => (a.id === al.id ? sinPrepPropia(a, id, prepGlobales) : a)));
     showToast && showToast("Vuelve a usar el predeterminado");
+  };
+  // PERIODIZACIÓN EN DOS NIVELES (2026-08-10) — ver src/utils/periodizacion.js.
+  // Asignar objetivo + nivel copia el predeterminado al alumno y lo deja
+  // heredando; editar las semanas la vuelve propia.
+  const asignarPeriodizacion = (objetivo, nivel) => {
+    const semanas = perGlobales[clavePeriodizacion(objetivo, nivel)] || [];
+    if (semanas.length === 0) {
+      showToast && showToast(`${objetivoLabel(objetivo)} · ${nivelLabel(nivel)} todavía no tiene semanas cargadas`);
+      return;
+    }
+    onUpdate(alumnos.map((a) => (a.id === al.id ? conPeriodizacionDe(a, objetivo, nivel, semanas) : a)));
+    showToast && showToast(`Periodización ${objetivoLabel(objetivo)} · ${nivelLabel(nivel)} asignada`);
+  };
+  const guardarPeriodizacionAlumno = (semanas) =>
+    onUpdate(alumnos.map((a) => (a.id === al.id ? conPeriodizacionEditada(a, semanas) : a)));
+  const volverPeriodizacionGlobal = () => {
+    const ref = refPeriodizacion(al);
+    if (!ref) return;
+    asignarPeriodizacion(ref.objetivo, ref.nivel);
+  };
+  // Al guardar un predeterminado en la Biblioteca: se lo baja a todos los que
+  // lo heredan y no lo tocaron. Devuelve cuántos cambiaron para el toast.
+  const propagarPeriodizacionATodos = (objetivo, nivel, semanas) => {
+    setPerGlobales((g) => ({ ...g, [clavePeriodizacion(objetivo, nivel)]: semanas }));
+    const nuevos = propagarPeriodizacion(alumnos, objetivo, nivel, semanas);
+    const cambiados = nuevos.filter((a, i) => a !== alumnos[i]).length;
+    if (cambiados > 0) onUpdate(nuevos);
+    return cambiados;
   };
   // Ronda 11: "Guardar para todos" — actualiza el maestro (biblioteca) y
   // propaga a todos los alumnos que tengan el mismo ejercicio (matched por
@@ -5586,7 +5631,55 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             </div>
             {planesTab === "periodizacion" && al && (
               <div style={{ ...card, overflow: "hidden", padding: 14 }}>
-                <PeriodizacionEditor data={al.plan.periodizacion} onChange={(v) => updatePlan("periodizacion", v)} />
+                {/* Marca de herencia — la misma que movilidad y entrada en
+                    calor (2026-08-10): el que nunca la tocó hereda los cambios
+                    del predeterminado, el que tiene la suya no se pisa nunca. */}
+                {(() => {
+                  const propia = esPeriodizacionPropia(al);
+                  const ref = refPeriodizacion(al);
+                  return (
+                    <div style={{ ...innerCard, padding: "10px 12px", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13, color: propia ? S.white : S.green, fontWeight: 700 }}>
+                          {propia
+                            ? "Periodización propia de este alumno"
+                            : ref
+                              ? `Heredada del predeterminado · ${objetivoLabel(ref.objetivo)} · ${nivelLabel(ref.nivel)}`
+                              : "Sin predeterminado asignado"}
+                        </span>
+                        <span style={{ fontSize: 13, color: S.gray, flex: 1, minWidth: 160 }}>
+                          {propia
+                            ? "Editar el predeterminado ya no le cambia nada."
+                            : ref
+                              ? "Si cambiás el predeterminado en Biblioteca, se le actualiza sola. Editar acá la vuelve propia."
+                              : "Elegí objetivo y nivel para que siga un predeterminado. Las fechas cargadas se conservan."}
+                        </span>
+                        {propia && ref && (
+                          <button onClick={volverPeriodizacionGlobal} style={smallBtn(S.gray)}>
+                            Volver al predeterminado
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                        {OBJETIVOS_PER.map((o) =>
+                          NIVELES_PER.map((n) => {
+                            const activo = !propia && ref && ref.objetivo === o.id && ref.nivel === n.id;
+                            return (
+                              <button
+                                key={o.id + n.id}
+                                onClick={() => asignarPeriodizacion(o.id, n.id)}
+                                style={smallBtn(activo ? S.white : S.gray)}
+                              >
+                                {o.label} · {n.label}
+                              </button>
+                            );
+                          }),
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+                <PeriodizacionEditor data={al.plan.periodizacion} onChange={guardarPeriodizacionAlumno} />
               </div>
             )}{" "}
             {planesTab === "plan-dias" && al && (() => {
@@ -6293,6 +6386,9 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
           // 220 — ya se ve por encima sin pisarlo) y reaparece solo al
           // cerrar BibliotecaScreen, respetando la pantalla anterior.
           onAbrirPropia={() => setShowBiblioteca(true)}
+          // 2026-08-10: guardar un predeterminado de periodización lo baja a
+          // los alumnos que lo heredan (los que tienen la suya no se tocan).
+          onPeriodizacionGuardada={propagarPeriodizacionATodos}
         />
       )}
       {/* Biblioteca PROPIA (movilidad/elástico/calor + GIFs manuales).

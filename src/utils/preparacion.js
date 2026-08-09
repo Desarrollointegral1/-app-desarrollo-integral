@@ -61,6 +61,11 @@ export function overrideDeAlumno(al, id) {
   if (!al) return null;
   if (id === "movilidad_completa") return al.plan?.movilidad || null;
   if (id === "calor") return al.plan?.calor || null;
+  // La periodización (2026-08-10) reusa esta misma marca de herencia, pero su
+  // contenido vive en la columna que ya existía: plan_periodizacion. Ver
+  // src/utils/periodizacion.js — no es una lista de ejercicios, así que no
+  // entra en PREP_LISTAS ni la edita el editor de preparación.
+  if (id === "periodizacion") return al.plan?.periodizacion || null;
   return al.rm?.[`lista_${id}`] || null;
 }
 
@@ -95,6 +100,7 @@ export function conPrepPropia(al, id, lista) {
   const rm = { ...(al.rm || {}), prep_propias: [...propias] };
   if (id === "movilidad_completa") return { ...al, rm, plan: { ...al.plan, movilidad: lista } };
   if (id === "calor") return { ...al, rm, plan: { ...al.plan, calor: lista } };
+  if (id === "periodizacion") return { ...al, rm, plan: { ...al.plan, periodizacion: lista } };
   return { ...al, rm: { ...rm, [`lista_${id}`]: lista } };
 }
 

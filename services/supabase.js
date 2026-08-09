@@ -2413,6 +2413,35 @@ export async function getPrepGlobales() {
   }
 }
 
+// Predeterminados de PERIODIZACIÓN (2026-08-10): 4 objetivos × 2 niveles en la
+// tabla `periodizaciones`, campo jsonb `semanas`. Es el NIVEL 1 del mismo
+// esquema de dos niveles que la preparación — ver src/utils/periodizacion.js.
+// Se devuelven indexados por "objetivo|nivel" para no repetir el find().
+export async function listarPeriodizaciones() {
+  try {
+    const { data, error } = await supabase
+      .from("periodizaciones")
+      .select("objetivo, nivel, semanas");
+    if (error) { LOG("listarPeriodizaciones", `⚠️ ${error.message}`); return {}; }
+    const mapa = {};
+    (data || []).forEach((r) => { mapa[`${r.objetivo}|${r.nivel}`] = r.semanas || []; });
+    return mapa;
+  } catch (e) {
+    return {};
+  }
+}
+
+export async function guardarPeriodizacion(objetivo, nivel, semanas) {
+  const { error } = await supabase
+    .from("periodizaciones")
+    .update({ semanas })
+    .eq("objetivo", objetivo)
+    .eq("nivel", nivel);
+  if (error) { ERR("guardarPeriodizacion", `No se pudo guardar ${objetivo}/${nivel}`, error); return false; }
+  LOG("guardarPeriodizacion", `✅ ${objetivo}/${nivel} guardada (${(semanas || []).length} semanas).`);
+  return true;
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // CATÁLOGO DE EJERCICIOS (dataset ExerciseDB + custom DI — migración 015)
 // La media vive en el bucket público `catalogo-ejercicios`; la tabla
