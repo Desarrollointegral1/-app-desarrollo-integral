@@ -5,14 +5,20 @@ export const MEDIA_CREDITO = "© Gym visual — gymvisual.com";
 const M = {
   "biceps con barra": "/ejercicios/biceps-barra.gif",
   "biceps con mancuernas": "/ejercicios/biceps-mancuernas.gif",
-  // 2026-07-31 — Lucas: "buenos días con disco está con una barra". Las dos
-  // variantes (disco/mancuerna) compartían el gif de "barbell good morning"
-  // (con barra). El dataset fuente no tiene una variante con disco — se
-  // deja la de barra ahí (aviso pendiente) y se separa la de mancuerna con
-  // un gif real de mancuernas ("dumbbell straight leg deadlift").
-  "buenos dias con disco": "/ejercicios/buenos-dias.gif",
+  // 2026-08-09 — Auditoría visual (GIFs mirados frame por frame). "buenos dias
+  // con disco" mostraba buenos-dias.gif, que es un good morning con BARRA
+  // sobre la espalda: implemento distinto. En el catálogo no hay good morning
+  // con disco (lo más cercano, 0044, es la misma versión con barra), así que
+  // el nombre sale del mapa y queda SIN GIF hasta generar uno propio.
+  // "buenos dias con disco" → sin GIF (falta generar)
   "buenos dias con mancuerna": "/ejercicios/buenos-dias-mancuerna.gif",
-  "cajon con peso": "/ejercicios/sentarse-pararse-cajon.gif",
+  // 2026-08-09 — Auditoría visual: los 5 nombres del cajón ("cajon con peso",
+  // "levantada del cajon", "levantada del cajon con peso", "levantada de
+  // cajon", "sentarse y pararse del cajon con peso al pecho") apuntaban a
+  // sentarse-pararse-cajon.gif, donde NO se ve ningún cajón: es una sentadilla
+  // goblet libre, prácticamente igual a goblet-squat.gif. En el catálogo no
+  // hay box squat ni sit-to-stand (0750 es en máquina Smith). Todos salen del
+  // mapa y quedan SIN GIF hasta generar uno con cajón de verdad.
   "core": "/ejercicios/core-crunch.gif",
   "core (crunch)": "/ejercicios/core-crunch.gif",
   "crunch": "/ejercicios/core-crunch.gif",
@@ -21,7 +27,13 @@ const M = {
   "farmer walk": "/ejercicios/farmer-walk.gif",
   "fondos": "/ejercicios/fondos.gif",
   "fuerza con impulso a un brazo": "/ejercicios/fuerza-impulso-un-brazo.gif",
-  "fuerza con impulso con barra": "/ejercicios/fuerza-impulso-barra.gif",
+  // 2026-08-09 — Auditoría visual: "fuerza con impulso con barra" mostraba
+  // fuerza-impulso-barra.gif, que en realidad es un push press con DOS
+  // MANCUERNAS (idéntico al 1700 del catálogo). En el catálogo no existe el
+  // push press con barra; lo único con barra es 3305, que es un thruster
+  // (sentadilla + press) — otro movimiento, así que no se usa. Sin GIF hasta
+  // generar el push press con barra.
+  // "fuerza con impulso con barra" → sin GIF (falta generar)
   "goblet squat": "/ejercicios/goblet-squat.gif",
   "hip thrust": "/ejercicios/hip-thrust.gif",
   "hip thrust bilateral": "/ejercicios/hip-thrust.gif",
@@ -38,26 +50,30 @@ const M = {
   // verdad: remo con mancuernas inclinado ("dumbbell bent over row").
   "jalon con mancuerna": "/ejercicios/jalon-mancuerna-fix.gif",
   "levantada de cadera a una pierna": "/ejercicios/levantada-cadera-una-pierna.gif",
-  "levantada del cajon": "/ejercicios/sentarse-pararse-cajon.gif",
-  "levantada del cajon con peso": "/ejercicios/sentarse-pararse-cajon.gif",
   "pecho inclinado con mancuerna": "/ejercicios/pecho-inclinado-mancuerna.gif",
   "pecho plano con barra": "/ejercicios/press-pecho-barra.gif",
   "peso muerto": "/ejercicios/peso-muerto-barra.gif",
   "peso muerto 1 pierna": "/ejercicios/peso-muerto-una-pierna.gif",
   "peso muerto a 1 pierna": "/ejercicios/peso-muerto-una-pierna.gif",
   "peso muerto a una pierna": "/ejercicios/peso-muerto-una-pierna.gif",
-  // 2026-07-31 — Lucas: "peso muerto a una pierna sin peso está con una
-  // mancuerna" — confirmado, comparte el gif de la variante CON peso porque
-  // el dataset fuente (Gym Visual) no tiene una versión sin equipamiento de
-  // este movimiento. Sin asset correcto disponible todavía — pendiente de
-  // conseguir un gif/foto real de la versión sin peso (no hay reemplazo
-  // válido en el dataset actual, ver bitácora).
-  "peso muerto a una pierna sin peso": "/ejercicios/peso-muerto-una-pierna.gif",
+  // 2026-08-09 — Auditoría visual: "peso muerto a una pierna sin peso" seguía
+  // mostrando el GIF de la variante CON mancuerna (ya reportado el 2026-07-31
+  // y nunca resuelto). El catálogo tampoco tiene la versión sin carga (1757,
+  // 1756 y 2805 son todas con peso). Sale del mapa: sin GIF hasta generarlo.
+  // "peso muerto a una pierna sin peso" → sin GIF (falta generar)
   "peso muerto barra": "/ejercicios/peso-muerto-barra.gif",
   "peso muerto con barra": "/ejercicios/peso-muerto-barra.gif",
-  "peso muerto con kettlebell": "/ejercicios/peso-muerto-kettlebell.gif",
-  "peso muerto kb": "/ejercicios/peso-muerto-kettlebell.gif",
-  "press arriba con disco": "/ejercicios/press-arriba.gif",
+  // 2026-08-09 — Auditoría visual: los 4 nombres con kettlebell ("peso muerto
+  // con kettlebell", "peso muerto kb", "peso muerto con kb", "peso muerto sumo
+  // con kb") mostraban peso-muerto-kettlebell.gif, que es un peso muerto con
+  // DOS MANCUERNAS y stance convencional — ni kettlebell ni sumo. En el
+  // catálogo no hay ningún deadlift con kettlebell (se revisó toda la familia)
+  // y 0117 sumo es con barra. Los cuatro salen del mapa: sin GIF.
+  // 2026-08-09 — Auditoría visual: "press arriba con disco" mostraba
+  // press-arriba.gif, que es un press de hombros con DOS MANCUERNAS. El único
+  // con disco del catálogo (0834) es una elevación frontal, no un press sobre
+  // la cabeza. Sale del mapa: sin GIF hasta generarlo.
+  // "press arriba con disco" → sin GIF (falta generar)
   "press banca": "/ejercicios/press-pecho-barra.gif",
   "press banca barra": "/ejercicios/press-pecho-barra.gif",
   "press de banca": "/ejercicios/press-pecho-barra.gif",
@@ -87,7 +103,10 @@ const M = {
   "remo a un brazo (banda)": "/ejercicios/remo-un-brazo-banda.gif",
   "remo con banda": "/ejercicios/remo-banda.gif",
   "remo con banda o polea baja": "/ejercicios/remo-un-brazo-banda.gif",
-  "remo con disco": "/ejercicios/remo-inclinado-peso.gif",
+  // 2026-08-09 — Auditoría visual: "remo con disco" mostraba
+  // remo-inclinado-peso.gif, que es un remo inclinado con DOS MANCUERNAS.
+  // No hay remo con disco en el catálogo. Sin GIF hasta generarlo.
+  // "remo con disco" → sin GIF (falta generar)
   "remo con mancuerna": "/ejercicios/remo-inclinado-peso.gif",
   "remo con mancuernas": "/ejercicios/remo-inclinado-peso.gif",
   "remo en trx": "/ejercicios/remo-trx.gif",
@@ -97,10 +116,19 @@ const M = {
   "rotacion externa (banda)": "/ejercicios/rotacion-externa-banda.gif",
   "rotaciones externas con banda": "/ejercicios/rotacion-externa-banda.gif",
   "sentadilla": "/ejercicios/sentadilla-barra.gif",
-  "sentadilla bulgara sin peso": "/ejercicios/sentadilla-bulgara.gif",
+  // 2026-08-09 — Auditoría visual: "sentadilla bulgara sin peso" mostraba
+  // sentadilla-bulgara.gif, que es con DOS MANCUERNAS. El 2368 del catálogo
+  // es peso corporal pero con el pie trasero en el piso (split squat), no
+  // búlgara. Sale del mapa: sin GIF hasta generarlo.
+  // "sentadilla bulgara sin peso" → sin GIF (falta generar)
   "sentadilla con barra": "/ejercicios/sentadilla-barra.gif",
-  "sentarse y pararse del cajon con peso al pecho": "/ejercicios/sentarse-pararse-cajon.gif",
-  "vuelta al mundo con disco": "/ejercicios/vuelta-al-mundo.gif",
+  // 2026-08-09 — Auditoría visual: "vuelta al mundo con disco" mostraba
+  // vuelta-al-mundo.gif, que es el círculo sobre la cabeza con DOS
+  // MANCUERNAS. Reemplazado por el 0844 del catálogo ("Círculos de brazos con
+  // peso extra"): un disco tomado con las dos manos girando alrededor de la
+  // cabeza, que es exactamente la vuelta al mundo con disco.
+  "vuelta al mundo con disco":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/videos/0844-VLYXo8S.gif",
   "zancada": "/ejercicios/zancada.gif",
   "zancada a una pierna": "/ejercicios/zancada.gif",
   "zancadas": "/ejercicios/zancada.gif",
@@ -109,26 +137,53 @@ const M = {
   // Nombres canónicos nuevos (PH/RO/PE/CA/JA/GL/CO). Cuando no hay GIF
   // específico de la variante, se usa el del patrón base (mismo movimiento).
   "press militar sentado con mancuernas": "/ejercicios/press-hombros-sentado.gif",
-  "press militar sentado con mancuernas unilateral": "/ejercicios/press-hombros-sentado.gif",
+  // 2026-08-09 — Auditoría visual: la variante UNILATERAL mostraba el GIF
+  // bilateral (dos mancuernas). Reemplazada por el 0360 del catálogo, que es
+  // press de hombros con mancuerna a UN brazo. Ojo: el 0360 es de pie, no
+  // sentado — es lo más cercano que hay; si hace falta la versión sentada
+  // exacta hay que generarla.
+  "press militar sentado con mancuernas unilateral":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/videos/0360-1TkiAFK.gif",
   "press militar parado con mancuernas unilateral": "/ejercicios/fuerza-impulso-un-brazo.gif",
   "press militar parado con barra": "/ejercicios/press-militar-parado-barra.gif",
-  "levantada de cajon": "/ejercicios/sentarse-pararse-cajon.gif",
   "sentadilla con peso adelante": "/ejercicios/goblet-squat.gif",
   "sentadilla bulgara": "/ejercicios/sentadilla-bulgara.gif",
-  "flexiones en oblicuo": "/ejercicios/push-up-pared.gif",
+  // 2026-08-09 — Auditoría visual: "flexiones en oblicuo" mostraba
+  // push-up-pared.gif (flexión de pie contra la PARED). La flexión en oblicuo
+  // es en el piso con las manos elevadas sobre un cajón o banco. Reemplazada
+  // por el 3785 del catálogo ("Flexión de brazos en banco inclinado, sobre
+  // cajón"), que es exactamente eso.
+  "flexiones en oblicuo":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/videos/3785-F7vjXqT.gif",
   "pecho plano": "/ejercicios/press-pecho-barra.gif",
   "peso muerto paloma": "/ejercicios/peso-muerto-una-pierna.gif",
-  "peso muerto con kb": "/ejercicios/peso-muerto-kettlebell.gif",
-  "peso muerto sumo con kb": "/ejercicios/peso-muerto-kettlebell.gif",
   "jalon con elastico": "/ejercicios/jalon-banda-arriba.gif",
-  "jalon con elastico unilateral": "/ejercicios/jalon-banda-arriba.gif",
+  // 2026-08-09 — Auditoría visual: la variante UNILATERAL mostraba
+  // jalon-banda-arriba.gif, que es bilateral (las dos manos en la banda).
+  // Reemplazada por el 0983 del catálogo: jalón a un brazo con banda,
+  // arrodillado.
+  "jalon con elastico unilateral":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/videos/0983-pmnrOp0.gif",
   "jalon con trx parado inclinado": "/ejercicios/remo-trx.gif",
-  "jalon con trx vertical": "/ejercicios/remo-trx.gif",
+  // 2026-08-09 — Auditoría visual: "jalon con trx vertical" mostraba
+  // remo-trx.gif, que es una tracción HORIZONTAL (remo invertido en anillas),
+  // otro patrón de movimiento. En la familia suspended del catálogo solo está
+  // 0808, que es el mismo remo horizontal. Sale del mapa: sin GIF.
+  // "jalon con trx vertical" → sin GIF (falta generar)
   "jalon unilateral con mancuerna": "/ejercicios/remo-un-brazo.gif",
   "levantada de cadera": "/ejercicios/puente-gluteos-peso.gif",
-  "levantada de cadera con elastico entre rodillas": "/ejercicios/puente-gluteos-peso.gif",
+  // 2026-08-09 — Auditoría visual: "levantada de cadera con elastico entre
+  // rodillas" mostraba puente-gluteos-peso.gif, que es un puente con BARRA
+  // sobre la cadera y sin ninguna banda. El 1408 del catálogo tiene banda,
+  // pero también sobre la cadera (carga), no entre las rodillas (abducción):
+  // es otro estímulo. Sale del mapa: sin GIF hasta generarlo.
+  // "levantada de cadera con elastico entre rodillas" → sin GIF (falta generar)
   "levantada de cadera con peso": "/ejercicios/puente-gluteos-peso.gif",
-  "levantada de cadera unilateral con peso": "/ejercicios/levantada-cadera-una-pierna.gif",
+  // 2026-08-09 — Auditoría visual: "levantada de cadera unilateral con peso"
+  // mostraba levantada-cadera-una-pierna.gif, que es peso corporal puro, sin
+  // ningún implemento. En el catálogo tampoco hay la versión con carga (3645
+  // también es sin peso). Sale del mapa: sin GIF hasta generarlo.
+  // "levantada de cadera unilateral con peso" → sin GIF (falta generar)
   "hip thrust con peso": "/ejercicios/hip-thrust.gif",
   "crunch abdominal": "/ejercicios/core-crunch.gif",
 };
@@ -212,21 +267,42 @@ export const getNombresPorGif = (path) =>
 // ── Catálogo de GIFs disponibles (ronda 12) ─────────────────────────────
 // Para la asociación MANUAL de un GIF a un ejercicio puntual (Admin →
 // Biblioteca / Principales) cuando el lookup automático por nombre de
-// arriba no lo encuentra. Lista fija de los 38 archivos que hay hoy en
+// arriba no lo encuentra. Lista fija de los 41 archivos que hay hoy en
 // public/ejercicios/ — si se agregan GIFs nuevos a esa carpeta, sumarlos acá
 // también (no hay endpoint para listar el filesystem en runtime).
+//
+// 2026-08-09 — Auditoría visual: la lista tenía 38 slugs contra 41 archivos
+// reales (faltaban buenos-dias-mancuerna, jalon-mancuerna-fix y
+// press-militar-parado-barra, invisibles para la asociación manual). Además
+// "jalon-mancuerna" se ofrecía con la etiqueta "Jalon Mancuerna" cuando el
+// GIF es un PULLOVER acostado, no una tracción: quien lo elegía por el nombre
+// ponía el ejercicio equivocado. Se etiqueta por lo que muestra de verdad.
 const _slugALabel = (slug) =>
   slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const _ETIQUETAS = {
+  "jalon-mancuerna": "Pullover con mancuerna",
+  "jalon-mancuerna-fix": "Remo inclinado con mancuernas",
+  "fuerza-impulso-barra": "Push press con mancuernas",
+  "peso-muerto-kettlebell": "Peso muerto con mancuernas",
+  "press-arriba": "Press de hombros con mancuernas",
+  "sentarse-pararse-cajon": "Sentadilla goblet (sin cajón)",
+  "push-up-pared": "Flexiones contra la pared",
+};
 export const GIFS_DISPONIBLES = [
-  "biceps-barra","biceps-mancuernas","buenos-dias","core-crunch","dominadas",
-  "farmer-walk","fondos","fuerza-impulso-barra","fuerza-impulso-un-brazo",
-  "goblet-squat","hip-thrust","jalon-al-pecho","jalon-banda-arriba",
-  "jalon-brazos-estirados","jalon-mancuerna","levantada-cadera-una-pierna",
+  "biceps-barra","biceps-mancuernas","buenos-dias","buenos-dias-mancuerna",
+  "core-crunch","dominadas","farmer-walk","fondos","fuerza-impulso-barra",
+  "fuerza-impulso-un-brazo","goblet-squat","hip-thrust","jalon-al-pecho",
+  "jalon-banda-arriba","jalon-brazos-estirados","jalon-mancuerna",
+  "jalon-mancuerna-fix","levantada-cadera-una-pierna",
   "pecho-inclinado-mancuerna","peso-muerto-barra","peso-muerto-kettlebell",
   "peso-muerto-una-pierna","press-arriba","press-hombros-barra",
-  "press-hombros-sentado","press-pallof","press-pecho-barra",
-  "puente-gluteos-peso","push-up-pared","remo-banda","remo-inclinado-peso",
-  "remo-trx","remo-un-brazo-banda","remo-un-brazo","rotacion-externa-banda",
-  "sentadilla-barra","sentadilla-bulgara","sentarse-pararse-cajon",
-  "vuelta-al-mundo","zancada",
-].map((slug) => ({ slug, path: `/ejercicios/${slug}.gif`, label: _slugALabel(slug) }));
+  "press-hombros-sentado","press-militar-parado-barra","press-pallof",
+  "press-pecho-barra","puente-gluteos-peso","push-up-pared","remo-banda",
+  "remo-inclinado-peso","remo-trx","remo-un-brazo-banda","remo-un-brazo",
+  "rotacion-externa-banda","sentadilla-barra","sentadilla-bulgara",
+  "sentarse-pararse-cajon","vuelta-al-mundo","zancada",
+].map((slug) => ({
+  slug,
+  path: `/ejercicios/${slug}.gif`,
+  label: _ETIQUETAS[slug] || _slugALabel(slug),
+}));
