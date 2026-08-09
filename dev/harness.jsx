@@ -20,7 +20,103 @@ import { createRoot } from "react-dom/client";
 import { EjercicioEditor, DiasEditor, GlobalStyles } from "../App.jsx";
 import { SIN_GIF } from "../src/utils/ejerciciosMedia.js";
 import ItemCard from "../src/components/ItemCard.jsx";
+import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
+
+// ── ARMADOR ASISTIDO: llamadas MOCKEADAS (2026-08-09) ──────────────────
+// El harness no tiene sesión de Supabase, así que el endpoint real
+// (/api/ejercicio-asistido) devolvería 401 siempre y no se podría ver ni un
+// estado. Se mockea la función que hace la llamada — no fetch global — porque
+// EjercicioEditor y AsistenteEjercicio la reciben por prop justamente para esto.
+// Los errores replican TEXTUALMENTE lo que arma llamarAsistente() con cada
+// código, que es lo único que llega a la pantalla.
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Imagen de mentira embebida (data URI): así el estado "imagen generada" se ve
+// sin red y sin depender del bucket de Supabase.
+const IMAGEN_FALSA =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="#fff"/>` +
+      `<circle cx="90" cy="70" r="26" fill="#c0392b"/><rect x="76" y="100" width="28" height="70" fill="#e08b84"/>` +
+      `<circle cx="230" cy="80" r="26" fill="#c0392b"/><rect x="216" y="110" width="28" height="60" fill="#e08b84"/>` +
+      `<text x="160" y="192" font-size="12" text-anchor="middle" fill="#666">ilustración de prueba</text></svg>`
+  );
+
+const ERROR_401 = "Se cayó la sesión. Salí y volvé a entrar a la app para seguir usando el armador.";
+const ERROR_501 =
+  "Falta la variable de entorno GEMINI_API_KEY (o GOOGLE_API_KEY) en Vercel. " +
+  "Cargala en el dashboard del proyecto (Settings → Environment Variables, entorno Production) " +
+  "con una key de https://aistudio.google.com/apikey y la generación de imágenes queda operativa.";
+
+function mockLlamar(modo) {
+  return async ({ accion, texto, nombre }) => {
+    await espera(accion === "sugerir" ? 700 : 600); // se ve el estado "cargando"
+    if (modo === "401") throw new Error(ERROR_401);
+    if (modo === "501" && accion === "imagen") throw new Error(ERROR_501);
+    if (accion === "sugerir")
+      return {
+        sugerencias: [
+          { nombre: "Sentadilla búlgara", origen: "catalogo", catalogo_id: "12", tiene_imagen: true },
+          { nombre: `${texto} con mancuernas`, origen: "nuevo", catalogo_id: null, tiene_imagen: false },
+          { nombre: `${texto} en multipower`, origen: "nuevo", catalogo_id: null, tiene_imagen: false },
+        ],
+      };
+    if (accion === "completar")
+      return {
+        nombre,
+        descripcion:
+          "Ponete de pie con los pies al ancho de las caderas y la pierna de atrás apoyada sobre un banco. " +
+          "Bajá flexionando la rodilla de adelante hasta que el muslo quede paralelo al piso, con el torso apenas inclinado. " +
+          "Hacé una pausa breve abajo. Subí empujando con el talón de adelante hasta extender la cadera. " +
+          "Repetí el número de repeticiones deseado y después cambiá de pierna.",
+        grupo_di: "Pred. Rodilla",
+        target_es: "Cuádriceps",
+        equipment_es: "Peso corporal",
+        prompt_imagen: "Ilustración anatómica de estudio con dos figuras…",
+      };
+    return { url: IMAGEN_FALSA, path: "ia-generadas/prueba.png" };
+  };
+}
+
+async function mockSubirVideo(file) {
+  await espera(600);
+  return `rehab-media/demo-${(file && file.name) || "video.mp4"}`;
+}
+
+// Panel del armador: se monta el bloque solo (sin abrir el editor) para poder
+// ver de un vistazo el estado inicial —los dos chips apagados y NADA desplegado
+// abajo, que es el punto del pedido de Lucas— y cada opción al elegirla.
+function AsistenteDemo() {
+  const [modo, setModo] = useState("ok");
+  const [form, setForm] = useState({ nombre: "Sentadilla búlgara con banco", desc: "", gif: "", video: "" });
+  const btn = (activo) => ({
+    minHeight: 44, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13,
+    background: activo ? "#fff" : "#1c1c1c", color: activo ? "#111" : "#bbb", border: "1px solid #343434",
+  });
+  return (
+    <>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        <button style={btn(modo === "ok")} onClick={() => setModo("ok")}>Todo bien</button>
+        <button style={btn(modo === "501")} onClick={() => setModo("501")}>Error 501 (falta la clave)</button>
+        <button style={btn(modo === "401")} onClick={() => setModo("401")}>Error 401 (sesión caída)</button>
+      </div>
+      <input
+        value={form.nombre}
+        onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+        style={{ width: "100%", boxSizing: "border-box", minHeight: 44, marginBottom: 8, background: "#1c1c1c", color: "#f2f2f2", border: "1px solid #343434", borderRadius: 8, padding: "10px 12px", fontSize: 16 }}
+      />
+      <textarea
+        value={form.desc}
+        onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))}
+        rows={4}
+        placeholder="La descripción cae acá y se puede editar a mano."
+        style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, background: "#1c1c1c", color: "#f2f2f2", border: "1px solid #343434", borderRadius: 8, padding: "10px 12px", fontSize: 16 }}
+      />
+      <AsistenteEjercicio key={modo} form={form} setForm={setForm} llamar={mockLlamar(modo)} subirArchivo={mockSubirVideo} />
+    </>
+  );
+}
 
 // Ejercicios de prueba. Se eligieron a propósito para cubrir los tres casos
 // de GIF que hay que poder distinguir de un vistazo:
@@ -110,7 +206,21 @@ function Harness() {
           titulo="Editor de ejercicios"
           nota="Probar acá: (1) tocar el nombre pliega y despliega la ficha; (2) agarrar el ⠿ y arrastrar reordena; (3) el lápiz abre el editor, que tiene el botón para dejar el ejercicio sin GIF; (4) Peso muerto arranca con el GIF sacado a propósito y no debe mostrar ninguno."
         >
-          <EjercicioEditor items={items} onChange={setItems} showVideo biblioteca={BIBLIOTECA} />
+          <EjercicioEditor
+            items={items}
+            onChange={setItems}
+            showVideo
+            biblioteca={BIBLIOTECA}
+            llamarAsistente={mockLlamar("ok")}
+            subirMedia={mockSubirVideo}
+          />
+        </Panel>
+
+        <Panel
+          titulo="Armador asistido"
+          nota="Arranca con los dos chips APAGADOS y nada desplegado abajo: sólo al tocar «Crear imagen» aparece el botón Generar, y al tocar «Subir video» el casillero del archivo. «Escribila por mí» rellena la descripción de arriba (queda editable). Con los botones de error se ve qué le llega al profe cuando falta la clave de Google (501) o se le cayó la sesión (401)."
+        >
+          <AsistenteDemo />
         </Panel>
 
         <Panel

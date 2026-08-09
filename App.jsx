@@ -104,6 +104,9 @@ import SwipeToConfirm from "./src/components/SwipeToConfirm.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
+// Armador asistido (2026-08-09): sugerencias de nombre, descripción escrita por
+// el modelo e ilustración generada, para el ejercicio que NO existe todavía.
+import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
@@ -814,6 +817,15 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
                     {sug.codigo}
                   </span>
                 )}
+                {/* 2026-08-09: las que propone el modelo (armador asistido) se
+                    marcan como NUEVO. Sin esta marca el profe cree que ya
+                    existen en el catálogo y no entiende por qué no traen ni
+                    código ni GIF — son nombres a crear, no a elegir. */}
+                {sug.nuevo && (
+                  <span style={{ color: S.bg, background: S.white, fontSize: TS.chip, fontWeight: 800, letterSpacing: 0.5, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
+                    NUEVO
+                  </span>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: S.white, fontSize: TS.chip, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.nombre}</div>
                   {sug.desc && <div style={{ color: S.gray, fontSize: TS.chip, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sug.desc}</div>}
@@ -837,7 +849,10 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
 // export (2026-08-09): lo monta también dev/harness.jsx, el banco de pruebas
 // que permite ver y tocar este editor sin pasar por el login ni por la base.
 // No cambia nada de cómo lo usa App.jsx.
-export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos }) {
+// llamarAsistente / subirMedia (2026-08-09): entran por prop con el default
+// real para que dev/harness.jsx pueda mockearlos — el banco de pruebas no tiene
+// sesión de Supabase, así que sin esto el armador asistido no se puede ver.
+export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos, llamarAsistente = llamarAsistenteReal, subirMedia }) {
   const [editIdx, setEditIdx] = useState(null);
   const [form, setForm] = useState({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
   const [sugs, setSugs] = useState([]); // sugerencias de biblioteca activas
@@ -901,6 +916,39 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
   // tipea; los resultados de catálogo aparecen después de los de la
   // biblioteca curada, sin duplicar nombres.
   const _catalogoRef = useRef(null);
+  // ── SUGERENCIAS DEL MODELO (2026-08-09) ───────────────────────────────
+  // Sólo cuando la búsqueda local NO encontró nada y hay 3+ caracteres: el
+  // catálogo de 1.343 sigue mandando, esto es el paréntesis para el ejercicio
+  // que todavía no existe. Debounce de 400ms + un contador de secuencia porque
+  // el profe escribe rápido: sin cancelar la anterior, la respuesta vieja llega
+  // después y pisa la lista con sugerencias de un texto que ya no está escrito.
+  const asistRef = useRef({ timer: null, seq: 0 });
+  const [sugsIA, setSugsIA] = useState({ cargando: false, error: "" });
+  useEffect(() => () => clearTimeout(asistRef.current.timer), []);
+  const pedirSugerenciasIA = (val, hayLocales) => {
+    clearTimeout(asistRef.current.timer);
+    const seq = ++asistRef.current.seq;
+    if (hayLocales || val.trim().length < 3) {
+      if (sugsIA.cargando || sugsIA.error) setSugsIA({ cargando: false, error: "" });
+      return;
+    }
+    setSugsIA({ cargando: true, error: "" });
+    asistRef.current.timer = setTimeout(async () => {
+      try {
+        const { sugerencias } = await llamarAsistente({ accion: "sugerir", texto: val.trim() });
+        if (seq !== asistRef.current.seq) return; // llegó tarde: ya se escribió otra cosa
+        setSugsIA({ cargando: false, error: "" });
+        const nuevas = (sugerencias || []).map((s) => ({ nombre: s.nombre, desc: "", video: "", nuevo: s.origen === "nuevo" }));
+        if (!nuevas.length) return;
+        // Se AGREGAN al final: lo local (biblioteca y catálogo) va siempre primero.
+        setSugs((prev) => [...prev, ...nuevas.filter((n) => !prev.some((p) => p.nombre.toLowerCase() === n.nombre.toLowerCase()))]);
+        setShowSugs(true);
+      } catch (e) {
+        if (seq !== asistRef.current.seq) return;
+        setSugsIA({ cargando: false, error: e.message || "No se pudieron traer sugerencias." });
+      }
+    }, 400);
+  };
   const handleNombreChange = (val) => {
     setForm((f) => ({ ...f, nombre: val }));
     // 2026-07-30: con el campo vacío (o con 1 letra) ya se muestra la lista de
@@ -915,6 +963,7 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
       const iniciales = biblioteca.slice(0, 12);
       setSugs(iniciales);
       setShowSugs(iniciales.length > 0);
+      pedirSugerenciasIA(val, true); // con 0-1 letras nunca se llama al modelo
       return;
     }
     if (val.length >= 2) {
@@ -953,8 +1002,10 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
       ].slice(0, 10);
       setSugs(matches);
       setShowSugs(matches.length > 0);
+      pedirSugerenciasIA(val, matches.length > 0);
     } else {
       setSugs([]); setShowSugs(false);
+      pedirSugerenciasIA(val, true);
     }
   };
   const selectSug = (sug) => {
@@ -1075,6 +1126,25 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
     onChange(arr);
   };
 
+  // Se declaran una sola vez y se usan en los dos formularios (editar y nuevo):
+  // comparten el mismo `form`, duplicar el JSX sería duplicar el bug.
+  const notaSugerencias = (sugsIA.cargando || sugsIA.error) ? (
+    <div
+      role={sugsIA.error ? "alert" : undefined}
+      style={{ color: sugsIA.error ? S.red : S.lgray, fontSize: TS.chip, marginTop: -4, marginBottom: 8, lineHeight: 1.4 }}
+    >
+      {sugsIA.error || "Buscando ejercicios parecidos…"}
+    </div>
+  ) : null;
+  const bloqueAsistente = (
+    <AsistenteEjercicio
+      form={form}
+      setForm={setForm}
+      llamar={llamarAsistente}
+      {...(subirMedia ? { subirArchivo: subirMedia } : {})}
+    />
+  );
+
   return (
     <div ref={listaRef}>
       {" "}
@@ -1106,6 +1176,7 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                 onInputChange={handleNombreChange}
                 onSelect={selectSug}
               />{" "}
+              {notaSugerencias}
               <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>{" "}
               <textarea
                 value={form.desc}
@@ -1113,6 +1184,7 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                 rows={2}
                 style={{ ...inp, resize: "vertical", marginBottom: 8 }}
               />{" "}
+              {bloqueAsistente}
               {/* 2026-07-30: acá había LINK YOUTUBE + subir video + GifPicker.
                   Se sacaron los tres. Este editor es para ARMAR EL PLAN
                   eligiendo ejercicios que ya existen, no para crearlos ni para
@@ -1358,6 +1430,7 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
             onInputChange={handleNombreChange}
             onSelect={selectSug}
           />{" "}
+          {notaSugerencias}
           <div style={{ fontSize: 11, color: S.gray, marginBottom: 4 }}>DESCRIPCION</div>{" "}
           <textarea
             value={form.desc}
@@ -1365,6 +1438,7 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
             rows={2}
             style={{ ...inp, resize: "vertical", marginBottom: 8 }}
           />{" "}
+          {bloqueAsistente}
           {/* 2026-07-30: mismo criterio que arriba — agregar un ejercicio al
               plan es ELEGIRLO de la lista, no crearlo con su media. El GIF se
               muestra solo, por nombre. */}
