@@ -12,9 +12,15 @@ const M = {
   // el nombre salió del mapa. 2026-08-09 (tarde): ya tiene ilustración propia
   // generada con IA — disco redondo contra el pecho, bisagra de cadera,
   // isquiotibiales marcados en rojo.
+  // 2026-08-09 (noche): las dos ilustraciones se regeneraron porque quedaban
+  // casi idénticas entre sí y no se distinguía el implemento. Ahora cada una
+  // muestra DOS figuras — comienzo y medio del movimiento, como el push press —
+  // y el implemento se lee sin dudas: disco redondo de canto contra el pecho
+  // en una, mancuerna de perfil con sus dos cabezas en la otra.
   "buenos dias con disco":
     "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/buenos-dias-disco.webp",
-  "buenos dias con mancuerna": "/ejercicios/buenos-dias-mancuerna.gif",
+  "buenos dias con mancuerna":
+    "https://tlxkghpytznkxgqslqzj.supabase.co/storage/v1/object/public/catalogo-ejercicios/ia-generadas/buenos-dias-mancuerna.webp",
   // 2026-08-09 — Auditoría visual: los 5 nombres del cajón ("cajon con peso",
   // "levantada del cajon", "levantada del cajon con peso", "levantada de
   // cajon", "sentarse y pararse del cajon con peso al pecho") apuntaban a
