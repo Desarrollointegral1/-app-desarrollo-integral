@@ -103,7 +103,7 @@ import SwipeToConfirm from "./src/components/SwipeToConfirm.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
-import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO } from "./src/utils/ejerciciosMedia.js";
+import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 import { useSignedUrl } from "./src/utils/useSignedUrl.js";
@@ -725,12 +725,16 @@ function GifPicker({ nombre, value, onChange }) {
 // Mismo criterio visual que ItemCard: fondo blanco (los GIFs de Gym visual
 // vienen sobre blanco) y el crédito obligatorio debajo.
 function GifEjercicio({ nombre, gif, size = 180 }) {
-  const src = gif || getEjercicioGif(nombre);
+  const src = resolverGif(gif, nombre);
   if (!src)
     return (
       <div style={{ background: S.card2, borderRadius: 8, padding: 14, textAlign: "center", marginBottom: 8 }}>
         <div style={{ color: S.lgray, fontSize: TS.chip }}>
-          {nombre ? "Este ejercicio todavía no tiene GIF" : "Elegí un ejercicio para ver su GIF"}
+          {gif === SIN_GIF
+            ? "Este ejercicio queda sin GIF (lo sacaste a propósito)"
+            : nombre
+              ? "Este ejercicio todavía no tiene GIF"
+              : "Elegí un ejercicio para ver su GIF"}
         </div>
       </div>
     );
@@ -998,11 +1002,92 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
     [arr[i], arr[j]] = [arr[j], arr[i]];
     onChange(arr);
   };
+
+  // ── PLEGAR / DESPLEGAR (Lucas, 2026-08-09) ────────────────────────────
+  // "Tendría que poder plegar y desplegar los ejercicios clicando en el
+  // nombre". Antes tocar el nombre abría el editor entero; ahora despliega
+  // la ficha (GIF grande + descripción completa) y el lápiz sigue siendo el
+  // que edita. Se indexa por id del ejercicio, no por posición: si no, al
+  // reordenar se quedaba abierto el que ocupó ese lugar.
+  const [abiertos, setAbiertos] = useState(() => new Set());
+  const claveDe = (ej, i) => ej.id || `idx:${i}`;
+  const toggleAbierto = (clave) =>
+    setAbiertos((prev) => {
+      const s = new Set(prev);
+      if (s.has(clave)) s.delete(clave);
+      else s.add(clave);
+      return s;
+    });
+
+  // ── ARRASTRAR PARA REORDENAR (Lucas, 2026-08-09) ──────────────────────
+  // "la opción de bajar o subir un ejercicio debería ser agarrando ese
+  // ejercicio y subiéndolo". Va con Pointer Events, no con HTML5 drag-and-
+  // drop: este panel se usa desde el celular y el drag nativo no dispara en
+  // touch. El handle lleva touchAction:"none" para que arrastrar no scrollee
+  // la página. Los botones ▲▼ se quedan como alternativa accesible (teclado
+  // y quien no pueda sostener el arrastre).
+  const listaRef = useRef(null);
+  const [arrastre, setArrastre] = useState(null); // { from, over }
+  const arrastreRef = useRef(null);
+
+  const indiceBajoElDedo = (clientY) => {
+    const cont = listaRef.current;
+    if (!cont) return null;
+    const filas = Array.from(cont.querySelectorAll("[data-fila-ej]"));
+    for (const f of filas) {
+      const r = f.getBoundingClientRect();
+      if (clientY >= r.top && clientY <= r.bottom) return Number(f.dataset.filaEj);
+    }
+    // Fuera de la lista: se engancha al extremo más cercano en vez de perderse.
+    if (!filas.length) return null;
+    const primera = filas[0].getBoundingClientRect();
+    return clientY < primera.top ? 0 : filas.length - 1;
+  };
+
+  const onHandleDown = (e, i) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    const st = { from: i, over: i };
+    arrastreRef.current = st;
+    setArrastre(st);
+  };
+  const onHandleMove = (e) => {
+    if (!arrastreRef.current) return;
+    const over = indiceBajoElDedo(e.clientY);
+    if (over == null || over === arrastreRef.current.over) return;
+    const st = { ...arrastreRef.current, over };
+    arrastreRef.current = st;
+    setArrastre(st);
+  };
+  const onHandleUp = () => {
+    const st = arrastreRef.current;
+    arrastreRef.current = null;
+    setArrastre(null);
+    if (!st || st.over === st.from) return;
+    const arr = [...items];
+    const [movido] = arr.splice(st.from, 1);
+    arr.splice(st.over, 0, movido);
+    onChange(arr);
+  };
+
   return (
-    <div>
+    <div ref={listaRef}>
       {" "}
       {items.map((ej, i) => (
-        <div key={i} style={{ ...card, marginBottom: 6, padding: "10px 12px" }}>
+        <div
+          key={i}
+          data-fila-ej={i}
+          style={{
+            ...card,
+            marginBottom: 6,
+            padding: "10px 12px",
+            // Feedback del arrastre: la fila agarrada se levanta, la de
+            // destino marca dónde va a caer.
+            opacity: arrastre && arrastre.from === i ? 0.4 : 1,
+            outline: arrastre && arrastre.over === i && arrastre.from !== i ? "2px solid " + S.white : "none",
+            transition: arrastre ? "none" : "outline 120ms ease",
+          }}
+        >
           {" "}
           {editIdx === i ? (
             <div>
@@ -1033,6 +1118,28 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                   vuelve a escribir tal cual) — se sacan de la EDICIÓN, no del
                   dato. En su lugar va el GIF, para VER. */}
               <GifEjercicio nombre={form.nombre} gif={form.gif} />{" "}
+              {/* 2026-08-09, pedido de Lucas: "al modificar el plan tendría que
+                  poder sacar el gif, dejar el ejercicio sin gif". Ojo: NO
+                  alcanza con gif:"" — eso devuelve el control al lookup
+                  automático por nombre y el mismo GIF vuelve a aparecer. Se
+                  guarda el sentinel SIN_GIF, que resolverGif() respeta en el
+                  editor y en la vista del alumno. */}
+              <button
+                onClick={() => setForm((f) => ({ ...f, gif: f.gif === SIN_GIF ? "" : SIN_GIF }))}
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  color: form.gif === SIN_GIF ? S.white : S.gray,
+                  border: "1px solid " + (form.gif === SIN_GIF ? S.white : S.border),
+                  borderRadius: 6,
+                  padding: "7px",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  marginBottom: 8,
+                }}
+              >
+                {form.gif === SIN_GIF ? "Volver a mostrar el GIF" : "Dejar este ejercicio sin GIF"}
+              </button>{" "}
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 {" "}
                 <button
@@ -1094,30 +1201,54 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {" "}
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {/* Handle de arrastre. Se agarra ACÁ (no en toda la fila) para
+                  que tocar el nombre siga plegando y el scroll del panel
+                  funcione normal en el celular. Los ▲▼ quedan abajo del
+                  handle como alternativa. */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                 {" "}
+                <div
+                  onPointerDown={(e) => onHandleDown(e, i)}
+                  onPointerMove={onHandleMove}
+                  onPointerUp={onHandleUp}
+                  onPointerCancel={onHandleUp}
+                  title="Arrastrá para mover el ejercicio"
+                  style={{
+                    touchAction: "none",
+                    cursor: arrastre ? "grabbing" : "grab",
+                    color: S.lgray,
+                    lineHeight: 1,
+                    fontSize: 15,
+                    padding: "2px 4px",
+                    userSelect: "none",
+                  }}
+                >
+                  ⠿
+                </div>{" "}
                 <button
                   onClick={() => move(i, -1)}
+                  aria-label="Subir ejercicio"
                   style={{
                     background: "transparent",
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 14,
-                    padding: "1px 4px",
+                    fontSize: 12,
+                    padding: "0 4px",
                   }}
                 >
                   ▲
                 </button>{" "}
                 <button
                   onClick={() => move(i, 1)}
+                  aria-label="Bajar ejercicio"
                   style={{
                     background: "transparent",
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 14,
-                    padding: "1px 4px",
+                    fontSize: 12,
+                    padding: "0 4px",
                   }}
                 >
                   ▼
@@ -1141,21 +1272,25 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                 {i + 1}
               </div>{" "}
               {/* 2026-07-30: el GIF a la vista en la propia fila, sin abrir
-                  nada — "en ejercicios tengo que poder clicar sobre el
-                  ejercicio y ver el gif". Tocar la fila abre el editor, que
-                  muestra el mismo GIF en grande. */}
+                  nada. 2026-08-09: tocarlo ya no abre el editor — pliega o
+                  despliega la ficha, igual que tocar el nombre. Para editar
+                  está el lápiz. */}
               {(() => {
-                const gifFila = ej.gif || getEjercicioGif(ej.nombre);
+                const gifFila = resolverGif(ej.gif, ej.nombre);
                 return gifFila ? (
                   <img
                     src={gifFila}
                     alt=""
-                    onClick={() => startEdit(i)}
+                    onClick={() => toggleAbierto(claveDe(ej, i))}
                     style={{ width: TAP, height: TAP, objectFit: "contain", background: "#fff", borderRadius: 6, flexShrink: 0, cursor: "pointer" }}
                   />
                 ) : null;
               })()}{" "}
-              <div style={{ flex: 1, cursor: "pointer" }} onClick={() => startEdit(i)}>
+              <div
+                style={{ flex: 1, cursor: "pointer" }}
+                onClick={() => toggleAbierto(claveDe(ej, i))}
+                title="Tocá el nombre para ver u ocultar el detalle"
+              >
                 {" "}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {ej.codigo && (
@@ -1164,8 +1299,11 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
                     </span>
                   )}
                   <div style={{ color: S.white, fontSize: 13, fontWeight: 600 }}>{ej.nombre}</div>
+                  <span style={{ color: S.lgray, fontSize: 10, flexShrink: 0 }}>
+                    {abiertos.has(claveDe(ej, i)) ? "▲" : "▼"}
+                  </span>
                 </div>{" "}
-                {ej.desc && (
+                {ej.desc && !abiertos.has(claveDe(ej, i)) && (
                   <div style={{ color: S.gray, fontSize: 11, marginTop: 1 }}>
                     {ej.desc.slice(0, 50)}
                     {ej.desc.length > 50 ? "..." : ""}
@@ -1181,6 +1319,19 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
               <button onClick={() => remove(i)} style={smallBtn(S.red)}>
                 <X size={14} />
               </button>{" "}
+            </div>
+          )}{" "}
+          {/* Ficha desplegada (2026-08-09): GIF grande + descripción completa,
+              sin entrar a editar. No se muestra mientras la fila está en modo
+              edición, que ya tiene su propio GIF en grande. */}
+          {editIdx !== i && abiertos.has(claveDe(ej, i)) && (
+            <div style={{ marginTop: 8, borderTop: "1px solid " + S.border, paddingTop: 8 }}>
+              <GifEjercicio nombre={ej.nombre} gif={ej.gif} size={150} />
+              {ej.desc ? (
+                <div style={{ color: S.gray, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{ej.desc}</div>
+              ) : (
+                <div style={{ color: S.lgray, fontSize: 12 }}>Sin descripción cargada.</div>
+              )}
             </div>
           )}{" "}
         </div>
@@ -1493,7 +1644,13 @@ function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca,
           </button>{" "}
         </div>
       ))}{" "}
-      <EjercicioEditor items={d.ejercicios} onChange={updateEjs} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} />{" "}
+      {/* key por día (2026-08-09, pedido de Lucas): "al entrar en un ejercicio
+          y cambiar de día sigue ese ejercicio en la pantalla, debería cerrar
+          ese ejercicio al cambiar de día". El editor no se remontaba al
+          cambiar de día (misma posición en el árbol), así que se arrastraban
+          el ejercicio abierto en edición y los desplegados. Con la key ligada
+          al día, cambiar de día lo devuelve a la lista limpia. */}
+      <EjercicioEditor key={"dia-" + safeSelDia} items={d.ejercicios} onChange={updateEjs} showVideo={true} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} />{" "}
     </div>
   );
 }
@@ -2959,7 +3116,11 @@ function PlanesPrincipales({ al, alumnos, onUpdate, biblioteca, onGuardarBibliot
               <button onClick={() => setRenombrando(false)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "0 14px", cursor: "pointer" }}><X size={16} /></button>
             </div>
           )}
-          <DiasEditor dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} ocultarAgregarDia />
+          {/* key por plan (2026-08-09): cambiar de día de la semana (Lunes →
+              Martes) tiene que empezar de cero. Sin esto el DiasEditor se
+              quedaba con el día interno y el ejercicio abierto del plan
+              anterior. */}
+          <DiasEditor key={plan.id} dias={plan.dias || []} onChange={guardarDias} biblioteca={biblioteca} onGuardarBiblioteca={onGuardarBiblioteca} onGuardarParaTodos={onGuardarParaTodos} ocultarAgregarDia />
         </div>
       )}
     </div>

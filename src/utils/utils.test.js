@@ -12,6 +12,31 @@
 import { describe, expect, it } from "vitest";
 import { calcularEdad, getYTId, hoy } from "./helpers.js";
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
+import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
+
+describe("resolverGif", () => {
+  // El bug que este test evita: usar gif:"" para "sacar el GIF" no lo saca —
+  // devuelve el control al lookup automático por nombre y reaparece el mismo.
+  const conMapa = "hip thrust"; // existe en el mapa de ejerciciosMedia
+
+  it("cae al lookup automático por nombre cuando el ítem no trae GIF propio", () => {
+    expect(resolverGif("", conMapa)).toBe(getEjercicioGif(conMapa));
+    expect(getEjercicioGif(conMapa)).not.toBe("");
+  });
+
+  it("el GIF propio del ítem le gana al automático", () => {
+    expect(resolverGif("/ejercicios/otro.gif", conMapa)).toBe("/ejercicios/otro.gif");
+  });
+
+  it("el sentinel deja el ejercicio SIN GIF aunque el nombre tenga uno automático", () => {
+    expect(resolverGif(SIN_GIF, conMapa)).toBe("");
+  });
+
+  it("sin GIF propio y sin match por nombre devuelve vacío, no undefined", () => {
+    expect(resolverGif("", "ejercicio que no existe en ningun mapa")).toBe("");
+    expect(resolverGif(undefined, undefined)).toBe("");
+  });
+});
 
 describe("calcularEdad", () => {
   it("devuelve null si no hay fecha (no cero, que se confundiría con un bebé)", () => {

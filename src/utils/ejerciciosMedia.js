@@ -185,6 +185,24 @@ export const getEjercicioGif = (nombre) => {
   return M[base] || M_SUAVE[normSuave(base)] || "";
 };
 
+// ── "Este ejercicio va SIN GIF" (pedido de Lucas, 2026-08-09) ───────────
+// Poner gif:"" NO deja al ejercicio sin GIF: devuelve el control al lookup
+// automático por nombre de getEjercicioGif() y vuelve a aparecer el mismo
+// que Lucas quería sacar. Hace falta un valor que signifique "ninguno, a
+// propósito" y sobreviva al guardado (plan_ejercicios.gif es text).
+export const SIN_GIF = "__sin_gif__";
+
+// Resolución única del GIF de un ítem del plan. Todo lo que muestre un GIF
+// (vista del alumno, editor, fila, preview) tiene que pasar por acá, si no
+// el sentinel se ignora en ese lugar y el GIF "sacado" reaparece.
+//   1) sentinel  → sin GIF, a propósito
+//   2) gif propio del ítem (manual o heredado del catálogo)
+//   3) lookup automático por nombre
+export const resolverGif = (gif, nombre) => {
+  if (gif === SIN_GIF) return "";
+  return gif || getEjercicioGif(nombre);
+};
+
 // Inverso: nombres de ejercicio que resuelven (por lookup automático) a un
 // GIF dado. Se usa en la pestaña GIFs de la Biblioteca para mostrar a qué
 // ejercicios está asociado cada archivo.

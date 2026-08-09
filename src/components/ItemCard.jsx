@@ -3,7 +3,7 @@ import { Play, ChevronDown } from "lucide-react";
 import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { pasosDeInstrucciones } from "../utils/pasosInstrucciones.js";
-import { getEjercicioGif } from "../utils/ejerciciosMedia.js";
+import { resolverGif } from "../utils/ejerciciosMedia.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
@@ -108,7 +108,10 @@ export default function ItemCard({
     // Ronda 12: GIF manual (asignado a mano en el editor cuando el lookup
     // automático por nombre no encuentra match) tiene prioridad sobre el
     // automático — mismo componente para Preparación y Principales.
-    const gifResuelto = gif || getEjercicioGif(nombre);
+    // 2026-08-09: pasa por resolverGif para respetar el sentinel SIN_GIF —
+    // un ejercicio al que el admin le sacó el GIF a propósito no debe volver
+    // a mostrarlo por el lookup automático de nombre.
+    const gifResuelto = resolverGif(gif, nombre);
     // El fondo blanco de abajo NO es un descuido: los GIFs del dataset vienen
     // con fondo blanco quemado, oscurecerlo los rompe. Lo que se arregla es que
     // dentro de una card oscura leía como un agujero — con marco, radio propio
