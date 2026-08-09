@@ -14,6 +14,70 @@ import { calcularEdad, getYTId, hoy } from "./helpers.js";
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
 import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
 import { _columnasCambiadas } from "../../services/supabase.js";
+import {
+  vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
+  setVuelta, cantidadDeVueltas, resumenVueltas,
+} from "./pesos.js";
+
+describe("peso por vuelta", () => {
+  it("un dato viejo (un número suelto) se lee como una sola vuelta", () => {
+    expect(vueltasDe(60)).toEqual([60]);
+    expect(vueltasCargadas(60)).toEqual([60]);
+    expect(pesoRepresentativo(60)).toBe(60);
+  });
+
+  it("sin dato no inventa vueltas ni devuelve undefined", () => {
+    expect(vueltasDe(null)).toEqual([]);
+    expect(vueltasDe(undefined)).toEqual([]);
+    expect(pesoRepresentativo(null)).toBe(0);
+    expect(resumenVueltas(null)).toBe("");
+  });
+
+  it("el peso que representa el día es el MÁXIMO, no el último ni el promedio", () => {
+    // Una serie de aproximación liviana al final no debe hacer parecer que bajó.
+    expect(pesoRepresentativo([60, 65, 70, 40])).toBe(70);
+  });
+
+  it("el volumen suma todas las vueltas", () => {
+    expect(volumenDe([60, 65, 70])).toBe(195);
+    expect(volumenDe(60)).toBe(60);
+  });
+
+  it("escribir una vuelta no pisa las otras", () => {
+    expect(setVuelta([60, 65, 70], 2, 67.5)).toEqual([60, 67.5, 70]);
+  });
+
+  it("escribir sobre un dato viejo lo conserva como vuelta 1", () => {
+    expect(setVuelta(60, 2, 65)).toEqual([60, 65]);
+  });
+
+  it("escribir una vuelta salteada deja huecos, no corre las posiciones", () => {
+    expect(setVuelta(null, 3, 80)).toEqual([null, null, 80]);
+  });
+
+  it("borrar la única vuelta devuelve null, para poder sacar el ejercicio del registro", () => {
+    expect(setVuelta([60], 1, "")).toBe(null);
+    expect(setVuelta([60, 65], 2, "")).toEqual([60, null]);
+  });
+
+  it("un peso inválido o negativo no se guarda", () => {
+    expect(setVuelta([60], 2, -5)).toEqual([60, null]);
+    expect(setVuelta([60], 2, "abc")).toEqual([60, null]);
+  });
+
+  it("muestra tantos casilleros como series tenga el plan", () => {
+    expect(cantidadDeVueltas(null, 4)).toBe(4);
+    expect(cantidadDeVueltas(null, undefined)).toBe(1);
+  });
+
+  it("nunca esconde una vuelta ya cargada aunque el plan baje de series", () => {
+    expect(cantidadDeVueltas([60, 65, 70, 75], 3)).toBe(4);
+  });
+
+  it("el resumen usa coma decimal, como escribe la gente acá", () => {
+    expect(resumenVueltas([60, 62.5, 65])).toBe("60 · 62,5 · 65");
+  });
+});
 
 // El bug que este test evita es el que Lucas reportó como "cambio algo en
 // planificación y vuelve a lo mismo": el guardado mandaba las 20 columnas del

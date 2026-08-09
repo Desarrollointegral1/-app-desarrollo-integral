@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Play, ChevronDown } from "lucide-react";
 import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
 import { pasosDeInstrucciones } from "../utils/pasosInstrucciones.js";
 import { resolverGif } from "../utils/ejerciciosMedia.js";
+import { vueltasDe, cantidadDeVueltas, resumenVueltas } from "../utils/pesos.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
@@ -25,6 +26,13 @@ export default function ItemCard({
   pesoAnterior,
   intensidad,
   unidad,
+  // Peso por vuelta (2026-08-09). `vueltas` es lo que hay guardado hoy para
+  // este ejercicio (número viejo o array), `seriesPlan` cuántos casilleros
+  // mostrar, y `onVueltaChange(serie, peso)` el que persiste. Si no llega
+  // onVueltaChange, la tarjeta sigue con un solo peso, como siempre.
+  vueltas,
+  seriesPlan,
+  onVueltaChange,
 }) {
   peso = peso || 0;
   historial = historial || [];
@@ -34,6 +42,32 @@ export default function ItemCard({
   // nombre es la red de seguridad para planes viejos sin el campo.
   const enSegundos = unidad === "segundos" || /^plancha\b/i.test((nombre || "").trim());
   const [open, setOpen] = useState(false);
+
+  // ── PESO POR VUELTA (2026-08-09) ─────────────────────────────────────
+  // Se activa sólo si el llamador pasa onVueltaChange. Sin eso, la tarjeta se
+  // comporta exactamente como antes (un peso por ejercicio) — así ninguna de
+  // las otras pantallas que montan ItemCard cambia sola.
+  const porVuelta = typeof onVueltaChange === "function";
+  const listaVueltas = porVuelta
+    ? Array.from({ length: cantidadDeVueltas(vueltas, seriesPlan) }, (_, i) => vueltasDe(vueltas)[i] ?? null)
+    : [];
+  const [vueltaActiva, setVueltaActiva] = useState(0);
+  // Arrancar en la primera vuelta sin cargar: es la que el alumno viene a
+  // completar. Si ya están todas, queda en la última.
+  useEffect(() => {
+    if (!porVuelta) return;
+    const primeraVacia = listaVueltas.findIndex((v) => v == null || v <= 0);
+    setVueltaActiva(primeraVacia === -1 ? Math.max(0, listaVueltas.length - 1) : primeraVacia);
+    // Sólo al montar o si cambia la cantidad de vueltas: si se recalculara con
+    // cada tecleo, el foco saltaría de casillero mientras el alumno escribe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [porVuelta, listaVueltas.length]);
+
+  const valorActivo = porVuelta ? Number(listaVueltas[vueltaActiva] || 0) : peso;
+  const cambiarPeso = (v) => {
+    if (porVuelta) onVueltaChange(vueltaActiva + 1, v);
+    else if (onPesoChange) onPesoChange(v);
+  };
   // Las instrucciones vienen del catálogo como un párrafo corrido de ~493
   // caracteres, y el alumno las lee de pie en medio de la serie: se muestran
   // como pasos numerados. Si el texto no se deja partir en una lista razonable,
@@ -193,38 +227,90 @@ export default function ItemCard({
           /* Peso de hoy SIEMPRE editable acá mismo, sin abrir la tarjeta.
              Auditoría 2026-07-30: los +/- medían 28x28 reales. Es el botón
              que el alumno toca en medio de la serie, de pie y transpirado
-             — pasa al piso táctil de 44x44 (iOS HIG / WCAG 2.5.5). */
+             — piso táctil de 44x44 (iOS HIG / WCAG 2.5.5).
+
+             2026-08-09, pedido de Lucas: "el peso se tiene que marcar por
+             vuelta". Antes había UN casillero para todo el ejercicio, así que
+             de 4 series con pesos distintos quedaba uno solo. Ahora hay un
+             casillero por vuelta y el stepper opera sobre la que está
+             seleccionada — se mantiene el botón grande, que es lo que hace
+             usable esto en el medio de la serie. */
           <div
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 10, paddingLeft: 36 }}
+            style={{ marginTop: 10 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ color: S.gray, fontSize: TS.chip }}>{enSegundos ? "SEG HOY" : "KG HOY"}</div>
-            <div style={stepperTrack()}>
-              <button
-                onClick={() => onPesoChange && onPesoChange(Math.max(0, peso - 1))}
-                aria-label="Restar un kilo"
-                style={stepperBtn()}
-              >
-                −
-              </button>
-              <div style={stepperDivider()} />
-              <input
-                type="number"
-                inputMode="decimal"
-                value={peso || ""}
-                placeholder="0"
-                onChange={(e) => onPesoChange && onPesoChange(Math.max(0, Number(e.target.value) || 0))}
-                style={{ ...stepperValue(), minWidth: 44, height: TAP }}
-              />
-              <div style={stepperDivider()} />
-              <button
-                onClick={() => onPesoChange && onPesoChange(peso + 1)}
-                aria-label="Sumar un kilo"
-                style={stepperBtn()}
-              >
-                +
-              </button>
+            {/* La sangría de 36px alinea el label con el texto del ejercicio,
+                pero SOLO acá arriba: las pastillas de vuelta usan el ancho
+                completo, si no en un teléfono de 375px la cuarta se sale. */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingLeft: 36 }}>
+              <div style={{ color: S.gray, fontSize: TS.chip }}>
+                {porVuelta ? `VUELTA ${vueltaActiva + 1}` : enSegundos ? "SEG HOY" : "KG HOY"}
+              </div>
+              <div style={stepperTrack()}>
+                <button
+                  onClick={() => cambiarPeso(Math.max(0, valorActivo - 1))}
+                  aria-label={enSegundos ? "Restar un segundo" : "Restar un kilo"}
+                  style={stepperBtn()}
+                >
+                  −
+                </button>
+                <div style={stepperDivider()} />
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={valorActivo || ""}
+                  placeholder="0"
+                  onChange={(e) => cambiarPeso(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ ...stepperValue(), minWidth: 44, height: TAP }}
+                />
+                <div style={stepperDivider()} />
+                <button
+                  onClick={() => cambiarPeso(valorActivo + 1)}
+                  aria-label={enSegundos ? "Sumar un segundo" : "Sumar un kilo"}
+                  style={stepperBtn()}
+                >
+                  +
+                </button>
+              </div>
             </div>
+            {porVuelta && (
+              /* Una pastilla por vuelta. La que está seleccionada es la que
+                 edita el stepper de arriba. Muestra el peso ya cargado, así
+                 el alumno ve la sesión entera de un vistazo sin abrir nada. */
+              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                {listaVueltas.map((v, i) => {
+                  const activa = i === vueltaActiva;
+                  const cargada = v != null && v > 0;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setVueltaActiva(i)}
+                      aria-label={`Vuelta ${i + 1}${cargada ? `: ${v}` : ", sin cargar"}`}
+                      aria-pressed={activa}
+                      style={{
+                        flex: "1 1 0",
+                        // 44px es el piso táctil (iOS HIG / WCAG 2.5.5) y a la
+                        // vez lo que permite que entren 5 vueltas en 375px.
+                        minWidth: 44,
+                        minHeight: TAP,
+                        borderRadius: 8,
+                        border: "1px solid " + (activa ? S.white : S.border),
+                        background: activa ? S.card2 : "transparent",
+                        color: cargada ? S.white : S.lgray,
+                        fontSize: TS.chip,
+                        fontWeight: cargada ? 900 : 500,
+                        cursor: "pointer",
+                        padding: "4px 2px",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      <span style={{ display: "block", color: S.gray, fontSize: 10, fontWeight: 700 }}>{i + 1}</span>
+                      {cargada ? String(v).replace(".", ",") : "—"}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

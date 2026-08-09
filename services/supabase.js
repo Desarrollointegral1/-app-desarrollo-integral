@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { setVuelta, pesoRepresentativo } from "../src/utils/pesos.js";
 // Mapa nombre→código oficial (M/E/C/P), fuente de verdad en planTemplates.js.
 // Se usa en propagarEjercicioATodos para asignarle código en el momento a un
 // ejercicio viejo que todavía no lo tiene, SI su nombre matchea uno oficial.
@@ -1094,11 +1095,17 @@ export async function cargarPesos(alumno_id, fallback) {
 
     data.forEach((row) => {
       Object.entries(row.pesos || {}).forEach(([eid, p]) => {
-        const val = Number(p);
+        // `p` puede ser un número (registro viejo, una sola vuelta) o un array
+        // con una entrada por serie (2026-08-09, peso por vuelta).
+        // pesoRepresentativo devuelve el máximo del día en los dos casos, que
+        // es lo que miran el historial y los gráficos de evolución.
+        const val = pesoRepresentativo(p);
         if (!val) return;
         pesos[eid] = val;
         if (!historiales[eid]) historiales[eid] = [];
-        historiales[eid].push({ peso: val, serie: 1, fecha: row.fecha });
+        // `vueltas` va crudo para que la vista pueda mostrar las series del
+        // día; `peso` sigue siendo un número para no romper a quien lo lea.
+        historiales[eid].push({ peso: val, serie: 1, fecha: row.fecha, vueltas: p });
       });
     });
 
@@ -1950,8 +1957,20 @@ export async function assignPlanToStudent(alumno_id, plan_type) {
 // REGISTROS DIARIOS: Guardar peso para un día específico
 // ────────────────────────────────────────────────────────────────────────
 
-export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso) {
-  if (!peso || Number(peso) <= 0) {
+/**
+ * Guarda el peso de un ejercicio en el registro del día.
+ *
+ * `serie` (2026-08-09, pedido de Lucas "el peso se tiene que marcar por
+ * vuelta"): si viene, el ejercicio guarda un array con una entrada por serie
+ * en vez de un solo número. Sin `serie` se conserva el comportamiento viejo,
+ * así que las llamadas que no la pasan siguen andando igual.
+ *
+ * Un peso vacío o 0 ya no se ignora cuando hay serie: es la forma de BORRAR
+ * una vuelta mal cargada. Sin serie se mantiene el ignorado de siempre.
+ */
+export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, serie) {
+  const porVuelta = serie != null;
+  if (!porVuelta && (!peso || Number(peso) <= 0)) {
     LOG("saveDailyWeight", `⏭️ Ignorado (peso 0): ${ejercicio_id}`);
     return;
   }
@@ -1970,7 +1989,13 @@ export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso) {
   }
 
   const pesos = existing?.pesos || {};
-  pesos[ejercicio_id] = Number(peso);
+  if (porVuelta) {
+    const nuevo = setVuelta(pesos[ejercicio_id], serie, peso);
+    if (nuevo == null) delete pesos[ejercicio_id];
+    else pesos[ejercicio_id] = nuevo;
+  } else {
+    pesos[ejercicio_id] = Number(peso);
+  }
 
   let result;
   if (existing) {

@@ -19,6 +19,8 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { EjercicioEditor, DiasEditor, GlobalStyles } from "../App.jsx";
 import { SIN_GIF } from "../src/utils/ejerciciosMedia.js";
+import ItemCard from "../src/components/ItemCard.jsx";
+import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
 
 // Ejercicios de prueba. Se eligieron a propósito para cubrir los tres casos
 // de GIF que hay que poder distinguir de un vistazo:
@@ -53,6 +55,43 @@ function Panel({ titulo, children, nota }) {
   );
 }
 
+// Vista del alumno con el registro de peso por vuelta. El segundo ejercicio
+// arranca con un dato en formato VIEJO (un número suelto) a propósito: hay que
+// poder confirmar de un vistazo que los registros que ya existen se siguen
+// leyendo bien y no se pierden.
+function VueltasDemo() {
+  const [vueltas, setVueltas] = useState({ "a": [60, 62.5], "b": 40 });
+  const cambiar = (id) => (serie, peso) =>
+    setVueltas((v) => {
+      const nuevo = setVuelta(v[id], serie, peso);
+      const out = { ...v };
+      if (nuevo == null) delete out[id];
+      else out[id] = nuevo;
+      return out;
+    });
+  return (
+    <>
+      <ItemCard
+        nombre="Sentadilla con barra" numero={1}
+        desc="Bajá hasta que los muslos queden paralelos al piso, con la espalda recta."
+        showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
+        vueltas={vueltas.a} onVueltaChange={cambiar("a")}
+        pesoAnterior={{ peso: 60, fecha: "02/08" }} historial={[]}
+      />
+      <ItemCard
+        nombre="Hip thrust" numero={2}
+        desc="Apoyá la espalda alta en el banco y empujá con los talones."
+        showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
+        vueltas={vueltas.b} onVueltaChange={cambiar("b")}
+        historial={[]}
+      />
+      <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace" }}>
+        Sentadilla: [{resumenVueltas(vueltas.a) || "vacío"}] · Hip thrust: [{resumenVueltas(vueltas.b) || "vacío"}]
+      </div>
+    </>
+  );
+}
+
 function Harness() {
   const [items, setItems] = useState(ITEMS_INICIALES);
   const [dias, setDias] = useState(DIAS_INICIALES);
@@ -79,6 +118,13 @@ function Harness() {
           nota="Probar acá: abrir un ejercicio del Día 1 (con el lápiz o desplegándolo) y cambiar al Día 2. El ejercicio abierto tiene que cerrarse solo."
         >
           <DiasEditor dias={dias} onChange={setDias} biblioteca={BIBLIOTECA} />
+        </Panel>
+
+        <Panel
+          titulo="Vista del alumno · peso por vuelta"
+          nota="El plan pide 4 series, así que hay 4 casilleros. Tocar una vuelta la selecciona y el − / + de arriba edita esa. El primero arranca con 2 vueltas ya cargadas; el segundo tiene un registro viejo (un solo número) y debe seguir viéndose bien."
+        >
+          <VueltasDemo />
         </Panel>
 
         <Panel titulo="Estado actual (para verificar que los cambios se aplican)">

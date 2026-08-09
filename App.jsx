@@ -105,6 +105,7 @@ import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
+import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
 import { actualizarEjercicioBibliotecaPorId } from "./services/supabase.js";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, FolderOpen, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 import { useSignedUrl } from "./src/utils/useSignedUrl.js";
@@ -1703,10 +1704,26 @@ function PeriodizacionEditor({ data, onChange }) {
     const base = new Date(Number(yyyy_mm_dd.slice(0, 4)), Number(m) - 1, Number(d));
     const arr = data.map((r, i) => {
       const f = new Date(base.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-      return { ...r, fecha: f.getDate() + "/" + (f.getMonth() + 1) };
+      // El año se guarda aparte (2026-08-09): `fecha` es "12/8" sin año, así
+      // que un plan empezado en diciembre y abierto en enero se leía como del
+      // año nuevo. Guardarlo también deja reconstruir la fecha exacta.
+      return { ...r, fecha: f.getDate() + "/" + (f.getMonth() + 1), anio: f.getFullYear() };
     });
     onChange(arr);
   };
+  // Valor del campo de arriba. Pedido de Lucas (2026-08-09): "la fecha una vez
+  // puesta debe figurar arriba y uno la puede modificar". El input era NO
+  // CONTROLADO (sin `value`), así que al recargar la pantalla aparecía vacío
+  // aunque las semanas ya tuvieran fecha: no había forma de ver con qué fecha
+  // arrancaba el plan ni de corregirla sabiendo cuál era.
+  const fechaInicioISO = (() => {
+    const primera = data && data[0];
+    if (!primera || !primera.fecha) return "";
+    const [d, m] = String(primera.fecha).split("/").map(Number);
+    if (!d || !m) return "";
+    const anio = primera.anio || new Date().getFullYear();
+    return `${anio}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  })();
   return (
     <div>
       {" "}
@@ -1714,9 +1731,11 @@ function PeriodizacionEditor({ data, onChange }) {
         <div style={{ fontSize: 14, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
           Fecha de inicio (día 1 de la semana 1)
         </div>
-        <input type="date" onChange={(e) => setFechaInicio(e.target.value)} style={inp} />
-        <div style={{ fontSize: 14, color: S.green, marginTop: 6 }}>
-          Elegila una vez y todas las semanas toman su fecha automáticamente (una por semana).
+        <input type="date" value={fechaInicioISO} onChange={(e) => setFechaInicio(e.target.value)} style={inp} />
+        <div style={{ fontSize: 14, color: fechaInicioISO ? S.gray : S.green, marginTop: 6 }}>
+          {fechaInicioISO
+            ? "Podés cambiarla cuando quieras: al elegir otra fecha se recalculan las " + data.length + " semanas."
+            : "Elegila una vez y todas las semanas toman su fecha automáticamente (una por semana)."}
         </div>
       </div>{" "}
       {data.map((r, i) => (
@@ -7379,6 +7398,51 @@ export default function App() {
     clearTimeout(timers.get(id));
     timers.set(id, setTimeout(() => saveDailyWeight(alumno.id, hoyStr, id, num), 600));
   };
+
+  // ── PESO POR VUELTA (2026-08-09) ─────────────────────────────────────
+  // Pedido de Lucas: "el peso se tiene que marcar por vuelta". `pesosVuelta`
+  // guarda, por ejercicio, lo que hay cargado HOY tal cual va a la base: un
+  // número (registro viejo) o un array con una entrada por serie.
+  // Se siembra desde el historial que baja de la base y después lo maneja
+  // handlePesoVuelta, que es el único que escribe.
+  const [pesosVuelta, setPesosVuelta] = useState({});
+  useEffect(() => {
+    const hoyStr = hoy();
+    const dehoy = {};
+    Object.entries(historiales || {}).forEach(([eid, arr]) => {
+      const reg = (arr || []).find((h) => h.fecha === hoyStr);
+      if (reg && reg.vueltas !== undefined) dehoy[eid] = reg.vueltas;
+    });
+    // Merge, no reemplazo: lo que el alumno acaba de tipear (y todavía está en
+    // el debounce de 600ms) no puede quedar pisado por la recarga.
+    setPesosVuelta((prev) => ({ ...dehoy, ...prev }));
+  }, [historiales]);
+
+  const _vueltaSaveTimers = useRef(new Map());
+  const handlePesoVuelta = (id, serie, val) => {
+    // Mismo cap de sanidad que handlePeso: sin tope quedaban pesos absurdos.
+    const num = Math.min(Math.max(0, Number(val) || 0), 500);
+    const nuevo = setVuelta(pesosVuelta[id], serie, num);
+    const np = { ...pesosVuelta };
+    if (nuevo == null) delete np[id];
+    else np[id] = nuevo;
+    setPesosVuelta(np);
+
+    // El peso "del día" que ven el historial y los gráficos es el máximo de
+    // las vueltas — se mantiene en sincronía sin volver a pedirle nada a la base.
+    const repr = pesoRepresentativo(nuevo);
+    const hoyStr = hoy();
+    setPesos((p) => ({ ...p, [id]: repr }));
+    setHistoriales((h) => {
+      const resto = (h[id] || []).filter((x) => x.fecha !== hoyStr);
+      return { ...h, [id]: repr > 0 ? [...resto, { fecha: hoyStr, peso: repr, vueltas: nuevo }] : resto };
+    });
+
+    const timers = _vueltaSaveTimers.current;
+    const clave = id + ":" + serie;
+    clearTimeout(timers.get(clave));
+    timers.set(clave, setTimeout(() => saveDailyWeight(alumno.id, hoyStr, id, num, serie), 600));
+  };
   const marcarAsistencia = (fecha) => {
     // La asistencia de HOY se guarda con hora ("YYYY-MM-DD HH:mm"); días
     // anteriores quedan solo fecha. registroAsistencia() (helpers.js) es la
@@ -7437,6 +7501,17 @@ export default function App() {
     try {
       const f = hoy();
       for (const ej of ejerciciosHoy || []) {
+        // Re-sincroniza VUELTA POR VUELTA (2026-08-09): antes mandaba un solo
+        // peso por ejercicio y este botón, pensado como red de seguridad para
+        // guardados que fallaron sin conexión, habría aplastado las series
+        // cargadas dejando una sola.
+        const vueltas = vueltasCargadas(pesosVuelta[ej.id]);
+        if (vueltas.length) {
+          for (let i = 0; i < vueltas.length; i++) {
+            await saveDailyWeight(alumno.id, f, ej.id, vueltas[i], i + 1);
+          }
+          continue;
+        }
         const p = Number(pesos[ej.id]);
         if (p > 0) await saveDailyWeight(alumno.id, f, ej.id, p);
       }
@@ -7935,6 +8010,8 @@ export default function App() {
               pesos={pesos}
               historiales={historiales}
               onPeso={handlePeso}
+              pesosPorVuelta={pesosVuelta}
+              onPesoVuelta={handlePesoVuelta}
               rm={al.rm}
               onRegistrarDia={() => registrarDia(dia?.ejercicios || [])}
               diaRegistrado={diaRegistrado === hoy() + ":" + al.id}

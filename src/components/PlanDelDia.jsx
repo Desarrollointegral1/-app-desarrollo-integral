@@ -23,6 +23,13 @@ export default function PlanDelDia({
   pesos,
   historiales,
   onPeso,
+  // Peso por vuelta (2026-08-09, "el peso se tiene que marcar por vuelta").
+  // `pesosPorVuelta` es el jsonb crudo del registro de hoy ({ejercicio_id:
+  // número viejo | array de vueltas}); onPesoVuelta(ejId, serie, peso)
+  // persiste una vuelta puntual. Si no llegan, las tarjetas muestran un solo
+  // peso como siempre.
+  pesosPorVuelta,
+  onPesoVuelta,
   rm,
   onRegistrarDia,
   diaRegistrado,
@@ -193,6 +200,26 @@ export default function PlanDelDia({
     DIAS_SEM.includes((s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim());
   const nombreDiaDe = (d) =>
     esDiaSemana(d?.dia) ? d.dia : esDiaSemana(plan?.dia_semana) ? plan.dia_semana : "";
+  // Selector de los días de la semana que el alumno tiene con plan.
+  // 2026-08-09, pedido de Lucas: "la persona tiene que poder ver sus
+  // entrenamientos en los días mismo si no entrena en ese día". Antes esto
+  // vivía adentro de la rama "hoy sí tenés plan", así que justo el día que no
+  // le tocaba —el día en que más sentido tiene mirar la rutina de otro día—
+  // el alumno se quedaba sin ninguna forma de llegar a ella.
+  const SelectorDiasSemana = () =>
+    diasSemana && diasSemana.length > 1 ? (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {diasSemana.map((h, i) => {
+          const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+          const activo = diaSemanaActivo ? norm(diaSemanaActivo) === norm(h.dia) : i === 0 && !diaSemanaActivo;
+          return (
+            <button key={i} onClick={() => onIrADiaSemana && onIrADiaSemana(h.dia)} title={`Ir a ${h.dia}`} style={{ ...tabBtn(activo), flex: 1 }}>
+              Día {i + 1}
+            </button>
+          );
+        })}
+      </div>
+    ) : null;
   const SelectorDia = () =>
     planValido && plan.dias.length > 1 ? (
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
@@ -338,6 +365,11 @@ export default function PlanDelDia({
            no le toca, no ve NADA, y no hay forma de saber si es que no tiene
            plan o es que hoy no entrena. Ahora se distinguen los dos casos y,
            si entrena otros días, se dicen cuáles. */
+        <>
+        {/* El selector va ANTES del mensaje (2026-08-09): el día que no le
+            toca entrenar es justamente el día en que quiere mirar la rutina
+            de otro día, así que tiene que estar a mano y no escondido. */}
+        <SelectorDiasSemana />
         <div style={{ ...card, padding: "24px 20px", textAlign: "center", color: S.gray, fontSize: 16, lineHeight: 1.5 }}>
           {(() => {
             // Tres casos distintos, no dos. El alumno puede entrenar HOY y
@@ -367,11 +399,15 @@ export default function PlanDelDia({
               <>
                 <div style={{ color: S.white, fontWeight: 700, marginBottom: 6 }}>Hoy no te toca entrenar</div>
                 Entrenás los <span style={{ color: S.white, fontWeight: 700 }}>{diasEntrena.join(" · ")}</span>.
+                {diasSemana && diasSemana.length > 1 && (
+                  <div style={{ marginTop: 10 }}>Igual podés mirar la rutina de cualquier día con los botones de arriba.</div>
+                )}
                 <div style={{ marginTop: 10 }}>Si querés moverte igual, hacé la preparación: está en la pestaña de al lado.</div>
               </>
             );
           })()}
         </div>
+        </>
       ) : (
         <>
           {/* 2026-07-31, pedido de Lucas: "necesito que puedan elegir el día
@@ -381,19 +417,7 @@ export default function PlanDelDia({
               acá tiene que ser por día O SESIÓN" — mismo mecanismo
               (onIrADiaSemana) pero con label "Día N" en vez de repetir el
               nombre del día de semana, para no duplicar la info del header. */}
-          {diasSemana && diasSemana.length > 1 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-              {diasSemana.map((h, i) => {
-                const norm = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-                const activo = diaSemanaActivo ? norm(diaSemanaActivo) === norm(h.dia) : i === 0 && !diaSemanaActivo;
-                return (
-                  <button key={i} onClick={() => onIrADiaSemana && onIrADiaSemana(h.dia)} title={`Ir a ${h.dia}`} style={{ ...tabBtn(activo), flex: 1 }}>
-                    Día {i + 1}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <SelectorDiasSemana />
           {/* 2026-07-31, pedido de Lucas: esta ficha (series x reps ·
               intensidad · ejercicios) repetía exactamente los mismos datos
               que ya muestra el ribbon de la ficha del alumno arriba de las
@@ -438,6 +462,9 @@ export default function PlanDelDia({
                 historial={historiales[ej.id] || []}
                 pesoAnterior={pesoAnteriorDe(ej.id)}
                 onPesoChange={(v) => onPeso(ej.id, v)}
+                vueltas={pesosPorVuelta ? pesosPorVuelta[ej.id] : undefined}
+                seriesPlan={sem?.series}
+                onVueltaChange={onPesoVuelta ? (serie, v) => onPesoVuelta(ej.id, serie, v) : undefined}
                 pesoSugerido={pesoSugerido}
                 intensidad={sem.intensidad}
                 unidad={ej.unidad}
