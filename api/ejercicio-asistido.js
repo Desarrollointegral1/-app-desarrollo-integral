@@ -308,6 +308,20 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Chequeo de salud, ANTES de pedir sesión y a propósito. Es la única forma de
+  // saber desde afuera si al deploy le falta configurar una clave sin tener que
+  // loguearse (así se descubrió que producción no tenía GEMINI_API_KEY). No
+  // expone nada: devuelve booleanos, nunca el valor, ni un prefijo, ni el largo
+  // de ninguna clave, y no dispara ninguna llamada paga.
+  if (String(req.body?.accion || "").trim() === "estado") {
+    res.status(200).json({
+      anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+      imagen: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+      modelo_imagen: MODELO_IMAGEN,
+    });
+    return;
+  }
+
   // Antes que nada: quién sos. Todo lo de abajo cuesta plata.
   const sesion = await sesionValida(req);
   if (!sesion.ok) {
