@@ -104,6 +104,7 @@ import SwipeToConfirm from "./src/components/SwipeToConfirm.jsx";
 import { EstudioBioSeccion } from "./src/components/EstudioBio.jsx";
 import { ProtocoloEvaluacionSeccion } from "./src/components/ProtocoloEvaluacion.jsx";
 import VideosMovilidadAdmin from "./src/components/VideosMovilidadAdmin.jsx";
+import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 // Armador asistido (2026-08-09): sugerencias de nombre, descripción escrita por
 // el modelo e ilustración generada, para el ejercicio que NO existe todavía.
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
@@ -4347,7 +4348,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     [nfecha, setNfecha] = useState(""),
     [nmodalidad, setNmodalidad] = useState(""),
     [ngenero, setNgenero] = useState(""),
-    [ntipo, setNtipo] = useState("entrenamiento");
+    [ntipo, setNtipo] = useState("entrenamiento"),
+    // 2026-08-09 · alta "Solo video": path del video en rehab-media + estado
+    // de la subida. El alta de este tipo de alumno es a propósito de tres
+    // campos (nombre, clave, video) — todo lo demás no aplica.
+    [nvideo, setNvideo] = useState(""),
+    [nsubiendo, setNsubiendo] = useState(false);
   // Fecha de evaluación POR ALUMNO (ronda 4): es la fecha en que el entrenador
   // evaluó a ESE alumno. Vive dentro del jsonb `rm` como `fecha_evaluacion` —
   // sin migración nueva. Se guarda apenas se cambia.
@@ -4453,6 +4459,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       // corresponde aparezca marcado en vez de "Sin definir".
       modalidad: modalidadLabel(al.modalidad) || (al.tipo === "rehabilitacion" ? MODALIDAD_REHAB : ""),
       horarios: JSON.parse(JSON.stringify(al.horarios || [])),
+      // 2026-08-09 · alumno "Solo video": el tipo se edita explícito acá (no
+      // se deriva de la modalidad como rehab) y el video viaja con la ficha.
+      tipo: al.tipo || "entrenamiento",
+      video_movilidad: al.video_movilidad || "",
       // Género (ronda 12): vive en rm.genero, no es columna de alumnos —
       // se saca del form antes de spreadearlo (ver saveEdit).
       genero: al.rm?.genero || "",
@@ -4468,8 +4478,13 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
     // Sincronizar tipo con la modalidad (ronda 7): "Rehabilitación" activa la
     // vista/plan de rehab; elegir otra modalidad lo vuelve a entrenamiento.
     // Si la modalidad quedó vacía, el tipo no se toca (datos viejos intactos).
-    if (formNormalizado.modalidad === MODALIDAD_REHAB) formNormalizado.tipo = "rehabilitacion";
-    else if (formNormalizado.modalidad) formNormalizado.tipo = "entrenamiento";
+    // 2026-08-09: tipo="video" se elige a mano y NO se deriva de la modalidad
+    // — sin este guard, un alumno "solo video" que además tenga modalidad
+    // cargada volvía a "entrenamiento" solo con abrir y guardar la ficha.
+    if (formNormalizado.tipo !== "video") {
+      if (formNormalizado.modalidad === MODALIDAD_REHAB) formNormalizado.tipo = "rehabilitacion";
+      else if (formNormalizado.modalidad) formNormalizado.tipo = "entrenamiento";
+    }
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado, rm: { ...a.rm, genero: genero || undefined } } : a)));
     setForm(null);
   };
@@ -4704,6 +4719,10 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       const alumnoConPlan = {
         ...nuevoAl,
         modalidad: nuevoAl.modalidad || nmodalidad || "",
+        // 2026-08-09: el video no viaja en crearAlumnoConPIN (que ya tiene 9
+        // parámetros posicionales) — se guarda con el autosave normal, que
+        // manda payloadAlumno con la columna video_movilidad.
+        video_movilidad: ntipo === "video" ? nvideo || "" : "",
         // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
         horarios: Object.keys(ndias).filter((d) => ndias[d]).map((d) => ({ dia: d, hora: "" })),
         // Género (ronda 12): sin migración, vive en rm.genero — mismo patrón
@@ -4746,6 +4765,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
       setNmodalidad("");
       setNgenero("");
       setNtipo("entrenamiento");
+      setNvideo("");
       setNtemplate("bilateral");
       setNdias({});
       showToast && showToast("Alumno creado");
@@ -5102,7 +5122,12 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
                   <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
                 </div>
-                {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]].map(([label, val, set]) => (
+                {/* 2026-08-09: el alta de un alumno "Solo video" es corta a
+                    propósito — nombre, clave y video. Peso, altura, email y
+                    fecha no aplican a alguien que solo entra a mirar. */}
+                {[["Nombre completo", nn, setNn], ["Username (para login)", nc, setNc], ["Clave (4 dígitos)", npin, setNpin], ["Email", ne, setNe], ["Peso (kg)", np, setNp], ["Altura (cm)", na, setNa]]
+                  .filter(([label]) => ntipo !== "video" || label === "Nombre completo" || label.startsWith("Username") || label.startsWith("Clave"))
+                  .map(([label, val, set]) => (
                   <div key={label} style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
                     {/* Auditoría 2026-07-30: Clave son 4 dígitos (entero),
@@ -5119,6 +5144,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     />
                   </div>
                 ))}
+                {ntipo !== "video" && (<>
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Fecha de nacimiento</div>
                   <input type="date" value={nfecha} onChange={(e) => setNfecha(e.target.value)} style={inp} />
@@ -5186,20 +5212,52 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                   </div>
                 ))}
                 <div style={{ marginBottom: 14 }} />
+                </>)}
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stethoscope size={14} />Rehabilitación</span>, "rehabilitacion"]].map(([l, k]) => (
+                {/* "Solo video" (2026-08-09): el alumno entra y ve únicamente
+                    el video que Lucas le grabó. No lleva plan, ni días, ni
+                    modalidad — por eso el resto del formulario se esconde. */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stethoscope size={14} />Rehabilitación</span>, "rehabilitacion"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Play size={14} />Solo video</span>, "video"]].map(([l, k]) => (
                     <button key={k} onClick={() => {
                       setNtipo(k);
                       // Tipo ↔ modalidad (ronda 7): mantenerlos coherentes
                       if (k === "rehabilitacion") setNmodalidad(MODALIDAD_REHAB);
                       else if (nmodalidad === MODALIDAD_REHAB) setNmodalidad("");
-                    }} style={{ flex: 1, background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
+                    }} style={{ background: ntipo === k ? (k === "rehabilitacion" ? "#0a2a1a" : S.white) : S.card, color: ntipo === k ? (k === "rehabilitacion" ? S.green : S.bg) : S.gray, border: "1px solid " + (ntipo === k ? (k === "rehabilitacion" ? S.green : S.white) : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
                   ))}
                 </div>
+                {ntipo === "video" && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Video de movilidad</div>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!f) return;
+                        setNsubiendo(true);
+                        try {
+                          // Misma subida que ya usa rehab (bucket privado
+                          // rehab-media): no se escribe una nueva.
+                          setNvideo(await subirMediaRehab(f));
+                          showToast && showToast("Video subido");
+                        } catch (err) {
+                          showToast && showToast(err.message || "No se pudo subir el video");
+                        } finally { setNsubiendo(false); }
+                      }}
+                      style={{ ...inp, padding: 8 }}
+                    />
+                    <div style={{ fontSize: 11, color: nvideo ? S.green : S.lgray, marginTop: 4 }}>
+                      {nsubiendo ? "Subiendo..." : nvideo ? "Video cargado" : "Se puede crear sin video y subirlo después desde la ficha."}
+                    </div>
+                  </div>
+                )}
                 {/* Ronda 9: "Todos los planes" es un VISOR — tocar un plan abre
                     una ventana con sus ejercicios explicados. El plan del
                     alumno se asigna por día, arriba. */}
+                {ntipo !== "video" && (<>
                 <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Todos los planes</div>
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá un plan para ver sus ejercicios con las descripciones. La asignación se hace por día, arriba.</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
@@ -5207,6 +5265,7 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     <button key={p.id} onClick={() => setPlanVisor(p)} title={p.descripcion} style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre} <Eye size={13} style={{ verticalAlign: "-2px" }} /></button>
                   ))}
                 </div>
+                </>)}
                 <button
                   onClick={async () => {
                     if (nn && nc && npin) {
@@ -5359,6 +5418,45 @@ function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca = [], on
                     />
                     {editPin.length > 0 && editPin.length < 4 && <div style={{ fontSize: 11, color: S.red, marginTop: 4 }}>La clave debe ser de 4 dígitos</div>}
                     {editPin.length === 4 && <div style={{ fontSize: 11, color: S.green, marginTop: 4, display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={12} />Nueva clave lista para guardar</div>}
+                  </div>
+
+                  {/* Solo video (2026-08-09): marcar acá cambia la pantalla que
+                      ve el alumno al entrar — pasa a ver únicamente su video de
+                      movilidad, sin menú ni plan. */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Pantalla del alumno</div>
+                    <button
+                      onClick={() => setForm((f) => ({ ...f, tipo: f.tipo === "video" ? "entrenamiento" : "video" }))}
+                      style={{ width: "100%", background: form.tipo === "video" ? S.white : S.card2, color: form.tipo === "video" ? S.bg : S.gray, border: "1px solid " + (form.tipo === "video" ? S.white : S.border), borderRadius: 8, padding: "10px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+                    >
+                      {form.tipo === "video" ? <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} /> : <Play size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}
+                      Solo video (entra y ve nada más que su video)
+                    </button>
+                    {form.tipo === "video" && (
+                      <div style={{ marginTop: 8 }}>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!f) return;
+                            setNsubiendo(true);
+                            try {
+                              const path = await subirMediaRehab(f);
+                              setForm((prev) => ({ ...prev, video_movilidad: path }));
+                              showToast && showToast("Video subido — acordate de Guardar");
+                            } catch (err) {
+                              showToast && showToast(err.message || "No se pudo subir el video");
+                            } finally { setNsubiendo(false); }
+                          }}
+                          style={{ ...inp, padding: 8 }}
+                        />
+                        <div style={{ fontSize: 11, color: form.video_movilidad ? S.green : S.lgray, marginTop: 4 }}>
+                          {nsubiendo ? "Subiendo..." : form.video_movilidad ? "Video cargado" : "Todavía sin video — el alumno ve un mensaje explicándolo."}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Solo días de entrenamiento — sin hora del día (pedido de Lucas 2026-07-20) */}
@@ -7658,6 +7756,21 @@ export default function App() {
     );
   if (!alumno) return <Login onLogin={login} onAdmin={loginAsAdmin} alumnos={alumnos} darkMode={darkMode} onToggleTheme={toggleTheme} />;
   const al = alumnos.find((a) => a.id === alumno.id) || alumno;
+  // 2026-08-09 · Alumno "solo video" (adultos mayores presenciales): apenas
+  // entra ve su video de movilidad y nada más. Va ANTES que cualquier otra
+  // vista a propósito — no debe pasar por tabs, bienvenida ni plan.
+  if (al.tipo === "video") {
+    return (
+      <>
+        {modoEntrenador && <BarraEntrenador nombre={al.nombre} onVolver={salirModoEntrenador} />}
+        <VistaVideoAlumno
+          nombre={al.nombre}
+          video={al.video_movilidad}
+          onSalir={modoEntrenador ? salirModoEntrenador : logout}
+        />
+      </>
+    );
+  }
   // Vista rehabilitación — interfaz simplificada para pacientes de kinesiología
   if (al.tipo === "rehabilitacion") {
     return (

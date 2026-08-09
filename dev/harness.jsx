@@ -21,6 +21,7 @@ import { EjercicioEditor, DiasEditor, GlobalStyles } from "../App.jsx";
 import { SIN_GIF } from "../src/utils/ejerciciosMedia.js";
 import ItemCard from "../src/components/ItemCard.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
+import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
 
 // ── ARMADOR ASISTIDO: llamadas MOCKEADAS (2026-08-09) ──────────────────
@@ -141,6 +142,40 @@ const BIBLIOTECA = [
   { nombre: "Pecho plano", desc: "Press de banca plano con barra.", codigo: "P1", gif: "" },
 ];
 
+// ── PANTALLA "SOLO VIDEO" (2026-08-09) ────────────────────────────────
+// Video de mentira embebido (data URI, 2 KB, generado con ffmpeg): la
+// pantalla se prueba sin red y sin sesión de Supabase. useSignedUrl deja
+// pasar tal cual todo lo que empiece con data: o http:, así que estos tres
+// valores cubren los tres estados sin tocar el bucket.
+const VIDEO_FALSO =
+  "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAPjbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAACR4AAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAw10cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAACR4AAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAMAAAACQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAkeAAAQAAABAAAAAAKFbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAwAAAAcABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAACMG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAfBzdGJsAAAAwHN0c2QAAAAAAAAAAQAAALBhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAMAAkABIAAAASAAAAAAAAAABFUxhdmM2Mi4yOC4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANmF2Y0MBZAAL/+EAGWdkAAus2UME7ARAAAADAEAAAAMDA8UKZYABAAZo6+PLIsD9+PgAAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAADK4AAAAAAAAAGHN0dHMAAAAAAAAAAQAAAA4AAAgAAAAAFHN0c3MAAAAAAAAAAQAAAAEAAACAY3R0cwAAAAAAAAAOAAAAAQAAEAAAAAABAAAoAAAAAAEAABAAAAAAAQAAAAAAAAABAAAIAAAAAAEAACgAAAAAAQAAEAAAAAABAAAAAAAAAAEAAAgAAAAAAQAAKAAAAAABAAAQAAAAAAEAAAAAAAAAAQAACAAAAAABAAAQAAAAABxzdHNjAAAAAAAAAAEAAAABAAAADgAAAAEAAABMc3RzegAAAAAAAAAAAAAADgAAAugAAAAQAAAADQAAAA0AAAANAAAAFgAAAA8AAAANAAAADQAAABYAAAAPAAAADQAAAA0AAAAWAAAAFHN0Y28AAAAAAAAAAQAABBMAAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjYyLjEyLjEwMgAAAAhmcmVlAAADu21kYXQAAAKtBgX//6ncRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY1IHIzMjIzIDA0ODBjYjAgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDI1IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MTEzIG1lPWhleCBzdWJtZT03IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4OGRjdD0xIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9NCBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTMgYl9weXJhbWlkPTIgYl9hZGFwdD0xIGJfYmlhcz0wIGRpcmVjdD0xIHdlaWdodGI9MSBvcGVuX2dvcD0wIHdlaWdodHA9MiBrZXlpbnQ9MjUwIGtleWludF9taW49NiBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAADNliIQAE//+97GPgU2zJUWXOop6H+EVsfSQUXqx3VKsQJrKTGfa6KC5AgAO0AF/FvX64OEAAAAMQZokbEEv/rUqgAesAAAACUGeQniCHwAJuQAAAAkBnmF0Q/8AFbAAAAAJAZ5jakP/ABWxAAAAEkGaaEmoQWiZTAgl//61KoAHrQAAAAtBnoZFESwQ/wAJuQAAAAkBnqV0Q/8AFbEAAAAJAZ6nakP/ABWwAAAAEkGarEmoQWyZTAgh//6qVQAPWAAAAAtBnspFFSwQ/wAJuQAAAAkBnul0Q/8AFbAAAAAJAZ7rakP/ABWwAAAAEkGa7UmoQWyZTAh///6plgA8IQ==";
+
+const CASOS_VIDEO = [
+  ["Con el video cargado", { nombre: "Rosa Beatriz Giménez", video: VIDEO_FALSO }],
+  ["Todavía sin video", { nombre: "Héctor Suárez", video: "" }],
+  ["El video falla al cargar", { nombre: "María Inés", video: "http://localhost:5173/dev/no-existe-este-video.mp4" }],
+];
+
+function VistaVideoDemo() {
+  const [caso, setCaso] = useState(0);
+  const btn = (activo) => ({
+    minHeight: 44, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13,
+    background: activo ? "#fff" : "#1c1c1c", color: activo ? "#111" : "#bbb", border: "1px solid #343434",
+  });
+  return (
+    <>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {CASOS_VIDEO.map(([label], i) => (
+          <button key={label} style={btn(caso === i)} onClick={() => setCaso(i)}>{label}</button>
+        ))}
+      </div>
+      <div style={{ border: "1px solid #343434", borderRadius: 12, overflow: "hidden" }}>
+        <VistaVideoAlumno key={caso} {...CASOS_VIDEO[caso][1]} onSalir={() => alert("Salir")} />
+      </div>
+    </>
+  );
+}
+
 function Panel({ titulo, children, nota }) {
   return (
     <section style={{ marginBottom: 40 }}>
@@ -201,6 +236,13 @@ function Harness() {
           Los componentes reales del panel admin, con datos falsos y sin login.
           Lo que se ve acá es lo que ve el admin en la app.
         </p>
+
+        <Panel
+          titulo="Pantalla del alumno «solo video»"
+          nota="Lo que ve un adulto mayor al entrar: saludo, video y nada más. Probar los tres estados con los botones. El texto no baja de 20px, el botón de reproducir mide 72px de alto y Salir queda abajo, chico y separado."
+        >
+          <VistaVideoDemo />
+        </Panel>
 
         <Panel
           titulo="Editor de ejercicios"

@@ -201,7 +201,10 @@ function limpiarPayload(obj) {
 // Las fotos se hidratan aparte con cargarFotos() y se guardan solo cuando
 // cambian con guardarFotoAlumno().
 const COLS_ALUMNO_SIN_FOTO =
-  "id,nombre,username,codigo,peso,altura,edad,fecha_nacimiento,email,tipo,plan_type,modalidad,horarios,bioimpedancia,rm,asistencia,diario,plan_movilidad,plan_calor,plan_activacion,plan_periodizacion";
+  // video_movilidad (2026-08-09): path del video del alumno tipo="video" — es
+  // lo ÚNICO que ve esa pantalla, así que tiene que venir en la carga inicial
+  // y en el login, no hidratarse después.
+  "id,nombre,username,codigo,peso,altura,edad,fecha_nacimiento,email,tipo,plan_type,modalidad,video_movilidad,horarios,bioimpedancia,rm,asistencia,diario,plan_movilidad,plan_calor,plan_activacion,plan_periodizacion";
 
 // Convierte un array crudo de plan_dias (con plan_ejercicios embebido) al
 // shape { dia, subtitulo, ejercicios } que usa el resto de la app — mismo
@@ -322,6 +325,7 @@ export async function cargarDatos(fallback) {
         tipo:          row.tipo          || "entrenamiento",
         plan_type:     row.plan_type     || null,
         modalidad:     row.modalidad     || "",
+        video_movilidad: row.video_movilidad || "", // 2026-08-09, alumnos tipo="video"
         foto:          "", // se hidrata después con cargarFotos()
         horarios:      row.horarios      || [],
         bioimpedancia: row.bioimpedancia || [],
@@ -406,6 +410,7 @@ export async function insertAlumno(al) {
     email:              al.email              || null,
     tipo:               al.tipo, // undefined se elimina en limpiarPayload
     modalidad:          al.modalidad, // puede no existir la columna (migración 009) — hay fallback abajo
+    video_movilidad:    al.video_movilidad, // 2026-08-09 (migración 032); undefined se elimina en limpiarPayload
     foto:               al.foto               || '',
     horarios:           al.horarios           || [],
     bioimpedancia:      al.bioimpedancia      || [],
@@ -483,6 +488,7 @@ export function payloadAlumno(al) {
     email:              al.email              || null,
     tipo:               al.tipo, // undefined se elimina en limpiarPayload
     modalidad:          al.modalidad, // puede no existir la columna (migración 009) — hay fallback abajo
+    video_movilidad:    al.video_movilidad, // 2026-08-09 (migración 032); undefined se elimina en limpiarPayload
     // foto NO va acá a propósito: se guarda solo vía guardarFotoAlumno()
     horarios:           al.horarios           || [],
     bioimpedancia:      al.bioimpedancia      || [],
