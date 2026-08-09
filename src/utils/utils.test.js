@@ -13,6 +13,53 @@ import { describe, expect, it } from "vitest";
 import { calcularEdad, getYTId, hoy } from "./helpers.js";
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
 import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
+import { _columnasCambiadas } from "../../services/supabase.js";
+
+// El bug que este test evita es el que Lucas reportó como "cambio algo en
+// planificación y vuelve a lo mismo": el guardado mandaba las 20 columnas del
+// alumno de una, así que una pestaña con el estado viejo revertía TODO lo que
+// había hecho la otra. Mandando solo lo que cambió, dos pantallas editando
+// cosas distintas del mismo alumno dejan de pisarse.
+describe("_columnasCambiadas (guardado parcial del alumno)", () => {
+  const base = {
+    id: "a1",
+    nombre: "Agustina",
+    peso: 60,
+    rm: { squat: 80 },
+    plan_periodizacion: [{ semana: 1, series: 2, reps: 6 }],
+  };
+
+  it("sin payload previo devuelve null, para que se escriba la fila completa", () => {
+    expect(_columnasCambiadas(undefined, base)).toBe(null);
+    expect(_columnasCambiadas(null, base)).toBe(null);
+  });
+
+  it("sin cambios devuelve un objeto vacío, no la fila entera", () => {
+    expect(_columnasCambiadas(base, { ...base })).toEqual({});
+  });
+
+  it("devuelve SOLO la columna que cambió", () => {
+    const actual = { ...base, peso: 62 };
+    expect(_columnasCambiadas(base, actual)).toEqual({ peso: 62 });
+  });
+
+  it("detecta cambios adentro de un jsonb, donde comparar por identidad fallaría", () => {
+    const actual = { ...base, plan_periodizacion: [{ semana: 1, series: 5, reps: 6 }] };
+    const diff = _columnasCambiadas(base, actual);
+    expect(Object.keys(diff)).toEqual(["plan_periodizacion"]);
+    expect(diff.plan_periodizacion[0].series).toBe(5);
+  });
+
+  it("un jsonb con el mismo contenido pero otra referencia NO cuenta como cambio", () => {
+    const actual = { ...base, rm: { squat: 80 } };
+    expect(_columnasCambiadas(base, actual)).toEqual({});
+  });
+
+  it("nunca incluye el id entre las columnas a escribir", () => {
+    const actual = { ...base, nombre: "Maria Agustina" };
+    expect(_columnasCambiadas(base, actual)).toEqual({ nombre: "Maria Agustina" });
+  });
+});
 
 describe("resolverGif", () => {
   // El bug que este test evita: usar gif:"" para "sacar el GIF" no lo saca —

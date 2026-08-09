@@ -466,25 +466,11 @@ export async function insertAlumno(al) {
 //   Solo corre si alumnos.length > 0 (evita guardar array vacío al arrancar).
 // ══════════════════════════════════════════════════════════════════════
 
-export async function guardarDatos(alumnos) {
-  // Nunca guardar un array vacío (evita sobreescribir con nada al arrancar)
-  if (!alumnos || alumnos.length === 0) {
-    LOG("guardarDatos", "⏭️ Array vacío, skip.");
-    return;
-  }
-
-  LOG("guardarDatos", `⏳ Guardando ${alumnos.length} alumno(s)...`);
-
-  for (const al of alumnos) {
-    await _guardarAlumno(al);
-  }
-
-  LOG("guardarDatos", "✅ Guardado completo.");
-}
-
-// Guarda un solo alumno — separado para poder debuggear por individuo
-async function _guardarAlumno(al) {
-  const payload = limpiarPayload({
+// Arma el objeto de columnas de un alumno. Separado de _guardarAlumno para
+// poder comparar el estado actual contra el último guardado y mandar SOLO lo
+// que cambió — ver payloadAlumno/guardarDatos abajo.
+export function payloadAlumno(al) {
+  return limpiarPayload({
     id:                 al.id,
     nombre:             al.nombre,
     username:           al.username           || null,
@@ -507,13 +493,78 @@ async function _guardarAlumno(al) {
     plan_activacion:    al.plan?.activacion    || [],
     plan_periodizacion: al.plan?.periodizacion || [],
   });
+}
 
-  LOG("_guardarAlumno", `→ UPSERT "${al.nombre}" (id: ${al.id})`, payload);
+// Columnas que cambiaron entre el último payload guardado y el actual.
+// Devuelve null si no cambió nada. La comparación es por JSON porque casi
+// todas las columnas interesantes son jsonb (horarios, rm, asistencia,
+// diario, los plan_*), donde === siempre daría distinto.
+export function _columnasCambiadas(previo, actual) {
+  if (!previo) return null; // sin referencia: el llamador manda todo
+  const diff = {};
+  for (const k of Object.keys(actual)) {
+    if (k === "id") continue;
+    if (JSON.stringify(previo[k]) !== JSON.stringify(actual[k])) diff[k] = actual[k];
+  }
+  // Una columna que estaba en el payload previo y desapareció del actual
+  // (limpiarPayload saca los undefined) no se toca: no hay nada que escribir.
+  return Object.keys(diff).length === 0 ? {} : diff;
+}
 
-  let { data, error } = await supabase
-    .from("alumnos")
-    .upsert(payload, { onConflict: "id" })
-    .select("id, nombre");  // pedimos respuesta para confirmar
+/**
+ * Guarda alumnos.
+ *
+ * `previos` es un Map(id → payload de la última vez que se guardó ese alumno).
+ * Si viene, se escribe SOLO lo que cambió con un UPDATE parcial en vez de
+ * pisar la fila completa con un upsert.
+ *
+ * Por qué importa (bug reportado por Lucas el 2026-08-09, "cambio algo y
+ * vuelve a lo mismo"): el upsert mandaba las 20 columnas del alumno, así que
+ * cualquier pestaña con el estado viejo en memoria revertía TODO lo que había
+ * hecho la otra — no solo el campo que ella tocó. Con la app abierta en la
+ * compu y en el celular a la vez (o dos pestañas), los cambios se pisaban
+ * entre sí sin ningún aviso. Mandando solo las columnas tocadas, dos
+ * pantallas editando cosas distintas del mismo alumno ya no se pisan.
+ */
+export async function guardarDatos(alumnos, previos) {
+  // Nunca guardar un array vacío (evita sobreescribir con nada al arrancar)
+  if (!alumnos || alumnos.length === 0) {
+    LOG("guardarDatos", "⏭️ Array vacío, skip.");
+    return;
+  }
+
+  LOG("guardarDatos", `⏳ Guardando ${alumnos.length} alumno(s)...`);
+
+  for (const al of alumnos) {
+    await _guardarAlumno(al, previos instanceof Map ? previos.get(al.id) : undefined);
+  }
+
+  LOG("guardarDatos", "✅ Guardado completo.");
+}
+
+// Guarda un solo alumno — separado para poder debuggear por individuo
+async function _guardarAlumno(al, payloadPrevio) {
+  const completo = payloadAlumno(al);
+
+  // Camino nuevo: si sabemos qué había antes, se escribe solo la diferencia.
+  const diff = _columnasCambiadas(payloadPrevio, completo);
+  if (diff && Object.keys(diff).length === 0) {
+    LOG("_guardarAlumno", `⏭️ "${al.nombre}" sin columnas cambiadas, skip.`);
+    return;
+  }
+  const payload = diff ? { id: al.id, ...diff } : completo;
+  const parcial = Boolean(diff);
+
+  LOG("_guardarAlumno", `→ ${parcial ? `UPDATE parcial (${Object.keys(diff).join(", ")})` : "UPSERT completo"} "${al.nombre}" (id: ${al.id})`, payload);
+
+  // UPDATE cuando sabemos qué cambió (no toca ninguna otra columna), UPSERT
+  // cuando no hay referencia previa (alumno nuevo o primera carga).
+  const escribir = (p) =>
+    parcial
+      ? supabase.from("alumnos").update(p).eq("id", al.id).select("id, nombre")
+      : supabase.from("alumnos").upsert(p, { onConflict: "id" }).select("id, nombre");
+
+  let { data, error } = await escribir(payload);
 
   // Fallback: si la columna "modalidad" no existe todavía (falta migración
   // 009), reintenta sin ese campo — que un campo nuevo no rompa TODO el
@@ -521,7 +572,7 @@ async function _guardarAlumno(al) {
   if (error && "modalidad" in payload && /(column .*modalidad.* does not exist|find the 'modalidad' column)/i.test(error.message || "")) {
     LOG("_guardarAlumno", "⚠️ Columna 'modalidad' no existe todavía (falta migración 009), guardando sin modalidad");
     delete payload.modalidad;
-    ({ data, error } = await supabase.from("alumnos").upsert(payload, { onConflict: "id" }).select("id, nombre"));
+    ({ data, error } = await escribir(payload));
   }
 
   if (error) {
@@ -991,6 +1042,12 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan) {
         gif:         ej.gif         || null,
         unidad:      ej.unidad      || "reps",
         orden:       j,
+        // alumno_plan_id NO es decorativo: la política RLS que deja al ALUMNO
+        // leer sus propios ejercicios filtra por esta columna
+        // (rls_pe_select: alumno_plan_id in (planes del alumno)). Sin llenarla,
+        // el ejercicio existe, el admin lo ve, y el alumno no ve nada —
+        // encontrado el 2026-08-09 con 21 de 105 filas en NULL.
+        ...(isAlumnoPlan ? { alumno_plan_id: idParam } : {}),
       };
       let { error: ejErr } = await supabase.from("plan_ejercicios").insert(row);
       // 23505 = id duplicado (template compartido o guardado concurrente) → reintentar con id nuevo

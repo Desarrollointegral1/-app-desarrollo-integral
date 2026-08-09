@@ -5,6 +5,7 @@ import {
   cargarFotos,
   guardarFotoAlumno,
   guardarDatos,
+  payloadAlumno,
   cargarPesos,
   guardarPesos,
   insertAlumno,
@@ -372,7 +373,7 @@ function FechaRapida({ value, onChange }) {
 // desplazamiento brusco — no dispara mareo vestibular, que es lo que la
 // preferencia intenta evitar. Se la exime puntualmente al final del media
 // query de abajo, el resto de la app sigue respetando la preferencia.
-function GlobalStyles() {
+export function GlobalStyles() {
   return (
     <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } .di-logo3d, .di-logo3d * { animation-duration:9s !important; animation-iteration-count:infinite !important; } }    `}</style>
   );
@@ -832,7 +833,10 @@ function BuscadorEjercicioNombre({ value, sugs, showSugs, setShowSugs, onInputCh
 // cambio a todos los alumnos que tengan este mismo ejercicio — ver
 // propagarEjercicioATodos en services/supabase.js.
 // gif (ronda 12): asociación manual — ver GifPicker arriba.
-function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos }) {
+// export (2026-08-09): lo monta también dev/harness.jsx, el banco de pruebas
+// que permite ver y tocar este editor sin pasar por el login ni por la base.
+// No cambia nada de cómo lo usa App.jsx.
+export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos }) {
   const [editIdx, setEditIdx] = useState(null);
   const [form, setForm] = useState({ nombre: "", desc: "", video: "", mediaLocal: "", gif: "" });
   const [sugs, setSugs] = useState([]); // sugerencias de biblioteca activas
@@ -1421,7 +1425,7 @@ function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], onGuarda
 // ocultarAgregarDia (ronda 6): en Plan → Principales el "+ Dia" de acá abajo era
 // redundante (agregar día ya está arriba con "+ Otro día") — se oculta, y si el
 // plan tiene un solo día tampoco se muestra la fila de pills.
-function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos, ocultarAgregarDia = false }) {
+export function DiasEditor({ dias = [], onChange, biblioteca = [], onGuardarBiblioteca, onGuardarParaTodos, ocultarAgregarDia = false }) {
   const [selDia, setSelDia] = useState(0);
   const [editDia, setEditDia] = useState(false);
   const [diaForm, setDiaForm] = useState({ dia: "", subtitulo: "" });
@@ -7172,6 +7176,12 @@ export default function App() {
   // borrados desde otro dispositivo y reescribía plan_dias completo al pedo.
   const _snapAlumno = (a) => { const { foto, ...rest } = a; return JSON.stringify(rest); };
   const _ultimoGuardado = useRef(new Map());
+  // Payload (columnas de la tabla) tal como quedó en la base la última vez que
+  // se guardó cada alumno. Lo usa guardarDatos para escribir SOLO las columnas
+  // que cambiaron en vez de pisar la fila entera — sin esto, una pestaña con el
+  // estado viejo revierte todo lo que hizo la otra (bug del 2026-08-09).
+  const _ultimoPayload = useRef(new Map());
+  const _snapPayloads = (lista) => new Map(lista.map((a) => [a.id, payloadAlumno(a)]));
   // Carga (o recarga) todos los datos que la sesión actual puede ver. La RLS
   // decide el alcance: un alumno ve solo lo suyo, un admin ve todo. Se setea
   // _primeraVez para que el effect de guardado tome esto como línea base y no
@@ -7195,6 +7205,7 @@ export default function App() {
     if (_primeraVez.current) {
       _primeraVez.current = false;
       _ultimoGuardado.current = new Map(alumnos.map((a) => [a.id, _snapAlumno(a)]));
+      _ultimoPayload.current = _snapPayloads(alumnos);
       return;
     }
     if (_skipNextSave.current) {
@@ -7207,8 +7218,11 @@ export default function App() {
       return;
     }
     console.log(`%c[APP] Cambio en alumnos → guardando ${cambiados.length}/${alumnos.length}...`, "color:#a5b4fc;font-weight:bold");
-    guardarDatos(cambiados);
-    cambiados.forEach((a) => _ultimoGuardado.current.set(a.id, _snapAlumno(a)));
+    guardarDatos(cambiados, _ultimoPayload.current);
+    cambiados.forEach((a) => {
+      _ultimoGuardado.current.set(a.id, _snapAlumno(a));
+      _ultimoPayload.current.set(a.id, payloadAlumno(a));
+    });
   }, [alumnos, cargado]);
   // Persistencia de sesión: al refrescar (F5) la app tiene que mantener al
   // usuario logueado, no mandarlo al login. Solo se cierra sesión con el
