@@ -21,6 +21,7 @@ import { EjercicioEditor, DiasEditor, GlobalStyles, AdminPanel } from "../App.js
 import { SIN_GIF } from "../src/utils/ejerciciosMedia.js";
 import ItemCard from "../src/components/ItemCard.jsx";
 import CatalogoExplorer from "../src/components/CatalogoExplorer.jsx";
+import PlanDelDia from "../src/components/PlanDelDia.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
@@ -269,6 +270,16 @@ const ALUMNO_DEMO = {
       { semana: 3, series: 2, reps: 10, intensidad: "60%", fecha: "24/8", anio: 2026 },
     ],
   },
+  // 2026-08-10 · PERIODIZACIÓN POR DÍA: dos días, uno compartiendo la del
+  // alumno y otro con la suya, que es justo lo que hay que poder distinguir
+  // de un vistazo en la pestaña Periodización.
+  planes: [
+    { id: "ap-1", dia_semana: "Lunes", nombre: "Empuje + Cadera", estado: "activo", dias: [], periodizacion_propia: null },
+    {
+      id: "ap-2", dia_semana: "Jueves", nombre: "Tracción + Rodilla", estado: "activo", dias: [],
+      periodizacion_propia: [{ semana: 1, series: 5, reps: 5, intensidad: "85%", fecha: "10/8", anio: 2026 }],
+    },
+  ],
 };
 function AdminDemo() {
   const [alumnos, setAlumnos] = useState([ALUMNO_DEMO]);
@@ -374,6 +385,63 @@ function VueltasDemo() {
   );
 }
 
+// ESTRUCTURA DEL DÍA (2026-08-10) — el día de Jacobo y el circuito, tal como
+// los ve el ALUMNO. Se monta el PlanDelDia REAL: si acá se ve bien, en la app
+// se ve bien. Es lo único que había forma de verificar a ojo, porque la vista
+// del alumno vive detrás del login con PIN.
+const EJ = (id, nombre, seccion) => ({
+  id, nombre, seccion, desc: "", video: "", gif: "", mediaLocal: "", historial: [], unidad: "reps",
+});
+const PLAN_JACOBO = {
+  dia_semana: "Lunes",
+  periodizacion: [{ semana: 1, series: 4, reps: 10, intensidad: "70%" }],
+  dias: [{
+    dia: "Lunes",
+    subtitulo: "Hipertrofia 2 días · Empuje + Cadera",
+    config: { core: "intercalado" },
+    ejercicios: [
+      EJ("j1", "Press de banca plano con barra", "principal"),
+      EJ("j2", "Peso muerto con barra", "principal"),
+      EJ("j3", "Press Pallof", "core"),
+      EJ("j4", "Fondos de tríceps", "finisher"),
+    ],
+  }],
+};
+const PLAN_CIRCUITO = {
+  dia_semana: "Miércoles",
+  periodizacion: [{ semana: 1, series: 4, reps: 10, intensidad: "70%" }],
+  dias: [{
+    dia: "Miércoles",
+    subtitulo: "Circuito intermitente de fuerza",
+    config: { modo: "tiempo", segundos: 30, rondas: 4 },
+    ejercicios: [
+      EJ("c1", "Press de banca plano con mancuernas", "principal"),
+      EJ("c2", "Remo inclinado con mancuerna", "principal"),
+      EJ("c3", "Press Pallof horizontal con banda", "core"),
+    ],
+  }],
+};
+function PlanDelDiaDemo({ plan }) {
+  const [pesos, setPesos] = useState({});
+  return (
+    <PlanDelDia
+      plan={plan}
+      planValido
+      diasEntrena={[plan.dia_semana]}
+      dia={plan.dias[0]}
+      diaIdx={0}
+      setDiaIdx={() => {}}
+      sem={plan.periodizacion[0]}
+      semanaActual={1}
+      pesos={pesos}
+      historiales={{}}
+      onPeso={(id, v) => setPesos((p) => ({ ...p, [id]: v }))}
+      rm={{}}
+      modoEntrenador
+    />
+  );
+}
+
 function Harness() {
   const [items, setItems] = useState(ITEMS_INICIALES);
   const [dias, setDias] = useState(DIAS_INICIALES);
@@ -457,6 +525,20 @@ function Harness() {
           nota="El plan pide 4 series, así que hay 4 casilleros. Tocar una vuelta la selecciona y el − / + de arriba edita esa. El primero arranca con 2 vueltas ya cargadas; el segundo tiene un registro viejo (un solo número) y debe seguir viéndose bien."
         >
           <VueltasDemo />
+        </Panel>
+
+        <Panel
+          titulo="Vista del alumno · core intercalado y finisher (plan de Jacobo)"
+          nota="El core va ARRIBA del bloque principal porque es intercalado entre rondas: el orden en que se lee es el orden en que se hace, y todo el punto es que no termine siendo lo último. El finisher va último, con su aclaración."
+        >
+          <div data-plan-jacobo><PlanDelDiaDemo plan={PLAN_JACOBO} /></div>
+        </Panel>
+
+        <Panel
+          titulo="Vista del alumno · día por TIEMPO (circuito intermitente de fuerza)"
+          nota="Sin series ni repeticiones: 30 s por ejercicio × 4 rondas, dicho arriba de todo. Las tarjetas muestran los segundos, no kilos por repetición."
+        >
+          <div data-plan-circuito><PlanDelDiaDemo plan={PLAN_CIRCUITO} /></div>
         </Panel>
 
         <Panel titulo="Estado actual (para verificar que los cambios se aplican)">

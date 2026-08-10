@@ -5777,7 +5777,87 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                     </div>
                   );
                 })()}
-                <PeriodizacionEditor data={al.plan.periodizacion} onChange={guardarPeriodizacionAlumno} />
+                {/* ── QUÉ DÍAS COMPARTEN Y CUÁL TIENE LA SUYA (2026-08-10) ──
+                    Pedido de Lucas: "cada día tiene su progresión y puede
+                    tener una planificación distinta o no... un día puede
+                    estar haciendo fuerza el otro volumen". El caso normal es
+                    UNA sola compartida, así que el chip "Todos los días" va
+                    primero y separar un día es explícito. Sin esta lista, en
+                    tres meses no hay forma de entender por qué un día
+                    progresa distinto. */}
+                {(() => {
+                  const planesReales = (al.planes || []).filter((p) => p && !p._sintetico);
+                  if (planesReales.length === 0) return null;
+                  const planSel = planesReales.find((p) => p.id === perDiaSel) || null;
+                  const propios = planesReales.filter(esPeriodizacionDiaPropia);
+                  return (
+                    <div style={{ ...innerCard, padding: "10px 12px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, color: S.gray, marginBottom: 8 }}>
+                        {propios.length === 0
+                          ? "Los días comparten esta misma progresión. Tocá un día para darle la suya."
+                          : `${propios.length} día(s) con progresión propia — los demás comparten la del alumno.`}
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button onClick={() => setPerDiaSel(null)} style={smallBtn(perDiaSel === null ? S.white : S.gray)}>
+                          Todos los días
+                        </button>
+                        {planesReales.map((p) => {
+                          const propia = esPeriodizacionDiaPropia(p);
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={() => setPerDiaSel(p.id)}
+                              title={propia ? "Este día tiene su propia progresión" : "Este día comparte la del alumno"}
+                              style={{ ...smallBtn(perDiaSel === p.id ? S.white : propia ? S.green : S.gray) }}
+                            >
+                              {p.dia_semana}{propia ? " · propia" : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {planSel && (
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+                          <span style={{ fontSize: 13, color: esPeriodizacionDiaPropia(planSel) ? S.white : S.green, fontWeight: 700 }}>
+                            {esPeriodizacionDiaPropia(planSel)
+                              ? `${planSel.dia_semana} tiene su propia progresión`
+                              : `${planSel.dia_semana} comparte la del alumno`}
+                          </span>
+                          {esPeriodizacionDiaPropia(planSel) ? (
+                            <button onClick={() => volverACompartirPeriodizacion(planSel)} style={smallBtn(S.gray)}>
+                              Volver a compartir
+                            </button>
+                          ) : (
+                            <button onClick={() => hacerPeriodizacionPropiaDelDia(planSel)} style={smallBtn(S.white)}>
+                              Darle progresión propia
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  // El editor edita lo que esté seleccionado: la del alumno
+                  // (que baja a todos los días que comparten) o la de UN día.
+                  const planSel = (al.planes || []).find((p) => p && !p._sintetico && p.id === perDiaSel) || null;
+                  if (!planSel) return <PeriodizacionEditor data={al.plan.periodizacion} onChange={guardarPeriodizacionAlumno} />;
+                  if (!esPeriodizacionDiaPropia(planSel)) {
+                    // Editar acá sin haber separado el día editaría la del
+                    // alumno creyendo que se edita la del día — el error más
+                    // fácil de cometer y el más difícil de notar después.
+                    return (
+                      <div style={{ ...card, padding: "16px 14px", textAlign: "center", color: S.gray, fontSize: 13 }}>
+                        {planSel.dia_semana} usa la progresión del alumno. Para cambiarle solo a este día, primero dale progresión propia.
+                      </div>
+                    );
+                  }
+                  return (
+                    <PeriodizacionEditor
+                      data={periodizacionDelDia(planSel, al.plan.periodizacion)}
+                      onChange={(semanas) => guardarPeriodizacionDelDia(planSel, semanas)}
+                    />
+                  );
+                })()}
               </div>
             )}{" "}
             {planesTab === "plan-dias" && al && (() => {

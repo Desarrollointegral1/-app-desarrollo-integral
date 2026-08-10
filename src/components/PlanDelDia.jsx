@@ -4,6 +4,14 @@ import { S, card, tabBtn, tabN2, segTrack, segChip, n4Track, chipN4 } from "../u
 import { RM_EJS, hoy, getYTId } from "../utils/helpers.js";
 import { getAppConfig, getPrepGlobales } from "../../services/supabase.js";
 import { listaDeAlumno } from "../utils/preparacion.js";
+import {
+  bloquesDelDia,
+  configDia,
+  prescripcionDelDia,
+  textoModo,
+  textoCore,
+  TEXTO_FINISHER,
+} from "../utils/estructuraDia.js";
 import ItemCard from "./ItemCard.jsx";
 import ResumenPlanModal from "./ResumenPlanModal.jsx";
 
@@ -446,39 +454,108 @@ export default function PlanDelDia({
               {dia.subtitulo}
             </button>
           )}
-          {(dia.ejercicios || []).map((ej, i) => {
-            const rmKey = RM_EJS.find(
-              (k) =>
-                ej.nombre.toLowerCase().includes(k.toLowerCase().split(" ")[0]) ||
-                k.toLowerCase().includes(ej.nombre.toLowerCase().split(" ")[0]),
+          {/* ── LOS TRES BLOQUES DEL DÍA (2026-08-10) ──
+              Antes esto era una lista plana y por eso el plan real de Jacobo
+              no entraba: su core va INTERCALADO entre rondas ("core integrado
+              entre rondas, no al final") y sus fondos/bíceps son un finisher
+              ("solo cuando todo lo demás está hecho"). En una lista plana las
+              dos cosas quedan escritas últimas y el alumno las hace últimas.
+              Un día sin core ni finisher se ve EXACTAMENTE igual que antes:
+              los encabezados solo aparecen si el bloque tiene ejercicios. */}
+          {(() => {
+            const cfg = configDia(dia);
+            // En modo tiempo no hay semana de periodización que valga: la
+            // prescripción son 30 s por ejercicio × 4 rondas.
+            const semDia = prescripcionDelDia(dia, sem);
+            const bloques = bloquesDelDia(dia);
+            const hayBloques = bloques.core.length > 0 || bloques.finisher.length > 0;
+            const modo = textoModo(dia);
+
+            const Tarjeta = (ej, i) => {
+              const rmKey = RM_EJS.find(
+                (k) =>
+                  ej.nombre.toLowerCase().includes(k.toLowerCase().split(" ")[0]) ||
+                  k.toLowerCase().includes(ej.nombre.toLowerCase().split(" ")[0]),
+              );
+              const rmDato = rmKey && rm && rm[rmKey];
+              const pct = semDia.intensidad ? Number(String(semDia.intensidad).replace("%", "")) : null;
+              const pesoSugerido = rmDato && rmDato.peso > 0 && pct ? Math.round((rmDato.peso * pct) / 100) : null;
+              return (
+                <ItemCard
+                  key={ej.id}
+                  numero={i + 1}
+                  nombre={ej.nombre}
+                  desc={ej.desc}
+                  video={ej.video}
+                  mediaLocal={ej.mediaLocal}
+                  gif={ej.gif}
+                  showPeso
+                  semana={semDia}
+                  peso={pesos[ej.id] || 0}
+                  historial={historiales[ej.id] || []}
+                  pesoAnterior={pesoAnteriorDe(ej.id)}
+                  onPesoChange={(v) => onPeso(ej.id, v)}
+                  vueltas={pesosPorVuelta ? pesosPorVuelta[ej.id] : undefined}
+                  seriesPlan={semDia?.series}
+                  onVueltaChange={onPesoVuelta ? (serie, v) => onPesoVuelta(ej.id, serie, v) : undefined}
+                  pesoSugerido={pesoSugerido}
+                  intensidad={semDia.intensidad}
+                  unidad={cfg.modo === "tiempo" ? "segundos" : ej.unidad}
+                />
+              );
+            };
+
+            const Encabezado = ({ titulo, aclaracion }) => (
+              <div style={{ margin: "18px 0 10px" }}>
+                <div style={{ color: S.white, fontSize: 15, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase" }}>
+                  {titulo}
+                </div>
+                {aclaracion && (
+                  <div style={{ color: S.gray, fontSize: 14, lineHeight: 1.45, marginTop: 3 }}>{aclaracion}</div>
+                )}
+              </div>
             );
-            const rmDato = rmKey && rm && rm[rmKey];
-            const pct = sem.intensidad ? Number(sem.intensidad.replace("%", "")) : null;
-            const pesoSugerido = rmDato && rmDato.peso > 0 && pct ? Math.round((rmDato.peso * pct) / 100) : null;
+
             return (
-              <ItemCard
-                key={ej.id}
-                numero={i + 1}
-                nombre={ej.nombre}
-                desc={ej.desc}
-                video={ej.video}
-                mediaLocal={ej.mediaLocal}
-                gif={ej.gif}
-                showPeso
-                semana={sem}
-                peso={pesos[ej.id] || 0}
-                historial={historiales[ej.id] || []}
-                pesoAnterior={pesoAnteriorDe(ej.id)}
-                onPesoChange={(v) => onPeso(ej.id, v)}
-                vueltas={pesosPorVuelta ? pesosPorVuelta[ej.id] : undefined}
-                seriesPlan={sem?.series}
-                onVueltaChange={onPesoVuelta ? (serie, v) => onPesoVuelta(ej.id, serie, v) : undefined}
-                pesoSugerido={pesoSugerido}
-                intensidad={sem.intensidad}
-                unidad={ej.unidad}
-              />
+              <>
+                {/* Si el día va por tiempo, se dice arriba de todo y con las
+                    dos cifras que importan: no hay series ni repeticiones que
+                    mirar en la periodización. */}
+                {modo && (
+                  <div style={{ ...card, padding: "10px 12px", marginBottom: 12, textAlign: "center" }}>
+                    <div style={{ color: S.white, fontWeight: 800, fontSize: 15 }}>{modo}</div>
+                    <div style={{ color: S.gray, fontSize: 14, marginTop: 2 }}>
+                      Sin repeticiones: hacés el ejercicio durante el tiempo indicado y pasás al siguiente.
+                    </div>
+                  </div>
+                )}
+
+                {/* El core INTERCALADO va ARRIBA del bloque principal a
+                    propósito: el orden en que se lee es el orden en que se
+                    hace, y todo el punto de Lucas es que ese core no termine
+                    siendo lo último. El core "al final" sí va después. */}
+                {cfg.core === "intercalado" && bloques.core.length > 0 && (
+                  <>
+                    <Encabezado titulo="Core" aclaracion={textoCore(dia)} />
+                    {bloques.core.map(Tarjeta)}
+                  </>
+                )}
+
+                {hayBloques && bloques.principal.length > 0 && <Encabezado titulo="Bloque principal" />}
+                {bloques.principal.map(Tarjeta)}
+
+                {cfg.core === "final" && bloques.core.length > 0 && (
+                  <>
+                    <Encabezado titulo="Core" aclaracion={textoCore(dia)} />
+                    {bloques.core.map(Tarjeta)}
+                  </>
+                )}
+
+                {bloques.finisher.length > 0 && <Encabezado titulo="Finisher" aclaracion={TEXTO_FINISHER} />}
+                {bloques.finisher.map(Tarjeta)}
+              </>
             );
-          })}
+          })()}
           {/* ── REGISTRAR DÍA (ronda 8): cierre de la sesión de hoy. Los pesos
               se autoguardan igual mientras se cargan; este botón confirma la
               sesión: re-sincroniza los pesos de hoy, marca la asistencia si no

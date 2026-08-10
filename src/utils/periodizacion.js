@@ -107,6 +107,59 @@ export function conPeriodizacionEditada(al, semanas) {
   return conPrepPropia(al, PERIODIZACION_ID, semanas);
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// NIVEL 3 · LA PERIODIZACIÓN DEL DÍA (2026-08-10)
+//
+// Pedido de Lucas: "cada día tiene su progresión y puede tener una
+// planificación distinta o no, depende de cómo esté montado; si todos los días
+// hace el mismo ejercicio seguramente es la misma planificación y progresión,
+// o un día puede estar haciendo fuerza el otro volumen".
+//
+// El caso NORMAL es una sola periodización compartida por todos los días, así
+// que partirla no puede ser obligatorio. Es la MISMA herencia de arriba, un
+// escalón más abajo: alumno → día (alumno_planes).
+//
+//   sin periodización propia (columna NULL) → el día usa la del alumno
+//   con periodización propia (array)        → nunca se pisa desde el alumno
+//
+// A diferencia de los niveles 1-2, acá la marca NO es una entrada en
+// rm.prep_propias: el contenido y la marca son la misma columna
+// (alumno_planes.periodizacion). Motivo concreto: la marca de arriba vive en
+// el alumno, y un alumno tiene N días — habría que indexarla por id de plan y
+// mantener dos cosas sincronizadas para no ganar nada. NULL/array alcanza y no
+// se puede desincronizar.
+//
+// La herencia se resuelve al LEER, en el cargador (services/supabase.js), y
+// deja el resultado en plan.periodizacion: los muchos lugares que leen
+// plan.periodizacion directo (PlanDelDia, el PDF, el reporte mensual) siguen
+// funcionando sin tocar ninguno. El crudo se conserva aparte en
+// plan.periodizacion_propia, que es lo único que mira la pantalla del admin.
+// ══════════════════════════════════════════════════════════════════════
+
+// ¿Este día tiene periodización PROPIA (o comparte la del alumno)?
+export const esPeriodizacionDiaPropia = (plan) =>
+  Array.isArray(plan?.periodizacion_propia) && plan.periodizacion_propia.length > 0;
+
+// Las semanas que le corresponden a un día: las suyas si las tiene, si no las
+// del alumno.
+export const periodizacionDelDia = (plan, semanasAlumno) =>
+  esPeriodizacionDiaPropia(plan) ? plan.periodizacion_propia : (semanasAlumno || []);
+
+// Resumen para la pantalla: qué días comparten y cuál tiene la suya. Sin esto,
+// en tres meses no hay forma de entender por qué un día progresa distinto.
+// Se saltean los planes sintéticos ("Fijo"): no son filas de alumno_planes, no
+// tienen dónde guardar una periodización propia.
+export function resumenPeriodizacionDias(planes) {
+  return (planes || [])
+    .filter((p) => p && !p._sintetico)
+    .map((p) => ({
+      id: p.id,
+      dia: p.dia_semana || p.nombre || "Día",
+      propia: esPeriodizacionDiaPropia(p),
+      semanas: p.periodizacion_propia || [],
+    }));
+}
+
 // Al guardar un predeterminado en la Biblioteca: se lo baja a todos los alumnos
 // que lo heredan y no lo tocaron. Los que tienen la suya propia no se tocan.
 // Puro: devuelve el array nuevo y el guardado normal de alumnos persiste solo

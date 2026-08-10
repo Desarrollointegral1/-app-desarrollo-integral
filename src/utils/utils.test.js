@@ -18,7 +18,11 @@ import { listaDeAlumno, conPrepPropia, sinPrepPropia, esPrepPropia } from "./pre
 import {
   conPeriodizacionDe, conPeriodizacionEditada, esPeriodizacionPropia,
   refPeriodizacion, propagarPeriodizacion,
+  esPeriodizacionDiaPropia, periodizacionDelDia, resumenPeriodizacionDias,
 } from "./periodizacion.js";
+import {
+  bloquesDelDia, configDia, esPorTiempo, prescripcionDelDia, textoModo, textoCore,
+} from "./estructuraDia.js";
 import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
   setVuelta, cantidadDeVueltas, resumenVueltas,
@@ -552,5 +556,152 @@ describe("variantes de plan → plan asignable", () => {
     expect(g.map((x) => x.familia)).toEqual(["full_body_avanzado", "ppl"]);
     expect(g[1].variantes.map((v) => v.dia_ciclo)).toEqual([1, 3]);
     expect(g[1].descripcion).toBe("Rutina tradicional de 3 días");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// PERIODIZACIÓN POR DÍA + ESTRUCTURA DEL DÍA (2026-08-10)
+// ══════════════════════════════════════════════════════════════════════
+
+describe("periodizacion — herencia POR DÍA (alumno → día)", () => {
+  const DEL_ALUMNO = [
+    { semana: 1, series: 3, reps: 10, intensidad: "70%" },
+    { semana: 2, series: 3, reps: 12, intensidad: "70%" },
+  ];
+  const PROPIA = [{ semana: 1, series: 5, reps: 5, intensidad: "85%" }];
+
+  it("el día sin periodización propia usa la del alumno", () => {
+    const dia = { id: "p1", dia_semana: "Lunes", periodizacion_propia: null };
+    expect(esPeriodizacionDiaPropia(dia)).toBe(false);
+    expect(periodizacionDelDia(dia, DEL_ALUMNO)).toEqual(DEL_ALUMNO);
+  });
+
+  it("un array vacío NO cuenta como propia — sigue heredando", () => {
+    // Importa: guardarPeriodizacionDia normaliza [] a NULL, pero un dato viejo
+    // o un guardado a medias no puede dejar al día sin ninguna progresión.
+    const dia = { id: "p1", periodizacion_propia: [] };
+    expect(esPeriodizacionDiaPropia(dia)).toBe(false);
+    expect(periodizacionDelDia(dia, DEL_ALUMNO)).toEqual(DEL_ALUMNO);
+  });
+
+  it("el día con la suya no se pisa desde el alumno (fuerza un día, volumen el otro)", () => {
+    const lunes = { id: "p1", dia_semana: "Lunes", periodizacion_propia: PROPIA };
+    const jueves = { id: "p2", dia_semana: "Jueves", periodizacion_propia: null };
+    expect(periodizacionDelDia(lunes, DEL_ALUMNO)).toEqual(PROPIA);
+    expect(periodizacionDelDia(jueves, DEL_ALUMNO)).toEqual(DEL_ALUMNO);
+  });
+
+  it("el resumen dice de un vistazo quién comparte y quién no, y saltea el plan sintético", () => {
+    const r = resumenPeriodizacionDias([
+      { id: "p1", dia_semana: "Lunes", periodizacion_propia: PROPIA },
+      { id: "p2", dia_semana: "Jueves", periodizacion_propia: null },
+      { id: "p3", dia_semana: "Fijo", _sintetico: true, periodizacion_propia: null },
+    ]);
+    expect(r.map((x) => [x.dia, x.propia])).toEqual([["Lunes", true], ["Jueves", false]]);
+  });
+});
+
+describe("estructura del día — bloques, core y modo por tiempo", () => {
+  const DIA_PLANO = {
+    dia: "Sesión",
+    ejercicios: [{ id: "a", nombre: "Press" }, { id: "b", nombre: "Remo" }],
+  };
+  const DIA_JACOBO = {
+    dia: "Día 1",
+    config: { core: "intercalado" },
+    ejercicios: [
+      { id: "a", nombre: "Press de banca", seccion: "principal" },
+      { id: "b", nombre: "Press Pallof", seccion: "core" },
+      { id: "c", nombre: "Fondos de tríceps", seccion: "finisher" },
+    ],
+  };
+  const DIA_CIRCUITO = {
+    dia: "Sesión",
+    config: { modo: "tiempo", segundos: 30, rondas: 4 },
+    ejercicios: [{ id: "a", nombre: "Sentadilla" }],
+  };
+
+  it("un día viejo, sin nada nuevo, se comporta igual que antes", () => {
+    // Esta es LA prueba de que la migración no cambia nada: todo al bloque
+    // principal, modo repeticiones, core al final.
+    const b = bloquesDelDia(DIA_PLANO);
+    expect(b.principal.length).toBe(2);
+    expect(b.core).toEqual([]);
+    expect(b.finisher).toEqual([]);
+    expect(configDia(DIA_PLANO)).toMatchObject({ modo: "reps", core: "final" });
+    expect(esPorTiempo(DIA_PLANO)).toBe(false);
+    expect(textoModo(DIA_PLANO)).toBe("");
+  });
+
+  it("parte el día de Jacobo en principal · core · finisher", () => {
+    const b = bloquesDelDia(DIA_JACOBO);
+    expect(b.principal.map((e) => e.id)).toEqual(["a"]);
+    expect(b.core.map((e) => e.id)).toEqual(["b"]);
+    expect(b.finisher.map((e) => e.id)).toEqual(["c"]);
+    expect(configDia(DIA_JACOBO).core).toBe("intercalado");
+    expect(textoCore(DIA_JACOBO)).toMatch(/Entre rondas/);
+  });
+
+  it("una sección inventada NO desaparece: cae al bloque principal", () => {
+    const b = bloquesDelDia({ ejercicios: [{ id: "x", seccion: "abdominales" }] });
+    expect(b.principal.map((e) => e.id)).toEqual(["x"]);
+  });
+
+  it("modo tiempo: la prescripción son segundos y rondas, no series y reps", () => {
+    expect(esPorTiempo(DIA_CIRCUITO)).toBe(true);
+    const semana = { series: 3, reps: 10, intensidad: "70%" };
+    expect(prescripcionDelDia(DIA_CIRCUITO, semana)).toEqual({ series: 4, reps: "30 s", intensidad: "" });
+    // En modo repeticiones la semana de la periodización pasa intacta.
+    expect(prescripcionDelDia(DIA_PLANO, semana)).toBe(semana);
+    expect(textoModo(DIA_CIRCUITO)).toBe("30 s por ejercicio · 4 rondas");
+  });
+
+  it("modo tiempo mal cargado usa 30 s x 4 rondas en vez de mostrar 'undefined s'", () => {
+    expect(textoModo({ config: { modo: "tiempo" } })).toBe("30 s por ejercicio · 4 rondas");
+  });
+});
+
+describe("varianteAPlan — secciones y estructura del día", () => {
+  it("una variante vieja (sin seccion ni config) sigue dando un día plano", () => {
+    const vieja = {
+      nombre: "Full body avanzado",
+      familia: "full_body_avanzado",
+      ejercicios: [{ nombre: "Press de banca", catalogo_id: "3" }, { nombre: "Sentadilla búlgara", catalogo_id: "1" }],
+    };
+    const p = varianteAPlan(vieja, CATALOGO);
+    expect(p.dias[0].config).toEqual({});
+    expect(p.dias[0].ejercicios.every((e) => e.seccion === "principal")).toBe(true);
+  });
+
+  it("lleva core, finisher y config de la variante al día", () => {
+    const v = {
+      nombre: "Hipertrofia · Día 1",
+      familia: "hipertrofia_2",
+      dia_ciclo: 1,
+      config: { core: "intercalado" },
+      ejercicios: [
+        { nombre: "Press de banca", catalogo_id: "0025" },
+        { nombre: "Press Pallof", catalogo_id: "0979", seccion: "core" },
+        { nombre: "Fondos de tríceps", catalogo_id: "0814", seccion: "finisher" },
+      ],
+    };
+    const dia = varianteAPlan(v, CATALOGO).dias[0];
+    expect(dia.config).toEqual({ core: "intercalado" });
+    expect(dia.ejercicios.map((e) => e.seccion)).toEqual(["principal", "core", "finisher"]);
+    const b = bloquesDelDia(dia);
+    expect(b.core.length).toBe(1);
+    expect(b.finisher.length).toBe(1);
+  });
+
+  it("en modo tiempo todos los ejercicios quedan en segundos, sin marcarlos uno por uno", () => {
+    const v = {
+      nombre: "Circuito intermitente de fuerza",
+      familia: "circuito",
+      config: { modo: "tiempo", segundos: 30, rondas: 4 },
+      ejercicios: [{ nombre: "Sentadilla con barra", catalogo_id: "0043" }],
+    };
+    const dia = varianteAPlan(v, CATALOGO).dias[0];
+    expect(dia.ejercicios.every((e) => e.unidad === "segundos")).toBe(true);
+    expect(esPorTiempo(dia)).toBe(true);
   });
 });

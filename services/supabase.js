@@ -216,20 +216,33 @@ function _mapDiasEmbebidos(diasRaw) {
     .map((d) => ({
       dia:       d.dia,
       subtitulo: d.subtitulo || "",
+      // Estructura del día (2026-08-10, migración 037): core intercalado o al
+      // final, finisher, y modo por tiempo. {} = como estaba antes.
+      config:    d.config || {},
       ejercicios: [...(d.plan_ejercicios || [])]
         .sort((a, b) => a.orden - b.orden)
-        .map((e) => ({
-          id:         e.id,
-          nombre:     e.nombre      || "",
-          desc:       e.descripcion || "",
-          video:      e.video       || "",
-          codigo:     e.codigo      || "",
-          gif:        e.gif         || "",
-          unidad:     e.unidad      || "reps",
-          mediaLocal: "",
-          historial:  [],
-        })),
+        .map(_mapEjercicio),
     }));
+}
+
+// Un solo mapeo de plan_ejercicios para los cuatro lugares que lo hacían
+// copiado (cargarDatos, getPlanDias, getPlanEjercicios, getPlanDiasPorAlumnoPlan).
+// Se unificó al sumar `seccion` (2026-08-10): con cuatro copias, agregar un
+// campo es agregarlo cuatro veces y olvidarse en una — y olvidarse acá
+// significa que el core de un día vuelve a ser un ejercicio principal.
+function _mapEjercicio(e) {
+  return {
+    id:         e.id,
+    nombre:     e.nombre      || "",
+    desc:       e.descripcion || "",
+    video:      e.video       || "",
+    codigo:     e.codigo      || "",
+    gif:        e.gif         || "",
+    unidad:     e.unidad      || "reps",
+    seccion:    e.seccion     || "principal",
+    mediaLocal: "",
+    historial:  [],
+  };
 }
 
 export async function cargarDatos(fallback) {
@@ -257,11 +270,11 @@ export async function cargarDatos(fallback) {
       // embebido suelto se queda solo para el plan sintético "Fijo", que sí
       // se guarda por alumno_id.
       .select(`${COLS_ALUMNO_SIN_FOTO},
-        alumno_planes(id, dia_semana, nombre, estado,
-          plan_dias(id, dia, subtitulo, orden,
-            plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))),
-        plan_dias(id, dia, subtitulo, orden, alumno_plan_id,
-          plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, orden))`)
+        alumno_planes(id, dia_semana, nombre, estado, periodizacion,
+          plan_dias(id, dia, subtitulo, orden, config,
+            plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, seccion, orden))),
+        plan_dias(id, dia, subtitulo, orden, alumno_plan_id, config,
+          plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, seccion, orden))`)
       // 2026-08-04: los archivados (ver deleteAlumno/migración 030) no
       // aparecen en el listado normal del Dashboard.
       .eq("archivado", false)
@@ -291,7 +304,13 @@ export async function cargarDatos(fallback) {
             movilidad:     row.plan_movilidad     || [],
             calor:         row.plan_calor         || [],
             activacion:    row.plan_activacion    || [],
-            periodizacion: row.plan_periodizacion || [],
+            // PERIODIZACIÓN POR DÍA (2026-08-10, migración 037): la herencia
+            // se resuelve ACÁ y `periodizacion` queda siendo la efectiva, así
+            // los muchos lugares que la leen directo (PlanDelDia, PDF,
+            // reporte mensual) no se enteran del cambio. El crudo va aparte
+            // para que la pantalla del admin sepa si el día comparte o no.
+            periodizacion: ap.periodizacion || row.plan_periodizacion || [],
+            periodizacion_propia: ap.periodizacion || null,
           }))
         : [{
             id: makeUuid(),
@@ -644,19 +663,8 @@ export async function getPlanDias(alumno_id) {
   const result = dias.map((d) => ({
     dia:       d.dia,
     subtitulo: d.subtitulo || "",
-    ejercicios: (d.plan_ejercicios || [])
-      .sort((a, b) => a.orden - b.orden)
-      .map((e) => ({
-        id:         e.id,
-        nombre:     e.nombre      || "",
-        desc:       e.descripcion || "",
-        video:      e.video       || "",
-        codigo:     e.codigo      || "",
-        gif:        e.gif         || "",
-        unidad:     e.unidad      || "reps",
-        mediaLocal: "",
-        historial:  [],
-      })),
+    config:    d.config || {},
+    ejercicios: (d.plan_ejercicios || []).sort((a, b) => a.orden - b.orden).map(_mapEjercicio),
   }));
 
   LOG(
@@ -692,17 +700,7 @@ export async function getPlanEjercicios(plan_dia_id) {
   }
 
   LOG("getPlanEjercicios", `✅ ${data?.length ?? 0} ejercicio(s).`);
-  return (data || []).map((e) => ({
-    id:         e.id,
-    nombre:     e.nombre      || "",
-    desc:       e.descripcion || "",
-    video:      e.video       || "",
-    codigo:     e.codigo      || "",
-    gif:        e.gif         || "",
-    unidad:     e.unidad      || "reps",
-    mediaLocal: "",
-    historial:  [],
-  }));
+  return (data || []).map(_mapEjercicio);
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -752,7 +750,9 @@ export async function cargarPlanesXDia(alumno_id, row) {
           movilidad:     row.plan_movilidad     || [],
           calor:         row.plan_calor         || [],
           activacion:    row.plan_activacion    || [],
-          periodizacion: row.plan_periodizacion || [],
+          // Misma herencia por día que en cargarDatos (2026-08-10).
+          periodizacion: ap.periodizacion || row.plan_periodizacion || [],
+          periodizacion_propia: ap.periodizacion || null,
         };
       })
     );
@@ -788,19 +788,8 @@ export async function getPlanDiasPorAlumnoPlan(alumno_plan_id) {
   const result = dias.map((d) => ({
     dia:       d.dia,
     subtitulo: d.subtitulo || "",
-    ejercicios: (d.plan_ejercicios || [])
-      .sort((a, b) => a.orden - b.orden)
-      .map((e) => ({
-        id:         e.id,
-        nombre:     e.nombre      || "",
-        desc:       e.descripcion || "",
-        video:      e.video       || "",
-        codigo:     e.codigo      || "",
-        gif:        e.gif         || "",
-        unidad:     e.unidad      || "reps",
-        mediaLocal: "",
-        historial:  [],
-      })),
+    config:    d.config || {},
+    ejercicios: (d.plan_ejercicios || []).sort((a, b) => a.orden - b.orden).map(_mapEjercicio),
   }));
 
   LOG("getPlanDiasPorAlumnoPlan", `✅ ${result.length} día(s)`);
@@ -834,6 +823,22 @@ export async function renombrarPlanAlumno(alumno_plan_id, nuevoNombre) {
     .eq("id", alumno_plan_id);
   if (error) { ERR("renombrarPlanAlumno", "No se pudo renombrar el plan", error); return false; }
   LOG("renombrarPlanAlumno", "✅ Plan renombrado");
+  return true;
+}
+
+// PERIODIZACIÓN PROPIA DE UN DÍA (2026-08-10, migración 037).
+// `semanas` = array → el día deja de compartir la del alumno y se queda con
+// esa; `null` → vuelve a compartir. No hay una tercera marca en ningún lado:
+// la columna ES la marca, así que no se puede desincronizar del contenido.
+export async function guardarPeriodizacionDia(alumno_plan_id, semanas) {
+  const propia = Array.isArray(semanas) && semanas.length > 0 ? semanas : null;
+  LOG("guardarPeriodizacionDia", `⏳ Plan ${alumno_plan_id} → ${propia ? `${propia.length} semana(s) propias` : "vuelve a compartir la del alumno"}`);
+  const { error } = await supabase
+    .from("alumno_planes")
+    .update({ periodizacion: propia })
+    .eq("id", alumno_plan_id);
+  if (error) { ERR("guardarPeriodizacionDia", "No se pudo guardar la periodización del día", error); return false; }
+  LOG("guardarPeriodizacionDia", "✅ Guardada");
   return true;
 }
 
@@ -959,6 +964,9 @@ export async function asignarPlanPredeterminado(alumno_id, dia_semana, plantilla
   const diasCopia = (plantilla.dias || []).map((d) => ({
     dia: d.dia || "Sesion",
     subtitulo: d.subtitulo || "",
+    // La estructura viaja con la copia (2026-08-10): sin esto, asignar una
+    // plantilla de circuito dejaba el día en modo repeticiones.
+    config: d.config || {},
     ejercicios: (d.ejercicios || []).map((ej) => ({ ...ej, id: undefined })),
   }));
   return crearPlanAlumno(alumno_id, dia_semana, { nombre: plantilla.nombre, dias: diasCopia }, "catalogo_v2");
@@ -1023,7 +1031,9 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
   }
 
   for (let i = 0; i < dias.length; i++) {
-    const insertData = { id: makeUuid(), dia: dias[i].dia||"Día", subtitulo: dias[i].subtitulo||"", orden: i };
+    // config (2026-08-10): estructura del día — modo por tiempo, dónde va el
+    // core. Sin config el día queda '{}' y se comporta como siempre.
+    const insertData = { id: makeUuid(), dia: dias[i].dia||"Día", subtitulo: dias[i].subtitulo||"", orden: i, config: dias[i].config || {} };
     if (isAlumnoPlan) {
       insertData.alumno_plan_id = idParam;
       // alumno_id NO es decorativo (mismo caso que alumno_plan_id en
@@ -1065,6 +1075,10 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
         codigo:      ej.codigo      || null,
         gif:         ej.gif         || null,
         unidad:      ej.unidad      || "reps",
+        // 2026-08-10: bloque al que pertenece (principal · core · finisher).
+        // El check de la migración 037 solo acepta esos tres, así que se
+        // normaliza acá en vez de dejar que un dato raro reviente el insert.
+        seccion:     ["core", "finisher"].includes(ej.seccion) ? ej.seccion : "principal",
         orden:       j,
         // alumno_plan_id NO es decorativo: la política RLS que deja al ALUMNO
         // leer sus propios ejercicios filtra por esta columna
@@ -2440,7 +2454,9 @@ export async function listarVariantesPlan() {
   try {
     const { data, error } = await supabase
       .from("plan_variantes")
-      .select("id, nombre, familia, dia_ciclo, descripcion, ejercicios")
+      // config (2026-08-10): la estructura del día que trae la variante —
+      // modo por tiempo del circuito, core intercalado del plan de Jacobo.
+      .select("id, nombre, familia, dia_ciclo, descripcion, ejercicios, config")
       .order("familia")
       .order("dia_ciclo", { nullsFirst: true });
     if (error) { LOG("listarVariantesPlan", `⚠️ ${error.message}`); return []; }
