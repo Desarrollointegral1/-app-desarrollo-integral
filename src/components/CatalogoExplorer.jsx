@@ -999,28 +999,16 @@ export default function CatalogoExplorer({
     </div>
   );
 
-  // ── Otra biblioteca (2026-07-30) ────────────────────────────────────
-  // Bloque de NAVEGACIÓN, no un filtro: fila propia, ancho completo, rótulo
-  // "Otra biblioteca" + qué contiene + chevron de "te lleva a otro lado".
-  // Queda arriba de la fila filtros/grilla y separado de los filtros por su
-  // propia superficie (card nivel 1), para que no compita con ellos.
-  const navPropia = onAbrirPropia && (
-    <button
-      onClick={onAbrirPropia}
-      className="di-tap"
-      title="Abre la biblioteca de rutinas propias de Lucas (otra lista, no el catálogo de 1.343 ejercicios)"
-      style={{ ...card, width: "100%", marginBottom: 12, padding: "12px 14px", minHeight: TAP, cursor: "pointer", fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}
-    >
-      <Dumbbell size={20} strokeWidth={2} color={S.white} style={{ flexShrink: 0 }} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ ...eyebrow, display: "block" }}>Otra biblioteca</span>
-        <span style={{ display: "block", color: S.white, fontSize: TS.ui, fontWeight: 700, marginTop: 2 }}>
-          Rutinas propias — movilidad, elástico y entrada en calor
-        </span>
-      </span>
-      <ChevronRight size={18} strokeWidth={2} color={S.gray} style={{ flexShrink: 0 }} />
-    </button>
-  );
+  // ── Rutinas propias ─────────────────────────────────────────────────
+  // 2026-08-10 — LIMPIEZA: acá arriba había un bloque "Otra biblioteca" que
+  // prometía "movilidad, elástico y entrada en calor", o sea exactamente lo
+  // mismo que el botón "Movilidad y entrada en calor" de la barra de acciones,
+  // agregado por otra sesión. Dos entradas para el mismo tema en la misma
+  // pantalla. Queda UNA sola en la barra de acciones — la que nombra lo que
+  // hay adentro ("Movilidad y entrada en calor") — y el acceso a la lista de
+  // rutinas propias baja un nivel, adentro de esa pantalla, que es donde
+  // corresponde por tema. Ver `pantallaPreparacion`.
+  const navPropia = null;
 
   // Grilla (2026-07-30). Antes: `minmax(150px, 1fr)` daba 11 columnas en
   // desktop — 63 tarjetas de 154px con 90px útiles de texto, densidad de
@@ -1405,6 +1393,26 @@ export default function CatalogoExplorer({
           Estas son las listas con las que arrancan TODOS los alumnos. El alumno que tenga
           una lista propia (editada desde su ficha) no se pisa: sigue con la suya.
         </div>
+        {/* 2026-08-10: única entrada a la biblioteca de rutinas propias (antes
+            duplicaba a este mismo botón desde la pantalla anterior). Vive acá
+            porque es el mismo tema: movilidad, elástico y entrada en calor. */}
+        {onAbrirPropia && (
+          <button
+            onClick={onAbrirPropia}
+            className="di-tap"
+            title="Abre la biblioteca de rutinas propias (otra lista, no el catálogo de 1.343 ejercicios)"
+            style={{ ...card, width: "100%", marginBottom: 12, padding: "12px 14px", minHeight: TAP, cursor: "pointer", fontFamily: FONT_BODY, display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}
+          >
+            <Dumbbell size={20} strokeWidth={2} color={S.white} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ ...eyebrow, display: "block" }}>Rutinas propias</span>
+              <span style={{ display: "block", color: S.white, fontSize: TS.ui, fontWeight: 700, marginTop: 2 }}>
+                Editar los ejercicios uno por uno (videos, GIFs, códigos)
+              </span>
+            </span>
+            <ChevronRight size={18} strokeWidth={2} color={S.gray} style={{ flexShrink: 0 }} />
+          </button>
+        )}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {PREP_LISTAS.map((l) => (
             <button

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 // ── PERSISTENCIA (Supabase) ────────────────────────────────────────────
 import {
   cargarDatos,
@@ -125,7 +125,10 @@ import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
-import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizaciones } from "./services/supabase.js";
+import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizaciones, listarVariantesPlan } from "./services/supabase.js";
+// Variantes de plan (2026-08-10): conversión pura variante → plan asignable.
+import { varianteAPlan, agruparVariantes, indexarCatalogo } from "./src/utils/planVariantes.js";
+import SelectorPlanDia from "./src/components/SelectorPlanDia.jsx";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
@@ -4134,6 +4137,25 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   // alumno "Hipertrofia · Principiante" desde su ficha.
   const [perGlobales, setPerGlobales] = useState({});
   useEffect(() => { listarPeriodizaciones().then(setPerGlobales); }, []);
+  // VARIANTES DE PLAN (2026-08-10): las 10 rutinas de `plan_variantes` que
+  // hasta hoy no se podían asignar. Se cargan JUNTO CON EL CATÁLOGO porque la
+  // variante guarda solo catalogo_id — la descripción, el GIF y el código
+  // salen de catalogo_ejercicios (ver src/utils/planVariantes.js). La carga es
+  // perezosa (solo al entrar a "Plan x día") para no sumarle 1.344 filas al
+  // arranque del admin, que ya es la parte más lenta de la app.
+  const [variantes, setVariantes] = useState([]);
+  const [catalogoIdx, setCatalogoIdx] = useState(null);
+  const _pidiendoVariantes = useRef(false);
+  useEffect(() => {
+    if (!(sec === "planes" && planesTab === "plan-dias")) return;
+    if (_pidiendoVariantes.current) return;
+    _pidiendoVariantes.current = true;
+    Promise.all([listarVariantesPlan(), cargarCatalogoCached()]).then(([vs, cat]) => {
+      setVariantes(vs || []);
+      setCatalogoIdx(indexarCatalogo(cat || []));
+    });
+  }, [sec, planesTab]);
+  const gruposVariantes = useMemo(() => agruparVariantes(variantes), [variantes]);
   // Versión de movilidad que se está VIENDO/EDITANDO en la pantalla de admin.
   // Es distinta de movilidad_default (con cuál arranca el alumno): antes había
   // un solo control para las dos cosas y por eso "no cambiaban los ejercicios".
@@ -4596,10 +4618,17 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     const existente = (al.planes || []).find((p) => p.dia_semana === dia && !p._sintetico);
     if (existente && !window.confirm(`${dia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${plantilla.nombre}"?`)) return;
     const tpl = esSinPlan ? plantilla.plan : clonarPlan(plantilla.plan);
+    await _guardarPlanEnDia(dia, { ...tpl, nombre: plantilla.nombre });
+  };
+  // 2026-08-10 — el guardado es EL MISMO para una plantilla de PLANTILLAS y
+  // para una variante de `plan_variantes`: lo único que cambia es de dónde
+  // sale el objeto {nombre, dias}. Se extrae acá para no duplicar el
+  // crearPlanAlumno + refresco de la ficha en dos lugares.
+  const _guardarPlanEnDia = async (dia, planListo, origen) => {
     try {
-      const result = await crearPlanAlumno(al.id, dia, { ...tpl, nombre: plantilla.nombre });
+      const result = await crearPlanAlumno(al.id, dia, planListo, origen);
       if (result.ok) {
-        showToast && showToast(`Plan "${plantilla.nombre}" asignado para ${dia}`);
+        showToast && showToast(`Plan "${planListo.nombre}" asignado para ${dia}`);
         const alumnoActualizado = {
           ...al,
           planes: await cargarPlanesXDia(al.id, al)
@@ -4611,9 +4640,20 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
         showToast && showToast("Error al asignar plan");
       }
     } catch (e) {
-      console.error("[asignarPlanDia]", e);
+      console.error("[_guardarPlanEnDia]", e);
       showToast && showToast("Error: " + e.message);
     }
+  };
+  // Asignar una VARIANTE (bilateral · unilateral · ppl · híbridas) a un día.
+  // Antes del 2026-08-10 no existía: las 10 variantes vivían en la base sin
+  // ninguna pantalla que las ofreciera. La traducción variante → plan la hace
+  // varianteAPlan, que es pura y está testeada (src/utils/planVariantes.js).
+  const asignarVarianteDia = async (variante, diaOverride) => {
+    const dia = diaOverride || selectedDia;
+    if (!dia || !al || !variante) return;
+    const existente = (al.planes || []).find((p) => p.dia_semana === dia && !p._sintetico);
+    if (existente && !window.confirm(`${dia} ya tiene el plan "${existente.nombre || "sin nombre"}". ¿Reemplazarlo por "${variante.nombre}"?`)) return;
+    await _guardarPlanEnDia(dia, varianteAPlan(variante, catalogoIdx || {}), "catalogo_v2");
   };
   // Eliminar directamente el plan de un día desde Planificación (punto 7).
   const quitarDia = async (dia) => {
@@ -4626,6 +4666,26 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     setSelectedDia(null);
     showToast && showToast(`Plan de "${dia}" eliminado`);
   };
+  // ELEGIDOR DE PLAN DE UN DÍA (2026-08-10) — un solo elegidor para los dos
+  // flujos (tocar un día que ya existe · "+ Agregar día"). Antes eran dos
+  // listas de botones copiadas y sumar las variantes en las dos habría
+  // duplicado el problema. La pantalla vive en SelectorPlanDia.jsx para que se
+  // pueda mirar en el banco de pruebas sin pasar por el login del admin.
+  // `desdeAgregar` = viene de "+ Agregar día": ahí "Volver" tiene que devolver
+  // a la elección del día, no cerrar todo el flujo.
+  const selectorDePlan = (dia, desdeAgregar = false) => (
+    <SelectorPlanDia
+      dia={dia}
+      grupos={gruposVariantes}
+      plantillas={PLANTILLAS}
+      tienePlan={!!(al?.planes || []).find((p) => p.dia_semana === dia && !p._sintetico)}
+      onVariante={(v) => asignarVarianteDia(v, dia)}
+      onPlantilla={(id) => asignarPlanDia(id, dia)}
+      onSinPlan={() => asignarPlanDia("__sin_plan__", dia)}
+      onQuitar={() => quitarDia(dia)}
+      onVolver={() => { setSelectedDia(null); if (!desdeAgregar) setAgregandoDia(false); }}
+    />
+  );
   return (
     <div
       style={{
@@ -5741,49 +5801,22 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                           <div style={{ fontSize: 12, color: planActual ? S.green : S.lgray, fontWeight: 600 }}>
                             {planActual ? planActual.nombre || "Asignado" : "Sin plan"}
                           </div>
+                          {/* 2026-08-10 — el elegidor de plan salió de acá
+                              adentro: los botones vivían dentro de un tile de
+                              media columna (~165px en el celular) y ahí no
+                              entra la descripción de cada variante, que es
+                              justamente lo que explica para qué sirve cada
+                              rutina. Ahora se despliega a ancho completo
+                              debajo de la grilla (ver selectorDePlan). */}
                           {isSelected && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-                              {/* "Sin plan" (punto 7, ronda 12): asigna un plan
-                                  VACÍO a propósito — el día queda registrado
-                                  pero sin ejercicios. */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); asignarPlanDia("__sin_plan__"); }}
-                                style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                              >
-                                Sin plan
-                              </button>
-                              {PLANTILLAS.map((p) => (
-                                <button
-                                  key={p.id}
-                                  onClick={(e) => { e.stopPropagation(); asignarPlanDia(p.id); }}
-                                  style={{
-                                    background: S.white,
-                                    color: S.bg,
-                                    border: "none",
-                                    padding: "6px 4px",
-                                    borderRadius: 5,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {p.nombre}
-                                </button>
-                              ))}
-                              {/* Eliminar el día directamente, sin asignar nada nuevo */}
-                              {planActual && !planActual._sintetico && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); quitarDia(dia); }}
-                                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, padding: "6px 4px", borderRadius: 5, fontSize: 11, fontWeight: 700, cursor: "pointer" }}
-                                >
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><X size={13} />Quitar día</span>
-                                </button>
-                              )}
-                            </div>
+                            <div style={{ fontSize: 11, color: S.white, marginTop: 6, fontWeight: 700 }}>Elegí el plan abajo ↓</div>
                           )}
                         </div>
                       );
                     })}
+                    {/* Elegidor de plan a ancho completo, compartido por el
+                        flujo de los tiles y por "+ Agregar día". */}
+                    {selectedDia && !agregandoDia && selectorDePlan(selectedDia)}
                     {/* + Agregar día (punto 8): 2 pasos dentro del mismo tile
                         expandido — elegir el día de la semana disponible, y
                         después la plantilla (reusa asignarPlanDia con
@@ -5819,31 +5852,7 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                         </button>
                       </div>
                     ) : (
-                      <div style={{ ...card, padding: "10px 12px", gridColumn: "1 / -1" }}>
-                        <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>
-                          Plan para {selectedDia === "Fijo" ? "todos los días" : selectedDia}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                          <button
-                            onClick={() => asignarPlanDia("__sin_plan__", selectedDia)}
-                            style={{ background: "transparent", color: S.gray, border: "1px dashed " + S.border, padding: "7px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                          >
-                            Sin plan
-                          </button>
-                          {PLANTILLAS.map((p) => (
-                            <button
-                              key={p.id}
-                              onClick={() => asignarPlanDia(p.id, selectedDia)}
-                              style={{ background: S.white, color: S.bg, border: "none", padding: "7px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                            >
-                              {p.nombre}
-                            </button>
-                          ))}
-                        </div>
-                        <button onClick={() => setSelectedDia(null)} style={{ background: "transparent", color: S.gray, border: "1px solid " + S.border, borderRadius: 6, padding: "6px 12px", fontSize: 11, cursor: "pointer" }}>
-                          ‹ Volver
-                        </button>
-                      </div>
+                      selectorDePlan(selectedDia, true)
                     )}
                   </div>
                   <div style={{ fontSize: 11, color: S.lgray }}>

@@ -2431,6 +2431,26 @@ export async function listarPeriodizaciones() {
   }
 }
 
+// VARIANTES DE PLAN (2026-08-10): las 10 rutinas que escribió Lucas
+// (bilateral · unilateral · ppl · hibrida_2 · hibrida_3). Estaban en la base
+// desde antes y NINGUNA pantalla las leía — por eso no había forma de
+// asignarlas y el plan de la alumna de prueba quedaba vacío. Se traen crudas;
+// la conversión al shape de plan la hace varianteAPlan (src/utils/planVariantes.js).
+export async function listarVariantesPlan() {
+  try {
+    const { data, error } = await supabase
+      .from("plan_variantes")
+      .select("id, nombre, familia, dia_ciclo, descripcion, ejercicios")
+      .order("familia")
+      .order("dia_ciclo", { nullsFirst: true });
+    if (error) { LOG("listarVariantesPlan", `⚠️ ${error.message}`); return []; }
+    LOG("listarVariantesPlan", `✅ ${(data || []).length} variantes.`);
+    return data || [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export async function guardarPeriodizacion(objetivo, nivel, semanas) {
   const { error } = await supabase
     .from("periodizaciones")

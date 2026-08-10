@@ -24,6 +24,26 @@ import CatalogoExplorer from "../src/components/CatalogoExplorer.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
+import SelectorPlanDia from "../src/components/SelectorPlanDia.jsx";
+import { agruparVariantes } from "../src/utils/planVariantes.js";
+import { PLANTILLAS } from "../src/utils/planTemplates.js";
+
+// Copia fiel de `plan_variantes` (2026-08-10): el harness no tiene sesión de
+// Supabase y esa tabla solo se lee autenticado, así que los datos van acá
+// tal como están en la base — nombres, familias y las descripciones que
+// escribió Lucas, que es justamente lo que hay que poder leer en 375px.
+const VARIANTES_DEMO = [
+  { id: "v-bil", nombre: "Bilateral", familia: "bilateral", dia_ciclo: null, descripcion: "" },
+  { id: "v-uni", nombre: "Unilateral", familia: "unilateral", dia_ciclo: null, descripcion: "" },
+  { id: "v-ppl1", nombre: "PPL · Empuje", familia: "ppl", dia_ciclo: 1, descripcion: "Rutina tradicional de 3 días: Empuje un día, Tracción otro y Piernas el tercero. Base: muscleandstrength.com/workouts/3-day-PPL-workout-for-beginners, con las máquinas cambiadas por peso libre (leg press por sentadilla con barra, búlgaras, zancadas, peso muerto o peso muerto a una pierna)." },
+  { id: "v-ppl2", nombre: "PPL · Tracción", familia: "ppl", dia_ciclo: 2, descripcion: "" },
+  { id: "v-ppl3", nombre: "PPL · Piernas", familia: "ppl", dia_ciclo: 3, descripcion: "" },
+  { id: "v-h21", nombre: "Híbrida 2 días · Empuje + Cadera", familia: "hibrida_2", dia_ciclo: 1, descripcion: "La rutina tradicional separa Empuje un día, Tracción otro y Piernas el tercero. Esta cruza esos cables: el Día 1 mezcla el empuje del tren superior (Pecho) con la bisagra del tren inferior (Cadera), y el Día 2 mezcla la tracción del tren superior (Jalón) con el dominante de rodilla (Cuádriceps)." },
+  { id: "v-h22", nombre: "Híbrida 2 días · Tracción + Rodilla", familia: "hibrida_2", dia_ciclo: 2, descripcion: "" },
+  { id: "v-h31", nombre: "Híbrida 3 días · Empuje + Peso muerto", familia: "hibrida_3", dia_ciclo: 1, descripcion: "Los días 1 y 2 actúan como un espejo: el primer día empujás con los brazos y traccionás con las piernas (peso muerto); el segundo traccionás con los brazos (jalón) y empujás con las piernas (sentadilla). Al Día 3 (Hombro, Brazo, Glúteo) se lo llama Día de Remate, de Estética o de hipertrofia sarcoplasmática: se enfoca en los grupos que dan aspecto atlético (hombros redondos, brazos tonificados y glúteos), dejando descansar los músculos grandes como la espalda y el pecho." },
+  { id: "v-h32", nombre: "Híbrida 3 días · Jalón + Sentadilla", familia: "hibrida_3", dia_ciclo: 2, descripcion: "" },
+  { id: "v-h33", nombre: "Híbrida 3 días · Remate (hombro, brazo, glúteo)", familia: "hibrida_3", dia_ciclo: 3, descripcion: "" },
+];
 
 // ── ARMADOR ASISTIDO: llamadas MOCKEADAS (2026-08-09) ──────────────────
 // El harness no tiene sesión de Supabase, así que el endpoint real
@@ -384,9 +404,26 @@ function Harness() {
 
         <Panel
           titulo="Biblioteca de ejercicios · archivar de un toque"
-          nota="Cada tarjeta tiene abajo el código y el botón Archivar (44px). Tocarlo saca la tarjeta de la lista al instante y deja abajo el aviso con Deshacer; tocar la tarjeta (no el botón) sigue abriendo el detalle. Con el chip «Archivados» se ve el que ya está archivado, con el botón en «Recuperar». Arriba, «Otra biblioteca» avisa que navega."
+          nota="Cada tarjeta tiene abajo el código y el botón Archivar (44px). Tocarlo saca la tarjeta de la lista al instante y deja abajo el aviso con Deshacer; tocar la tarjeta (no el botón) sigue abriendo el detalle. Con el chip «Archivados» se ve el que ya está archivado, con el botón en «Recuperar». 2026-08-10: el bloque «Otra biblioteca» de arriba se sacó — duplicaba al botón «Movilidad y entrada en calor» de la barra de acciones, y el acceso a las rutinas propias vive ahora adentro de esa pantalla."
         >
           <BibliotecaDemo />
+        </Panel>
+
+        <Panel
+          titulo="Plan x día · elegir la rutina (variantes)"
+          nota="2026-08-10: las 10 rutinas de plan_variantes ya se pueden asignar. Van arriba, agrupadas por familia y con la descripción de Lucas a la vista; el PPL y las híbridas muestran «Día 1/2/3» para asignarlas día por día sin adivinar. Las plantillas viejas quedan abajo, rotuladas «Plantillas anteriores»."
+        >
+          <SelectorPlanDia
+            dia="Lunes"
+            grupos={agruparVariantes(VARIANTES_DEMO)}
+            plantillas={PLANTILLAS}
+            tienePlan
+            onVariante={(v) => alert(`Asignaría: ${v.nombre}`)}
+            onPlantilla={(id) => alert(`Asignaría la plantilla: ${id}`)}
+            onSinPlan={() => alert("Sin plan")}
+            onQuitar={() => alert("Quitar día")}
+            onVolver={() => alert("Volver")}
+          />
         </Panel>
 
         <Panel

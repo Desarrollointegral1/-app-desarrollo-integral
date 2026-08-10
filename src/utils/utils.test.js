@@ -26,6 +26,9 @@ import {
 import {
   normalizarBusqueda, buscarEnCatalogo, ordenarSugerencias, normalizarGrupo, GRUPOS_DI,
 } from "./ejercicioAsistido.js";
+import {
+  varianteAPlan, agruparVariantes, indexarCatalogo, etiquetaVariante,
+} from "./planVariantes.js";
 
 describe("peso por vuelta", () => {
   it("un dato viejo (un número suelto) se lee como una sola vuelta", () => {
@@ -477,5 +480,75 @@ describe("periodizacion — herencia de dos niveles", () => {
     expect(a.plan.periodizacion[0].series).toBe(7);
     expect(b.plan.periodizacion[0].series).toBe(9);
     expect(c.plan.periodizacion.length).toBe(2);
+  });
+});
+
+// ── VARIANTES DE PLAN (2026-08-10) ──────────────────────────────────────
+// Lo que se rompe en silencio acá es lo que ya pasó una vez: un plan asignado
+// que en la pantalla del alumno aparece sin descripción y sin GIF, porque la
+// variante solo guarda catalogo_id y nadie fue a buscar el resto al catálogo.
+describe("variantes de plan → plan asignable", () => {
+  const CATALOGO = [
+    { id: "0043", codigo_di: "CU005", nombre_es: "Sentadilla con barra", gif_url: "videos/0043-qXTaZnJ.gif", instrucciones_es: "Ponte de pie con los pies separados…" },
+    { id: "DI-GL007", codigo_di: "GL007", nombre_es: "Hip thrust con barra", gif_url: "/ejercicios/hip-thrust.gif", instrucciones_es: "Espalda en el banco…" },
+    { id: "DI-CO004", codigo_di: "CO004", nombre_es: "Plancha", gif_url: "", instrucciones_es: "Antebrazos y punta de pies…" },
+  ];
+  const VARIANTE = {
+    id: "v1", nombre: "Bilateral", familia: "bilateral", dia_ciclo: null, descripcion: "",
+    ejercicios: [
+      { nombre: "Sentadilla con barra", patron: "Sentadilla", catalogo_id: "0043" },
+      { nombre: "Hip thrust con barra", patron: "Glúteo", catalogo_id: "DI-GL007" },
+      { nombre: "Plancha", patron: "Core", catalogo_id: "DI-CO004" },
+    ],
+  };
+
+  it("trae desc, código y GIF del catálogo por catalogo_id", () => {
+    const plan = varianteAPlan(VARIANTE, CATALOGO);
+    expect(plan.dias.length).toBe(1);
+    const [sentadilla, hip] = plan.dias[0].ejercicios;
+    expect(sentadilla.desc).toContain("Ponte de pie");
+    expect(sentadilla.codigo).toBe("CU005");
+    // path relativo del bucket → URL completa; path absoluto de la app, intacto
+    expect(sentadilla.gif).toMatch(/^https?:\/\/.+\/catalogo-ejercicios\/videos\/0043-qXTaZnJ\.gif$/);
+    expect(hip.gif).toBe("/ejercicios/hip-thrust.gif");
+  });
+
+  it("todos los ejercicios llegan, con id propio y unidad", () => {
+    const plan = varianteAPlan(VARIANTE, indexarCatalogo(CATALOGO));
+    const ejs = plan.dias[0].ejercicios;
+    expect(ejs.length).toBe(3);
+    expect(new Set(ejs.map((e) => e.id)).size).toBe(3);
+    expect(ejs[0].unidad).toBe("reps");
+    // la plancha se mide por tiempo, no por repeticiones
+    expect(ejs[2].unidad).toBe("segundos");
+  });
+
+  it("un ejercicio que no está en el catálogo no rompe ni inventa datos", () => {
+    const rara = { ...VARIANTE, ejercicios: [{ nombre: "Ejercicio fantasma", patron: "Core", catalogo_id: "9999" }] };
+    const ej = varianteAPlan(rara, CATALOGO).dias[0].ejercicios[0];
+    expect(ej.nombre).toBe("Ejercicio fantasma");
+    expect(ej.gif).toBe("");
+    expect(ej.codigo).toBe(null);
+    expect(ej.desc).toBe("Patrón: Core");
+  });
+
+  it("las de varios días nombran el día del ciclo, las de un día no", () => {
+    expect(varianteAPlan(VARIANTE, CATALOGO).dias[0].dia).toBe("Sesión");
+    const ppl = { ...VARIANTE, nombre: "PPL · Piernas", familia: "ppl", dia_ciclo: 3 };
+    expect(varianteAPlan(ppl, CATALOGO).dias[0].dia).toBe("Día 3");
+    expect(etiquetaVariante(ppl)).toBe("Día 3 · Piernas");
+    expect(etiquetaVariante(VARIANTE)).toBe("Bilateral");
+  });
+
+  it("agrupa por familia en orden y ordena los días del ciclo", () => {
+    const vs = [
+      { id: "c", nombre: "PPL · Piernas", familia: "ppl", dia_ciclo: 3, ejercicios: [] },
+      { id: "a", nombre: "Bilateral", familia: "bilateral", dia_ciclo: null, ejercicios: [] },
+      { id: "b", nombre: "PPL · Empuje", familia: "ppl", dia_ciclo: 1, descripcion: "Rutina tradicional de 3 días", ejercicios: [] },
+    ];
+    const g = agruparVariantes(vs);
+    expect(g.map((x) => x.familia)).toEqual(["bilateral", "ppl"]);
+    expect(g[1].variantes.map((v) => v.dia_ciclo)).toEqual([1, 3]);
+    expect(g[1].descripcion).toBe("Rutina tradicional de 3 días");
   });
 });

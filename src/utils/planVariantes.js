@@ -1,0 +1,146 @@
+// VARIANTES DE PLAN → plan asignable a un alumno (2026-08-10)
+//
+// POR QUÉ existe este archivo: las 10 variantes que Lucas escribió viven en la
+// tabla `plan_variantes` y hasta hoy NO se podían usar — estaban en la base,
+// pero ninguna pantalla las ofrecía al asignar el plan de un día. Por eso el
+// "Lunes · Bilateral" de la alumna de prueba quedaba vacío.
+//
+// NO se inventa un flujo nuevo de asignación: el camino que ya funciona es
+// PLANTILLAS (planTemplates.js) → asignarPlanDia → crearPlanAlumno →
+// _savePlanDias. Lo único que faltaba era traducir una variante al MISMO shape
+// que consume ese camino. Eso es lo que hace `varianteAPlan`, y por eso es una
+// función pura: se puede testear sin base ni navegador.
+//
+// La fila de `plan_variantes` guarda lo mínimo ({patron, catalogo_id, nombre}).
+// Todo lo que el alumno ve en la pantalla del día — la explicación del
+// ejercicio, el GIF y el código — vive en `catalogo_ejercicios` y se resuelve
+// acá por `catalogo_id` (que es catalogo_ejercicios.id, NO codigo_di):
+//
+//   instrucciones_es → desc      gif_url → gif      codigo_di → codigo
+//
+// El `gif_url` del catálogo es un path RELATIVO al bucket público
+// (videos/0043-xxx.gif). Guardarlo crudo en plan_ejercicios dejaría el GIF
+// roto en la vista del alumno, así que se pasa siempre por catalogoMediaUrl.
+
+import { catalogoMediaUrl } from "../../services/supabase.js";
+import { uid } from "./helpers.js";
+
+// Etiqueta legible de cada familia — se usa para agrupar los botones en la
+// pantalla y para el subtítulo del día del plan.
+export const FAMILIAS_VARIANTE = [
+  { id: "bilateral",  label: "Bilateral",        dias: 1 },
+  { id: "unilateral", label: "Unilateral",       dias: 1 },
+  { id: "ppl",        label: "PPL (3 días)",     dias: 3 },
+  { id: "hibrida_2",  label: "Híbrida (2 días)", dias: 2 },
+  { id: "hibrida_3",  label: "Híbrida (3 días)", dias: 3 },
+];
+
+export const etiquetaFamilia = (familia) =>
+  FAMILIAS_VARIANTE.find((f) => f.id === familia)?.label || familia || "Otras";
+
+// Índice catalogo_id → fila del catálogo. Se arma una sola vez y se reusa para
+// las 10 variantes en vez de un find() por ejercicio (el catálogo son 1.344
+// filas y la pantalla las recorre en cada render).
+export function indexarCatalogo(ejerciciosDelCatalogo) {
+  const idx = {};
+  (ejerciciosDelCatalogo || []).forEach((e) => {
+    if (e && e.id != null) idx[String(e.id)] = e;
+  });
+  return idx;
+}
+
+// Nombre del plan tal como lo va a ver el admin en la grilla de días. Para las
+// variantes de varios días se agrega el día del ciclo, porque si no tres filas
+// de PPL se llaman igual y no hay forma de saber cuál se asignó.
+export function nombreVariante(variante) {
+  if (!variante) return "Plan";
+  return variante.nombre || "Plan";
+}
+
+/**
+ * Convierte una fila de `plan_variantes` al shape que espera crearPlanAlumno:
+ *   { nombre, descripcion, dias:[{ dia, subtitulo, ejercicios:[...] }] }
+ *
+ * @param {object} variante  fila de plan_variantes (nombre, familia, dia_ciclo,
+ *                           descripcion, ejercicios jsonb)
+ * @param {Array|object} ejerciciosDelCatalogo  filas de catalogo_ejercicios, o
+ *                           un índice ya armado con indexarCatalogo()
+ */
+export function varianteAPlan(variante, ejerciciosDelCatalogo) {
+  if (!variante) return { nombre: "Plan", descripcion: "", dias: [] };
+  const idx = Array.isArray(ejerciciosDelCatalogo)
+    ? indexarCatalogo(ejerciciosDelCatalogo)
+    : (ejerciciosDelCatalogo || {});
+
+  const ejercicios = (variante.ejercicios || []).map((ej) => {
+    const c = idx[String(ej.catalogo_id)] || null;
+    // El NOMBRE gana el de la variante: Lucas eligió cómo se llama cada
+    // ejercicio en la rutina, y ejerciciosMedia.js resuelve imágenes por
+    // nombre. Solo se cae al del catálogo si la variante no trae ninguno.
+    const nombre = ej.nombre || c?.nombre_es || "Ejercicio";
+    return {
+      id: uid(),
+      nombre,
+      // Sin instrucciones en el catálogo se deja el patrón (Pecho, Sentadilla…)
+      // como pista, en vez de un campo vacío que no le dice nada al alumno.
+      desc: c?.instrucciones_es || (ej.patron ? `Patrón: ${ej.patron}` : ""),
+      codigo: c?.codigo_di || null,
+      gif: catalogoMediaUrl(c?.gif_url || ""),
+      // La unidad la define el ejercicio: las planchas van por tiempo. El
+      // catálogo no tiene columna de unidad, así que se deduce del nombre —
+      // es la única regla de negocio que la app ya aplica hoy (CO004).
+      unidad: /plancha/i.test(nombre) ? "segundos" : "reps",
+      video: "",
+      mediaLocal: "",
+      historial: [],
+    };
+  });
+
+  return {
+    nombre: nombreVariante(variante),
+    descripcion: variante.descripcion || "",
+    dias: [
+      {
+        dia: variante.dia_ciclo ? `Día ${variante.dia_ciclo}` : "Sesión",
+        subtitulo: variante.nombre || "",
+        ejercicios,
+      },
+    ],
+  };
+}
+
+// Etiqueta CORTA para el botón: "Híbrida 3 días · Empuje + Peso muerto" no
+// entra en un botón de celular. Dentro del grupo ya se sabe la familia, así
+// que alcanza con el día del ciclo + la parte específica del nombre.
+export function etiquetaVariante(variante) {
+  if (!variante) return "";
+  const partes = String(variante.nombre || "").split("·").map((s) => s.trim()).filter(Boolean);
+  const corto = partes.length > 1 ? partes.slice(1).join(" · ") : (partes[0] || "Plan");
+  return variante.dia_ciclo ? `Día ${variante.dia_ciclo} · ${corto}` : corto;
+}
+
+// Agrupa las variantes por familia respetando el orden de FAMILIAS_VARIANTE, y
+// dentro de cada familia por dia_ciclo. Así los 3 días del PPL salen siempre
+// 1-2-3 y no en el orden que devuelva PostgREST.
+export function agruparVariantes(variantes) {
+  const porFamilia = {};
+  (variantes || []).forEach((v) => {
+    const f = v.familia || "otras";
+    (porFamilia[f] = porFamilia[f] || []).push(v);
+  });
+  const orden = FAMILIAS_VARIANTE.map((f) => f.id);
+  return Object.keys(porFamilia)
+    .sort((a, b) => {
+      const ia = orden.indexOf(a), ib = orden.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    })
+    .map((familia) => ({
+      familia,
+      label: etiquetaFamilia(familia),
+      // La descripción es la MISMA para los 3 días de una familia (Lucas la
+      // escribió a nivel rutina, no a nivel día): se muestra una sola vez
+      // arriba del grupo y no repetida en cada botón.
+      descripcion: porFamilia[familia].find((v) => v.descripcion)?.descripcion || "",
+      variantes: porFamilia[familia].sort((a, b) => (a.dia_ciclo || 0) - (b.dia_ciclo || 0)),
+    }));
+}
