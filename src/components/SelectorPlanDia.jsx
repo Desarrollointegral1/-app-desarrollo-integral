@@ -16,10 +16,8 @@ import { etiquetaVariante } from "../utils/planVariantes.js";
 export default function SelectorPlanDia({
   dia,
   grupos = [],
-  plantillas = [],
   tienePlan = false,
   onVariante,
-  onPlantilla,
   onSinPlan,
   onQuitar,
   onVolver,
@@ -73,28 +71,14 @@ export default function SelectorPlanDia({
         ))
       )}
 
-      {/* PLANTILLAS anteriores (planTemplates.js, escritas en código): siguen
-          disponibles, pero separadas y rotuladas para que se note cuáles son
-          las nuevas y cuáles las de antes. */}
-      <div style={{ borderTop: "1px solid " + S.border, paddingTop: 10 }}>
-        <div style={{ color: S.gray, fontSize: 11, fontWeight: 800, textTransform: "uppercase", marginBottom: 6 }}>
-          Plantillas anteriores
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {plantillas.map((p) => (
-            <button
-              key={p.id}
-              onClick={stop(() => onPlantilla && onPlantilla(p.id))}
-              title={p.descripcion}
-              style={{ ...btnPlan, background: S.card3, color: S.white, border: "1px solid " + S.border, flex: "1 1 140px" }}
-            >
-              {p.nombre}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* 2026-08-10 — se fue el bloque "Plantillas anteriores". Las 12
+          plantillas de planTemplates.js eran, en ejercicios, DOS sesiones full
+          body repetidas ocho veces con distinta periodización; y la
+          periodización ya vive en la tabla `periodizaciones`. Las dos sesiones
+          quedaron como variantes (migración 036), así que ofrecerlas de nuevo
+          acá era ofrecer lo mismo dos veces con nombres distintos. */}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, borderTop: "1px solid " + S.border, paddingTop: 12 }}>
         {/* "Sin plan": deja el día registrado a propósito, pero vacío. */}
         <button onClick={stop(onSinPlan)} style={{ ...btnSec, color: S.gray, border: "1px dashed " + S.border }}>
           Sin plan

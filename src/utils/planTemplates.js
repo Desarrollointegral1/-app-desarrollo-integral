@@ -159,7 +159,6 @@ export const CALOR_MANCUERNA=[
 // partida/referencia, pero el código real de un ejercicio puntual puede
 // haber sido corregido a mano después.
 
-const mkEj=(nombre,desc,extra={})=>({id:uid(),nombre,desc,video:"",mediaLocal:"",historial:[],...extra});
 
 export const GRUPOS_MUSCULARES=[
   { id:"hombro",  prefijo:"PH", nombre:"Hombro" },
@@ -291,119 +290,32 @@ export const PLAN_BASICO={
   dias:[{dia:"Sesion",subtitulo:"Ejercicios principales — Basico",ejercicios:PRINCIPALES_BASICO()}]
 };
 
-// ── PROGRESIONES POR OBJETIVO (CEREBRO-ENTRENAMIENTO.md v2, 2026-07-19) ──
-// Cada plan por objetivo tiene su propia periodizacion de 8 semanas.
+// ── PROGRESIONES POR OBJETIVO — ELIMINADAS EL 2026-08-10 ────────────────
+// Eran 9 planes (Acondicionamiento/Prep. Física/Hipertrofia/Fuerza ×
+// principiante/avanzado + PPL). Se fueron porque, mirando los EJERCICIOS y no
+// los nombres, todos eran una de estas dos sesiones full body:
+//   · PH001 RO001 PE002 CA003 JA003 GL003  → acond-principiante, fuerza-
+//     principiante (idénticos) y pf-principiante (cambia solo RO005)
+//   · PH005/PH001 RO005 PE002 CA005 JA006 GL007 → pf-avanzado, fuerza-avanzado,
+//     hipertrofia-principiante e hipertrofia-avanzado (Lucas lo dijo textual:
+//     "tienen los mismos ejercicios y deben ser preparación física avanzada")
+// Lo único que los diferenciaba de verdad era la periodización (series/reps/%),
+// y eso desde el 2026-08-10 vive en la tabla `periodizaciones`, editable desde
+// la Biblioteca — no hardcodeado acá. Las dos sesiones quedaron como variantes
+// en `plan_variantes` (migración 036), con su explicación y asignables por día.
+// El PPL también salió: las 3 filas de la familia `ppl` lo cubren mejor (el de
+// acá inventaba ejercicios sueltos con mkEj, fuera del catálogo).
 
-const per=(esquema)=>esquema.map(([series,reps,intensidad],i)=>({semana:i+1,series,reps,intensidad}));
-
-export const PLAN_ACOND_PRINCIPIANTE={
-  periodizacion:per([[2,6,"60%"],[3,6,"60%"],[2,8,"65%"],[3,8,"65%"],[3,8,"70%"],[2,10,"70%"],[3,8,"70%"],[3,10,"75%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Principiante",ejercicios:[
-    px("PH001"), px("RO001"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
-  ]}]
-};
-
-export const PLAN_ACOND_AVANZADO={
-  periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,10,"75%"],[3,10,"75%"],[2,6,"80%"],[3,6,"82,5%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Acondicionamiento — Avanzado",ejercicios:[
-    px("PH001"), px("RO003"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
-  ]}]
-};
-
-export const PLAN_PF_PRINCIPIANTE={
-  periodizacion:per([[2,6,"65%"],[3,6,"65%"],[2,8,"70%"],[3,8,"70%"],[2,4,"75%"],[3,4,"75%"],[2,8,"80%"],[3,8,"80%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Principiante",ejercicios:[
-    px("PH001"), px("RO005"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
-  ]}]
-};
-
-export const PLAN_PF_AVANZADO={
-  periodizacion:per([[2,6,"70%"],[3,6,"72,5%"],[2,8,"75%"],[3,8,"77,5%"],[2,4,"80%"],[3,4,"82,5%"],[3,6,"85%"],[3,8,"87,5%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Preparacion Fisica — Avanzado",ejercicios:[
-    px("PH005"), px("RO005"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
-  ]}]
-};
-
-export const PLAN_PPL={
-  periodizacion:per([[3,6,"70%"],[2,8,"70%"],[3,8,"75%"],[2,10,"75%"],[3,10,"80%"],[2,12,"82,5%"],[3,12,"85%"],[3,12,"87,5%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[
-    {dia:"Dia 1",subtitulo:"Empuje (PUSH) + Core",ejercicios:[
-      px("PH001"), // Press Militar sentado con Mancuernas
-      px("PE002"), // Pecho plano
-      mkEj("Fondos","En paralelas, baja controlado y empuja hasta estirar los brazos."),
-      px("CO003"), // Crunch abdominal
-    ]},
-    {dia:"Dia 2",subtitulo:"Tiron (PULL) + Core",ejercicios:[
-      mkEj("Remo con mancuernas","Torso inclinado, espalda recta, lleva los codos hacia atras."),
-      px("JA006"), // Dominadas
-      mkEj("Biceps con mancuernas","Codos pegados al cuerpo, subi y baja controlado."),
-      mkEj("Biceps con barra","Codos fijos, sin balancear el cuerpo."),
-      mkEj("Farmer walk","Camina erguido con peso en las dos manos.",{codigo:"P31"}),
-    ]},
-    {dia:"Dia 3",subtitulo:"Pierna (LEGS) + Cadera",ejercicios:[
-      px("RO007"), // Zancada
-      px("CA005"), // Peso muerto con Barra
-      px("RO005"), // Sentadilla con barra
-      px("GL007"), // Hip thrust con barra
-      px("CO003"), // Crunch abdominal
-    ]},
-  ]
-};
-
-const EJ_HIPERTROFIA=()=>[
-  px("PH001"), px("RO005"), px("PE002"), px("CA005"), px("JA006"), px("GL007"),
-];
-
-export const PLAN_HIPERTROFIA_PRINCIPIANTE={
-  periodizacion:per([[2,8,"70%"],[3,8,"80%"],[2,10,"70%"],[3,10,"80%"],[2,12,"70%"],[3,12,"80%"],[2,12,"+"],[3,12,"+"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Hipertrofia — Principiante",ejercicios:EJ_HIPERTROFIA()}]
-};
-
-export const PLAN_HIPERTROFIA_AVANZADO={
-  periodizacion:per([[3,8,"65%"],[2,10,"70%"],[3,10,"70%"],[3,10,"75%"],[2,12,"75%"],[3,12,"80%"],[3,12,"+"],[3,12,"+"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Hipertrofia — Avanzado",ejercicios:EJ_HIPERTROFIA()}]
-};
-
-export const PLAN_FUERZA_PRINCIPIANTE={
-  periodizacion:per([[3,8,"70%"],[2,8,"72,5%"],[3,6,"75%"],[2,6,"77,5%"],[3,4,"80%"],[2,4,"82,5%"],[3,4,"85%"],[2,2,"85%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Fuerza — Principiante",ejercicios:[
-    px("PH001"), px("RO001"), px("PE002"), px("CA003"), px("JA003"), px("GL003"),
-  ]}]
-};
-
-export const PLAN_FUERZA_AVANZADO={
-  periodizacion:per([[5,5,"75%"],[5,5,"77,5%"],[5,4,"80%"],[5,4,"82,5%"],[5,3,"85%"],[5,3,"87,5%"],[5,2,"90%"],[5,1,"92,5%"]]),
-  movilidad:MOVILIDAD_BASE,calor:CALOR_BANDA,activacion:CALOR_PESO,
-  dias:[{dia:"Sesion",subtitulo:"Fuerza — Avanzado",ejercicios:[
-    px("RO005"), px("PE002"), px("CA005"),
-    {...px("JA006"),desc:"Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. En este plan, con lastre si la técnica está sólida."},
-    px("GL007"), px("PH005"),
-  ]}]
-};
-
-// ── PLANTILLAS (lo que ve el admin al asignar un plan) ─────────────────
-
+// ── PLANTILLAS ──────────────────────────────────────────────────────────
+// 2026-08-10: de 12 quedaron 3, y su ÚNICO trabajo hoy es el plan inicial al
+// crear un alumno (App.jsx: el select por día del formulario). El plan de un
+// día ya no se elige de acá: se elige de `plan_variantes` en SelectorPlanDia.
+// Quedan estas 3 porque son las 3 formas de sesión realmente distintas — las
+// otras 9 eran estas mismas con otra periodización.
 export const PLANTILLAS=[
-  { id:"bilateral",    nombre:"Bilateral",    descripcion:"Fuerza clasica con barra, dominadas e hip thrust.",      plan:PLAN_BILATERAL },
-  { id:"unilateral",   nombre:"Unilateral",   descripcion:"Fuerza a un brazo / una pierna, foco en equilibrio.",    plan:PLAN_UNILATERAL },
-  { id:"basico",       nombre:"Basico",       descripcion:"Sesion de entrada: cajon, KB, TRX y banda.",             plan:PLAN_BASICO },
-  { id:"acond-principiante", nombre:"Acondicionamiento Principiante", descripcion:"Base general: 2x6 a 3x10, 60-75%.",            plan:PLAN_ACOND_PRINCIPIANTE },
-  { id:"acond-avanzado",     nombre:"Acondicionamiento Avanzado",     descripcion:"General con barra y dominadas, 65-82,5%.",     plan:PLAN_ACOND_AVANZADO },
-  { id:"pf-principiante",    nombre:"Prep. Fisica Principiante",      descripcion:"Fuerza base con KB y TRX, 65-80%.",            plan:PLAN_PF_PRINCIPIANTE },
-  { id:"pf-avanzado",        nombre:"Prep. Fisica Avanzado",          descripcion:"Barra completa, 70-87,5%.",                    plan:PLAN_PF_AVANZADO },
-  { id:"ppl",                nombre:"PPL Split 3 dias",               descripcion:"Push / Pull / Legs con core y farmer walk.",   plan:PLAN_PPL },
-  { id:"hipertrofia-principiante", nombre:"Hipertrofia Principiante", descripcion:"Volumen progresivo 8-12 reps, 70/80%.",        plan:PLAN_HIPERTROFIA_PRINCIPIANTE },
-  { id:"hipertrofia-avanzado",     nombre:"Hipertrofia Avanzado",     descripcion:"Volumen alto 8-12 reps, 65-80% y ciclos +.",   plan:PLAN_HIPERTROFIA_AVANZADO },
-  { id:"fuerza-principiante",      nombre:"Fuerza Principiante",      descripcion:"3x8 a 2x2, 70-85%, variantes seguras.",        plan:PLAN_FUERZA_PRINCIPIANTE },
-  { id:"fuerza-avanzado",          nombre:"Fuerza Avanzado",          descripcion:"5x5 a 5x1, 75-92,5%, los grandes con barra.",  plan:PLAN_FUERZA_AVANZADO },
+  { id:"basico",     nombre:"Full body básico",     descripcion:"Sesión de entrada: cajón, KB, TRX y banda.",           plan:PLAN_BASICO },
+  { id:"bilateral",  nombre:"Full body avanzado",   descripcion:"Barra completa: militar, sentadilla, banca, peso muerto, dominadas e hip thrust.", plan:PLAN_BILATERAL },
+  { id:"unilateral", nombre:"Unilateral",           descripcion:"A un brazo / una pierna, foco en equilibrio.",          plan:PLAN_UNILATERAL },
 ];
 
 // ── CÓDIGOS DE EJERCICIO ────────────────────────────────────────────────

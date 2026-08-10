@@ -20,6 +20,7 @@ import {
   crearPlanAlumno,
   eliminarPlanDia,
   cargarPlanesXDia,
+  guardarPeriodizacionDia,
   actualizarPlanAlumnoDias,
   renombrarPlanAlumno,
   crearAdmin,
@@ -95,6 +96,10 @@ import {
   conPeriodizacionDe,
   conPeriodizacionEditada,
   propagarPeriodizacion,
+  // Periodización POR DÍA (2026-08-10): el día hereda la del alumno mientras
+  // no tenga la suya. Ver src/utils/periodizacion.js, nivel 3.
+  esPeriodizacionDiaPropia,
+  periodizacionDelDia,
 } from "./src/utils/periodizacion.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
 import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell, checkboxWrap, checkboxBox } from "./src/utils/theme.js";
@@ -4069,6 +4074,10 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   // Planes (periodización · plan x día · evaluación peso max) y Reportes
   // (asistencia · historial · bioimpedancia). Subtabs de cada grupo:
   const [planesTab, setPlanesTab] = useState(navGuardada.planesTab || "periodizacion");
+  // Qué periodización se está editando: null = la del alumno (la que comparten
+  // todos los días, el caso normal), o el id de un alumno_plan que tiene la
+  // suya propia (2026-08-10).
+  const [perDiaSel, setPerDiaSel] = useState(null);
   const [repTab, setRepTab] = useState(navGuardada.repTab || "asistencia");
   // Módulo Evaluación (accesible por el botón "Evaluar" de la ficha): dos
   // sub-módulos — "integral" (protocolo de escalas 1-5) y "bio" (bioimpedancia,
@@ -4307,6 +4316,37 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   };
   const guardarPeriodizacionAlumno = (semanas) =>
     onUpdate(alumnos.map((a) => (a.id === al.id ? conPeriodizacionEditada(a, semanas) : a)));
+  // ── PERIODIZACIÓN POR DÍA (2026-08-10) ──
+  // Pedido de Lucas: "un día puede estar haciendo fuerza el otro volumen".
+  // `perDiaSel` es el día que se está editando; null = la del alumno (el caso
+  // normal, una sola compartida por todos). Refrescar los planes después de
+  // guardar es lo que hace que el cartelito "propia/comparte" quede al día sin
+  // recargar la app.
+  const refrescarPlanesDelAlumno = async () => {
+    const planes = await cargarPlanesXDia(al.id, al);
+    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, planes } : a)));
+  };
+  const hacerPeriodizacionPropiaDelDia = async (plan) => {
+    // Arranca como COPIA de la del alumno: separar un día no puede empezar con
+    // la tabla en blanco, o Lucas tendría que recargar ocho semanas a mano
+    // para cambiar un número.
+    const base = (al.plan?.periodizacion || []).map((s) => ({ ...s }));
+    if (base.length === 0) { showToast && showToast("El alumno todavía no tiene periodización para copiar"); return; }
+    if (!(await guardarPeriodizacionDia(plan.id, base))) { showToast && showToast("Error al separar el día . Revisá la consola"); return; }
+    await refrescarPlanesDelAlumno();
+    setPerDiaSel(plan.id);
+    showToast && showToast(`${plan.dia_semana} ahora tiene su propia progresión`);
+  };
+  const volverACompartirPeriodizacion = async (plan) => {
+    if (!(await guardarPeriodizacionDia(plan.id, null))) { showToast && showToast("Error al volver a compartir . Revisá la consola"); return; }
+    await refrescarPlanesDelAlumno();
+    setPerDiaSel(null);
+    showToast && showToast(`${plan.dia_semana} vuelve a usar la del alumno`);
+  };
+  const guardarPeriodizacionDelDia = async (plan, semanas) => {
+    if (!(await guardarPeriodizacionDia(plan.id, semanas))) { showToast && showToast("Error al guardar . Revisá la consola"); return; }
+    await refrescarPlanesDelAlumno();
+  };
   const volverPeriodizacionGlobal = () => {
     const ref = refPeriodizacion(al);
     if (!ref) return;
@@ -4677,10 +4717,8 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     <SelectorPlanDia
       dia={dia}
       grupos={gruposVariantes}
-      plantillas={PLANTILLAS}
       tienePlan={!!(al?.planes || []).find((p) => p.dia_semana === dia && !p._sintetico)}
       onVariante={(v) => asignarVarianteDia(v, dia)}
-      onPlantilla={(id) => asignarPlanDia(id, dia)}
       onSinPlan={() => asignarPlanDia("__sin_plan__", dia)}
       onQuitar={() => quitarDia(dia)}
       onVolver={() => { setSelectedDia(null); if (!desdeAgregar) setAgregandoDia(false); }}

@@ -280,7 +280,10 @@ async function accionImagen({ req, res, sesion }) {
     return;
   }
 
-  const ext = mime.includes("jpeg") ? "jpg" : "png";
+  // La extensión sale del mime real que devolvió Gemini, no de un if de dos
+  // ramas: el bucket acepta webp y gif, y guardar un webp con nombre .png deja
+  // archivos que después no se pueden servir bien (2026-08-10).
+  const ext = { "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" }[mime] || "png";
   const path = `ia-generadas/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   try {
     const bytes = Buffer.from(base64, "base64");
@@ -293,7 +296,13 @@ async function accionImagen({ req, res, sesion }) {
       },
       body: bytes,
     });
-    if (!up.ok) throw new Error(`Storage respondió ${up.status}`);
+    // El status pelado no alcanza: el 400 que rompió esto el 2026-08-10 traía
+    // "new row violates row-level security policy" en el cuerpo, y sin leerlo
+    // el diagnóstico fue adivinar entre mime, nombre de archivo y upsert.
+    if (!up.ok) {
+      const detalle = await up.text().catch(() => "");
+      throw new Error(`Storage respondió ${up.status}. ${detalle}`.trim());
+    }
   } catch (e) {
     res.status(502).json({ error: "La imagen se generó pero no se pudo subir: " + (e?.message || "desconocido") });
     return;

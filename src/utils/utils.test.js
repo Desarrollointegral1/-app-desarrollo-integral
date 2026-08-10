@@ -543,11 +543,13 @@ describe("variantes de plan → plan asignable", () => {
   it("agrupa por familia en orden y ordena los días del ciclo", () => {
     const vs = [
       { id: "c", nombre: "PPL · Piernas", familia: "ppl", dia_ciclo: 3, ejercicios: [] },
-      { id: "a", nombre: "Bilateral", familia: "bilateral", dia_ciclo: null, ejercicios: [] },
+      // 2026-08-10: la familia "bilateral" pasó a llamarse "full_body_avanzado"
+      // (migración 036) y va antes que el PPL en FAMILIAS_VARIANTE.
+      { id: "a", nombre: "Preparación física avanzada · Full body", familia: "full_body_avanzado", dia_ciclo: null, ejercicios: [] },
       { id: "b", nombre: "PPL · Empuje", familia: "ppl", dia_ciclo: 1, descripcion: "Rutina tradicional de 3 días", ejercicios: [] },
     ];
     const g = agruparVariantes(vs);
-    expect(g.map((x) => x.familia)).toEqual(["bilateral", "ppl"]);
+    expect(g.map((x) => x.familia)).toEqual(["full_body_avanzado", "ppl"]);
     expect(g[1].variantes.map((v) => v.dia_ciclo)).toEqual([1, 3]);
     expect(g[1].descripcion).toBe("Rutina tradicional de 3 días");
   });

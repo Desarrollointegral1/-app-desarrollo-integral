@@ -27,12 +27,24 @@ import { uid } from "./helpers.js";
 
 // Etiqueta legible de cada familia — se usa para agrupar los botones en la
 // pantalla y para el subtítulo del día del plan.
+// 2026-08-10: entraron las dos full body. La familia "bilateral" pasó a
+// llamarse "full_body_avanzado" (migración 036) porque era exactamente la
+// sesión que las plantillas viejas repetían como Prep. Física Avanzado,
+// Fuerza Avanzado e Hipertrofia. Las tres full body van primero: son las que
+// se pueden asignar los 3 días iguales, que es como entrena la mayoría.
 export const FAMILIAS_VARIANTE = [
-  { id: "bilateral",  label: "Bilateral",        dias: 1 },
-  { id: "unilateral", label: "Unilateral",       dias: 1 },
-  { id: "ppl",        label: "PPL (3 días)",     dias: 3 },
-  { id: "hibrida_2",  label: "Híbrida (2 días)", dias: 2 },
-  { id: "hibrida_3",  label: "Híbrida (3 días)", dias: 3 },
+  { id: "full_body_basico",   label: "Full body básico",   dias: 1 },
+  { id: "full_body_avanzado", label: "Full body avanzado", dias: 1 },
+  { id: "unilateral",         label: "Unilateral",         dias: 1 },
+  { id: "ppl",                label: "PPL (3 días)",       dias: 3 },
+  { id: "hibrida_2",          label: "Híbrida (2 días)",   dias: 2 },
+  { id: "hibrida_3",          label: "Híbrida (3 días)",   dias: 3 },
+  // 2026-08-10 — las dos que destaparon la estructura del día:
+  //   hipertrofia_2 · el plan real de Jacobo (core intercalado + finisher)
+  //   circuito      · circuito intermitente de fuerza, 30 s × 8 × 4 rondas
+  //                   (no tiene series ni reps: va por tiempo)
+  { id: "hipertrofia_2",      label: "Hipertrofia (2 días)", dias: 2 },
+  { id: "circuito",           label: "Circuito intermitente de fuerza", dias: 1 },
 ];
 
 export const etiquetaFamilia = (familia) =>
@@ -72,6 +84,10 @@ export function varianteAPlan(variante, ejerciciosDelCatalogo) {
     ? indexarCatalogo(ejerciciosDelCatalogo)
     : (ejerciciosDelCatalogo || {});
 
+  // Un día por tiempo (circuito) no tiene series ni repeticiones: sus ocho
+  // ejercicios se miden en segundos. Ver src/utils/estructuraDia.js.
+  const porTiempo = variante.config?.modo === "tiempo";
+
   const ejercicios = (variante.ejercicios || []).map((ej) => {
     const c = idx[String(ej.catalogo_id)] || null;
     // El NOMBRE gana el de la variante: Lucas eligió cómo se llama cada
@@ -89,7 +105,14 @@ export function varianteAPlan(variante, ejerciciosDelCatalogo) {
       // La unidad la define el ejercicio: las planchas van por tiempo. El
       // catálogo no tiene columna de unidad, así que se deduce del nombre —
       // es la única regla de negocio que la app ya aplica hoy (CO004).
-      unidad: /plancha/i.test(nombre) ? "segundos" : "reps",
+      // El día en modo tiempo va TODO por tiempo (30 s por ejercicio): la
+      // unidad es del día, no de cada ejercicio, así que se fuerza acá y no
+      // hay que marcar ocho ejercicios uno por uno.
+      unidad: porTiempo || /plancha/i.test(nombre) ? "segundos" : "reps",
+      // Bloque al que pertenece (2026-08-10): principal · core · finisher.
+      // Sin `seccion` en la variante queda "principal" — las 10 variantes
+      // viejas siguen siendo exactamente lo que eran.
+      seccion: ["core", "finisher"].includes(ej.seccion) ? ej.seccion : "principal",
       video: "",
       mediaLocal: "",
       historial: [],
@@ -103,6 +126,9 @@ export function varianteAPlan(variante, ejerciciosDelCatalogo) {
       {
         dia: variante.dia_ciclo ? `Día ${variante.dia_ciclo}` : "Sesión",
         subtitulo: variante.nombre || "",
+        // La estructura del día viaja con la variante (2026-08-10): modo por
+        // tiempo del circuito, core intercalado del plan de Jacobo.
+        config: variante.config || {},
         ejercicios,
       },
     ],

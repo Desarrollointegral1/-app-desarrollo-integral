@@ -26,15 +26,15 @@ import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
 import SelectorPlanDia from "../src/components/SelectorPlanDia.jsx";
 import { agruparVariantes } from "../src/utils/planVariantes.js";
-import { PLANTILLAS } from "../src/utils/planTemplates.js";
 
 // Copia fiel de `plan_variantes` (2026-08-10): el harness no tiene sesión de
 // Supabase y esa tabla solo se lee autenticado, así que los datos van acá
 // tal como están en la base — nombres, familias y las descripciones que
 // escribió Lucas, que es justamente lo que hay que poder leer en 375px.
 const VARIANTES_DEMO = [
-  { id: "v-bil", nombre: "Bilateral", familia: "bilateral", dia_ciclo: null, descripcion: "" },
-  { id: "v-uni", nombre: "Unilateral", familia: "unilateral", dia_ciclo: null, descripcion: "" },
+  { id: "v-fbb", nombre: "Acondicionamiento físico básico · Full body básico", familia: "full_body_basico", dia_ciclo: null, descripcion: "La sesión de entrada, full body y sin barra: cajón, kettlebell, TRX y banda. También se puede asignar los 3 días; la progresión la marca la periodización." },
+  { id: "v-fba", nombre: "Preparación física avanzada · Full body", familia: "full_body_avanzado", dia_ciclo: null, descripcion: "Full body con barra: los seis patrones grandes en una sola sesión. Al ser full body se puede asignar el MISMO día los 3 días de la semana." },
+  { id: "v-uni", nombre: "Unilateral", familia: "unilateral", dia_ciclo: null, descripcion: "Full body a un brazo y una pierna: empareja diferencias entre lados y exige el equilibrio sin subir el peso." },
   { id: "v-ppl1", nombre: "PPL · Empuje", familia: "ppl", dia_ciclo: 1, descripcion: "Rutina tradicional de 3 días: Empuje un día, Tracción otro y Piernas el tercero. Base: muscleandstrength.com/workouts/3-day-PPL-workout-for-beginners, con las máquinas cambiadas por peso libre (leg press por sentadilla con barra, búlgaras, zancadas, peso muerto o peso muerto a una pierna)." },
   { id: "v-ppl2", nombre: "PPL · Tracción", familia: "ppl", dia_ciclo: 2, descripcion: "" },
   { id: "v-ppl3", nombre: "PPL · Piernas", familia: "ppl", dia_ciclo: 3, descripcion: "" },
@@ -411,15 +411,13 @@ function Harness() {
 
         <Panel
           titulo="Plan x día · elegir la rutina (variantes)"
-          nota="2026-08-10: las 10 rutinas de plan_variantes ya se pueden asignar. Van arriba, agrupadas por familia y con la descripción de Lucas a la vista; el PPL y las híbridas muestran «Día 1/2/3» para asignarlas día por día sin adivinar. Las plantillas viejas quedan abajo, rotuladas «Plantillas anteriores»."
+          nota="2026-08-10: las 11 rutinas de plan_variantes se asignan desde acá, agrupadas por familia y con la descripción de Lucas a la vista; el PPL y las híbridas muestran «Día 1/2/3» para asignarlas día por día sin adivinar. El bloque «Plantillas anteriores» se sacó: esas 12 plantillas eran las mismas dos sesiones full body repetidas con distinta periodización, y la periodización ya vive en su propia tabla."
         >
           <SelectorPlanDia
             dia="Lunes"
             grupos={agruparVariantes(VARIANTES_DEMO)}
-            plantillas={PLANTILLAS}
             tienePlan
             onVariante={(v) => alert(`Asignaría: ${v.nombre}`)}
-            onPlantilla={(id) => alert(`Asignaría la plantilla: ${id}`)}
             onSinPlan={() => alert("Sin plan")}
             onQuitar={() => alert("Quitar día")}
             onVolver={() => alert("Volver")}
