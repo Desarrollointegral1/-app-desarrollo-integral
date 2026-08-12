@@ -32,6 +32,48 @@ import { uid } from "./helpers.js";
 // sesión que las plantillas viejas repetían como Prep. Física Avanzado,
 // Fuerza Avanzado e Hipertrofia. Las tres full body van primero: son las que
 // se pueden asignar los 3 días iguales, que es como entrena la mayoría.
+// ── "SIN PLAN DE EJERCICIOS" (2026-08-12) ──────────────────────────────
+// Pedido de Lucas: "los dos me tienen que dar la opción de dejar sin ningún
+// predeterminado. sin plan." El sentinel ya existía suelto dentro de App.jsx
+// como el string "__sin_plan__"; se sube acá para que el alta y el selector
+// por día usen EL MISMO criterio en vez de inventar cada uno el suyo. No es un
+// id de plantilla: significa "creá la fila del día, pero vacía a propósito"
+// (distinto de no tener fila, que es no entrenar ese día).
+export const SIN_PLAN = "__sin_plan__";
+
+// Plan vacío listo para guardar. Función y no constante: si fuera un objeto
+// compartido, dos días "sin plan" apuntarían al mismo array y editar uno
+// tocaría el otro.
+export const planVacio = () => ({
+  nombre: "Sin plan",
+  descripcion: "",
+  dias: [],
+  movilidad: [],
+  calor: [],
+  activacion: [],
+  periodizacion: [],
+});
+
+// Valor con el que viaja una variante dentro de un <select> (el alta elige por
+// día con un desplegable, no con la grilla de botones de SelectorPlanDia).
+// El prefijo distingue una variante real del sentinel de "sin plan".
+export const valorVariante = (v) => `v:${v?.id}`;
+
+/**
+ * Traduce lo elegido en el alta a un plan listo para crearPlanAlumno.
+ * Devuelve { plan, origen } — `origen` es "catalogo_v2" solo cuando salió de
+ * `plan_variantes`, igual que ya hacía asignarVarianteDia.
+ * Es pura a propósito: el alta no se puede probar sin base ni login, así que
+ * la decisión de qué plan se crea se testea acá.
+ */
+export function planDeEleccion(valor, variantes, catalogoIdx) {
+  if (!valor || valor === SIN_PLAN) return { plan: planVacio(), origen: null };
+  const id = String(valor).startsWith("v:") ? String(valor).slice(2) : String(valor);
+  const v = (variantes || []).find((x) => String(x.id) === id);
+  if (!v) return { plan: planVacio(), origen: null };
+  return { plan: { ...planVacio(), ...varianteAPlan(v, catalogoIdx || {}) }, origen: "catalogo_v2" };
+}
+
 export const FAMILIAS_VARIANTE = [
   { id: "full_body_basico",   label: "Full body básico",   dias: 1 },
   { id: "full_body_avanzado", label: "Full body avanzado", dias: 1 },
