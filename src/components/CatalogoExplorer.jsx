@@ -29,6 +29,7 @@ import { useState, useEffect, useMemo, useRef, Fragment } from "react";
 import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move, CalendarRange } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
+import { UNIDADES, NOMBRE_UNIDAD, unidadDe } from "../utils/unidades.js";
 import labels from "../utils/catalogoLabels.json";
 import { useDeshacer } from "./ToastDeshacer.jsx";
 import {
@@ -47,10 +48,16 @@ import {
   eliminarPlanPredeterminado,
   getPrepGlobales,
   setAppConfig,
-  listarPeriodizaciones,
+  listarPeriodizacionesConNombres,
   guardarPeriodizacion,
+  renombrarPeriodizacion,
+  listarVariantesPlan,
+  renombrarVariantePlan,
   supabase,
 } from "../../services/supabase.js";
+// gifAlRenombrar (2026-08-12): para NO perder la ilustración al renombrar un
+// ejercicio que la resolvía por nombre.
+import { gifAlRenombrar } from "../utils/ejerciciosMedia.js";
 import { PREP_LISTAS, claveConfigPrep, listaGlobal } from "../utils/preparacion.js";
 // NIVELES ya existe acá abajo con otro significado (nivel del ejercicio), así
 // que los de periodización entran con alias.
@@ -58,6 +65,7 @@ import {
   OBJETIVOS as OBJETIVOS_PER,
   NIVELES as NIVELES_PER,
   clavePeriodizacion,
+  etiquetaPeriodizacion,
   objetivoLabel,
   nivelLabel,
 } from "../utils/periodizacion.js";
@@ -403,6 +411,47 @@ export default function CatalogoExplorer({
     if (pantalla === "planes") listarPlanesPredeterminados().then(setPlantillas);
   }, [pantalla]);
 
+  // ── PLANES DE ENTRENAMIENTO de la base (`plan_variantes`) ─────────────
+  // 2026-08-12, pedido de Lucas: poder renombrarlos él. Son las 14 rutinas
+  // (Bilateral, Unilateral, PPL, híbridas, circuito, el plan de Jacobo…) que
+  // se asignan desde "Plan x día". Hasta hoy el nombre y la descripción solo
+  // se podían tocar por SQL.
+  //
+  // Viven acá, en "Todos los planes", que es la pantalla donde ya se
+  // administran los planes — no hace falta una pantalla nueva.
+  //
+  // Renombrar es seguro: nada apunta a una variante por nombre. La asignación
+  // usa `id`, y el agrupado de la pantalla de asignación usa `familia` y
+  // `dia_ciclo` — por eso esos dos campos no se editan. Lo que sí queda con el
+  // nombre viejo es el plan YA asignado a un alumno (es una copia del momento
+  // en que se armó, alumno_planes/plan_ejercicios): renombrar la variante no
+  // reescribe planes en curso, a propósito.
+  const [variantes, setVariantes] = useState(null);
+  const [varDraft, setVarDraft] = useState({}); // { [id]: {nombre, descripcion} }
+  useEffect(() => {
+    if (pantalla === "planes" && variantes === null) listarVariantesPlan().then(setVariantes);
+  }, [pantalla, variantes]);
+  const campoVariante = (v, campo) => {
+    const d = varDraft[v.id];
+    return d && d[campo] !== undefined ? d[campo] : (v[campo] || "");
+  };
+  const editarVariante = (id, campo, valor) =>
+    setVarDraft((d) => ({ ...d, [id]: { ...(d[id] || {}), [campo]: valor } }));
+  const guardarVariante = async (v, campo) => {
+    const d = varDraft[v.id];
+    if (!d || d[campo] === undefined) return;
+    const valor = campo === "nombre" ? String(d[campo]).trim() : d[campo];
+    setVarDraft((x) => { const n = { ...x }; if (n[v.id]) { const c = { ...n[v.id] }; delete c[campo]; n[v.id] = c; } return n; });
+    // Nombre vacío no se guarda: dejaría una fila sin forma de reconocerla en
+    // la lista de asignación.
+    if (campo === "nombre" && !valor) return;
+    if (valor === (v[campo] || "")) return;
+    const ok = await renombrarVariantePlan(v.id, { [campo]: valor });
+    if (!ok) { showToast && showToast("Error guardando — revisá la consola"); return; }
+    setVariantes((vs) => (vs || []).map((x) => (x.id === v.id ? { ...x, [campo]: valor } : x)));
+    showToast && showToast(campo === "nombre" ? `Guardado: “${valor}”` : "Descripción guardada");
+  };
+
   // ── Predeterminados de PREPARACIÓN (2026-08-10) ───────────────────────
   // Edición del NIVEL 1 (app_config): borrador en memoria por lista, se
   // persiste con "GUARDAR PREDETERMINADO". Mientras no haya nada guardado, el
@@ -453,14 +502,42 @@ export default function CatalogoExplorer({
   // memoria: se elige objetivo + nivel, se editan las semanas y se persisten
   // en la tabla `periodizaciones` con "GUARDAR PREDETERMINADO".
   const [perGlobales, setPerGlobales] = useState({});
+  // Nombres de las 8 planificaciones (2026-08-12). Antes el título de la
+  // pantalla se armaba con las constantes OBJETIVOS × NIVELES y la columna
+  // `nombre` de la tabla no la leía nadie: renombrar la fila no se veía en
+  // ningún lado. Ahora manda el dato — ver etiquetaPeriodizacion().
+  const [perNombres, setPerNombres] = useState({});
   const [perDraft, setPerDraft] = useState({});
   const [perObj, setPerObj] = useState(OBJETIVOS_PER[0].id);
   const [perNiv, setPerNiv] = useState(NIVELES_PER[0].id);
   const [guardandoPer, setGuardandoPer] = useState(false);
   useEffect(() => {
-    if (pantalla === "periodizacion") listarPeriodizaciones().then(setPerGlobales);
+    if (pantalla === "periodizacion") {
+      listarPeriodizacionesConNombres().then(({ semanas, nombres }) => {
+        setPerGlobales(semanas);
+        setPerNombres(nombres);
+      });
+    }
   }, [pantalla]);
   const perClave = clavePeriodizacion(perObj, perNiv);
+  // Renombre EN LÍNEA: se escribe libre y se persiste al salir del campo. Sin
+  // confirmación — es reversible, y pedir "¿seguro?" para cambiar una palabra
+  // es peor que el error que evitaría. El objetivo y el nivel NO se editan:
+  // son el id de la fila (rm.periodizacion_ref del alumno apunta ahí), así que
+  // renombrar nunca le rompe la herencia a nadie.
+  const [perNombreDraft, setPerNombreDraft] = useState(null);
+  const perNombreVisible =
+    perNombreDraft !== null ? perNombreDraft : etiquetaPeriodizacion(perNombres, perObj, perNiv);
+  const guardarNombrePer = async () => {
+    if (perNombreDraft === null) return;
+    const nuevo = perNombreDraft.trim();
+    setPerNombreDraft(null);
+    if (!nuevo || nuevo === etiquetaPeriodizacion(perNombres, perObj, perNiv)) return;
+    const ok = await renombrarPeriodizacion(perObj, perNiv, nuevo);
+    if (!ok) { showToast && showToast("Error renombrando — revisá la consola"); return; }
+    setPerNombres((n) => ({ ...n, [clavePeriodizacion(perObj, perNiv)]: nuevo }));
+    showToast && showToast(`Guardado: “${nuevo}”`);
+  };
   const perSemanas = perDraft[perClave] || perGlobales[perClave] || [];
   // Toda escritura renumera: sacar la semana 3 de un plan de 6 no puede dejar
   // las semanas 1,2,4,5,6.
@@ -755,6 +832,10 @@ export default function CatalogoExplorer({
       tags: tagsIniciales,
       tag_default: e.tag_default || e.equipment_es || tagsIniciales[0] || "",
       nivel: e.nivel || "",
+      // 2026-08-12: la unidad la asignó la migración 038 por regla; acá se
+      // corrige el caso puntual que la regla no puede saber (un ejercicio
+      // "con peso extra" que Lucas hace sin peso, por ejemplo).
+      unidad: unidadDe(e),
     });
     setCodigoError("");
   };
@@ -804,7 +885,7 @@ export default function CatalogoExplorer({
   const abrirNuevo = () => {
     setCreando(true);
     setDetalle({ id: null, custom: true });
-    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", categoria: "", musculos: [], musculo_default: "", tags: [], tag_default: "", nivel: "" });
+    setForm({ nombre_es: "", instrucciones_es: "", video: "", codigo_di: "", categoria: "", musculos: [], musculo_default: "", tags: [], tag_default: "", nivel: "", unidad: "kilos" });
     setCodigoError("");
   };
 
@@ -847,6 +928,7 @@ export default function CatalogoExplorer({
       tags: form.tags,
       tag_default: form.tag_default,
       nivel: form.nivel || null, // ronda 18: Inicial/Intermedio/Avanzado
+      unidad: form.unidad || "kilos", // 2026-08-12: kilos | repeticiones | segundos
       target_es: form.musculo_default || form.musculos[0] || "",
       secondary_muscles_es: form.musculos.filter((m) => m !== form.musculo_default),
       equipment_es: form.tag_default || form.tags[0] || "",
@@ -867,6 +949,13 @@ export default function CatalogoExplorer({
     if (codigoLimpio && codigoLimpio !== codigoViejo && codigoViejo) {
       await renombrarCodigoEjercicio(codigoViejo, codigoLimpio);
     }
+    // RENOMBRAR NO PUEDE DEJAR AL EJERCICIO SIN ILUSTRACIÓN (2026-08-12).
+    // El ejercicio sin `gif_url` propio resuelve su imagen POR NOMBRE contra
+    // el mapa de src/utils/ejerciciosMedia.js, que es un archivo del código:
+    // renombrarlo a algo que ese mapa no conoce lo dejaba mudo. Se le fija la
+    // imagen que tenía antes de renombrar — ver gifAlRenombrar().
+    const gifFijado = gifAlRenombrar(detalle.gif_url, detalle.nombre_es || "", payload.nombre_es);
+    if (gifFijado) payload.gif_url = gifFijado;
     const ok = await guardarEjercicioCatalogo(detalle.id, payload);
     setGuardando(false);
     if (!ok) { showToast && showToast("Error guardando — revisá la consola"); return; }
@@ -912,7 +1001,9 @@ export default function CatalogoExplorer({
           video: it.video || "",
           codigo: codigo || null,
           gif: catalogoMediaUrl(it.gif_url || ""),
-          unidad: "reps",
+          // 2026-08-12: la unidad viaja desde el catálogo al plan (antes se
+          // guardaba "reps" para todo y la pantalla lo mostraba como kilos).
+          unidad: unidadDe(it),
         });
       }
       const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }], nivelPlan);
@@ -1246,6 +1337,25 @@ export default function CatalogoExplorer({
     </div>
   );
 
+  // 2026-08-12 — Lucas: la unidad tiene que salir del catálogo y poder
+  // corregirse ejercicio por ejercicio. Mismo patrón visual que nivelChips,
+  // pero SIN toggle de apagado: un ejercicio siempre se registra de alguna de
+  // las tres formas, "sin unidad" no existe.
+  const unidadChips = (valor, onSet) => (
+    <div style={{ display: "flex", gap: 6 }}>
+      {UNIDADES.map((id) => (
+        <button
+          key={id}
+          onClick={() => onSet(id)}
+          className="di-tap"
+          style={{ flex: 1, background: valor === id ? S.white : S.card3, color: valor === id ? S.bg : S.gray, border: "1px solid " + (valor === id ? S.white : S.border2), borderRadius: 8, padding: "11px 6px", minHeight: TAP, fontSize: TS.chip, fontWeight: valor === id ? 800 : 600, cursor: "pointer", fontFamily: FONT_BODY }}
+        >
+          {NOMBRE_UNIDAD[id]}
+        </button>
+      ))}
+    </div>
+  );
+
   const labelCampo = { fontSize: TS.chip, color: S.gray, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700, marginBottom: 6, fontFamily: FONT_BODY };
 
   // ── Panel "Plan de Entrenamiento" (pantalla de armado) ──────────────
@@ -1334,7 +1444,7 @@ export default function CatalogoExplorer({
         video: it.video || "",
         codigo: codigo || null,
         gif: catalogoMediaUrl(it.gif_url || ""),
-        unidad: "reps",
+        unidad: unidadDe(it), // 2026-08-12: la unidad la define el catálogo
       });
       return { ...f, dias };
     });
@@ -1494,21 +1604,34 @@ export default function CatalogoExplorer({
           El alumno que tenga una periodización propia (editada desde su ficha) no se pisa: sigue con la suya.
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          {/* setPerNombreDraft(null) al cambiar de fila: si no, el texto a
+              medio escribir de una planificación se vería sobre otra. */}
           {OBJETIVOS_PER.map((o) => (
-            <button key={o.id} onClick={() => setPerObj(o.id)} className="di-tap" style={{ ...smallBtn(perObj === o.id ? S.white : S.gray) }}>
+            <button key={o.id} onClick={() => { setPerObj(o.id); setPerNombreDraft(null); }} className="di-tap" style={{ ...smallBtn(perObj === o.id ? S.white : S.gray) }}>
               {o.label}
             </button>
           ))}
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {NIVELES_PER.map((n) => (
-            <button key={n.id} onClick={() => setPerNiv(n.id)} className="di-tap" style={{ ...smallBtn(perNiv === n.id ? S.white : S.gray) }}>
+            <button key={n.id} onClick={() => { setPerNiv(n.id); setPerNombreDraft(null); }} className="di-tap" style={{ ...smallBtn(perNiv === n.id ? S.white : S.gray) }}>
               {n.label}
             </button>
           ))}
         </div>
         <div style={{ maxWidth: 560 }}>
           <div style={{ ...card, padding: 12, marginBottom: 10 }}>
+            {/* 2026-08-12: el título es un campo. Se escribe encima y se
+                guarda al salir del campo — un renombre es cambiar una palabra,
+                no vale abrir un modal para eso. */}
+            <input
+              value={perNombreVisible}
+              onChange={(e) => setPerNombreDraft(e.target.value)}
+              onBlur={guardarNombrePer}
+              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+              title="Renombrar esta planificación"
+              style={{ ...inp, marginBottom: 6, fontWeight: 800 }}
+            />
             <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>
               {objetivoLabel(perObj)} · {nivelLabel(perNiv)} · {perSemanas.length} semana(s)
             </div>
@@ -1586,7 +1709,8 @@ export default function CatalogoExplorer({
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {!planSel ? (
-          !plantillas ? (
+          <>
+          {!plantillas ? (
             <div style={{ color: S.gray, fontSize: TS.body, textAlign: "center", padding: 30 }}>Cargando planes…</div>
           ) : plantillas.length === 0 ? (
             <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: TS.body }}>
@@ -1605,7 +1729,53 @@ export default function CatalogoExplorer({
                 <button onClick={() => eliminarPlantilla(p)} title="Eliminar plan" className="di-tap" style={{ ...smallBtn(S.red), padding: "0 12px", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={18} strokeWidth={2} /></button>
               </div>
             ))
-          )
+          )}
+
+          {/* ── Planes de entrenamiento de la base (2026-08-12) ──────────
+              Los que se asignan desde "Plan x día". Nombre y descripción se
+              editan EN LÍNEA y se guardan al salir del campo: cambiar una
+              palabra no puede costar abrir y cerrar un modal. Sin
+              confirmación — es reversible; lo que sí se ve es el aviso de
+              guardado. */}
+          <div style={{ ...eyebrow, fontSize: TS.chip, margin: "22px 0 4px" }}>Planes de entrenamiento</div>
+          <div style={{ color: S.gray, fontSize: TS.chip, marginBottom: 10 }}>
+            Los que se asignan a cada día del alumno. Podés renombrarlos y cambiarles la descripción — los planes ya
+            asignados siguen con el nombre que tenían.
+          </div>
+          {variantes === null ? (
+            <div style={{ color: S.gray, fontSize: TS.body, textAlign: "center", padding: 20 }}>Cargando…</div>
+          ) : variantes.length === 0 ? (
+            <div style={{ ...card, padding: 20, textAlign: "center", color: S.gray, fontSize: TS.body }}>
+              No hay planes de entrenamiento cargados.
+            </div>
+          ) : (
+            variantes.map((v) => (
+              <div key={v.id} style={{ ...card, padding: "12px 14px", marginBottom: 8 }}>
+                <input
+                  value={campoVariante(v, "nombre")}
+                  onChange={(e) => editarVariante(v.id, "nombre", e.target.value)}
+                  onBlur={() => guardarVariante(v, "nombre")}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                  title="Renombrar este plan"
+                  style={{ ...inp, fontWeight: 700 }}
+                />
+                <div style={{ color: S.lgray, fontSize: TS.chip, margin: "6px 0 8px" }}>
+                  {[v.familia, v.dia_ciclo ? `Día ${v.dia_ciclo}` : null, `${(v.ejercicios || []).length} ejercicio(s)`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+                <textarea
+                  value={campoVariante(v, "descripcion")}
+                  onChange={(e) => editarVariante(v.id, "descripcion", e.target.value)}
+                  onBlur={() => guardarVariante(v, "descripcion")}
+                  placeholder="Descripción — qué es este plan y para quién."
+                  rows={3}
+                  style={{ ...inp, minHeight: 72, resize: "vertical", lineHeight: 1.45, fontSize: TS.body }}
+                />
+              </div>
+            ))
+          )}
+          </>
         ) : (
           planForm && (
             <div style={{ maxWidth: 560 }}>
@@ -1822,6 +1992,13 @@ export default function CatalogoExplorer({
                 visible como badge en la card y filtrable en el sidebar. */}
             <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Nivel</div>
             <div style={{ marginBottom: 10 }}>{nivelChips(form.nivel, (v) => setForm((f) => ({ ...f, nivel: v })))}</div>
+            {/* 2026-08-12: cómo se registra este ejercicio. Es lo que va a
+                decir el casillero del alumno (KG HOY / REPS HOY / SEG HOY). */}
+            <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Se registra en</div>
+            <div style={{ marginBottom: 4 }}>{unidadChips(form.unidad, (v) => setForm((f) => ({ ...f, unidad: v })))}</div>
+            <div style={{ fontSize: TS.chip, color: S.lgray, marginBottom: 10, lineHeight: 1.45 }}>
+              Kilos si lleva carga · Repeticiones si es peso corporal (TRX, fondos, dominadas) · Segundos si es isométrico (plancha).
+            </div>
             <div style={{ fontSize: TS.chip, fontWeight: 700, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instrucciones</div>
             <textarea value={form.instrucciones_es} onChange={(e) => setForm((f) => ({ ...f, instrucciones_es: e.target.value }))} rows={5} style={{ ...inp, resize: "vertical", marginBottom: 12, lineHeight: 1.45 }} />
             {/* músculos editables, con ★ predeterminado (punto 4) */}

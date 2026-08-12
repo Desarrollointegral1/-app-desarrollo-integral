@@ -6,6 +6,7 @@ import { pasosDeInstrucciones } from "../utils/pasosInstrucciones.js";
 import { resolverGif } from "../utils/ejerciciosMedia.js";
 import { vueltasDe, cantidadDeVueltas, resumenVueltas } from "../utils/pesos.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
+import { unidadDe, ETIQUETA_HOY, SUFIJO, PASO_UNIDAD } from "../utils/unidades.js";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
 // `pesoAnterior` ({peso, fecha}) muestra el último peso registrado en días
@@ -37,10 +38,15 @@ export default function ItemCard({
   peso = peso || 0;
   historial = historial || [];
   showPeso = showPeso || false;
-  // Taxonomía 2026-07-21: la Plancha se mide SIEMPRE en segundos, no en
-  // repeticiones ni kilos. unidad viene del plan/biblioteca; el chequeo por
-  // nombre es la red de seguridad para planes viejos sin el campo.
-  const enSegundos = unidad === "segundos" || /^plancha\b/i.test((nombre || "").trim());
+  // 2026-08-12 — Lucas: "los ejercicios de peso corporal como la trx o fondo
+  // triceps no se cuenta por kilo sino por repeticiones... los isometricos
+  // tipo plancha son por segundos". Antes acá había un regex de "plancha" que
+  // decidía entre KG y SEG: un parche que dejaba en kilos todo lo demás (una
+  // dominada, un puente, un fondo). Ahora la unidad viene del catálogo por el
+  // plan (migración 038) y unidadDe solo la deduce si el ejercicio es viejo o
+  // se escribió a mano.
+  const uni = unidadDe({ unidad, nombre });
+  const sufijo = SUFIJO[uni];
   const [open, setOpen] = useState(false);
 
   // ── PESO POR VUELTA (2026-08-09) ─────────────────────────────────────
@@ -73,6 +79,27 @@ export default function ItemCard({
   // como pasos numerados. Si el texto no se deja partir en una lista razonable,
   // `pasos` es null y abajo cae al párrafo de siempre.
   const pasos = pasosDeInstrucciones(desc);
+  // ── EXPLICACIÓN PRIMERO, GIF ABAJO, Y "MOSTRAR MÁS" (2026-08-12) ──────
+  // Pedido de Lucas: "el ejercicio tiene que ser el gif abajo y la explicación
+  // como primer ítem y la opción de mostrar más". Las instrucciones del
+  // catálogo son párrafos de ~500 caracteres: mostradas enteras empujaban el
+  // GIF fuera de la pantalla del celular, así que la tarjeta abierta arrancaba
+  // con un muro de texto y el video quedaba escondido abajo. Ahora se ven los
+  // primeros pasos —que son los que se leen de pie, en medio de la serie— y el
+  // resto se despliega a pedido.
+  const PASOS_A_LA_VISTA = 3;
+  const CHARS_A_LA_VISTA = 220;
+  const [verMas, setVerMas] = useState(false);
+  const textoLargo = pasos ? pasos.length > PASOS_A_LA_VISTA : (desc || "").length > CHARS_A_LA_VISTA;
+  const pasosVisibles = pasos && !verMas && textoLargo ? pasos.slice(0, PASOS_A_LA_VISTA) : pasos;
+  // Corte del párrafo (cuando el texto no se dejó partir en pasos): se corta en
+  // el último espacio para no partir una palabra al medio.
+  const descVisible = !pasos && textoLargo && !verMas
+    ? (desc || "").slice(0, CHARS_A_LA_VISTA).replace(/\s+\S*$/, "") + "…"
+    : desc;
+  // Al cerrar la tarjeta vuelve a su forma corta: si no, el ejercicio que se
+  // abrió una vez quedaba desplegado para siempre en toda la sesión.
+  useEffect(() => { if (!open) setVerMas(false); }, [open]);
   const ytId = getYTId(video);
   // `video` puede ser un path de rehab-media (bucket privado): se resuelve a
   // signed URL. Si ya es http/data/YouTube, el hook lo devuelve tal cual.
@@ -244,12 +271,15 @@ export default function ItemCard({
                 completo, si no en un teléfono de 375px la cuarta se sale. */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingLeft: 36 }}>
               <div style={{ color: S.gray, fontSize: TS.chip }}>
-                {porVuelta ? `VUELTA ${vueltaActiva + 1}` : enSegundos ? "SEG HOY" : "KG HOY"}
+                {/* Con vueltas el casillero igual tiene que decir QUÉ se
+                    carga: sin la unidad al lado, el alumno de un plan de TRX
+                    escribe kilos donde van repeticiones (2026-08-12). */}
+                {porVuelta ? `VUELTA ${vueltaActiva + 1} · ${sufijo.toUpperCase()}` : ETIQUETA_HOY[uni]}
               </div>
               <div style={stepperTrack()}>
                 <button
                   onClick={() => cambiarPeso(Math.max(0, valorActivo - 1))}
-                  aria-label={enSegundos ? "Restar un segundo" : "Restar un kilo"}
+                  aria-label={PASO_UNIDAD[uni][0]}
                   style={stepperBtn()}
                 >
                   −
@@ -266,7 +296,7 @@ export default function ItemCard({
                 <div style={stepperDivider()} />
                 <button
                   onClick={() => cambiarPeso(valorActivo + 1)}
-                  aria-label={enSegundos ? "Sumar un segundo" : "Sumar un kilo"}
+                  aria-label={PASO_UNIDAD[uni][1]}
                   style={stepperBtn()}
                 >
                   +
@@ -316,10 +346,11 @@ export default function ItemCard({
       </div>
       {open && (
         <div style={{ borderTop: "1px solid " + S.border, padding: 14 }}>
+          {/* 1) LA EXPLICACIÓN — primer ítem de la tarjeta abierta. */}
           {desc &&
             (pasos ? (
-              <ol style={{ listStyle: "none", margin: "0 0 14px", padding: 0, display: "grid", gap: 9 }}>
-                {pasos.map((paso, i) => (
+              <ol style={{ listStyle: "none", margin: "0 0 10px", padding: 0, display: "grid", gap: 9 }}>
+                {pasosVisibles.map((paso, i) => (
                   <li key={i} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
                     <span
                       style={{
@@ -338,8 +369,42 @@ export default function ItemCard({
                 ))}
               </ol>
             ) : (
-              <div style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
+              <div style={{ color: S.gray, fontSize: TS.body, lineHeight: 1.6, marginBottom: 10 }}>{descVisible}</div>
             ))}
+          {desc && textoLargo && (
+            <button
+              onClick={() => setVerMas((v) => !v)}
+              aria-expanded={verMas}
+              style={{
+                background: "transparent",
+                border: "1px solid " + S.border,
+                borderRadius: 8,
+                color: S.white,
+                fontSize: TS.chip,
+                fontWeight: 700,
+                cursor: "pointer",
+                minHeight: TAP,
+                padding: "0 14px",
+                marginBottom: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              {verMas
+                ? "Mostrar menos"
+                : pasos
+                  ? `Mostrar más (${pasos.length - PASOS_A_LA_VISTA} pasos)`
+                  : "Mostrar más"}
+              <ChevronDown
+                size={15}
+                color={S.gray}
+                strokeWidth={2}
+                style={{ transform: verMas ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+              />
+            </button>
+          )}
+          {/* 2) EL GIF / VIDEO — abajo de la explicación, no arriba. */}
           {renderMedia()}
           {showPeso && (pesoAnterior || maxHistorico > 0) && (
             <div style={{ background: S.card2, borderRadius: 8, padding: 12, marginTop: 4 }}>
@@ -357,10 +422,12 @@ export default function ItemCard({
                   }}
                 >
                   <div>
-                    <div style={{ color: S.gray, fontSize: TS.chip, fontWeight: 700, letterSpacing: 1 }}>PESO ANTERIOR</div>
+                    <div style={{ color: S.gray, fontSize: TS.chip, fontWeight: 700, letterSpacing: 1 }}>
+                      {uni === "kilos" ? "PESO ANTERIOR" : "LA VEZ ANTERIOR"}
+                    </div>
                     <div style={{ color: S.lgray, fontSize: TS.chip }}>{pesoAnterior.fecha}</div>
                   </div>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{pesoAnterior.peso} {enSegundos ? "seg" : "kg"}</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{pesoAnterior.peso} {sufijo}</div>
                 </div>
               )}
               {/* 2026-07-31 — Lucas: "no quiero que aparezca tu peso de hoy
@@ -381,7 +448,7 @@ export default function ItemCard({
                   }}
                 >
                   <div style={{ color: S.gray, fontSize: TS.chip, fontWeight: 700, letterSpacing: 1 }}>TU MÁXIMO EN ESTE EJERCICIO</div>
-                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{maxHistorico} {enSegundos ? "seg" : "kg"}</div>
+                  <div style={{ color: S.white, fontWeight: 900, fontSize: TS.lead }}>{maxHistorico} {sufijo}</div>
                 </div>
               )}
             </div>

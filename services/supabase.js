@@ -1889,13 +1889,43 @@ export async function propagarEjercicioATodos({ categoria, codigo, nombreOrigina
 
 const REHAB_BUCKET = "rehab-media";
 
+// Tope real de Storage en este proyecto (verificado el 2026-08-12 subiendo un
+// archivo de 60 MB: responde 413 "The object exceeded the maximum allowed
+// size"). Se chequea ACÁ antes de mandar nada: si no, el celular sube el video
+// entero por datos móviles para que el servidor lo rechace al final, y el
+// mensaje que le llega a Lucas está en inglés.
+const REHAB_MAX_BYTES = 50 * 1024 * 1024;
+
 export async function subirMediaRehab(archivo) {
   LOG("subirMediaRehab", `⏳ Subiendo ${archivo.name} (${Math.round(archivo.size / 1024)} KB)...`);
+  if (archivo.size > REHAB_MAX_BYTES) {
+    throw new Error(
+      `El video pesa ${Math.round(archivo.size / 1024 / 1024)} MB y el máximo es 50 MB. Grabá uno más corto o mandalo por WhatsApp y subilo desde la compu.`
+    );
+  }
+  // 2026-08-12 — BUG REAL: Lucas subió tres veces el video de Ángel desde el
+  // celular y las tres el POST no llegó NUNCA al servidor (en los logs de
+  // Supabase quedó el preflight OPTIONS 200 y ningún POST, ni siquiera un
+  // error). Eso pasa cuando el navegador no puede leer el archivo al armar el
+  // cuerpo del request: en Android el File que devuelve un <input type=file>
+  // es un puntero a un archivo del proveedor de contenido (Galería/Fotos), y
+  // si ese puntero se suelta o el archivo se toca, el fetch se cae antes de
+  // salir a la red — sin request, sin log, sin mensaje entendible.
+  // La solución es leer el archivo A MEMORIA acá, en el primer momento, y
+  // subir esa copia: a partir de la línea de abajo la subida ya no depende de
+  // que el archivo del celular siga estando accesible.
+  let datos;
+  try {
+    datos = new Blob([await archivo.arrayBuffer()], { type: archivo.type || "application/octet-stream" });
+  } catch (e) {
+    ERR("subirMediaRehab", "No se pudo leer el archivo del dispositivo", e);
+    throw new Error("No se pudo leer el video del celular. Volvé a elegirlo (si lo grabaste recién, esperá a que termine de guardarse).");
+  }
   const ext = (archivo.name.split(".").pop() || "bin").toLowerCase();
   const key = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage
     .from(REHAB_BUCKET)
-    .upload(key, archivo, { cacheControl: "3600", upsert: false });
+    .upload(key, datos, { cacheControl: "3600", upsert: false, contentType: datos.type });
   if (error) { ERR("subirMediaRehab", error.message, error); throw new Error(error.message || "Error al subir"); }
   LOG("subirMediaRehab", `✅ Subido: ${key}`);
   return key; // path del objeto (bucket privado) — signed URL se resuelve al mostrar
@@ -2431,18 +2461,65 @@ export async function getPrepGlobales() {
 // tabla `periodizaciones`, campo jsonb `semanas`. Es el NIVEL 1 del mismo
 // esquema de dos niveles que la preparación — ver src/utils/periodizacion.js.
 // Se devuelven indexados por "objetivo|nivel" para no repetir el find().
-export async function listarPeriodizaciones() {
+//
+// 2026-08-12 — versión que además trae el NOMBRE de cada planificación.
+// POR QUÉ: la columna `nombre` existía desde el día uno y NADIE la leía; las
+// pantallas armaban el título con las constantes OBJETIVOS × NIVELES de
+// src/utils/periodizacion.js, así que renombrar la fila en la base no cambiaba
+// nada en pantalla. Un renombre que no se ve es un renombre mentiroso.
+//
+// Va aparte y no cambia la firma de listarPeriodizaciones() a propósito: esa
+// devuelve el mapa de semanas y hay código que hace `perGlobales[clave]`
+// esperando el array. Una sola consulta para las dos cosas.
+export async function listarPeriodizacionesConNombres() {
+  const vacio = { semanas: {}, nombres: {} };
   try {
     const { data, error } = await supabase
       .from("periodizaciones")
-      .select("objetivo, nivel, semanas");
-    if (error) { LOG("listarPeriodizaciones", `⚠️ ${error.message}`); return {}; }
-    const mapa = {};
-    (data || []).forEach((r) => { mapa[`${r.objetivo}|${r.nivel}`] = r.semanas || []; });
-    return mapa;
+      .select("objetivo, nivel, nombre, semanas");
+    if (error) { LOG("listarPeriodizaciones", `⚠️ ${error.message}`); return vacio; }
+    const semanas = {}, nombres = {};
+    (data || []).forEach((r) => {
+      const k = `${r.objetivo}|${r.nivel}`;
+      semanas[k] = r.semanas || [];
+      if (r.nombre) nombres[k] = r.nombre;
+    });
+    return { semanas, nombres };
   } catch (e) {
-    return {};
+    return vacio;
   }
+}
+
+export async function listarPeriodizaciones() {
+  return (await listarPeriodizacionesConNombres()).semanas;
+}
+
+// 2026-08-12 — renombrar una planificación. La fila se identifica por
+// (objetivo, nivel), que es lo que la referencia desde el alumno
+// (rm.periodizacion_ref): cambiar el NOMBRE no toca esa clave, así que ningún
+// alumno pierde su herencia al renombrar. Por eso el objetivo y el nivel no
+// son editables — son el id, no la etiqueta.
+export async function renombrarPeriodizacion(objetivo, nivel, nombre) {
+  const { error } = await supabase
+    .from("periodizaciones")
+    .update({ nombre: nombre || null })
+    .eq("objetivo", objetivo)
+    .eq("nivel", nivel);
+  if (error) { ERR("renombrarPeriodizacion", `No se pudo renombrar ${objetivo}/${nivel}`, error); return false; }
+  LOG("renombrarPeriodizacion", `✅ ${objetivo}/${nivel} → "${nombre}"`);
+  return true;
+}
+
+// 2026-08-12 — renombrar / redescribir un plan de entrenamiento
+// (plan_variantes). Se actualiza por `id`, y ni `familia` ni `dia_ciclo` se
+// tocan: son lo que usa agruparVariantes() para armar los grupos y lo que
+// varianteAPlan() convierte en plan. El nombre es puro texto de pantalla —
+// nada apunta a una variante por nombre.
+export async function renombrarVariantePlan(id, patch) {
+  const { error } = await supabase.from("plan_variantes").update(patch).eq("id", id);
+  if (error) { ERR("renombrarVariantePlan", "No se pudo guardar la variante", error); return false; }
+  LOG("renombrarVariantePlan", `✅ variante ${id} guardada.`);
+  return true;
 }
 
 // VARIANTES DE PLAN (2026-08-10): las 10 rutinas que escribió Lucas
@@ -2503,7 +2580,7 @@ export async function cargarCatalogo() {
   for (let desde = 0; ; desde += PAGE) {
     const { data, error } = await supabase
       .from("catalogo_ejercicios")
-      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution,musculos,musculo_default,tags,tag_default,archivado,nivel")
+      .select("id,nombre_es,nombre_en,categoria,equipment,equipment_es,target,target_es,muscle_group_es,secondary_muscles_es,instrucciones_es,image,gif_url,video,codigo_di,grupo_di,custom,editado,attribution,musculos,musculo_default,tags,tag_default,archivado,nivel,unidad")
       .order("nombre_es")
       .range(desde, desde + PAGE - 1);
     if (error) { ERR("cargarCatalogo", "Error cargando catálogo", error); return all; }

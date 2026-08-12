@@ -170,9 +170,13 @@ export const GRUPOS_MUSCULARES=[
   { id:"core",    prefijo:"CO", nombre:"Core" },
 ];
 
-// unidad: "reps" (default) o "segundos" — la Plancha (CO004) se mide SIEMPRE
-// en segundos, nunca en repeticiones.
-const T=(codigo,grupo,nombre,desc,unidad)=>({codigo,grupo,nombre,desc,unidad:unidad||"reps"});
+// unidad (2026-08-12, pedido de Lucas): "kilos" (default) | "repeticiones" |
+// "segundos". Antes eran DOS valores y el default se llamaba "reps" pero en la
+// pantalla se mostraba como KG — así una dominada o un jalón con TRX le pedían
+// kilos al alumno. Ahora cada ejercicio de la taxonomía DI declara cómo se
+// registra: lleva carga externa → kilos; es peso corporal o banda →
+// repeticiones; se sostiene → segundos. Misma escala que catalogo_ejercicios.unidad.
+const T=(codigo,grupo,nombre,desc,unidad)=>({codigo,grupo,nombre,desc,unidad:unidad||"kilos"});
 export const EJERCICIOS_PRINCIPALES=[
   // HOMBRO — de más fácil a más difícil
   T("PH001","hombro","Press Militar sentado con Mancuernas","Sentado, mancuernas a la altura de los hombros. Empujá hacia arriba con control y bajá lento."),
@@ -185,8 +189,8 @@ export const EJERCICIOS_PRINCIPALES=[
   T("PH008","hombro","Press con Landmine unilateral estricto","Landmine con una mano: empujá el extremo de la barra hacia arriba sin impulso, con el tronco firme."),
   T("PH009","hombro","Press con Landmine unilateral con split","Landmine con una mano y pies en split: empujá hacia arriba y adelante coordinando todo el cuerpo."),
   // PREDOMINANTE DE RODILLA
-  T("RO001","rodilla","Levantada de cajon","Sentate y parate de un cajón a la altura de la rodilla, sin usar las manos. Bajá controlado hacia atrás."),
-  T("RO002","rodilla","Sentadilla con TRX","Agarrado del TRX, bajá a la sentadilla usando las manos como ayuda y subí empujando el piso."),
+  T("RO001","rodilla","Levantada de cajon","Sentate y parate de un cajón a la altura de la rodilla, sin usar las manos. Bajá controlado hacia atrás.","repeticiones"),
+  T("RO002","rodilla","Sentadilla con TRX","Agarrado del TRX, bajá a la sentadilla usando las manos como ayuda y subí empujando el piso.","repeticiones"),
   T("RO003","rodilla","Sentadilla con peso adelante","Con el peso al pecho (goblet), bajá con la espalda recta y los codos entre las rodillas."),
   T("RO004","rodilla","Sentadilla con barra adelante","Barra apoyada adelante, sobre los hombros. Bajá manteniendo el torso lo más vertical posible."),
   T("RO005","rodilla","Sentadilla con barra","Barra sobre la espalda. Bajá llevando la cadera atrás y doblando rodillas. Subí empujando el piso."),
@@ -195,41 +199,41 @@ export const EJERCICIOS_PRINCIPALES=[
   T("RO008","rodilla","Sentadilla Bulgara","Pie trasero elevado en un banco. Bajá controlado con el peso en la pierna de adelante."),
   T("RO009","rodilla","Subidas al cajon unilateral","Subí al cajón empujando con una sola pierna, sin impulsarte con la de abajo. Bajá lento."),
   // PECHO
-  T("PE001","pecho","Flexiones en oblicuo","Manos apoyadas en un banco o superficie elevada. Bajá el pecho a la superficie y empujá."),
+  T("PE001","pecho","Flexiones en oblicuo","Manos apoyadas en un banco o superficie elevada. Bajá el pecho a la superficie y empujá.","repeticiones"),
   T("PE002","pecho","Pecho plano","Acostado en banco plano, bajá la barra al pecho y empujá hacia arriba."),
   T("PE003","pecho","Pecho con Mancuernas","Acostado en banco plano con mancuernas. Bajá con control a los costados del pecho y empujá hacia arriba."),
   T("PE004","pecho","Pecho inclinado con mancuerna","Banco a 30-45°. Bajá las mancuernas con los codos controlados y empujá sin bloquear."),
   T("PE005","pecho","Pecho inclinado con barra","Banco a 30-45°. Bajá la barra a la parte alta del pecho y empujá hacia arriba."),
   // PREDOMINANTE DE CADERA (bisagra / peso muerto)
-  T("CA001","cadera","Empuje de cadera con elastico","Banda en la cadera anclada atrás. Empujá la cadera hacia adelante y apretá glúteos. Volvé con control."),
-  T("CA002","cadera","Peso muerto paloma","Parado en una pierna y sin peso, llevá el torso adelante y la pierna libre atrás (bisagra). Volvé sin perder el equilibrio."),
+  T("CA001","cadera","Empuje de cadera con elastico","Banda en la cadera anclada atrás. Empujá la cadera hacia adelante y apretá glúteos. Volvé con control.","repeticiones"),
+  T("CA002","cadera","Peso muerto paloma","Parado en una pierna y sin peso, llevá el torso adelante y la pierna libre atrás (bisagra). Volvé sin perder el equilibrio.","repeticiones"),
   T("CA003","cadera","Peso muerto con KB","Con la pesa rusa al frente, empujá la cadera atrás y bajá; volvé llevando la cadera adelante."),
   T("CA004","cadera","Peso muerto sumo con KB","Pies bien abiertos y puntas hacia afuera, la pesa entre las piernas. Bajá con la espalda recta y subí apretando glúteos."),
   T("CA005","cadera","Peso muerto con Barra","Barra cerca de las piernas. Empujá la cadera atrás, bajá con la espalda recta y subí llevando la cadera adelante."),
   T("CA006","cadera","Peso muerto con Trapbar","Adentro de la trapbar, agarrá las manijas y levantá empujando el piso, con la espalda firme."),
   T("CA007","cadera","Peso muerto a una pierna","Parado en una pierna con peso en la mano. Bisagra de cadera: torso adelante, pierna libre atrás. Foco en el equilibrio."),
   // DORSALES — JALÓN
-  T("JA001","jalon","Jalon con elastico","Banda anclada arriba. Tirá hacia abajo con los dos brazos llevando los codos al torso."),
-  T("JA002","jalon","Jalon con elastico unilateral","Banda anclada arriba. Tirá hacia abajo con un solo brazo, activando el dorsal."),
-  T("JA003","jalon","Jalon con TRX parado Inclinado","Cuerpo inclinado agarrado del TRX. Tirá llevando el pecho a las manos y bajá lento."),
+  T("JA001","jalon","Jalon con elastico","Banda anclada arriba. Tirá hacia abajo con los dos brazos llevando los codos al torso.","repeticiones"),
+  T("JA002","jalon","Jalon con elastico unilateral","Banda anclada arriba. Tirá hacia abajo con un solo brazo, activando el dorsal.","repeticiones"),
+  T("JA003","jalon","Jalon con TRX parado Inclinado","Cuerpo inclinado agarrado del TRX. Tirá llevando el pecho a las manos y bajá lento.","repeticiones"),
   T("JA004","jalon","Jalón unilateral con mancuerna","También conocido como remo a una mano: trabaja el dorsal ancho y corrige desequilibrios entre lados. Rodilla y mano contraria apoyadas en un banco plano, pierna del lado que trabaja firme en el suelo, espalda recta y cabeza alineada. Brazo extendido hacia el suelo, dejando descender el hombro para estirar el dorsal. Elevá la mancuerna traccionando desde el hombro, llevando el codo hacia el bolsillo sin separarlo del cuerpo. Bajá lento y controlado, manteniendo la tensión."),
-  T("JA005","jalon","Jalon con TRX Vertical","Colgado del TRX casi vertical, tirá del cuerpo hacia arriba llevando los codos atrás."),
-  T("JA006","jalon","Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado."),
+  T("JA005","jalon","Jalon con TRX Vertical","Colgado del TRX casi vertical, tirá del cuerpo hacia arriba llevando los codos atrás.","repeticiones"),
+  T("JA006","jalon","Dominadas","Colgado de la barra, tirá del cuerpo hacia arriba hasta pasar la barbilla. Bajá controlado.","repeticiones"),
   // GLÚTEO (puente / hip thrust)
-  T("GL001","gluteo","Levantada de cadera","Acostado con los pies apoyados. Elevá la cadera apretando glúteos y bajá lento."),
-  T("GL002","gluteo","Levantada de cadera con elastico entre rodillas","Igual que la levantada de cadera, con una banda entre las rodillas: empujá hacia afuera mientras subís."),
+  T("GL001","gluteo","Levantada de cadera","Acostado con los pies apoyados. Elevá la cadera apretando glúteos y bajá lento.","repeticiones"),
+  T("GL002","gluteo","Levantada de cadera con elastico entre rodillas","Igual que la levantada de cadera, con una banda entre las rodillas: empujá hacia afuera mientras subís.","repeticiones"),
   T("GL003","gluteo","Levantada de cadera con peso","Acostado, peso sobre la cadera. Elevá la cadera y bajá controlado."),
   T("GL004","gluteo","Levantada de cadera unilateral con peso","Con una pierna apoyada y la otra libre, peso sobre la cadera. Empujá con el talón y elevá."),
-  T("GL005","gluteo","Hip thrust","Espalda apoyada en un banco. Elevá la cadera hasta alinear rodillas, cadera y hombros. Apretá glúteos arriba."),
+  T("GL005","gluteo","Hip thrust","Espalda apoyada en un banco. Elevá la cadera hasta alinear rodillas, cadera y hombros. Apretá glúteos arriba.","repeticiones"),
   T("GL006","gluteo","Hip thrust con peso","Espalda apoyada en un banco, peso sobre la cadera. Elevá la cadera y apretá glúteos arriba."),
   T("GL007","gluteo","Hip thrust con barra","Espalda en el banco, barra sobre la cadera. Elevá hasta la extensión completa y bajá con control."),
   // CORE
-  T("CO001","core","DeadBug","Acostado boca arriba, brazos y rodillas al techo. Estirá brazo y pierna opuestos sin despegar la zona lumbar."),
-  T("CO002","core","Superman","Boca abajo, elevá brazos y piernas al mismo tiempo apretando la espalda. Bajá lento."),
-  T("CO003","core","Crunch abdominal","Acostado, subí el torso despacio sin tirar del cuello y bajá controlado."),
+  T("CO001","core","DeadBug","Acostado boca arriba, brazos y rodillas al techo. Estirá brazo y pierna opuestos sin despegar la zona lumbar.","repeticiones"),
+  T("CO002","core","Superman","Boca abajo, elevá brazos y piernas al mismo tiempo apretando la espalda. Bajá lento.","repeticiones"),
+  T("CO003","core","Crunch abdominal","Acostado, subí el torso despacio sin tirar del cuello y bajá controlado.","repeticiones"),
   T("CO004","core","Plancha","Antebrazos y puntas de pie apoyados, cuerpo en línea recta. Sostené la posición el tiempo indicado, sin dejar caer la cadera.","segundos"),
-  T("CO005","core","Ruedita","De rodillas con la rueda al frente. Rodá hacia adelante manteniendo el core firme y volvé."),
-  T("CO006","core","Ham Roller","Parado con la rueda abdominal al frente, pies a la altura de los hombros: hacé rodar el rodillo hacia adelante controlando el core, hasta el máximo estiramiento posible, y volvé a la posición inicial."),
+  T("CO005","core","Ruedita","De rodillas con la rueda al frente. Rodá hacia adelante manteniendo el core firme y volvé.","repeticiones"),
+  T("CO006","core","Ham Roller","Parado con la rueda abdominal al frente, pies a la altura de los hombros: hacé rodar el rodillo hacia adelante controlando el core, hasta el máximo estiramiento posible, y volvé a la posición inicial.","repeticiones"),
   T("CO007","core","Landmine core rotation","De pie con la barra anclada (landmine), llevá el extremo de lado a lado rotando el tronco con los brazos estirados."),
 ];
 

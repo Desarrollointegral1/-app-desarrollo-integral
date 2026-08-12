@@ -30,12 +30,20 @@ function BioFoto({ bio }) {
   if (!url) return null;
   return (
     <a href={url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: 10 }}>
+      {/* 2026-08-12 — Lucas: "las fotos que subi de bioimpedancia anterior
+          quedo mal". No era la subida ni la rotación: los estudios son
+          imágenes VERTICALES (los dos que hay son de 1024×1536) y acá se
+          mostraban con objectFit:"cover" dentro de una franja de 220px de
+          alto — o sea, un recorte de la mitad del medio, sin el título, sin
+          la fecha y sin los números. Con "contain" se ve el estudio entero;
+          el alto sube a 420 para que los números se lean sin abrir nada. */}
       <img
         src={url}
         alt={bio.nombre_archivo || "foto estudio"}
-        style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }}
+        style={{ width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 8, background: S.card2 }}
         onError={(e) => { e.target.outerHTML = `<div style="color:#8a8a8a;font-size:11px">${bio.nombre_archivo || "archivo adjunto"}</div>`; }}
       />
+      <div style={{ color: S.gray, fontSize: 10, textAlign: "center", marginTop: 4 }}>Tocá la foto para verla en grande</div>
     </a>
   );
 }
@@ -307,7 +315,9 @@ function EstudioAnteriorForm({ onGuardar, guardando }) {
       <div style={{ marginTop: 12 }}>
         {preview ? (
           <div style={{ position: "relative", marginBottom: 8 }}>
-            <img src={preview} alt="estudio anterior" style={{ width: "100%", maxHeight: 260, objectFit: "cover", borderRadius: 8 }} />
+            {/* 2026-08-12: "contain", no "cover" — la foto de un estudio es
+                vertical y recortada al medio no se entiende qué se subió. */}
+            <img src={preview} alt="estudio anterior" style={{ width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 8, background: S.card2 }} />
             <button
               onClick={() => { setFoto(null); setPreview(null); }}
               style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: TS.chip, display: "inline-flex", alignItems: "center", gap: 6, minHeight: TAP }}
@@ -726,7 +736,7 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false, registroE
         {label("Foto del registro (opcional)")}
         {fotoPreview ? (
           <div style={{ position: "relative", marginBottom: 8 }}>
-            <img src={fotoPreview} alt="foto estudio" style={{ width: "100%", maxHeight: 260, objectFit: "cover", borderRadius: 8 }} />
+            <img src={fotoPreview} alt="foto estudio" style={{ width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 8, background: S.card2 }} />
             <button
               onClick={() => { setFoto(null); setFotoPreview(null); }}
               style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: TS.chip, display: "inline-flex", alignItems: "center", gap: 6, minHeight: TAP }}
@@ -736,7 +746,7 @@ export function EstudioBioForm({ alumno, onGuardar, guardando = false, registroE
           </div>
         ) : registroExistente && fotoExistenteUrl && !quitarFotoExistente ? (
           <div style={{ position: "relative", marginBottom: 8 }}>
-            <img src={fotoExistenteUrl} alt="foto actual del estudio" style={{ width: "100%", maxHeight: 260, objectFit: "cover", borderRadius: 8 }} />
+            <img src={fotoExistenteUrl} alt="foto actual del estudio" style={{ width: "100%", maxHeight: 420, objectFit: "contain", borderRadius: 8, background: S.card2 }} />
             <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
               <label style={{ background: "rgba(0,0,0,0.7)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: TS.chip, display: "inline-flex", alignItems: "center", gap: 6, minHeight: TAP }}>
                 Reemplazar

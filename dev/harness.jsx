@@ -26,7 +26,8 @@ import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
 import SelectorPlanDia from "../src/components/SelectorPlanDia.jsx";
-import { agruparVariantes } from "../src/utils/planVariantes.js";
+import SelectorDiasAlta from "../src/components/SelectorDiasAlta.jsx";
+import { agruparVariantes, SIN_PLAN } from "../src/utils/planVariantes.js";
 
 // Copia fiel de `plan_variantes` (2026-08-10): el harness no tiene sesión de
 // Supabase y esa tabla solo se lee autenticado, así que los datos van acá
@@ -215,14 +216,36 @@ const FILAS_CATALOGO = [
   { id: "c7", nombre_es: "Ejercicio ya archivado de prueba", categoria: "back", target_es: "Dorsal ancho", equipment_es: "Polea", codigo_di: "RO099", nivel: null, archivado: true },
 ];
 const RESPUESTA_JSON = (datos) => new Response(JSON.stringify(datos), { status: 200, headers: { "Content-Type": "application/json" } });
+// 2026-08-12: las otras tres tablas que lee la Biblioteca también están detrás
+// de RLS `authenticated`, así que sin esto las pantallas "Todos los planes" y
+// "Periodizaciones" quedaban vacías en el banco y no había forma de mirar el
+// renombre en 375px. Mismo criterio que el catálogo: filas de mentira, el
+// componente que se monta es el real. Los nombres largos van tal cual están en
+// la base — son los que tienen que entrar en un celular.
+const FILAS_PERIODIZACIONES = [
+  { objetivo: "hipertrofia", nivel: "principiante", nombre: "Hipertrofia · principiante", semanas: [{ semana: 1, series: 3, reps: 12, intensidad: "60%" }, { semana: 2, series: 3, reps: 10, intensidad: "65%" }] },
+  { objetivo: "hipertrofia", nivel: "avanzado", nombre: "Hipertrofia · avanzado", semanas: [] },
+  { objetivo: "fuerza", nivel: "principiante", nombre: "Fuerza · principiante", semanas: [] },
+  { objetivo: "fuerza", nivel: "avanzado", nombre: "Fuerza · avanzado", semanas: [] },
+  { objetivo: "acondicionamiento", nivel: "principiante", nombre: "Acondicionamiento físico · principiante", semanas: [] },
+  { objetivo: "acondicionamiento", nivel: "avanzado", nombre: "Acondicionamiento físico · avanzado", semanas: [] },
+  { objetivo: "preparacion_fisica", nivel: "principiante", nombre: "Preparación física · principiante", semanas: [] },
+  { objetivo: "preparacion_fisica", nivel: "avanzado", nombre: "Preparación física · avanzado", semanas: [] },
+];
 const fetchOriginal = window.fetch.bind(window);
+const TABLAS_FALSAS = {
+  catalogo_ejercicios: (url) => (url.includes("revisar=eq.true") ? [] : FILAS_CATALOGO), // bandeja "Para revisar" vacía
+  plan_variantes: () => VARIANTES_DEMO,
+  periodizaciones: () => FILAS_PERIODIZACIONES,
+  planes_predeterminados: () => [],
+};
 window.fetch = (entrada, opciones = {}) => {
   const url = typeof entrada === "string" ? entrada : entrada.url || "";
-  if (!url.includes("/rest/v1/catalogo_ejercicios")) return fetchOriginal(entrada, opciones);
+  const tabla = Object.keys(TABLAS_FALSAS).find((t) => url.includes(`/rest/v1/${t}`));
+  if (!tabla) return fetchOriginal(entrada, opciones);
   const metodo = (opciones.method || "GET").toUpperCase();
-  if (metodo === "PATCH") return Promise.resolve(new Response(null, { status: 204 }));
-  if (url.includes("revisar=eq.true")) return Promise.resolve(RESPUESTA_JSON([])); // bandeja "Para revisar" vacía
-  return Promise.resolve(RESPUESTA_JSON(FILAS_CATALOGO));
+  if (metodo !== "GET") return Promise.resolve(new Response(null, { status: 204 }));
+  return Promise.resolve(RESPUESTA_JSON(TABLAS_FALSAS[tabla](url)));
 };
 
 function BibliotecaDemo() {
@@ -335,6 +358,27 @@ function AdminDemo() {
       onToggleTheme={() => {}}
       onModoEntrenador={() => {}}
     />
+  );
+}
+
+// ALTA DE ALUMNO · días + plan de ejercicios (2026-08-12). Se monta el
+// componente REAL del alta (SelectorDiasAlta) con las variantes de mentira: la
+// tabla plan_variantes solo se lee autenticado y el banco no tiene sesión.
+function AltaDiasDemo() {
+  const [dias, setDias] = useState({ Lunes: SIN_PLAN, Jueves: "v:v-h31" });
+  return (
+    <>
+      <SelectorDiasAlta
+        dias={["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]}
+        seleccion={dias}
+        grupos={agruparVariantes(VARIANTES_DEMO)}
+        onToggle={(d) => setDias((prev) => { const n = { ...prev }; if (n[d] != null) delete n[d]; else n[d] = SIN_PLAN; return n; })}
+        onPlan={(d, valor) => setDias((prev) => ({ ...prev, [d]: valor }))}
+      />
+      <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace" }}>
+        {JSON.stringify(dias)}
+      </div>
+    </>
   );
 }
 
@@ -493,6 +537,29 @@ function Harness() {
         </Panel>
 
         <Panel
+          titulo="Alta de alumno · días y plan de ejercicios"
+          nota="2026-08-12, reclamo de Lucas: «Al crear un usuario tengo que poder poner sin plan o con los planes que tenemos, no me aparecen los planes que tenemos organizados». El alta ofrecía las 2 plantillas viejas; ahora ofrece las variantes reales agrupadas por familia, y arranca en «Sin plan». Probar acá: tocar un día lo prende y abre su desplegable; el desplegable entero tiene que entrar en 375px sin cortar el nombre de la rutina."
+        >
+          <AltaDiasDemo />
+        </Panel>
+
+        <Panel
+          titulo="Explicación del ejercicio · mostrar más, GIF abajo"
+          nota="2026-08-12, pedido de Lucas: «el ejercicio tiene que ser el gif abajo y la explicación como primer item y la opción de mostrar más». La primera tarjeta trae una instrucción real del catálogo (~500 caracteres): abierta muestra los 3 primeros pasos y el resto se despliega con el botón, así el GIF no queda empujado fuera de la pantalla."
+        >
+          <ItemCard
+            nombre="Sentadilla con barra" numero={1}
+            desc="Ponete de pie con los pies separados al ancho de los hombros y la barra apoyada en la parte alta de la espalda. Sacá el aire y apretá el abdomen antes de bajar. Bajá doblando caderas y rodillas hasta que los muslos queden paralelos al piso, con la espalda recta y el pecho arriba. Cuidá que las rodillas sigan la línea de los pies y no se metan hacia adentro. Empujá el piso con los talones para volver a la posición inicial. Soltá el aire al terminar de subir. Repetí manteniendo el ritmo controlado."
+            historial={[]}
+          />
+          <ItemCard
+            nombre="Movilidad de tobillo" numero={2}
+            desc="Apoyá la rodilla contra la pared sin levantar el talón."
+            historial={[]}
+          />
+        </Panel>
+
+        <Panel
           titulo="Editor de ejercicios"
           nota="Probar acá: (1) tocar el nombre pliega y despliega la ficha; (2) agarrar el ⠿ y arrastrar reordena; (3) el lápiz abre el editor, que tiene el botón para dejar el ejercicio sin GIF; (4) Peso muerto arranca con el GIF sacado a propósito y no debe mostrar ninguno."
         >
@@ -521,10 +588,21 @@ function Harness() {
         </Panel>
 
         <Panel
+          titulo="Vista del alumno · las tres unidades"
+          nota="2026-08-12. El casillero tiene que decir QUÉ se carga: kilos si lleva carga, repeticiones si es peso corporal (TRX, fondos, dominadas) y segundos si es isométrico (plancha). Antes todo lo que no se llamara 'plancha' pedía KG."
+        >
+          <div data-unidades>
+            <ItemCard nombre="Sentadilla con barra" numero={1} showPeso unidad="kilos" peso={60} historial={[]} onPesoChange={() => {}} />
+            <ItemCard nombre="Fondos de tríceps en paralelas" numero={2} showPeso unidad="repeticiones" peso={12} historial={[]} onPesoChange={() => {}} />
+            <ItemCard nombre="Plancha" numero={3} showPeso unidad="segundos" peso={45} historial={[]} onPesoChange={() => {}} />
+          </div>
+        </Panel>
+
+        <Panel
           titulo="Vista del alumno · peso por vuelta"
           nota="El plan pide 4 series, así que hay 4 casilleros. Tocar una vuelta la selecciona y el − / + de arriba edita esa. El primero arranca con 2 vueltas ya cargadas; el segundo tiene un registro viejo (un solo número) y debe seguir viéndose bien."
         >
-          <VueltasDemo />
+          <div data-vueltas><VueltasDemo /></div>
         </Panel>
 
         <Panel

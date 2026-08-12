@@ -19,6 +19,7 @@ import {
   conPeriodizacionDe, conPeriodizacionEditada, esPeriodizacionPropia,
   refPeriodizacion, propagarPeriodizacion,
   esPeriodizacionDiaPropia, periodizacionDelDia, resumenPeriodizacionDias,
+  sinPeriodizacion, tienePeriodizacion,
 } from "./periodizacion.js";
 import {
   bloquesDelDia, configDia, esPorTiempo, prescripcionDelDia, textoModo, textoCore,
@@ -27,11 +28,13 @@ import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
   setVuelta, cantidadDeVueltas, resumenVueltas,
 } from "./pesos.js";
+import { unidadDe, unidadPorRegla, ETIQUETA_HOY } from "./unidades.js";
 import {
   normalizarBusqueda, buscarEnCatalogo, ordenarSugerencias, normalizarGrupo, GRUPOS_DI,
 } from "./ejercicioAsistido.js";
 import {
   varianteAPlan, agruparVariantes, indexarCatalogo, etiquetaVariante,
+  SIN_PLAN, planVacio, planDeEleccion, valorVariante,
 } from "./planVariantes.js";
 
 describe("peso por vuelta", () => {
@@ -703,5 +706,103 @@ describe("varianteAPlan — secciones y estructura del día", () => {
     const dia = varianteAPlan(v, CATALOGO).dias[0];
     expect(dia.ejercicios.every((e) => e.unidad === "segundos")).toBe(true);
     expect(esPorTiempo(dia)).toBe(true);
+  });
+});
+
+// 2026-08-12 — pedido de Lucas: "quiero dejar las planificaciones separadas de
+// los planes de ejercicios... los dos me tienen que dar la opción de dejar sin
+// ningún predeterminado. sin plan". Lo que se testea acá es justamente eso:
+// que "sin nada" sea un estado válido de las DOS cosas y que ninguna arrastre
+// a la otra. Es lo que rompe en silencio, porque en pantalla se ve igual.
+describe("separación planificación ↔ plan de ejercicios (sin ninguno)", () => {
+  const CAT = [
+    { id: "0043", codigo_di: "CU005", nombre_es: "Sentadilla con barra", gif_url: "videos/0043.gif", instrucciones_es: "Pies separados…" },
+  ];
+  const VARIANTES = [
+    { id: 7, nombre: "PPL · Empuje", familia: "ppl", dia_ciclo: 1, ejercicios: [{ nombre: "Sentadilla con barra", catalogo_id: "0043" }] },
+  ];
+
+  it("sin elegir nada, el alta crea un plan VACÍO a propósito (no una plantilla por default)", () => {
+    const { plan, origen } = planDeEleccion(SIN_PLAN, VARIANTES, indexarCatalogo(CAT));
+    expect(plan.dias).toEqual([]);
+    expect(plan.nombre).toBe("Sin plan");
+    expect(origen).toBe(null);
+  });
+
+  it("dos días sin plan no comparten el mismo array (editar uno no toca el otro)", () => {
+    const a = planVacio(), b = planVacio();
+    a.dias.push({ dia: "Lunes" });
+    expect(b.dias).toEqual([]);
+  });
+
+  it("elegir una variante real del alta trae sus ejercicios y queda marcada como catálogo v2", () => {
+    const { plan, origen } = planDeEleccion(valorVariante(VARIANTES[0]), VARIANTES, indexarCatalogo(CAT));
+    expect(plan.dias[0].ejercicios.map((e) => e.nombre)).toEqual(["Sentadilla con barra"]);
+    expect(origen).toBe("catalogo_v2");
+  });
+
+  it("un valor que ya no existe (variante borrada) cae en sin plan, nunca rompe el alta", () => {
+    expect(planDeEleccion("v:9999", VARIANTES, {}).plan.dias).toEqual([]);
+    expect(planDeEleccion(undefined, VARIANTES, {}).plan.dias).toEqual([]);
+  });
+
+  it("sacarle la planificación al alumno le borra las semanas y la referencia, sin tocar sus ejercicios", () => {
+    const al = {
+      nombre: "Rosa",
+      rm: { prep_propias: ["periodizacion", "movilidad_corta"], periodizacion_ref: { objetivo: "fuerza", nivel: "avanzado" } },
+      plan: { periodizacion: [{ semana: 1, series: 5, reps: 5 }], dias: [{ dia: "Lunes", ejercicios: [{ nombre: "Sentadilla" }] }] },
+    };
+    expect(tienePeriodizacion(al)).toBe(true);
+    const sin = sinPeriodizacion(al);
+    expect(tienePeriodizacion(sin)).toBe(false);
+    expect(refPeriodizacion(sin)).toBe(null);
+    expect(esPeriodizacionPropia(sin)).toBe(false);
+    // La marca de OTRA lista (movilidad) no se toca: son cosas distintas.
+    expect(sin.rm.prep_propias).toEqual(["movilidad_corta"]);
+    // Y los ejercicios siguen ahí: sacar la progresión no borra el plan.
+    expect(sin.plan.dias).toEqual(al.plan.dias);
+  });
+
+  it("un alumno sin planificación puede volver a recibir un predeterminado (no queda trabado)", () => {
+    const sin = sinPeriodizacion({ rm: {}, plan: { periodizacion: [] } });
+    const con = conPeriodizacionDe(sin, "hipertrofia", "principiante", [{ semana: 1, series: 3, reps: 10 }]);
+    expect(tienePeriodizacion(con)).toBe(true);
+    expect(refPeriodizacion(con)).toEqual({ objetivo: "hipertrofia", nivel: "principiante" });
+  });
+});
+
+// -- UNIDAD DE CADA EJERCICIO (2026-08-12) -----------------------------------
+// Lo que se rompe en silencio aca: el casillero le pide KILOS a un alumno que
+// esta haciendo fondos o una plancha. Paso de verdad: hasta hoy todo lo que no
+// se llamara "plancha" se registraba en kilos.
+describe("unidades - kilos / repeticiones / segundos", () => {
+  it("el isometrico gana sobre el peso corporal: una plancha va en segundos", () => {
+    expect(unidadPorRegla({ nombre: "Plancha frontal", equipment_es: "Peso corporal" })).toBe("segundos");
+    expect(unidadPorRegla({ nombre: "Puente de gluteos isometrico", equipment_es: "Peso corporal" })).toBe("segundos");
+  });
+
+  it("peso corporal y banda van en repeticiones, no en kilos", () => {
+    expect(unidadPorRegla({ nombre: "Fondos en paralelas", equipment_es: "Peso corporal" })).toBe("repeticiones");
+    expect(unidadPorRegla({ nombre: "Dominada asistida con banda", equipment_es: "Banda" })).toBe("repeticiones");
+  });
+
+  it("lo que lleva carga externa sigue en kilos", () => {
+    expect(unidadPorRegla({ nombre: "Press de banca", equipment_es: "Barra" })).toBe("kilos");
+    expect(unidadPorRegla({ nombre: "Dominada con peso extra", equipment_es: "Con peso extra" })).toBe("kilos");
+  });
+
+  it("'reps' es el default VIEJO: significa 'sin definir', no 'repeticiones'", () => {
+    // Si se leyera como repeticiones, todos los planes viejos pasarian a
+    // pedirle repeticiones al alumno en un press de banca.
+    expect(unidadDe({ unidad: "reps", nombre: "Press de banca", equipment_es: "Barra" })).toBe("kilos");
+    // Y lo que SI esta definido se respeta tal cual, sin deducir nada.
+    expect(unidadDe({ unidad: "repeticiones", nombre: "Press de banca", equipment_es: "Barra" })).toBe("repeticiones");
+    expect(unidadDe({ unidad: "segundos", nombre: "Press de banca" })).toBe("segundos");
+  });
+
+  it("cada unidad tiene su etiqueta en el casillero del alumno", () => {
+    expect(ETIQUETA_HOY.kilos).toBe("KG HOY");
+    expect(ETIQUETA_HOY.repeticiones).toBe("REPS HOY");
+    expect(ETIQUETA_HOY.segundos).toBe("SEG HOY");
   });
 });

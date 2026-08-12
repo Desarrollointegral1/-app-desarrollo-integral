@@ -91,6 +91,7 @@ import {
   clavePeriodizacion,
   objetivoLabel,
   nivelLabel,
+  etiquetaPeriodizacion,
   esPeriodizacionPropia,
   refPeriodizacion,
   conPeriodizacionDe,
@@ -100,8 +101,13 @@ import {
   // no tenga la suya. Ver src/utils/periodizacion.js, nivel 3.
   esPeriodizacionDiaPropia,
   periodizacionDelDia,
+  // 2026-08-12: dejar al alumno SIN planificación (el equivalente de "Sin
+  // plan" del otro lado). Ver src/utils/periodizacion.js.
+  sinPeriodizacion,
+  tienePeriodizacion,
 } from "./src/utils/periodizacion.js";
 import { generarPDF } from "./src/utils/pdfGenerator.js";
+import { unidadDe, SUFIJO } from "./src/utils/unidades.js";
 import { S, card, innerCard, inp, eyebrow, tabBtn, smallBtn, tabN1, tabN2, segTrack, segChip, n4Track, chipN4, applyTheme, FONT_DISPLAY, FONT_BODY, FONT_BRAND, TS, TAP, BP, useIsWide, shell, checkboxWrap, checkboxBox } from "./src/utils/theme.js";
 import DIWordmark from "./src/components/DIWordmark.jsx";
 import CatalogoExplorer from "./src/components/CatalogoExplorer.jsx";
@@ -130,10 +136,15 @@ import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas } from "./src/utils/pesos.js";
-import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizaciones, listarVariantesPlan } from "./services/supabase.js";
+import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizacionesConNombres, listarVariantesPlan } from "./services/supabase.js";
 // Variantes de plan (2026-08-10): conversión pura variante → plan asignable.
-import { varianteAPlan, agruparVariantes, indexarCatalogo } from "./src/utils/planVariantes.js";
+// 2026-08-12: SIN_PLAN / planDeEleccion / valorVariante — el sentinel de "sin
+// plan de ejercicios" y la traducción de lo elegido en el alta a un plan real.
+import { varianteAPlan, agruparVariantes, indexarCatalogo, etiquetaVariante, SIN_PLAN, planVacio, planDeEleccion, valorVariante } from "./src/utils/planVariantes.js";
 import SelectorPlanDia from "./src/components/SelectorPlanDia.jsx";
+// 2026-08-12: los días + su plan de ejercicios en el ALTA. Vive aparte para
+// poder mirarlo en el banco de pruebas — el alta está detrás del login.
+import SelectorDiasAlta from "./src/components/SelectorDiasAlta.jsx";
 import { Moon, Sun, Pencil, Trash2, Settings, BookOpen, Dumbbell, Stethoscope, Eye, Target, Calendar, Megaphone, Film, Play, Camera, TrendingUp, BarChart3, Trophy, ClipboardList, X, Check, Images, Paperclip, NotebookPen, Ban, Power, Archive, RotateCcw } from "lucide-react";
 
 // PIN demasiado fácil (auditoría 2026-08-02): repetidos (0000..9999) o
@@ -2314,7 +2325,8 @@ function EvolucionCargas({ historiales, plan }) {
                     {" "}
                     <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>{" "}
                     <td style={{ padding: "6px 10px", color: S.white, fontWeight: 700, textAlign: "right" }}>
-                      {h.peso} kg
+                      {/* 2026-08-12: la unidad la manda el ejercicio, no siempre son kilos. */}
+                      {h.peso} {SUFIJO[unidadDe(ej)]}
                     </td>{" "}
                   </tr>
                 ))}{" "}
@@ -2343,7 +2355,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
     .map((ej) => {
       const histMes = (historiales[ej.id] || []).filter((h) => h.fecha.startsWith(mesStr));
       const max = histMes.length > 0 ? Math.max(...histMes.map((h) => h.peso)) : null;
-      return { nombre: ej.nombre, max };
+      return { nombre: ej.nombre, max, unidad: unidadDe(ej) }; // 2026-08-12: kg/reps/seg según el ejercicio
     })
     .filter((e) => e.max !== null);
   const diarioMes = (diario || []).filter((d) => d.fecha.startsWith(mesStr));
@@ -2378,7 +2390,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
         <div style={{ ...card, padding: 14, marginBottom: 14 }}>
           {" "}
           <div style={{ color: S.white, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>
-            Pesos maximos del mes
+            Máximos del mes
           </div>{" "}
           {records.map((r, i) => (
             <div
@@ -2393,7 +2405,7 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
             >
               {" "}
               <div style={{ color: S.gray, fontSize: 13 }}>{r.nombre}</div>{" "}
-              <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.max} kg</div>{" "}
+              <div style={{ color: S.white, fontWeight: 700, fontSize: 14 }}>{r.max} {SUFIJO[r.unidad]}</div>{" "}
             </div>
           ))}{" "}
         </div>
@@ -2701,7 +2713,9 @@ function HistorialAdmin({ al }) {
     ejercicios.forEach((ej) => {
       const clave = ej.codigo || ej.nombre;
       if (!clave) return;
-      if (!porClave.has(clave)) porClave.set(clave, { clave, nombre: ej.nombre, codigo: ej.codigo || "", ids: [] });
+      // 2026-08-12: el grupo se queda con la unidad del ejercicio — el
+      // historial de un fondo o una plancha no se puede mostrar en kilos.
+      if (!porClave.has(clave)) porClave.set(clave, { clave, nombre: ej.nombre, codigo: ej.codigo || "", unidad: unidadDe(ej), ids: [] });
       const g = porClave.get(clave);
       if (!g.ids.includes(ej.id)) g.ids.push(ej.id);
     });
@@ -2767,7 +2781,7 @@ function HistorialAdmin({ al }) {
                   <div style={{ color: S.gray, fontSize: 15, marginTop: 3 }}>
                     {max > 0 ? (
                       <span>
-                        <span style={{ color: S.green, fontWeight: 700 }}>{max}kg</span> máximo · {fecha} · {hist.length} registro{hist.length === 1 ? "" : "s"}
+                        <span style={{ color: S.green, fontWeight: 700 }}>{max} {SUFIJO[g.unidad]}</span> máximo · {fecha} · {hist.length} registro{hist.length === 1 ? "" : "s"}
                       </span>
                     ) : (
                       "Sin registros"
@@ -2796,7 +2810,7 @@ function HistorialAdmin({ al }) {
                       <tr key={i} style={{ borderBottom: "1px solid " + S.border }}>
                         <td style={{ padding: "6px 10px", color: S.gray }}>{h.fecha}</td>
                         <td style={{ padding: "6px 10px", color: h.peso === max ? S.green : S.white, fontWeight: 700, textAlign: "right" }}>
-                          {h.peso} kg{h.peso === max ? <Trophy size={13} style={{ verticalAlign: "-2px", marginLeft: 4 }} /> : ""}
+                          {h.peso} {SUFIJO[g.unidad]}{h.peso === max ? <Trophy size={13} style={{ verticalAlign: "-2px", marginLeft: 4 }} /> : ""}
                         </td>
                       </tr>
                     ))}
@@ -4145,26 +4159,16 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   // niveles que la preparación. Se cargan una vez para poder asignarle a un
   // alumno "Hipertrofia · Principiante" desde su ficha.
   const [perGlobales, setPerGlobales] = useState({});
-  useEffect(() => { listarPeriodizaciones().then(setPerGlobales); }, []);
-  // VARIANTES DE PLAN (2026-08-10): las 10 rutinas de `plan_variantes` que
-  // hasta hoy no se podían asignar. Se cargan JUNTO CON EL CATÁLOGO porque la
-  // variante guarda solo catalogo_id — la descripción, el GIF y el código
-  // salen de catalogo_ejercicios (ver src/utils/planVariantes.js). La carga es
-  // perezosa (solo al entrar a "Plan x día") para no sumarle 1.344 filas al
-  // arranque del admin, que ya es la parte más lenta de la app.
-  const [variantes, setVariantes] = useState([]);
-  const [catalogoIdx, setCatalogoIdx] = useState(null);
-  const _pidiendoVariantes = useRef(false);
+  // 2026-08-12: los NOMBRES de las planificaciones ahora salen de la base
+  // (columna `nombre`), no de las constantes OBJETIVOS × NIVELES. Si Lucas
+  // renombra una en la Biblioteca, acá se ve con el nombre nuevo.
+  const [perNombres, setPerNombres] = useState({});
   useEffect(() => {
-    if (!(sec === "planes" && planesTab === "plan-dias")) return;
-    if (_pidiendoVariantes.current) return;
-    _pidiendoVariantes.current = true;
-    Promise.all([listarVariantesPlan(), cargarCatalogoCached()]).then(([vs, cat]) => {
-      setVariantes(vs || []);
-      setCatalogoIdx(indexarCatalogo(cat || []));
+    listarPeriodizacionesConNombres().then(({ semanas, nombres }) => {
+      setPerGlobales(semanas);
+      setPerNombres(nombres);
     });
-  }, [sec, planesTab]);
-  const gruposVariantes = useMemo(() => agruparVariantes(variantes), [variantes]);
+  }, []);
   // Versión de movilidad que se está VIENDO/EDITANDO en la pantalla de admin.
   // Es distinta de movilidad_default (con cuál arranca el alumno): antes había
   // un solo control para las dos cosas y por eso "no cambiaban los ejercicios".
@@ -4237,10 +4241,46 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   // Visor "Todos los planes" (ronda 9): plantilla abierta en modal de lectura
   const [planVisor, setPlanVisor] = useState(null);
   const [editPin, setEditPin] = useState("");
-  const [ntemplate, setNtemplate] = useState("bilateral");
-  const [ndias, setNdias] = useState({}); // {Lunes: "bilateral", Martes: "unilateral", ...}
+  // 2026-08-12: el alta arranca SIN PLAN. Antes el predeterminado era
+  // "bilateral", así que todo alumno nuevo nacía con un plan que Lucas no
+  // había elegido. Ahora elegir es un acto explícito y "sin plan" es válido.
+  const [ntemplate, setNtemplate] = useState(SIN_PLAN);
+  const [ndias, setNdias] = useState({}); // {Lunes: "v:12", Martes: "__sin_plan__", ...}
+  // VARIANTES DE PLAN (2026-08-10): las rutinas de `plan_variantes` que hasta
+  // entonces no se podían asignar. Se cargan JUNTO CON EL CATÁLOGO porque la
+  // variante guarda solo catalogo_id — la descripción, el GIF y el código
+  // salen de catalogo_ejercicios (ver src/utils/planVariantes.js). La carga es
+  // perezosa para no sumarle 1.344 filas al arranque del admin, que ya es la
+  // parte más lenta de la app.
+  //
+  // 2026-08-12 — también se cargan al abrir el ALTA de un alumno. Reclamo de
+  // Lucas: "no me aparecen los planes que tenemos organizados". El alta ofrecía
+  // PLANTILLAS (planTemplates.js, ya podado a 2), no las variantes reales; sin
+  // esta carga el desplegable del alta se veía vacío. Por eso el bloque bajó
+  // hasta acá: la condición ahora depende de showCrearAlumno, que se declara
+  // arriba y no existía todavía donde vivía el efecto.
+  const [variantes, setVariantes] = useState([]);
+  const [catalogoIdx, setCatalogoIdx] = useState(null);
+  const _pidiendoVariantes = useRef(false);
+  useEffect(() => {
+    const hacenFalta = (sec === "planes" && planesTab === "plan-dias") || showCrearAlumno;
+    if (!hacenFalta) return;
+    if (_pidiendoVariantes.current) return;
+    _pidiendoVariantes.current = true;
+    Promise.all([listarVariantesPlan(), cargarCatalogoCached()]).then(([vs, cat]) => {
+      setVariantes(vs || []);
+      setCatalogoIdx(indexarCatalogo(cat || []));
+    });
+  }, [sec, planesTab, showCrearAlumno]);
+  const gruposVariantes = useMemo(() => agruparVariantes(variantes), [variantes]);
   const DIAS_SEM = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
   const al = alumnos.find((a) => a.id === selId) || alumnos[0];
+  // 2026-08-12: si se estaba en "Planes" y se pasa a un alumno de solo video,
+  // la sección deja de existir para él (ver IconDock) — sin esto quedaba la
+  // pantalla de Planificación abierta sin ninguna pestaña para volver.
+  useEffect(() => {
+    if (al?.tipo === "video" && sec === "planes") setSec("alumnos");
+  }, [al?.tipo, sec]);
   const startEdit = () =>
     setForm({
       nombre: al.nombre,
@@ -4279,6 +4319,10 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     if (formNormalizado.tipo !== "video" && formNormalizado.modalidad) {
       formNormalizado.tipo = "entrenamiento";
     }
+    // 2026-08-12: pasar a "solo video" le saca los días de entrenamiento. Si
+    // no, quedaban guardados de cuando entrenaba y volvían a aparecer en la
+    // ficha y en la grilla de Plan por día de alguien que ya no entrena.
+    if (formNormalizado.tipo === "video") formNormalizado.horarios = [];
     onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, ...formNormalizado, rm: { ...a.rm, genero: genero || undefined } } : a)));
     setForm(null);
   };
@@ -4308,11 +4352,21 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
   const asignarPeriodizacion = (objetivo, nivel) => {
     const semanas = perGlobales[clavePeriodizacion(objetivo, nivel)] || [];
     if (semanas.length === 0) {
-      showToast && showToast(`${objetivoLabel(objetivo)} · ${nivelLabel(nivel)} todavía no tiene semanas cargadas`);
+      showToast && showToast(`${etiquetaPeriodizacion(perNombres, objetivo, nivel)} todavía no tiene semanas cargadas`);
       return;
     }
     onUpdate(alumnos.map((a) => (a.id === al.id ? conPeriodizacionDe(a, objetivo, nivel, semanas) : a)));
-    showToast && showToast(`Periodización ${objetivoLabel(objetivo)} · ${nivelLabel(nivel)} asignada`);
+    showToast && showToast(`Periodización ${etiquetaPeriodizacion(perNombres, objetivo, nivel)} asignada`);
+  };
+  // 2026-08-12 — dejar al alumno SIN planificación. Es el equivalente de "Sin
+  // plan" del otro lado y hasta hoy no existía: una vez asignada, la
+  // progresión no se podía sacar. Se pregunta porque borra las semanas
+  // cargadas, incluidas las fechas del mesociclo.
+  const sacarPeriodizacion = () => {
+    if (!al) return;
+    if (tienePeriodizacion(al) && !window.confirm(`${al.nombre} se queda sin planificación: se borran las ${(al.plan?.periodizacion || []).length} semanas cargadas. Los ejercicios de sus días no se tocan. ¿Seguimos?`)) return;
+    onUpdate(alumnos.map((a) => (a.id === al.id ? sinPeriodizacion(a) : a)));
+    showToast && showToast("El alumno queda sin planificación");
   };
   const guardarPeriodizacionAlumno = (semanas) =>
     onUpdate(alumnos.map((a) => (a.id === al.id ? conPeriodizacionEditada(a, semanas) : a)));
@@ -4562,7 +4616,11 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
       return false;
     }
     _creandoAlumno.current = true;
-    const tpl = clonarPlan(getPlantilla(ntemplate).plan);
+    // 2026-08-12 — lo que se elige por día ahora sale de `plan_variantes` (las
+    // rutinas reales que escribió Lucas) o es SIN_PLAN. La traducción a un plan
+    // guardable es pura y está testeada: src/utils/planVariantes.js.
+    const elegido = (valor) => planDeEleccion(valor, variantes, catalogoIdx);
+    const tpl = elegido(ntemplate).plan;
     // El plan que se guarda en `planes` tiene que ser un objeto COMPLETO
     // (dias, movilidad, calor, activacion, periodizacion). Si se guarda la
     // fila cruda de alumno_planes, la vista del alumno hace .map sobre
@@ -4584,8 +4642,12 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
         // parámetros posicionales) — se guarda con el autosave normal, que
         // manda payloadAlumno con la columna video_movilidad.
         video_movilidad: ntipo === "video" ? nvideo || "" : "",
-        // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17)
-        horarios: Object.keys(ndias).filter((d) => ndias[d]).map((d) => ({ dia: d, hora: "" })),
+        // Solo días de entrenamiento, sin horario (pedido de Lucas 2026-07-17).
+        // 2026-08-12: al alumno "solo video" no se le guardan días — "los que
+        // son solo video no importa el día de entrenamiento". Sin este filtro,
+        // marcar días y después cambiar el tipo dejaba días fantasma en la
+        // ficha de alguien que solo entra a mirar un video.
+        horarios: ntipo === "video" ? [] : Object.keys(ndias).map((d) => ({ dia: d, hora: "" })),
         // Género (ronda 12): sin migración, vive en rm.genero — mismo patrón
         // que movilidad_default/secciones_config. Se guarda solo con el
         // autosave normal de alumnos (onUpdate → guardarDatos).
@@ -4595,20 +4657,26 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
         plantilla_id: null,
       };
 
-      // Crear planes para los días seleccionados
-      const diasAsignados = Object.keys(ndias).filter(dia => ndias[dia]);
-      if (diasAsignados.length > 0) {
+      // Crear planes para los días seleccionados.
+      // 2026-08-12: el alumno "solo video" no lleva ningún plan — antes, al no
+      // tener días marcados, caía en el else y se le creaba un plan "Fijo" que
+      // nunca iba a ver nadie.
+      const diasAsignados = ntipo === "video" ? [] : Object.keys(ndias);
+      if (ntipo === "video") {
+        // sin planes: entra, ve su video y nada más
+      } else if (diasAsignados.length > 0) {
         for (const dia of diasAsignados) {
-          const plantilla = getPlantilla(ndias[dia] || ntemplate);
-          const planTemplate = clonarPlan(plantilla.plan);
-          const res = await crearPlanAlumno(nuevoAl.id, dia, { ...planTemplate, nombre: plantilla.nombre });
+          const { plan: planTemplate, origen } = elegido(ndias[dia] || ntemplate);
+          const res = await crearPlanAlumno(nuevoAl.id, dia, planTemplate, origen);
           if (res.ok) {
             alumnoConPlan.planes.push(planCompleto(res.data, planTemplate));
           }
         }
       } else {
-        // Si no seleccionó días, crear plan "Fijo" por defecto
-        const res = await crearPlanAlumno(nuevoAl.id, "Fijo", { ...tpl, nombre: getPlantilla(ntemplate).nombre });
+        // Sin días marcados: un solo plan "Fijo" (todos los días) con lo que
+        // se haya elegido arriba — que puede ser SIN_PLAN, y está bien.
+        const { origen } = elegido(ntemplate);
+        const res = await crearPlanAlumno(nuevoAl.id, "Fijo", tpl, origen);
         if (res.ok) {
           alumnoConPlan.planes.push(planCompleto(res.data, tpl));
         }
@@ -4627,7 +4695,7 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
       setNgenero("");
       setNtipo("entrenamiento");
       setNvideo("");
-      setNtemplate("bilateral");
+      setNtemplate(SIN_PLAN);
       setNdias({});
       showToast && showToast("Alumno creado");
       setSec("dashboard");
@@ -4918,13 +4986,20 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
           Configuración porque la condición solo excluía "dashboard". */}
       {sec !== "dashboard" && sec !== "config" && (
       <div style={{ padding: "0 16px" }}>
+        {/* 2026-08-12 — "Planificación" pasó a llamarse "Planes": adentro
+            viven DOS cosas distintas que Lucas pidió separar (la Planificación
+            propiamente dicha —la progresión— y el Plan de ejercicios), y que
+            el grupo se llamara igual que una de sus dos partes era justamente
+            lo que las hacía confundir.
+            Además, al alumno "solo video" no se le muestra: no entrena, así
+            que no tiene ni progresión ni ejercicios que asignarle. */}
         <IconDock
           items={[
             ["plan", "Ejercicios", Dumbbell],
-            ["planes", "Planificación", Calendar],
+            ["planes", "Planes", Calendar],
             ["reportes", "Reportes", BarChart3],
             ["evaluacion", "Evaluación", Stethoscope],
-          ]}
+          ].filter(([k]) => !(al?.tipo === "video" && k === "planes"))}
           activo={sec}
           onSelect={(k) => { setSec(k); setForm(null); }}
         />
@@ -5011,6 +5086,54 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                   <div style={{ fontSize: 12, color: S.white, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Crear nuevo alumno</div>
                   <button onClick={() => setShowCrearAlumno(false)} style={{ background: "transparent", color: S.gray, border: "none", fontSize: 18, cursor: "pointer" }}><X size={16} /></button>
                 </div>
+                {/* TIPO DE ALUMNO — PRIMERA DECISIÓN (2026-08-12).
+                    Antes estaba al final del formulario: había que completar
+                    y scrollear todo el alta de entrenamiento para recién ahí
+                    enterarse de que existía "Solo video" y ver cómo se caían
+                    la mitad de los campos. Elegir el tipo primero es lo que
+                    hace que el alta de un alumno de video sea, de verdad,
+                    tres campos: nombre, clave y video. */}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
+                {/* "Solo video" (2026-08-09): el alumno entra y ve únicamente
+                    el video que Lucas le grabó. No lleva plan, ni días, ni
+                    modalidad — por eso el resto del formulario se esconde. */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 6 }}>
+                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Play size={14} />Solo video</span>, "video"]].map(([l, k]) => (
+                    <button key={k} onClick={() => setNtipo(k)} style={{ background: ntipo === k ? S.white : S.card, color: ntipo === k ? S.bg : S.gray, border: "1px solid " + (ntipo === k ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer", minHeight: TAP }}>{l}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 14 }}>
+                  {ntipo === "video"
+                    ? "Entra y ve su video, nada más: sin días de entrenamiento, sin plan y sin planificación."
+                    : "Entrena: se le cargan días, plan de ejercicios y planificación."}
+                </div>
+                {ntipo === "video" && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Video de movilidad</div>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!f) return;
+                        setNsubiendo(true);
+                        try {
+                          // Va al bucket privado rehab-media, el mismo que ya
+                          // se usaba para media grabada con el celular.
+                          setNvideo(await subirMediaRehab(f));
+                          showToast && showToast("Video subido");
+                        } catch (err) {
+                          showToast && showToast(err.message || "No se pudo subir el video");
+                        } finally { setNsubiendo(false); }
+                      }}
+                      style={{ ...inp, padding: 8 }}
+                    />
+                    <div style={{ fontSize: 11, color: nvideo ? S.green : S.lgray, marginTop: 4 }}>
+                      {nsubiendo ? "Subiendo..." : nvideo ? "Video cargado" : "Se puede crear sin video y subirlo después desde la ficha."}
+                    </div>
+                  </div>
+                )}
                 {/* 2026-08-09: el alta de un alumno "Solo video" es corta a
                     propósito — nombre, clave y video. Peso, altura, email y
                     fecha no aplican a alguien que solo entra a mirar. */}
@@ -5082,71 +5205,51 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                     })}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento</div>
-                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá los días que entrena — a cada día le podés poner un plan distinto.</div>
-                {DIAS_SEM.map((d) => (
-                  <div key={d} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-                    <button
-                      onClick={() => setNdias((prev) => { const n = { ...prev }; if (n[d]) delete n[d]; else n[d] = ntemplate; return n; })}
-                      style={{ flex: 1, textAlign: "left", background: ndias[d] ? S.white : S.card, color: ndias[d] ? S.bg : S.gray, border: "1px solid " + (ndias[d] ? S.white : S.border), borderRadius: 6, padding: "9px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                    >
-                      {ndias[d] && <Check size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />}{d}
-                    </button>
-                    {ndias[d] && (
-                      <select value={ndias[d]} onChange={(e) => setNdias((prev) => ({ ...prev, [d]: e.target.value }))} style={{ ...inp, width: 140, flex: "none" }}>
-                        {PLANTILLAS.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                      </select>
-                    )}
-                  </div>
-                ))}
+                {/* DÍAS Y PLAN DE EJERCICIOS (2026-08-12) — reclamo de Lucas:
+                    "no me aparecen los planes que tenemos organizados". El
+                    desplegable ofrecía PLANTILLAS (planTemplates.js, podado a
+                    2), no las rutinas reales de `plan_variantes`. Ahora lista
+                    las mismas variantes agrupadas por familia que el selector
+                    por día del panel (SelectorPlanDia) — mismos datos, mismas
+                    etiquetas — y arriba de todo "Sin plan", que es el
+                    predeterminado: crear un alumno no le impone una rutina que
+                    nadie eligió. */}
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Días de entrenamiento y plan de ejercicios</div>
+                <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>
+                  Tocá los días que entrena — a cada día le podés poner un plan distinto, o dejarlo sin plan. La progresión (series, repeticiones e intensidad por semana) se elige aparte, en Planes → Planificación.
+                </div>
+                <SelectorDiasAlta
+                  dias={DIAS_SEM}
+                  seleccion={ndias}
+                  grupos={gruposVariantes}
+                  onToggle={(d) => setNdias((prev) => { const n = { ...prev }; if (n[d] != null) delete n[d]; else n[d] = ntemplate; return n; })}
+                  onPlan={(d, valor) => setNdias((prev) => ({ ...prev, [d]: valor }))}
+                />
                 <div style={{ marginBottom: 14 }} />
                 </>)}
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Tipo de alumno</div>
-                {/* "Solo video" (2026-08-09): el alumno entra y ve únicamente
-                    el video que Lucas le grabó. No lleva plan, ni días, ni
-                    modalidad — por eso el resto del formulario se esconde. */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                  {[[<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Dumbbell size={14} />Entrenamiento</span>, "entrenamiento"], [<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Play size={14} />Solo video</span>, "video"]].map(([l, k]) => (
-                    <button key={k} onClick={() => setNtipo(k)} style={{ background: ntipo === k ? S.white : S.card, color: ntipo === k ? S.bg : S.gray, border: "1px solid " + (ntipo === k ? S.white : S.border), borderRadius: 8, padding: "10px 4px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{l}</button>
-                  ))}
-                </div>
-                {ntipo === "video" && (
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4 }}>Video de movilidad</div>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!f) return;
-                        setNsubiendo(true);
-                        try {
-                          // Va al bucket privado rehab-media, el mismo que ya
-                          // se usaba para media grabada con el celular.
-                          setNvideo(await subirMediaRehab(f));
-                          showToast && showToast("Video subido");
-                        } catch (err) {
-                          showToast && showToast(err.message || "No se pudo subir el video");
-                        } finally { setNsubiendo(false); }
-                      }}
-                      style={{ ...inp, padding: 8 }}
-                    />
-                    <div style={{ fontSize: 11, color: nvideo ? S.green : S.lgray, marginTop: 4 }}>
-                      {nsubiendo ? "Subiendo..." : nvideo ? "Video cargado" : "Se puede crear sin video y subirlo después desde la ficha."}
-                    </div>
-                  </div>
-                )}
                 {/* Ronda 9: "Todos los planes" es un VISOR — tocar un plan abre
                     una ventana con sus ejercicios explicados. El plan del
-                    alumno se asigna por día, arriba. */}
+                    alumno se asigna por día, arriba.
+                    2026-08-12: el visor también pasó a las variantes reales.
+                    Mostraba las 2 plantillas viejas, así que Lucas no podía
+                    mirar antes de asignar ninguna de las rutinas que escribió. */}
                 {ntipo !== "video" && (<>
-                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Todos los planes</div>
+                <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 8 }}>Todos los planes de ejercicios</div>
                 <div style={{ fontSize: 11, color: S.lgray, marginBottom: 8 }}>Tocá un plan para ver sus ejercicios con las descripciones. La asignación se hace por día, arriba.</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                  {PLANTILLAS.map((p) => (
-                    <button key={p.id} onClick={() => setPlanVisor(p)} title={p.descripcion} style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{p.nombre} <Eye size={13} style={{ verticalAlign: "-2px" }} /></button>
+                  {gruposVariantes.flatMap((g) => g.variantes).map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setPlanVisor({ nombre: v.nombre, descripcion: v.descripcion || "", plan: varianteAPlan(v, catalogoIdx || {}) })}
+                      title={v.descripcion || v.nombre}
+                      style={{ background: S.card, color: S.gray, border: "1px solid " + S.border, borderRadius: 8, padding: "10px 6px", fontSize: 12, fontWeight: 700, cursor: "pointer", textAlign: "left", lineHeight: 1.3 }}
+                    >
+                      {etiquetaVariante(v)} <Eye size={13} style={{ verticalAlign: "-2px" }} />
+                    </button>
                   ))}
+                  {gruposVariantes.length === 0 && (
+                    <div style={{ gridColumn: "1 / -1", color: S.lgray, fontSize: 12 }}>Cargando los planes…</div>
+                  )}
                 </div>
                 </>)}
                 <button
@@ -5322,16 +5425,23 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                           accept="video/*"
                           onChange={async (e) => {
                             const f = e.target.files?.[0];
-                            e.target.value = "";
                             if (!f) return;
                             setNsubiendo(true);
                             try {
+                              // 2026-08-12: el input NO se limpia antes de
+                              // subir. En Android el File es un puntero al
+                              // archivo de la Galería y soltarlo antes de
+                              // tiempo deja al navegador sin poder leerlo: la
+                              // subida se caía sin llegar nunca al servidor
+                              // (así se perdieron los 3 intentos del video de
+                              // Ángel). Se limpia recién al final, cuando el
+                              // archivo ya está leído y subido.
                               const path = await subirMediaRehab(f);
                               setForm((prev) => ({ ...prev, video_movilidad: path }));
                               showToast && showToast("Video subido — acordate de Guardar");
                             } catch (err) {
                               showToast && showToast(err.message || "No se pudo subir el video");
-                            } finally { setNsubiendo(false); }
+                            } finally { setNsubiendo(false); e.target.value = ""; }
                           }}
                           style={{ ...inp, padding: 8 }}
                         />
@@ -5342,7 +5452,13 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                     )}
                   </div>
 
-                  {/* Solo días de entrenamiento — sin hora del día (pedido de Lucas 2026-07-20) */}
+                  {/* Solo días de entrenamiento — sin hora del día (pedido de Lucas 2026-07-20).
+                      2026-08-12: no se muestran para un alumno "solo video" —
+                      "los que son solo video no importa el día de
+                      entrenamiento". Marcar días ahí no cambiaba nada de lo
+                      que ve el alumno, pero después aparecían en su ficha
+                      como si entrenara. */}
+                  {form.tipo !== "video" && (<>
                   <div style={{ fontSize: 11, color: S.gray, marginBottom: 8, textTransform: "uppercase" }}>Días de entrenamiento</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                     {DIAS_SEM.map((d) => {
@@ -5365,6 +5481,7 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                       );
                     })}
                   </div>
+                  </>)}
 
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
@@ -5424,7 +5541,17 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                       de abajo (planFoco + planTab + sec="plan"). Si el día no
                       tiene plan todavía, en vez de no hacer nada lleva a
                       Planificación → Plan x día con el día ya elegido, que es
-                      donde se le asigna uno. */}
+                      donde se le asigna uno.
+                      2026-08-12: para el alumno "solo video" no se muestran ni
+                      los días ni los planes asignados — no entrena, así que
+                      todo eso era ruido que además invitaba a clickear hacia
+                      pantallas que no le aplican. En su lugar va una línea que
+                      dice qué es este alumno. */}
+                  {al.tipo === "video" ? (
+                    <div style={{ fontSize: 12, color: S.lgray, lineHeight: 1.5 }}>
+                      Alumno de solo video: entra y ve su video, nada más. Sin días de entrenamiento, sin plan de ejercicios y sin planificación.
+                    </div>
+                  ) : (<>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {(al.horarios || []).filter((h) => h.dia).map((h, i) => {
                       const planDelDia = (al.planes || []).find((p) => p.dia_semana === h.dia);
@@ -5513,8 +5640,9 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                         })}
                       </div>
                     )}
-                    <div style={{ fontSize: 14, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Plan → Plan Día</div>
+                    <div style={{ fontSize: 14, color: S.lgray, marginTop: 8 }}>Tocá un plan para editarlo · para reemplazarlos: Planes → Plan de ejercicios</div>
                   </div>
+                  </>)}
                   {showAsignarPlan && (
                     <AsignarPlanModal
                       al={al}
@@ -5717,15 +5845,38 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             usar, ya no es alcanzable desde esta fila de tabs. ── */}
         {sec === "planes" && (
           <div>
-            <div style={{ ...segTrack(), marginBottom: 14 }}>
+            {/* DOS COSAS DISTINTAS, ELEGIDAS APARTE (2026-08-12) — pedido de
+                Lucas: "quiero dejar las planificaciones separadas de los
+                planes de ejercicios". En la base ya estaban separadas
+                (`periodizaciones` vs `plan_variantes`); lo que se confundía
+                era la pantalla, porque las dos vivían bajo el mismo nombre
+                ("Planificación") y la pestaña de ejercicios se llamaba "Plan x
+                día", que no dice qué es. Ahora cada una se llama por lo que
+                es, y el renglón de abajo lo dice en castellano llano: una es
+                la progresión, la otra son los ejercicios. Ninguna de las dos
+                es obligatoria — las dos tienen su "sin ninguno". */}
+            <div style={{ ...segTrack(), marginBottom: 6 }}>
               {[
-                ["Periodización", "periodizacion"],
-                ["Plan x día", "plan-dias"],
+                ["Planificación", "periodizacion"],
+                ["Plan de ejercicios", "plan-dias"],
               ].map(([l, k]) => (
-                <button key={k} onClick={() => setPlanesTab(k)} style={segChip(planesTab === k)}>
+                // El chip de nivel 3 corta con "…" (whiteSpace:nowrap): "PLAN
+                // DE EJERCICIOS" se leía "PLAN DE EJERCI…" en 375px, que es
+                // justo lo que hay que poder distinguir de "PLANIFICACIÓN".
+                // Acá se deja envolver en dos renglones.
+                <button
+                  key={k}
+                  onClick={() => setPlanesTab(k)}
+                  style={{ ...segChip(planesTab === k), whiteSpace: "normal", overflow: "visible", textOverflow: "clip", lineHeight: 1.2, padding: "8px 4px" }}
+                >
                   {l}
                 </button>
               ))}
+            </div>
+            <div style={{ fontSize: 11, color: S.lgray, marginBottom: 14, lineHeight: 1.5 }}>
+              {planesTab === "periodizacion"
+                ? "Planificación = la progresión: cuántas series, repeticiones e intensidad le tocan cada semana. No dice qué ejercicios hace."
+                : "Plan de ejercicios = qué ejercicios hace cada día y en qué orden. No dice series ni repeticiones: eso lo pone la Planificación."}
             </div>
             {planesTab === "periodizacion" && al && (
               <div style={{ ...card, overflow: "hidden", padding: 14 }}>
@@ -5735,22 +5886,30 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                 {(() => {
                   const propia = esPeriodizacionPropia(al);
                   const ref = refPeriodizacion(al);
+                  // 2026-08-12: sin semanas cargadas el alumno NO tiene
+                  // planificación, y eso es un estado válido — entrena los
+                  // ejercicios de su plan sin progresión prescrita.
+                  const conPlanificacion = tienePeriodizacion(al);
                   return (
                     <div style={{ ...innerCard, padding: "10px 12px", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 13, color: propia ? S.white : S.green, fontWeight: 700 }}>
-                          {propia
-                            ? "Periodización propia de este alumno"
-                            : ref
-                              ? `Heredada del predeterminado · ${objetivoLabel(ref.objetivo)} · ${nivelLabel(ref.nivel)}`
-                              : "Sin predeterminado asignado"}
+                        <span style={{ fontSize: 13, color: !conPlanificacion ? S.lgray : propia ? S.white : S.green, fontWeight: 700 }}>
+                          {!conPlanificacion
+                            ? "Sin planificación"
+                            : propia
+                              ? "Planificación propia de este alumno"
+                              : ref
+                                ? `Heredada del predeterminado · ${etiquetaPeriodizacion(perNombres, ref.objetivo, ref.nivel)}`
+                                : "Sin predeterminado asignado"}
                         </span>
                         <span style={{ fontSize: 13, color: S.gray, flex: 1, minWidth: 160 }}>
-                          {propia
-                            ? "Editar el predeterminado ya no le cambia nada."
-                            : ref
-                              ? "Si cambiás el predeterminado en Biblioteca, se le actualiza sola. Editar acá la vuelve propia."
-                              : "Elegí objetivo y nivel para que siga un predeterminado. Las fechas cargadas se conservan."}
+                          {!conPlanificacion
+                            ? "Este alumno entrena sin progresión prescrita. Elegí una de abajo cuando quieras darle una."
+                            : propia
+                              ? "Editar el predeterminado ya no le cambia nada."
+                              : ref
+                                ? "Si cambiás el predeterminado en Biblioteca, se le actualiza sola. Editar acá la vuelve propia."
+                                : "Elegí objetivo y nivel para que siga un predeterminado. Las fechas cargadas se conservan."}
                         </span>
                         {propia && ref && (
                           <button onClick={volverPeriodizacionGlobal} style={smallBtn(S.gray)}>
@@ -5759,6 +5918,18 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                         )}
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                        {/* "Sin planificación" — el equivalente exacto de "Sin
+                            plan" del otro lado (pedido de Lucas 2026-08-12:
+                            "los dos me tienen que dar la opción de dejar sin
+                            ningún predeterminado"). Va PRIMERO, como en
+                            SelectorPlanDia, y borra las semanas + la
+                            referencia al predeterminado. */}
+                        <button
+                          onClick={sacarPeriodizacion}
+                          style={{ ...smallBtn(!conPlanificacion ? S.white : S.gray), borderStyle: conPlanificacion ? "dashed" : "solid" }}
+                        >
+                          Sin planificación
+                        </button>
                         {OBJETIVOS_PER.map((o) =>
                           NIVELES_PER.map((n) => {
                             const activo = !propia && ref && ref.objetivo === o.id && ref.nivel === n.id;
@@ -5768,7 +5939,10 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                                 onClick={() => asignarPeriodizacion(o.id, n.id)}
                                 style={smallBtn(activo ? S.white : S.gray)}
                               >
-                                {o.label} · {n.label}
+                                {/* 2026-08-12: el nombre de la planificación sale
+                                    de la fila, no de las constantes — si Lucas la
+                                    renombró en la Biblioteca, acá se lee así. */}
+                                {etiquetaPeriodizacion(perNombres, o.id, n.id)}
                               </button>
                             );
                           }),
