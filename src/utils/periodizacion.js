@@ -49,6 +49,20 @@ export const nivelLabel = (id) => NIVELES.find((n) => n.id === id)?.label || id 
 // Clave con la que se indexan los predeterminados en memoria.
 export const clavePeriodizacion = (objetivo, nivel) => `${objetivo}|${nivel}`;
 
+// Cómo se llama una planificación EN PANTALLA (2026-08-12).
+//
+// POR QUÉ existe: hasta hoy el título salía siempre de las constantes de
+// arriba ("Hipertrofia · Principiante"), mientras la columna `nombre` de la
+// tabla `periodizaciones` no la leía nadie. Renombrar la fila no cambiaba
+// nada. Ahora manda el dato y las constantes quedan de respaldo, para la fila
+// sin nombre cargado (o para el par objetivo/nivel que todavía no exista como
+// fila). El par (objetivo, nivel) sigue siendo el ID — lo que apunta acá
+// desde el alumno es rm.periodizacion_ref = {objetivo, nivel}, no el nombre,
+// así que renombrar nunca rompe la herencia.
+export const etiquetaPeriodizacion = (nombres, objetivo, nivel) =>
+  (nombres && nombres[clavePeriodizacion(objetivo, nivel)]) ||
+  `${objetivoLabel(objetivo)} · ${nivelLabel(nivel)}`;
+
 // ¿El alumno tiene periodización PROPIA (o hereda el predeterminado)?
 export const esPeriodizacionPropia = (al) => esPrepPropia(al, PERIODIZACION_ID);
 
@@ -79,6 +93,26 @@ export function conPeriodizacionDe(al, objetivo, nivel, semanas) {
     ...al,
     rm: { ...(al?.rm || {}), prep_propias: propias, periodizacion_ref: { objetivo, nivel } },
     plan: { ...(al?.plan || {}), periodizacion: semanasParaAlumno(semanas, al?.plan?.periodizacion) },
+  };
+}
+
+// ── SIN PLANIFICACIÓN (2026-08-12) ────────────────────────────────────
+// Pedido de Lucas: "los dos me tienen que dar la opción de dejar sin ningún
+// predeterminado". Hasta hoy la planificación se podía cambiar de objetivo,
+// pero no SACAR: una vez asignada, el alumno arrastraba semanas para siempre.
+// Un alumno puede tener ejercicios sin progresión (el caso de quien entrena
+// libre), así que esto vacía las semanas y borra la referencia al
+// predeterminado — es el equivalente exacto de "Sin plan" del otro lado.
+// La marca de "propia" también se limpia: sin semanas no hay nada propio que
+// proteger, y dejarla haría que el alumno nunca más heredara un predeterminado.
+export const tienePeriodizacion = (al) => (al?.plan?.periodizacion || []).length > 0;
+
+export function sinPeriodizacion(al) {
+  const propias = (al?.rm?.prep_propias || []).filter((x) => x !== PERIODIZACION_ID);
+  return {
+    ...al,
+    rm: { ...(al?.rm || {}), prep_propias: propias, periodizacion_ref: null },
+    plan: { ...(al?.plan || {}), periodizacion: [] },
   };
 }
 

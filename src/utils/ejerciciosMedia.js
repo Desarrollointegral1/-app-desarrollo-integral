@@ -344,6 +344,24 @@ export const resolverGif = (gif, nombre) => {
   return gif || getEjercicioGif(nombre);
 };
 
+// Qué GIF hay que FIJARLE a un ejercicio que se está renombrando (2026-08-12).
+//
+// El mapa M de arriba resuelve la ilustración POR NOMBRE, y es un archivo del
+// código: si Lucas renombra un ejercicio desde la Biblioteca a algo que M no
+// conoce, el ejercicio se queda mudo sin que nadie se entere. La imagen es del
+// ejercicio, no de cómo se llamaba — así que antes de soltar el nombre viejo
+// se le clava la ruta que ese nombre resolvía y deja de depender del mapa.
+//
+// Devuelve la ruta a fijar, o "" si no hay que tocar nada (ya tenía GIF
+// propio, no cambió el nombre, el nombre nuevo también resuelve, o el viejo
+// tampoco resolvía nada).
+export const gifAlRenombrar = (gifPropio, nombreViejo, nombreNuevo) => {
+  if (gifPropio) return "";
+  if (!nombreViejo || nombreViejo === nombreNuevo) return "";
+  if (getEjercicioGif(nombreNuevo)) return "";
+  return getEjercicioGif(nombreViejo) || "";
+};
+
 // Inverso: nombres de ejercicio que resuelven (por lookup automático) a un
 // GIF dado. Se usa en la pestaña GIFs de la Biblioteca para mostrar a qué
 // ejercicios está asociado cada archivo.
