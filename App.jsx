@@ -5436,7 +5436,11 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                               // (así se perdieron los 3 intentos del video de
                               // Ángel). Se limpia recién al final, cuando el
                               // archivo ya está leído y subido.
-                              const path = await subirMediaRehab(f);
+                              // 2026-08-13: el aviso de "pesa mucho" llega por
+                              // callback y se muestra ANTES de que termine la
+                              // subida — es el único momento en que Lucas
+                              // todavía puede elegir otro archivo.
+                              const path = await subirMediaRehab(f, (m) => showToast && showToast(m));
                               setForm((prev) => ({ ...prev, video_movilidad: path }));
                               showToast && showToast("Video subido — acordate de Guardar");
                             } catch (err) {

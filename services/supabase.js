@@ -1895,12 +1895,49 @@ const REHAB_BUCKET = "rehab-media";
 // entero por datos móviles para que el servidor lo rechace al final, y el
 // mensaje que le llega a Lucas está en inglés.
 const REHAB_MAX_BYTES = 50 * 1024 * 1024;
+// A partir de acá el video es incómodo por datos móviles: el de Ángel pesaba
+// 37,5 MB (3:23 a 1,47 Mbps) y en el celular tardaba tanto en abrir que Lucas
+// lo dio por roto. No se bloquea — se avisa, con qué hacer.
+const REHAB_AVISO_BYTES = 20 * 1024 * 1024;
 
-export async function subirMediaRehab(archivo) {
+// 2026-08-13 — QUE EL NAVEGADOR PUEDA REPRODUCIRLO, NO SOLO SUBIRLO.
+// Un mp4 grabado con un celular puede venir en H.265/HEVC (o AV1): sube
+// perfecto, pesa lo que tiene que pesar, y después Chrome y Firefox no lo
+// reproducen — pantalla negra y nadie entiende por qué. En vez de adivinar
+// codecs leyendo bytes, se le pregunta al propio navegador: se monta el
+// archivo en un <video> y se espera a que saque los metadatos. Si no puede,
+// tampoco va a poder el alumno, así que no se sube.
+function navegadorPuedeReproducir(archivo) {
+  return new Promise((resolve) => {
+    if (typeof document === "undefined" || !/^video\//i.test(archivo.type || "")) return resolve(true);
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(archivo);
+    const fin = (ok) => { URL.revokeObjectURL(url); v.removeAttribute("src"); resolve(ok); };
+    v.preload = "metadata";
+    v.muted = true;
+    v.onloadedmetadata = () => fin(v.videoWidth > 0);
+    v.onerror = () => fin(false);
+    // Si el navegador se queda pensando, no se traba la subida: se deja pasar.
+    setTimeout(() => fin(true), 8000);
+    v.src = url;
+  });
+}
+
+export async function subirMediaRehab(archivo, onAviso) {
   LOG("subirMediaRehab", `⏳ Subiendo ${archivo.name} (${Math.round(archivo.size / 1024)} KB)...`);
   if (archivo.size > REHAB_MAX_BYTES) {
     throw new Error(
       `El video pesa ${Math.round(archivo.size / 1024 / 1024)} MB y el máximo es 50 MB. Grabá uno más corto o mandalo por WhatsApp y subilo desde la compu.`
+    );
+  }
+  if (!(await navegadorPuedeReproducir(archivo))) {
+    throw new Error(
+      "Este video no se puede reproducir en el navegador (suele pasar con los grabados en HEVC / \"alta eficiencia\"). En el celular, poné Cámara → Formatos → \"Más compatible\" y volvé a grabarlo, o exportalo como MP4 H.264."
+    );
+  }
+  if (archivo.size > REHAB_AVISO_BYTES && onAviso) {
+    onAviso(
+      `Ojo: pesa ${Math.round(archivo.size / 1024 / 1024)} MB y va a tardar en abrir con datos móviles. Conviene uno más corto o comprimido.`
     );
   }
   // 2026-08-12 — BUG REAL: Lucas subió tres veces el video de Ángel desde el
