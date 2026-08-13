@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { setVuelta, pesoRepresentativo } from "../src/utils/pesos.js";
+// setVuelta ya no se usa acá (2026-08-13): el merge de vueltas lo hace la base
+// en la RPC guardar_peso_vuelta — ver saveDailyWeight.
+import { pesoRepresentativo } from "../src/utils/pesos.js";
 // Mapa nombre→código oficial (M/E/C/P), fuente de verdad en planTemplates.js.
 // Se usa en propagarEjercicioATodos para asignarle código en el momento a un
 // ejercicio viejo que todavía no lo tiene, SI su nombre matchea uno oficial.
@@ -294,6 +296,24 @@ export async function cargarDatos(fallback) {
       const diasSueltos = (row.plan_dias || []).filter((d) => !d.alumno_plan_id);
 
       const alPlanes = row.alumno_planes || [];
+      // 2026-08-13: si el alumno tiene planes por día Y ADEMÁS quedaron días
+      // sueltos, esos días se descartaban acá y no los veía NADIE — ni la
+      // alumna (la RLS le esconde sus ejercicios) ni el admin. Ahora se
+      // muestran como un plan aparte, marcado, para que se puedan revisar y
+      // borrar en vez de quedar como data fantasma. `_huerfano` hace que la
+      // vista del alumno lo ignore al elegir el plan del día (App.jsx).
+      const planHuerfano = alPlanes.length > 0 && diasSueltos.length > 0
+        ? [{
+            id: makeUuid(),
+            dia_semana: "Sueltos",
+            nombre: "Días sueltos (revisar)",
+            _huerfano: true,
+            estado: "activo",
+            dias: _mapDiasEmbebidos(diasSueltos),
+            movilidad: [], calor: [], activacion: [],
+            periodizacion: row.plan_periodizacion || [],
+          }]
+        : [];
       const planes = alPlanes.length > 0
         ? alPlanes.map((ap) => ({
             id:            ap.id,
@@ -311,7 +331,7 @@ export async function cargarDatos(fallback) {
             // para que la pantalla del admin sepa si el día comparte o no.
             periodizacion: ap.periodizacion || row.plan_periodizacion || [],
             periodizacion_propia: ap.periodizacion || null,
-          }))
+          })).concat(planHuerfano)
         : [{
             id: makeUuid(),
             dia_semana: "Fijo",
@@ -609,8 +629,12 @@ async function _guardarAlumno(al, payloadPrevio) {
   }
 
   if (error) {
+    // 2026-08-13: LANZA en vez de loguear y seguir. Por acá pasan el diario y
+    // la asistencia que carga el alumno: con el `return` de antes, guardarDatos
+    // terminaba "ok", App.jsx daba el alumno por guardado en su snapshot y ese
+    // cambio no se reintentaba nunca más. Se perdía sin ningún aviso.
     ERR("_guardarAlumno", `Falló UPSERT de "${al.nombre}"`, error);
-    return;
+    throw new Error(error.message || `No se pudo guardar a ${al.nombre}`);
   }
 
   LOG("_guardarAlumno", `✅ UPSERT confirmado:`, data);
@@ -622,7 +646,12 @@ async function _guardarAlumno(al, payloadPrevio) {
   // muertos que confundían el diagnóstico del desfase admin→alumno).
   const tienePlanesReales = (al.planes || []).some((p) => p && !p._sintetico);
   if (al.plan?.dias && !tienePlanesReales) {
-    await _savePlanDias(al.id, al.plan.dias);
+    // El chequeo de verdad está adentro de _savePlanDias y va contra la BASE:
+    // este de acá depende del estado del cliente, que puede venir sin `planes`
+    // (ver el comentario de los días huérfanos en _savePlanDiasImpl).
+    if ((await _savePlanDias(al.id, al.plan.dias)) === false) {
+      throw new Error(`No se pudo guardar el plan de ${al.nombre}`);
+    }
   }
 }
 
@@ -1016,6 +1045,38 @@ function _savePlanDias(idParam, dias, isAlumnoPlan = false, alumnoId = null) {
 async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
   LOG("_savePlanDias", `⏳ Guardando ${dias.length} día(s) para ${idParam}`);
 
+  // ── POR QUÉ ESTE CHEQUEO VA ACÁ Y NO EN EL QUE LLAMA (2026-08-13) ──
+  // El camino viejo (sin alumno_plan) escribe días con alumno_plan_id NULL. Si
+  // el alumno YA tiene planes por día, esos días quedan invisibles para todo el
+  // mundo: la RLS del alumno filtra plan_ejercicios por alumno_plan_id, y
+  // cargarDatos los descartaba para el admin. Data escrita que no ve nadie —
+  // le pasó a Victoria Itatí con 6 ejercicios (limpiado en la migración 041).
+  //
+  // El 2026-08-09 esto se intentó tapar en _guardarAlumno con
+  // `tienePlanesReales` calculado sobre `al.planes` del ESTADO DEL CLIENTE. Por
+  // eso no alcanzó: el objeto que llega puede no traer `planes` (recién creado,
+  // reconstruido, o guardado justo después de crear el primer plan, cuando el
+  // estado local todavía no se recargó) y el guard se abre solo. La verdad de
+  // si el alumno tiene planes está en la BASE, así que se pregunta acá, en el
+  // único lugar por donde pasan TODOS los caminos de escritura de días.
+  if (!isAlumnoPlan) {
+    const { data: yaTiene, error: apErr } = await supabase
+      .from("alumno_planes")
+      .select("id")
+      .eq("alumno_id", idParam)
+      .limit(1);
+    if (apErr) {
+      ERR("_savePlanDias", "No se pudo verificar si el alumno ya tiene planes por día", apErr);
+      return false;
+    }
+    if (yaTiene && yaTiene.length > 0) {
+      // No es un error del que llama (no hay nada que reintentar): es una
+      // escritura que NO tiene que ocurrir. Por eso devuelve true y avisa.
+      LOG("_savePlanDias", `⚠️ ${idParam} ya tiene planes por día: NO se escriben días sueltos (quedarían invisibles para el alumno y para el admin)`);
+      return true;
+    }
+  }
+
   // El borrado del camino viejo se limita a los días SUELTOS (alumno_plan_id
   // null): desde que los días de un plan por día también guardan alumno_id
   // (ver abajo), borrar por alumno_id a secas se llevaría puestos los planes
@@ -1029,6 +1090,12 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
     ERR("_savePlanDias", "Error al borrar plan anterior", delErr);
     return false;
   }
+
+  // 2026-08-13: lo que no se pudo escribir se cuenta y se devuelve. Antes un
+  // día o un ejercicio que fallaba solo dejaba una línea en la consola y la
+  // función terminaba con "✅ Plan guardado": el entrenador se iba pensando que
+  // el plan estaba completo y al alumno le faltaban ejercicios.
+  const fallos = [];
 
   for (let i = 0; i < dias.length; i++) {
     // config (2026-08-10): estructura del día — modo por tiempo, dónde va el
@@ -1060,6 +1127,7 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
         return false;
       }
       ERR("_savePlanDias", `No se pudo crear el día "${dias[i].dia}"`, diaErr);
+      fallos.push(dias[i].dia || `día ${i + 1}`);
       continue;
     }
 
@@ -1093,8 +1161,16 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
         row.id = makeUuid();
         ({ error: ejErr } = await supabase.from("plan_ejercicios").insert(row));
       }
-      if (ejErr) ERR("_savePlanDias", `Error insertando "${ej.nombre}"`, ejErr);
+      if (ejErr) {
+        ERR("_savePlanDias", `Error insertando "${ej.nombre}"`, ejErr);
+        fallos.push(ej.nombre || "ejercicio sin nombre");
+      }
     }
+  }
+
+  if (fallos.length) {
+    ERR("_savePlanDias", `Quedaron ${fallos.length} sin guardar: ${fallos.join(", ")}`, null);
+    return false;
   }
 
   LOG("_savePlanDias", `✅ Plan guardado para ${idParam}.`);
@@ -2054,64 +2130,36 @@ export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, seri
     return;
   }
 
-  // Primero obtener el registro del día
-  const { data: existing, error: fetchError } = await supabase
-    .from("registros_diarios")
-    .select("id, pesos")
-    .eq("alumno_id", alumno_id)
-    .eq("fecha", fecha)
-    .maybeSingle();
+  // 2026-08-13 — DOS CAMBIOS DE RAÍZ, los dos por pérdida de trabajo del alumno:
+  //
+  // 1) El merge lo hace la BASE (migración 041, guardar_peso_vuelta). Antes acá
+  //    se hacía SELECT del jsonb `pesos` entero + UPDATE del jsonb entero, y el
+  //    debounce de App.jsx es por casillero (ejercicio:serie): dos casilleros
+  //    cargados con pocos cientos de milisegundos de diferencia lanzaban dos
+  //    ciclos solapados y el segundo pisaba al primero con la versión vieja.
+  //    Reproducido contra la base: dos escrituras sobre la misma lectura dejan
+  //    {"ejB":[40]} y el peso de ejA desaparece. La RPC toma la fila (FOR
+  //    UPDATE) y hace el merge adentro de la transacción: el orden deja de
+  //    importar. La semántica de vueltas es la misma de setVuelta().
+  //
+  // 2) Si falla, LANZA. Antes logueaba y hacía `return`, así que el try/catch
+  //    de registrarDia() (App.jsx) nunca se enteraba: el botón se ponía verde y
+  //    el alumno se iba convencido de que había quedado guardado.
+  const { data, error } = await supabase.rpc("guardar_peso_vuelta", {
+    p_alumno_id: alumno_id,
+    p_fecha: fecha,
+    p_ejercicio_id: String(ejercicio_id),
+    p_peso: peso === "" || peso == null ? null : Number(peso),
+    p_serie: porVuelta ? Number(serie) : null,
+  });
 
-  if (fetchError && fetchError.code !== 'PGRST116') {
-    ERR("saveDailyWeight", "Error al obtener registro", fetchError);
-    return;
+  if (error) {
+    ERR("saveDailyWeight", "No se pudo guardar el peso", error);
+    throw new Error(error.message || "No se pudo guardar el peso");
   }
 
-  const pesos = existing?.pesos || {};
-  if (porVuelta) {
-    const nuevo = setVuelta(pesos[ejercicio_id], serie, peso);
-    if (nuevo == null) delete pesos[ejercicio_id];
-    else pesos[ejercicio_id] = nuevo;
-  } else {
-    pesos[ejercicio_id] = Number(peso);
-  }
-
-  let result;
-  if (existing) {
-    // Actualizar registro existente
-    const { data, error } = await supabase
-      .from("registros_diarios")
-      .update({ pesos, updated_at: new Date().toISOString() })
-      .eq("id", existing.id)
-      .select()
-      .single();
-
-    if (error) {
-      ERR("saveDailyWeight", "Error actualizando pesos", error);
-      return;
-    }
-    result = data;
-  } else {
-    // Crear nuevo registro
-    const { data, error } = await supabase
-      .from("registros_diarios")
-      .insert([{
-        alumno_id,
-        fecha,
-        pesos,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      ERR("saveDailyWeight", "Error creando registro", error);
-      return;
-    }
-    result = data;
-  }
-
-  LOG("saveDailyWeight", `✅ Peso ${peso}kg → ${ejercicio_id} en ${fecha}`, result);
-  return result;
+  LOG("saveDailyWeight", `✅ Peso ${peso} → ${ejercicio_id} en ${fecha}`, data);
+  return data;
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -2119,52 +2167,28 @@ export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, seri
 // ────────────────────────────────────────────────────────────────────────
 
 export async function saveDailyAttendance(alumno_id, fecha, presente) {
-  const { data: existing, error: fetchError } = await supabase
+  // 2026-08-13 — mismo par de arreglos que saveDailyWeight:
+  // · UPSERT contra el UNIQUE (alumno_id, fecha) en vez de select+insert/update.
+  //   El camino viejo podía chocar con 23505 si el primer peso del día y la
+  //   asistencia se guardaban a la vez (los dos creaban la fila). El upsert
+  //   solo toca la columna `presente`: no pisa los pesos.
+  // · Si falla, LANZA — antes registrarDia() daba el día por registrado igual.
+  const { data, error } = await supabase
     .from("registros_diarios")
-    .select("id")
-    .eq("alumno_id", alumno_id)
-    .eq("fecha", fecha)
-    .maybeSingle();
+    .upsert(
+      { alumno_id, fecha, presente, updated_at: new Date().toISOString() },
+      { onConflict: "alumno_id,fecha" },
+    )
+    .select()
+    .single();
 
-  if (fetchError && fetchError.code !== 'PGRST116') {
-    ERR("saveDailyAttendance", "Error al obtener registro", fetchError);
-    return;
-  }
-
-  let result;
-  if (existing) {
-    const { data, error } = await supabase
-      .from("registros_diarios")
-      .update({ presente, updated_at: new Date().toISOString() })
-      .eq("id", existing.id)
-      .select()
-      .single();
-
-    if (error) {
-      ERR("saveDailyAttendance", "Error actualizando asistencia", error);
-      return;
-    }
-    result = data;
-  } else {
-    const { data, error } = await supabase
-      .from("registros_diarios")
-      .insert([{
-        alumno_id,
-        fecha,
-        presente,
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      ERR("saveDailyAttendance", "Error creando registro", error);
-      return;
-    }
-    result = data;
+  if (error) {
+    ERR("saveDailyAttendance", "No se pudo marcar la asistencia", error);
+    throw new Error(error.message || "No se pudo marcar la asistencia");
   }
 
   LOG("saveDailyAttendance", `✅ Asistencia (${presente ? '✅' : '❌'}) marcada para ${fecha}`);
-  return result;
+  return data;
 }
 
 // ────────────────────────────────────────────────────────────────────────

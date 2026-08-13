@@ -70,6 +70,12 @@ import {
   aplicarSemanaPeriodizacion,
   calcularEdad,
   registroAsistencia,
+  // 2026-08-13 — el historial es del EJERCICIO, no de la fila del plan.
+  claveEjercicio,
+  diasDeTodosLosPlanes,
+  ejerciciosDeTodosLosPlanes,
+  ejerciciosUnicos,
+  unirHistorialesPorEjercicio,
 } from "./src/utils/helpers.js";
 import {
   PERIODIZACION_BASE,
@@ -2260,7 +2266,11 @@ function Asistencia({ asistencia, onMarcar }) {
 }
 // ── EVOLUCION DE CARGAS ───────────────────────────────────────────────
 function EvolucionCargas({ historiales, plan }) {
-  const ejercicios = plan.dias.flatMap((d) => d.ejercicios);
+  // 2026-08-13: `plan.dias` ahora llega con los días de TODOS los planes del
+  // alumno (antes era solo planes[0], o sea un día de tres), y el mismo
+  // ejercicio repetido en dos días se muestra una sola vez con el historial
+  // unido — no dos entradas con la mitad de los registros cada una.
+  const ejercicios = ejerciciosUnicos(plan.dias.flatMap((d) => d.ejercicios || []));
   const [selEj, setSelEj] = useState(ejercicios[0] && ejercicios[0].id);
   const ej = ejercicios.find((e) => e.id === selEj);
   const hist = historiales[selEj] || [];
@@ -2349,7 +2359,9 @@ function ResumenMensual({ asistencia, historiales, plan, diario }) {
     (_, i) => new Date(mes.getFullYear(), mes.getMonth(), i + 1),
   ).filter((d) => d <= new Date()).length;
   const pct = totalHasta > 0 ? Math.round((asistMes / totalHasta) * 100) : 0;
-  const ejercicios = plan.dias.flatMap((d) => d.ejercicios);
+  // 2026-08-13: los máximos del mes salen de TODOS los días del alumno (antes
+  // solo del primer plan) y sin repetir el ejercicio que está en dos días.
+  const ejercicios = ejerciciosUnicos(plan.dias.flatMap((d) => d.ejercicios || []));
   // Records del mes
   const records = ejercicios
     .map((ej) => {
@@ -2709,9 +2721,16 @@ function HistorialAdmin({ al }) {
 
   const grupos = (() => {
     const porClave = new Map();
-    const ejercicios = al ? (al.plan?.dias || []).flatMap((d) => d.ejercicios || []) : [];
+    // 2026-08-13, dos correcciones:
+    // · al.plan.dias era SOLO el primer plan del alumno (copia de
+    //   compatibilidad de planes[0]): los días restantes no figuraban acá.
+    // · la clave pasa a ser el nombre normalizado y no `codigo || nombre`: en
+    //   la base hay ejercicios idénticos con códigos distintos según el día
+    //   (Maria tiene "Sentadilla con barra" como CU005 y como RO005), y con la
+    //   clave vieja quedaban como dos historiales separados.
+    const ejercicios = ejerciciosDeTodosLosPlanes(al);
     ejercicios.forEach((ej) => {
-      const clave = ej.codigo || ej.nombre;
+      const clave = claveEjercicio(ej);
       if (!clave) return;
       // 2026-08-12: el grupo se queda con la unidad del ejercicio — el
       // historial de un fondo o una plancha no se puede mostrar en kilos.
@@ -2848,6 +2867,12 @@ function HistorialAdmin({ al }) {
 function ReportesAlumno({ al }) {
   const [historiales, setHistoriales] = useState({});
   const [generandoPDF, setGenerandoPDF] = useState(false);
+  // 2026-08-13: el reporte se arma con TODOS los días del alumno y con el
+  // historial unido por ejercicio (ver helpers.js). Antes miraba planes[0]
+  // y por fila de plan: los pesos de los otros días no aparecían en ninguna
+  // pantalla aunque estuvieran guardados en la base.
+  const planTodos = { ...(al?.plan || {}), dias: diasDeTodosLosPlanes(al) };
+  const histUnidos = unirHistorialesPorEjercicio(ejerciciosDeTodosLosPlanes(al), historiales);
   useEffect(() => {
     if (!al?.id) return;
     setHistoriales({});
@@ -2889,12 +2914,12 @@ function ReportesAlumno({ al }) {
       </button>
       <ResumenMensual
         asistencia={al.asistencia || []}
-        historiales={historiales}
-        plan={al.plan || { dias: [], periodizacion: [] }}
+        historiales={histUnidos}
+        plan={planTodos}
         diario={al.diario || []}
       />
       <div style={{ height: 20 }} />
-      <EvolucionCargas historiales={historiales} plan={al.plan || { dias: [], periodizacion: [] }} />
+      <EvolucionCargas historiales={histUnidos} plan={planTodos} />
     </div>
   );
 }
@@ -7483,7 +7508,19 @@ export default function App() {
     // COPIA del mapa (2026-08-10): guardarDatos es async y lee `previos` alumno
     // por alumno, pero abajo se pisa _ultimoPayload en el mismo tick — a partir
     // del segundo alumno comparaba contra el payload NUEVO y no veía cambios.
-    guardarDatos(cambiados, new Map(_ultimoPayload.current));
+    // 2026-08-13: si el guardado falla, el snapshot se REVIERTE. Antes se
+    // marcaba como guardado pase lo que pase (guardarDatos era fire-and-forget
+    // y _guardarAlumno se tragaba el error): el diario o la asistencia que el
+    // alumno acababa de cargar quedaban solo en memoria, sin reintento y sin
+    // aviso, y se perdían al cerrar la app.
+    guardarDatos(cambiados, new Map(_ultimoPayload.current)).catch((e) => {
+      console.error("[APP] Falló el guardado de alumnos:", e);
+      cambiados.forEach((a) => {
+        _ultimoGuardado.current.delete(a.id);
+        _ultimoPayload.current.delete(a.id);
+      });
+      showToast("No se pudo guardar. Revisá la conexión");
+    });
     cambiados.forEach((a) => {
       _ultimoGuardado.current.set(a.id, _snapAlumno(a));
       _ultimoPayload.current.set(a.id, payloadAlumno(a));
@@ -7769,8 +7806,15 @@ export default function App() {
       setDiaRegistrado(marca);
       showToast("Día registrado");
     } catch (e) {
+      // 2026-08-13: desde que saveDailyWeight/saveDailyAttendance LANZAN
+      // cuando la escritura falla, este catch se ejecuta de verdad. Antes las
+      // dos loguaban y hacían `return`, así que un guardado fallido (sin señal
+      // en el gimnasio, sesión de Supabase vencida) igual pintaba el botón de
+      // verde: el alumno se iba convencido de que su sesión había quedado
+      // registrada. El botón NO se marca (diaRegistrado no se toca) y el
+      // mensaje dice qué hacer.
       console.error("[registrarDia]", e);
-      showToast("Error registrando el día");
+      showToast("No se pudo guardar. Revisá la conexión y tocá de nuevo");
     } finally {
       setRegistrandoDia(false);
     }
@@ -7854,7 +7898,10 @@ export default function App() {
   // el PRÓXIMO día que entrena → el primero de la semana. al.plan queda solo
   // como último recurso cuando no hay planes reales.
   const _planesOrdenados = [...(al.planes || [])]
-    .filter((p) => p && Array.isArray(p.dias) && p.dias.length > 0)
+    // _huerfano (2026-08-13) = días sueltos que quedaron colgados de un camino
+    // de escritura viejo. Se le muestran al admin para que los limpie, pero no
+    // pueden competir por ser el plan del día del alumno.
+    .filter((p) => p && !p._huerfano && Array.isArray(p.dias) && p.dias.length > 0)
     .sort((a, b) => (ORDEN_DIAS[a.dia_semana] || 9) - (ORDEN_DIAS[b.dia_semana] || 9));
   const _hoyOrden = ORDEN_DIAS[hoyTexto] || 0;
   // Ronda 18: normalización sin acentos para comparar días ("Miércoles"
@@ -7869,6 +7916,14 @@ export default function App() {
     al.plan;
   const plan = planHoy || al.plan;
   const planValido = plan && Array.isArray(plan.dias) && plan.dias.length > 0;
+  // 2026-08-13 — El historial del alumno es del EJERCICIO, no de la fila del
+  // plan. `histUnidos` mapea cada id de ejercicio al historial unido de todas
+  // sus filas (el Hip thrust del lunes y el del sábado son el mismo ejercicio),
+  // y `planTodos` junta los días de todos sus planes para Evolución y Resumen,
+  // que hasta hoy miraban solo el primero. Lo que se ESCRIBE sigue yendo
+  // contra el id de la fila que el alumno está mirando: esto es solo lectura.
+  const histUnidos = unirHistorialesPorEjercicio(ejerciciosDeTodosLosPlanes(al), historiales);
+  const planTodos = { ...(al.plan || {}), dias: diasDeTodosLosPlanes(al) };
   const semanaActual = planValido ? getSemanaActual(plan.periodizacion) : 1;
   // Fallback SIEMPRE (ronda 14): un alumno nuevo armado desde el Armador
   // puede tener plan sin periodización todavía — sem undefined rompía
@@ -8252,6 +8307,9 @@ export default function App() {
               semanaActual={semanaActual}
               pesos={pesos}
               historiales={historiales}
+              // Solo para MOSTRAR "peso anterior" y "tu máximo": el mismo
+              // ejercicio en dos días distintos comparte historial (2026-08-13).
+              historialesUnidos={histUnidos}
               onPeso={handlePeso}
               pesosPorVuelta={pesosVuelta}
               onPesoVuelta={handlePesoVuelta}
@@ -8294,12 +8352,12 @@ export default function App() {
                 <>
                   <ResumenMensual
                     asistencia={al.asistencia || []}
-                    historiales={historiales}
-                    plan={al.plan || { dias: [], periodizacion: [] }}
+                    historiales={histUnidos}
+                    plan={planTodos}
                     diario={al.diario || []}
                   />
                   <div style={{ height: 20 }} />
-                  <EvolucionCargas historiales={historiales} plan={al.plan || { dias: [], periodizacion: [] }} />
+                  <EvolucionCargas historiales={histUnidos} plan={planTodos} />
                 </>
               )}
               {historialSub === "diario" && (

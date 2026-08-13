@@ -30,6 +30,12 @@ export default function PlanDelDia({
   semanaActual,
   pesos,
   historiales,
+  // 2026-08-13 — historiales re-indexados por EJERCICIO (ver helpers.js):
+  // el mismo ejercicio en dos días del plan es una fila distinta en la base,
+  // así que "peso anterior" y "tu máximo" arrancaban vacíos el segundo día
+  // aunque el alumno ya hubiera levantado. Solo para mostrar; lo que se
+  // guarda sigue yendo contra el id de la fila de este día.
+  historialesUnidos,
   onPeso,
   // Peso por vuelta (2026-08-09, "el peso se tiene que marcar por vuelta").
   // `pesosPorVuelta` es el jsonb crudo del registro de hoy ({ejercicio_id:
@@ -114,9 +120,13 @@ export default function PlanDelDia({
   const calor = listaDeAlumno(alPrep, "calor", prepGlobales);
   const activacion = plan?.activacion || [];
 
+  // Historial que se MUESTRA: el del ejercicio (todos sus días), con el de la
+  // fila como respaldo si App.jsx todavía no manda el unido.
+  const historialDe = (ejId) => (historialesUnidos || historiales)[ejId] || [];
+
   // Último peso registrado ANTES de hoy (para comparar contra el de hoy)
   const pesoAnteriorDe = (ejId) => {
-    const previos = (historiales[ejId] || []).filter((h) => h.fecha && h.fecha < hoy() && Number(h.peso) > 0);
+    const previos = historialDe(ejId).filter((h) => h.fecha && h.fecha < hoy() && Number(h.peso) > 0);
     return previos.length > 0 ? previos[previos.length - 1] : null;
   };
 
@@ -492,7 +502,7 @@ export default function PlanDelDia({
                   showPeso
                   semana={semDia}
                   peso={pesos[ej.id] || 0}
-                  historial={historiales[ej.id] || []}
+                  historial={historialDe(ej.id)}
                   pesoAnterior={pesoAnteriorDe(ej.id)}
                   onPesoChange={(v) => onPeso(ej.id, v)}
                   vueltas={pesosPorVuelta ? pesosPorVuelta[ej.id] : undefined}

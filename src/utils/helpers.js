@@ -78,6 +78,79 @@ export function aplicarSemanaPeriodizacion(data, idx, form) {
   });
 }
 
+// ── EL HISTORIAL ES DEL EJERCICIO, NO DE LA FILA DEL PLAN (2026-08-13) ──
+//
+// Dos bugs de la misma raíz, encontrados en la auditoría del 2026-08-12:
+//
+// 1) Evolución, Resumen mensual e Historial del admin leían `al.plan.dias`,
+//    que es la copia de compatibilidad de planes[0] (ver cargarDatos). Desde
+//    que el modelo real es UN alumno_plan POR DÍA, eso significa "solo el
+//    primer día". Maria Agustina entrena lunes, jueves y sábado: 7 de sus 21
+//    ejercicios llegaban a esas pantallas y los otros 14 no existían para la
+//    app aunque tuvieran pesos guardados en la base.
+//
+// 2) El "peso anterior" y "tu máximo" se buscaban por plan_ejercicios.id, y
+//    el mismo ejercicio tiene una fila distinta en cada día. Hip thrust el
+//    lunes y el sábado eran dos historiales separados: cargaba 60 kg el lunes
+//    y el sábado la tarjeta arrancaba vacía. Verificado en la base: 31 pares
+//    (alumno, ejercicio) repartidos en 2 y hasta 3 filas de plan.
+//
+// La clave del historial pasa a ser el NOMBRE normalizado, no el código:
+// Maria tiene "Sentadilla con barra" como CU005 el lunes y RO005 el sábado —
+// el mismo ejercicio con dos códigos. El nombre es el dato que sí coincide.
+export const claveEjercicio = (ej) => {
+  const n = String(ej?.nombre || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+  return n || String(ej?.codigo || "").trim().toUpperCase();
+};
+
+/** TODOS los días del alumno (los de sus planes por día, no solo el primero). */
+export const diasDeTodosLosPlanes = (al) => {
+  const dePlanes = (al?.planes || []).flatMap((p) => p?.dias || []);
+  return dePlanes.length ? dePlanes : (al?.plan?.dias || []);
+};
+
+export const ejerciciosDeTodosLosPlanes = (al) =>
+  diasDeTodosLosPlanes(al).flatMap((d) => d?.ejercicios || []);
+
+/** Un ejercicio por clave: el mismo Hip thrust de dos días es una sola entrada. */
+export const ejerciciosUnicos = (ejercicios) => {
+  const vistos = new Map();
+  (ejercicios || []).forEach((ej) => {
+    const c = claveEjercicio(ej);
+    if (c && !vistos.has(c)) vistos.set(c, ej);
+  });
+  return [...vistos.values()];
+};
+
+/**
+ * Devuelve los historiales re-indexados por ejercicio: cada id de fila de plan
+ * apunta al historial UNIDO de todas las filas del mismo ejercicio, ordenado
+ * por fecha. Así la tarjeta del sábado ve lo que se cargó el lunes.
+ *
+ * No reemplaza a `historiales` para escribir: lo que se guarda sigue yendo
+ * contra el id de la fila que el alumno está mirando.
+ */
+export const unirHistorialesPorEjercicio = (ejercicios, historiales) => {
+  const idsPorClave = new Map();
+  (ejercicios || []).forEach((ej) => {
+    const c = ej && ej.id ? claveEjercicio(ej) : "";
+    if (!c) return;
+    if (!idsPorClave.has(c)) idsPorClave.set(c, []);
+    const ids = idsPorClave.get(c);
+    if (!ids.includes(ej.id)) ids.push(ej.id);
+  });
+  const unidos = {};
+  idsPorClave.forEach((ids) => {
+    const unido = ids
+      .flatMap((id) => (historiales && historiales[id]) || [])
+      .slice()
+      .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    ids.forEach((id) => { unidos[id] = unido; });
+  });
+  return unidos;
+};
+
 export function getSemanaActual(periodizacion) {
   if(periodizacion[0]&&periodizacion[0].fecha) {
     const hoyDate=new Date(); hoyDate.setHours(0,0,0,0);

@@ -9,11 +9,54 @@
 //
 // Se corre con: npm test
 
-import { describe, expect, it } from "vitest";
-import { calcularEdad, getYTId, hoy, aplicarSemanaPeriodizacion } from "./helpers.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  calcularEdad, getYTId, hoy, aplicarSemanaPeriodizacion,
+  claveEjercicio, diasDeTodosLosPlanes, ejerciciosDeTodosLosPlanes,
+  ejerciciosUnicos, unirHistorialesPorEjercicio,
+} from "./helpers.js";
 import { calcularRequerimiento, mifflinStJeor, cunningham } from "./energia.js";
 import { getEjercicioGif, resolverGif, SIN_GIF } from "./ejerciciosMedia.js";
-import { _columnasCambiadas } from "../../services/supabase.js";
+// ── Cliente de Supabase de mentira (2026-08-13) ────────────────────────
+// Los cuatro bugs de esta tanda son invisibles desde la pantalla: la app se ve
+// igual y el dato se pierde. Para poder probarlos hace falta ver QUÉ le pide
+// la app a la base y qué hace cuando la base contesta que no. El stub anota
+// cada llamada y devuelve la respuesta que le pida cada test.
+const { sb } = vi.hoisted(() => {
+  const sb = {
+    llamadas: [],
+    respuesta: { data: null, error: null },
+    reset(respuesta) {
+      this.llamadas = [];
+      this.respuesta = respuesta || { data: null, error: null };
+    },
+    hubo(tabla, metodo) {
+      return this.llamadas.some(([t, m]) => t === tabla && m === metodo);
+    },
+    from(tabla) {
+      const self = this;
+      // El query builder de Supabase encadena métodos y se resuelve al await.
+      const q = new Proxy({}, {
+        get(_t, prop) {
+          if (prop === "then") return (ok, err) => Promise.resolve(self.respuesta).then(ok, err);
+          return (...args) => { self.llamadas.push([tabla, String(prop), args]); return q; };
+        },
+      });
+      return q;
+    },
+    rpc(fn, args) {
+      this.llamadas.push(["rpc", fn, [args]]);
+      return Promise.resolve(this.respuesta);
+    },
+    auth: { getSession: async () => ({ data: { session: null } }) },
+  };
+  return { sb };
+});
+vi.mock("@supabase/supabase-js", () => ({ createClient: () => sb }));
+
+import {
+  _columnasCambiadas, saveDailyWeight, saveDailyAttendance, cargarDatos,
+} from "../../services/supabase.js";
 import { listaDeAlumno, conPrepPropia, sinPrepPropia, esPrepPropia } from "./preparacion.js";
 import {
   conPeriodizacionDe, conPeriodizacionEditada, esPeriodizacionPropia,
@@ -804,5 +847,115 @@ describe("unidades - kilos / repeticiones / segundos", () => {
     expect(ETIQUETA_HOY.kilos).toBe("KG HOY");
     expect(ETIQUETA_HOY.repeticiones).toBe("REPS HOY");
     expect(ETIQUETA_HOY.segundos).toBe("SEG HOY");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// LAS CUATRO FORMAS DE PERDER EL TRABAJO DEL ALUMNO (auditoría 2026-08-12)
+// Un test por bug. Los cuatro fallan con el bug puesto.
+// ══════════════════════════════════════════════════════════════════════
+
+describe("1 · un guardado que falla NO puede pasar por guardado", () => {
+  it("saveDailyWeight lanza cuando la base rechaza la escritura", async () => {
+    // Antes logueaba y hacía `return`: el try/catch de registrarDia() no se
+    // enteraba, el botón se ponía verde y el alumno perdía la sesión entera.
+    sb.reset({ data: null, error: { message: "sin conexión" } });
+    await expect(saveDailyWeight("al-1", "2026-08-13", "ej-1", 60, 1)).rejects.toThrow(/sin conexión/);
+  });
+
+  it("saveDailyAttendance también lanza en vez de seguir de largo", async () => {
+    sb.reset({ data: null, error: { message: "JWT expired" } });
+    await expect(saveDailyAttendance("al-1", "2026-08-13", true)).rejects.toThrow(/JWT expired/);
+  });
+});
+
+describe("2 · dos pesos cargados casi juntos no se pisan", () => {
+  it("el peso va por la RPC atómica, sin leer-modificar-escribir desde el cliente", async () => {
+    sb.reset({ data: { "ej-1": [60] }, error: null });
+    await saveDailyWeight("al-1", "2026-08-13", "ej-1", 60, 2);
+
+    const rpc = sb.llamadas.find(([t, m]) => t === "rpc" && m === "guardar_peso_vuelta");
+    expect(rpc).toBeTruthy();
+    expect(rpc[2][0]).toMatchObject({
+      p_alumno_id: "al-1", p_fecha: "2026-08-13", p_ejercicio_id: "ej-1", p_peso: 60, p_serie: 2,
+    });
+    // El ciclo viejo era SELECT del jsonb entero + UPDATE del jsonb entero: dos
+    // casilleros solapados leían la misma versión y el segundo pisaba al
+    // primero. Si vuelve a aparecer cualquiera de las dos, vuelve el bug.
+    expect(sb.hubo("registros_diarios", "select")).toBe(false);
+    expect(sb.hubo("registros_diarios", "update")).toBe(false);
+  });
+});
+
+describe("3 · un día de plan sin dueño no puede quedar invisible", () => {
+  it("cargarDatos muestra los días sueltos aunque el alumno tenga planes por día", async () => {
+    // El caso real: Victoria Itatí, un día 'Sesion' con 6 ejercicios y
+    // alumno_plan_id NULL. La RLS se lo escondía a ella y cargarDatos lo
+    // descartaba para el admin, porque solo armaba el plan con días sueltos
+    // cuando el alumno NO tenía filas en alumno_planes.
+    sb.reset({
+      data: [{
+        id: "al-1", nombre: "Victoria", rm: {}, horarios: [],
+        alumno_planes: [{
+          id: "ap-1", dia_semana: "Lunes", nombre: "Bilateral", estado: "activo",
+          plan_dias: [{ id: "d-1", dia: "Sesión", orden: 0, plan_ejercicios: [{ id: "e-1", nombre: "Sentadilla con barra", codigo: "CU005" }] }],
+        }],
+        plan_dias: [{
+          id: "d-huerfano", dia: "Sesion", orden: 0, alumno_plan_id: null,
+          plan_ejercicios: [{ id: "e-huerfano", nombre: "Dominadas", codigo: "DO006" }],
+        }],
+      }],
+      error: null,
+    });
+
+    const alumnos = await cargarDatos([]);
+    const huerfano = alumnos[0].planes.find((p) => p._huerfano);
+    expect(huerfano).toBeTruthy();
+    expect(huerfano.dias[0].ejercicios.map((e) => e.nombre)).toEqual(["Dominadas"]);
+    // Y no le roba el lugar al plan real: el primero sigue siendo el de verdad.
+    expect(alumnos[0].planes[0].nombre).toBe("Bilateral");
+  });
+});
+
+describe("4 · el historial es del ejercicio, no de la fila del plan", () => {
+  const alumna = {
+    plan: { dias: [{ ejercicios: [{ id: "lun-hip", nombre: "Hip thrust con barra", codigo: "GL007" }] }] },
+    planes: [
+      { dia_semana: "Lunes", dias: [{ ejercicios: [
+        { id: "lun-hip", nombre: "Hip thrust con barra", codigo: "GL007" },
+        { id: "lun-sent", nombre: "Sentadilla con barra", codigo: "CU005" },
+      ] }] },
+      { dia_semana: "Sabado", dias: [{ ejercicios: [
+        { id: "sab-hip", nombre: "Hip thrust con barra", codigo: "GL007" },
+        { id: "sab-sent", nombre: "Sentadilla con barra", codigo: "RO005" },
+      ] }] },
+    ],
+  };
+
+  it("se miran TODOS los planes, no solo el primero", () => {
+    // Maria Agustina entrena lunes, jueves y sábado: con `plan.dias` (copia de
+    // planes[0]) la app veía 7 de sus 21 ejercicios.
+    expect(diasDeTodosLosPlanes(alumna)).toHaveLength(2);
+    expect(ejerciciosDeTodosLosPlanes(alumna).map((e) => e.id))
+      .toEqual(["lun-hip", "lun-sent", "sab-hip", "sab-sent"]);
+    expect(ejerciciosUnicos(ejerciciosDeTodosLosPlanes(alumna))).toHaveLength(2);
+  });
+
+  it("el mismo ejercicio en dos días comparte historial, aunque el código difiera", () => {
+    // Sentadilla con barra es CU005 el lunes y RO005 el sábado en el plan real
+    // de Maria: por eso la clave es el nombre normalizado y no el código.
+    expect(claveEjercicio({ nombre: "Sentadilla con barra", codigo: "CU005" }))
+      .toBe(claveEjercicio({ nombre: "SENTADILLA CON BARRA", codigo: "RO005" }));
+
+    const historiales = {
+      "lun-hip": [{ fecha: "2026-08-10", peso: 60 }],
+      "sab-hip": [{ fecha: "2026-08-15", peso: 65 }],
+    };
+    const unidos = unirHistorialesPorEjercicio(ejerciciosDeTodosLosPlanes(alumna), historiales);
+    // El sábado ya no arranca de cero: ve los 60 kg del lunes.
+    expect(unidos["sab-hip"].map((h) => h.peso)).toEqual([60, 65]);
+    expect(unidos["lun-hip"]).toEqual(unidos["sab-hip"]);
+    // Y queda ordenado por fecha, que es de donde sale "peso anterior".
+    expect(unidos["sab-hip"].map((h) => h.fecha)).toEqual(["2026-08-10", "2026-08-15"]);
   });
 });
