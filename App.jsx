@@ -409,7 +409,7 @@ function FechaRapida({ value, onChange }) {
 // query de abajo, el resto de la app sigue respetando la preferencia.
 export function GlobalStyles() {
   return (
-    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } .di-logo3d, .di-logo3d * { animation-duration:9s !important; animation-iteration-count:infinite !important; } }    `}</style>
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      /* 2026-08-13: con el zoom del sistema al 200% el ancho util cae a ~188px y la sangria de 36px del casillero de peso deja al stepper sin lugar (se salia de la pantalla). Por debajo de 340px la sangria se va. */      @media (max-width:340px) { .di-sin-sangria-angosto { padding-left:0 !important; } }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } .di-logo3d, .di-logo3d * { animation-duration:9s !important; animation-iteration-count:infinite !important; } }    `}</style>
   );
 }
 // ── FOTO ALUMNO ───────────────────────────────────────────────────────
@@ -1305,7 +1305,11 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
               </div>{" "}
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            // flexWrap (2026-08-13): la fila tiene 6 controles de ancho fijo
+            // (handle, flechas, GIF, número, editar, borrar). Con el zoom del
+            // sistema al 200% no entran en el ancho útil y empujaban el botón
+            // de borrar fuera de la pantalla; envolviendo, bajan de renglón.
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               {" "}
               {/* Handle de arrastre. Se agarra ACÁ (no en toda la fila) para
                   que tocar el nombre siga plegando y el scroll del panel
@@ -1331,6 +1335,11 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                 >
                   ⠿
                 </div>{" "}
+                {/* 2026-08-13 (auditoría de uso): estas dos flechas medían
+                    20x14px — el 14% del área táctil mínima, los dos controles
+                    más chicos de toda la app, y reordenar ejercicios es algo
+                    que Lucas hace con el teléfono en la mano mientras arma el
+                    plan. Pasan a 44x44 reales. */}
                 <button
                   onClick={() => move(i, -1)}
                   aria-label="Subir ejercicio"
@@ -1339,8 +1348,13 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 12,
-                    padding: "0 4px",
+                    fontSize: 13,
+                    width: TAP,
+                    minHeight: TAP,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
                   }}
                 >
                   ▲
@@ -1353,8 +1367,13 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                     color: S.lgray,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 12,
-                    padding: "0 4px",
+                    fontSize: 13,
+                    width: TAP,
+                    minHeight: TAP,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
                   }}
                 >
                   ▼
@@ -1392,19 +1411,24 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                   />
                 ) : null;
               })()}{" "}
+              {/* 2026-08-13: sin `minWidth:0` esta columna no podía encogerse
+                  por debajo del ancho del nombre del ejercicio, así que la
+                  fila entera empujaba el botón de borrar fuera de la pantalla
+                  (2px en 375px, 142px con el zoom del sistema al 200%). El
+                  nombre sigue mostrándose completo: envuelve, no se corta. */}
               <div
-                style={{ flex: 1, cursor: "pointer" }}
+                style={{ flex: "1 1 150px", minWidth: 0, cursor: "pointer" }}
                 onClick={() => toggleAbierto(claveDe(ej, i))}
                 title="Tocá el nombre para ver u ocultar el detalle"
               >
                 {" "}
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                   {ej.codigo && (
                     <span style={{ color: S.gray, fontSize: 14, fontWeight: 800, letterSpacing: 0.5, background: S.card2, border: "1px solid " + S.border, borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>
                       {ej.codigo}
                     </span>
                   )}
-                  <div style={{ color: S.white, fontSize: 13, fontWeight: 600 }}>{ej.nombre}</div>
+                  <div style={{ color: S.white, fontSize: 13, fontWeight: 600, minWidth: 0, overflowWrap: "break-word" }}>{ej.nombre}</div>
                   <span style={{ color: S.lgray, fontSize: 10, flexShrink: 0 }}>
                     {abiertos.has(claveDe(ej, i)) ? "▲" : "▼"}
                   </span>
@@ -1419,12 +1443,18 @@ export function EjercicioEditor({ items, onChange, showVideo, biblioteca = [], o
                   <div style={{ color: "#4a9eff", fontSize: 14, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}><Play size={11} />Media asignada</div>
                 )}{" "}
               </div>{" "}
-              <button onClick={() => startEdit(i)} style={smallBtn(S.white)}>
-                <Pencil size={14} />
-              </button>{" "}
-              <button onClick={() => remove(i)} style={smallBtn(S.red)}>
-                <X size={14} />
-              </button>{" "}
+              {/* Editar y borrar viajan juntos (2026-08-13): con las flechas de
+                  reordenar a 44px reales ya no entra todo en un renglón de
+                  375px, así que este par baja completo y alineado a la
+                  derecha en vez de partirse uno en cada línea. */}
+              <div style={{ display: "flex", gap: 8, marginLeft: "auto", flexShrink: 0 }}>
+                <button onClick={() => startEdit(i)} style={smallBtn(S.white)}>
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => remove(i)} style={smallBtn(S.red)}>
+                  <X size={14} />
+                </button>
+              </div>{" "}
             </div>
           )}{" "}
           {/* Ficha desplegada (2026-08-09): GIF grande + descripción completa,
@@ -4874,14 +4904,21 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {/* 2026-08-13 (auditoría de uso): los 4 controles de esta fila —los que
+            el profe tiene siempre a mano durante la clase— medían 153x35,
+            38x36, 38x37 y 56x32: ninguno llegaba al piso táctil de 44px. Ahora
+            los cuatro declaran TAP. `flexWrap` para que, con el zoom del
+            sistema al 200%, la fila baje de renglón en vez de empujar "Cerrar"
+            fuera de la pantalla. */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {/* Modo entrenador (ronda 9) — al lado del toggle de tema */}
           <button
             onClick={onModoEntrenador}
             title="Modo entrenador: operar la app como un alumno"
             style={{
-              flex: 1,
+              flex: "1 1 140px",
               minWidth: 0,
+              minHeight: TAP,
               background: S.card3,
               color: S.white,
               border: "1px solid " + S.border2,
@@ -4906,6 +4943,11 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             aria-label={darkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
             style={{
               flexShrink: 0,
+              minWidth: TAP,
+              minHeight: TAP,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border2,
@@ -4923,6 +4965,11 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             title="Configuración"
             style={{
               flexShrink: 0,
+              minWidth: TAP,
+              minHeight: TAP,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: sec === "config" ? S.white : "transparent",
               color: sec === "config" ? S.bg : S.gray,
               border: "1px solid " + (sec === "config" ? S.white : S.border2),
@@ -4939,12 +4986,14 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
             onClick={onClose}
             style={{
               flexShrink: 0,
+              minWidth: TAP,
+              minHeight: TAP,
               background: "transparent",
               color: S.gray,
               border: "1px solid " + S.border2,
               borderRadius: 8,
-              padding: "8px 10px",
-              fontSize: 12,
+              padding: "8px 12px",
+              fontSize: 13,
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -5529,10 +5578,15 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                 </div>
               ) : (
                 <div style={{ ...card, padding: "14px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  {/* 2026-08-13: el nombre no tenía `minWidth:0`, así que no
+                      podía encogerse: quedaba pegado al botón Editar (0px de
+                      aire) y empujaba la fila 2px fuera de la pantalla en
+                      375px. Con `flex:1, minWidth:0` el nombre usa el ancho
+                      que hay, envuelve, y los botones ya no salen del borde. */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0 }}>
                       <FotoAlumno foto={al.foto} size={52} editable onFoto={(foto) => { guardarFotoAlumno(al.id, foto); onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, foto } : a))); }} />
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ color: S.white, fontWeight: 700, fontSize: 16 }}>{al.nombre}</div>
                         <div style={{ color: S.gray, fontSize: 12, marginTop: 2 }}>@{al.username || al.codigo}</div>
                       </div>
@@ -5725,7 +5779,10 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
               });
               chips.push({ key: "entrenamiento", seccionId: null, label: "Principales" });
               return (
-                <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+                /* flexWrap (2026-08-13): estos chips no bajaban de renglón y
+                   con el zoom del sistema al 200% "Principales" quedaba 291px
+                   fuera de la pantalla. */
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14 }}>
                   {chips.map((c) => {
                     const oculta = c.seccionId && ocultas.includes(c.seccionId);
                     return (
@@ -5739,7 +5796,7 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                           e.preventDefault();
                           reordenar(e.dataTransfer.getData("text/plain"), c.seccionId);
                         }}
-                        style={{ position: "relative", flex: 1 }}
+                        style={{ position: "relative", flex: "1 1 74px" }}
                       >
                         <button
                           onClick={() => setPlanTab(c.key)}
@@ -6323,19 +6380,24 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
                 evolución de cargas. Nadie las borró, solo quedaron sin botón;
                 ver PLAN-MAESTRO. Van acá "por ahora" según pidió Lucas —
                 el 03/08 puede pedir moverlas a otro lugar). */}
-            <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
+            {/* 2026-08-13: estos dos tabs medían 150x30 con letra de 11px y no
+                envolvían — con el zoom del sistema al 200% "Bioimpedancia" se
+                iba 18px fuera de la pantalla. Ahora llegan al piso táctil y
+                bajan de renglón cuando no entran. */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
               {[["Evaluación integral", "integral"], ["Bioimpedancia", "bio"]].map(([l, k]) => (
                 <button
                   key={k}
                   onClick={() => setEvalTab(k)}
                   style={{
-                    flex: 1,
+                    flex: "1 1 120px",
+                    minHeight: TAP,
                     background: evalTab === k ? S.white : S.card,
                     color: evalTab === k ? S.bg : S.gray,
                     border: "1px solid " + (evalTab === k ? S.white : S.border),
                     borderRadius: 8,
-                    padding: "8px 4px",
-                    fontSize: 11,
+                    padding: "8px 6px",
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: "pointer",
                   }}
@@ -6759,6 +6821,36 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
 const LS_ULTIMO_USUARIO = "di_ultimo_usuario";
 const credencialesOk = typeof window !== "undefined" && "credentials" in navigator && typeof window.PasswordCredential === "function";
 
+// WhatsApp de soporte para el bloque "¿No podés entrar?". Vacío = no se
+// muestra el link, solo el texto. Lucas: poné acá tu número en formato
+// internacional sin signos (ej. "5491122334455") y el botón aparece solo.
+const WHATSAPP_SOPORTE = "";
+
+// 2026-08-13 (auditoría de uso): la pantalla mostraba `e.message` crudo. Sin
+// internet, un alumno de 75 años leía literalmente «Failed to fetch» — inglés
+// y jerga de programador. Y los mensajes del servidor hablaban de «username»,
+// «Codigo» y «PIN» mientras la pantalla dice Usuario y Clave. Acá se traduce
+// TODO a las mismas palabras que están en pantalla, con tildes.
+// Se traduce en el cliente a propósito: cubre también lo que devuelve la
+// versión ya desplegada de la Edge Function, sin depender de un redeploy.
+function mensajeLogin(e, esAdmin) {
+  const crudo = (e && e.message) || "";
+  const sinRed = typeof navigator !== "undefined" && navigator.onLine === false;
+  if (sinRed || e instanceof TypeError || /fetch|network|failed to fetch/i.test(crudo)) {
+    return "No hay internet. Conectate al wifi o a los datos y tocá Ingresar otra vez.";
+  }
+  if (/demasiados intentos/i.test(crudo)) {
+    return "Probaste muchas veces seguidas. Esperá un rato y volvé a intentar.";
+  }
+  if (/inv[aá]lid|incorrect|no encontrad/i.test(crudo)) {
+    // El error más confuso de todos: si el alumno pisó sin querer el botón de
+    // administrador, su clave correcta falla siempre y nada se lo explica.
+    if (esAdmin) return "Estás con el acceso de administrador prendido. Si sos alumno, apagalo con el botón de abajo y probá de nuevo.";
+    return "El usuario o la clave no son correctos. Fijate en el papel que te dio Lucas y probá de nuevo.";
+  }
+  return "No pudimos entrar. Probá de nuevo en un momento.";
+}
+
 function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
   const [codigo, setCodigo] = useState(() => {
     try { return localStorage.getItem(LS_ULTIMO_USUARIO) || ""; } catch { return ""; }
@@ -6776,7 +6868,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
     const cod = (codigoOverride ?? codigo).trim();
     const clave = (pinOverride ?? pin).trim();
     if (!cod || !clave) {
-      setErr("Completa username y clave");
+      setErr("Te falta escribir el usuario y la clave.");
       return;
     }
 
@@ -6806,7 +6898,7 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         onLogin(alumno);
       }
     } catch (e) {
-      setErr(e.message);
+      setErr(mensajeLogin(e, esAdmin));
     } finally {
       setCargando(false);
     }
@@ -6925,24 +7017,36 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         </div>
       </div>
 
-      <div style={{ width: "100%", maxWidth: 340 }}>
-        {/* 2026-07-31, pedido de Lucas: "no me gusta ese login... mejor sin
-            ese cuadro, tomá lo que aprendiste de Instagram y Mercado Libre".
-            Se saca la caja con borde propio + label adentro (patrón ML de la
-            tanda anterior) y se vuelve al patrón Instagram: input suelto,
-            fondo relleno sutil, placeholder como único label, sin caption
-            arriba ni borde de caja. */}
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        {/* 2026-08-13 (auditoría de uso): la pantalla del video ya estaba
+            hecha para un adulto mayor (30/21/22px, botones de 72px) pero ESTE
+            login, que es la puerta de entrada de todos, seguía a 13-16px con
+            la escala pensada para los alumnos jóvenes. Ahora los campos miden
+            60px de alto con letra de 20px y el botón de entrar 64px.
+            Y vuelven las etiquetas de verdad arriba de cada campo: el
+            placeholder gris era la única pista de qué iba en cada uno, se
+            borraba al empezar a escribir y encima quedaba en 3.7:1 de
+            contraste. La etiqueta no se va nunca y dice el dato que solo
+            estaba en la cabeza de Lucas ("4 números"). */}
+        <label htmlFor="login-usuario" style={{ display: "block", color: S.white, fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
+          Tu usuario
+        </label>
         <input
+          id="login-usuario"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="Usuario"
           autoComplete="username"
           autoCapitalize="characters"
-          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, marginBottom: 10 }}
+          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, marginBottom: 16, minHeight: 60, fontSize: 20 }}
           disabled={cargando}
         />
+        <label htmlFor="login-clave" style={{ display: "block", color: S.white, fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
+          Tu clave (4 números)
+        </label>
         <input
+          id="login-clave"
           type="password"
           value={pin}
           onChange={(e) => setPin(e.target.value.slice(0, 4))}
@@ -6952,9 +7056,12 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           // La clave son 4 dígitos: en el celular tiene que abrir el teclado
           // numérico, no el alfabético. Faltaba `inputMode`, así que el
           // alumno tenía que cambiar de teclado a mano en cada ingreso.
+          // `pattern` es el truco que fuerza el teclado numérico en iOS, donde
+          // inputMode sobre type=password no siempre alcanza.
           inputMode="numeric"
+          pattern="[0-9]*"
           autoComplete="current-password"
-          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, letterSpacing: 4 }}
+          style={{ ...inp, background: S.card2, border: "1px solid " + S.border, letterSpacing: 4, minHeight: 60, fontSize: 20 }}
           disabled={cargando}
         />
 
@@ -6964,8 +7071,8 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
             fondo/borde con más peso para que se note que es un estado, no
             solo una palabra roja. */}
         {err && (
-          <div role="alert" style={{ display: "flex", alignItems: "center", gap: 8, color: "#ff8080", fontSize: TS.label, lineHeight: 1.4, marginTop: 14, padding: "11px 14px", background: "rgba(229,62,62,0.16)", borderRadius: 8, border: "1px solid rgba(229,62,62,0.45)" }}>
-            <span aria-hidden="true" style={{ fontSize: 15, flexShrink: 0 }}>⚠</span>
+          <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 10, color: "#ff8080", fontSize: 18, lineHeight: 1.4, marginTop: 16, padding: "14px 16px", background: "rgba(229,62,62,0.16)", borderRadius: 8, border: "1px solid rgba(229,62,62,0.45)" }}>
+            <span aria-hidden="true" style={{ fontSize: 18, flexShrink: 0 }}>⚠</span>
             {err}
           </div>
         )}
@@ -6982,14 +7089,14 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
           disabled={cargando}
           style={{
             width: "100%",
-            marginTop: 18,
+            marginTop: 20,
             background: cargando ? S.card2 : S.white,
             color: cargando ? S.gray : S.bg,
             border: "none",
-            borderRadius: 8,
+            borderRadius: 10,
             padding: "14px",
-            minHeight: TAP,
-            fontSize: TS.ui,
+            minHeight: 64,
+            fontSize: 20,
             fontWeight: 800,
             letterSpacing: 2,
             textTransform: "uppercase",
@@ -6999,29 +7106,67 @@ function Login({ onLogin, onAdmin, darkMode, onToggleTheme }) {
         >
           {cargando ? "Validando..." : "Ingresar"}
         </button>
+
+        {/* 2026-08-13 (auditoría de uso): un alumno trabado acá no tenía a
+            dónde ir — la pantalla entera tenía 5 elementos tocables y ninguno
+            era una salida. Este bloque es la red de contención: se abre solo
+            si lo tocan, así que no le agrega ruido al que entra de una. */}
+        <details style={{ marginTop: 22 }}>
+          <summary style={{ color: S.white, fontSize: 18, fontWeight: 700, cursor: "pointer", padding: "12px 0", minHeight: TAP, listStyle: "none", textDecoration: "underline" }}>
+            ¿No podés entrar?
+          </summary>
+          <div style={{ color: S.gray, fontSize: 17, lineHeight: 1.5, marginTop: 6 }}>
+            Fijate tres cosas en el papel que te dio Lucas: que el usuario esté escrito igual,
+            que la clave sean los 4 números, y que el teléfono tenga internet.
+            {WHATSAPP_SOPORTE ? (
+              <a
+                href={`https://wa.me/${WHATSAPP_SOPORTE}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 14, minHeight: 60, borderRadius: 10, border: "1px solid " + S.border2, color: S.white, fontSize: 19, fontWeight: 700, textDecoration: "none" }}
+              >
+                Escribirle a Lucas por WhatsApp
+              </a>
+            ) : (
+              <div style={{ marginTop: 10 }}>Si sigue sin andar, escribile a Lucas por WhatsApp y te pasa el usuario y la clave de nuevo.</div>
+            )}
+          </div>
+        </details>
       </div>
 
-      {/* Acceso admin — discreto, al final, con estado on/off inequívoco */}
+      {/* Acceso admin.
+          2026-08-13 (auditoría de uso): este botón medía 288x47 y estaba a
+          28px de INGRESAR. Un alumno que lo pisaba sin querer pasaba a fallar
+          SIEMPRE, con su clave correcta, y la única señal era un puntito.
+          Tres cambios: se va bien abajo (96px de aire, fuera del alcance del
+          pulgar que apunta a Ingresar), deja de parecer un botón principal
+          (texto chico, sin caja, en gris) y cuando está prendido el error de
+          login lo dice con todas las letras (ver mensajeLogin). Sigue visible
+          porque Lucas y Ari entran por acá todos los días. */}
       <button
         onClick={() => setEsAdmin((v) => !v)}
         disabled={cargando}
         style={{
-          marginTop: 28,
+          marginTop: 96,
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           gap: 7,
-          // Quedó verde de una pasada anterior de la auditoría — se corrige
-          // acá de paso: el Brand Kit solo admite rojo como acento.
+          maxWidth: "100%",
           background: esAdmin ? S.card3 : "transparent",
           color: esAdmin ? S.white : S.lgray,
-          border: "1px solid " + (esAdmin ? S.white : S.border),
+          border: "1px solid " + (esAdmin ? S.white : "transparent"),
           borderRadius: 22,
-          padding: "12px 18px",
+          padding: "12px 14px",
           minHeight: TAP,
-          fontSize: TS.chip,
+          fontSize: 13,
           fontWeight: 700,
-          letterSpacing: 1,
+          letterSpacing: 0.6,
           textTransform: "uppercase",
+          // Que el texto pueda cortarse: con el zoom del sistema al 200% este
+          // botón era lo único que se salía de la pantalla del login (+22px).
+          whiteSpace: "normal",
+          textAlign: "center",
           cursor: cargando ? "not-allowed" : "pointer",
         }}
       >
@@ -7446,12 +7591,33 @@ export default function App() {
   // Con la RLS activa, los datos solo se pueden leer con una sesión de Auth.
   // Al arrancar: si hay sesión (F5 con login vigente) se cargan; si no, se
   // muestra el login. Post-login, login()/loginAsAdmin() vuelven a cargar.
+  // 2026-08-13 (auditoría de uso): esto era un `.then()` pelado, sin `.catch()`
+  // ni timeout. Si el teléfono no llegaba a Supabase (wifi flojo en el
+  // gimnasio, datos cortados, Supabase caído), `cargado` no pasaba nunca a
+  // true y el alumno se quedaba mirando el logo girando PARA SIEMPRE: ni una
+  // palabra ni un botón. Reproducido: a los 15 segundos el body seguía sin un
+  // solo texto. Ahora hay tres redes: el catch, un tope de 8 segundos, y una
+  // pantalla que dice qué pasó y ofrece reintentar.
+  const [arranqueFallo, setArranqueFallo] = useState(false);
   useEffect(() => {
     console.log("%c[APP] Iniciando → chequeando sesión...", "color:#6ee7b7;font-weight:bold");
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { setCargado(true); return; }
-      recargarDatos().finally(() => setCargado(true));
-    });
+    let vivo = true;
+    const tope = setTimeout(() => { if (vivo) setArranqueFallo(true); }, 8000);
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => (session ? recargarDatos() : null))
+      .catch((e) => {
+        console.error("[APP] No se pudo arrancar:", e);
+        if (vivo) setArranqueFallo(true);
+      })
+      .finally(() => {
+        if (!vivo) return;
+        clearTimeout(tope);
+        // Si llegó tarde pero llegó, la app entra igual: `cargado` gana sobre
+        // la pantalla de error.
+        setCargado(true);
+      });
+    return () => { vivo = false; clearTimeout(tope); };
   }, []);
   const _primeraVez = useRef(true);
   // Flag para cambios de estado que NO deben persistirse (ej. hidratar fotos
@@ -7827,7 +7993,12 @@ export default function App() {
       setGenerandoPDF(false);
     }
   };
-  // Pantalla de carga (ronda 9, logo al doble ronda 11): el logo 3D girando, centrado — sin texto.
+  // Pantalla de carga (ronda 9, logo al doble ronda 11).
+  // 2026-08-13 (auditoría de uso): el logo era MUDO. Ahora dice qué está
+  // pasando mientras carga, y si la app no pudo abrir (sin internet, Supabase
+  // caído) muestra el motivo en castellano llano y un botón grande para
+  // reintentar — la escala es la de la vista del alumno mayor (>=21px, botón
+  // de 72px), no la del panel.
   if (!cargado)
     return (
       <>
@@ -7837,11 +8008,48 @@ export default function App() {
             minHeight: "100vh",
             background: S.bg,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
+            padding: 24,
+            boxSizing: "border-box",
+            textAlign: "center",
           }}
         >
-          <Logo3D size={190} />
+          {/* `estatico` cuando falló: el logo que sigue girando mientras se
+              avisa que no se pudo abrir parece que todavía está cargando (y
+              de perfil se ve como una astilla). Quieto, es un logo. */}
+          <Logo3D size={arranqueFallo ? 120 : 190} estatico={arranqueFallo} />
+          {arranqueFallo ? (
+            <>
+              <div style={{ color: S.white, fontSize: 26, fontWeight: 800, marginTop: 24, lineHeight: 1.25, maxWidth: 420 }}>
+                No pudimos abrir la app
+              </div>
+              <div style={{ color: S.gray, fontSize: 21, marginTop: 12, lineHeight: 1.45, maxWidth: 420 }}>
+                Fijate que tengas internet (wifi o datos) y tocá el botón de abajo.
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  marginTop: 28,
+                  width: "100%",
+                  maxWidth: 420,
+                  minHeight: 72,
+                  background: S.white,
+                  color: S.bg,
+                  border: "none",
+                  borderRadius: 12,
+                  fontSize: 22,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Probar de nuevo
+              </button>
+            </>
+          ) : (
+            <div style={{ color: S.gray, fontSize: 21, marginTop: 20 }}>Abriendo tu app...</div>
+          )}
         </div>
       </>
     );

@@ -269,7 +269,11 @@ export default function ItemCard({
             {/* La sangría de 36px alinea el label con el texto del ejercicio,
                 pero SOLO acá arriba: las pastillas de vuelta usan el ancho
                 completo, si no en un teléfono de 375px la cuarta se sale. */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingLeft: 36 }}>
+            {/* flexWrap (2026-08-13): con el zoom del sistema al 200% el ancho
+                útil baja a ~120px y el stepper (132px) no entra al lado del
+                rótulo — envolviendo, el stepper cae a su propio renglón en vez
+                de salirse de la pantalla. */}
+            <div className="di-sin-sangria-angosto" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, paddingLeft: 36 }}>
               <div style={{ color: S.gray, fontSize: TS.chip }}>
                 {/* Con vueltas el casillero igual tiene que decir QUÉ se
                     carga: sin la unidad al lado, el alumno de un plan de TRX

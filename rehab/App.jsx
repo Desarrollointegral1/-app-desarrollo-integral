@@ -41,7 +41,10 @@ export function EstilosGlobales() {
  */
 export function Marca({ tam = 22 }) {
   return (
-    <span style={{ fontFamily: FUENTE, fontSize: tam, letterSpacing: "-0.03em", color: C.tinta, lineHeight: 1, whiteSpace: "nowrap" }}>
+    /* 2026-08-13: `whiteSpace: nowrap` a tamaño fijo dejaba la marca 89px
+       fuera de la pantalla con el zoom del sistema al 200%. Con clamp achica
+       hasta donde entra y ya no necesita salirse. */
+    <span style={{ fontFamily: FUENTE, fontSize: `clamp(17px, 6vw, ${tam}px)`, letterSpacing: "-0.03em", color: C.tinta, lineHeight: 1, whiteSpace: "nowrap" }}>
       <span style={{ fontWeight: 300 }}>rehab</span>
       <span style={{ fontWeight: 800 }}> integral</span>
     </span>
@@ -184,7 +187,7 @@ export function ListaPacientes({ kine, pacientes, cargando, error, onAbrir, onNu
         </div>
 
         {altas > 0 && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
             <button onClick={() => setVerAltas(false)} style={chip(!verAltas)}>En tratamiento</button>
             <button onClick={() => setVerAltas(true)} style={chip(verAltas)}>Con alta ({altas})</button>
           </div>
@@ -223,7 +226,13 @@ export function ListaPacientes({ kine, pacientes, cargando, error, onAbrir, onNu
                 <span style={{ display: "block", fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.25, color: C.tinta }}>
                   {p.nombre}
                 </span>
-                <span style={{ display: "block", fontSize: 14, color: C.tinta2, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {/* 2026-08-13 (auditoría de uso): el motivo se cortaba a una
+                    línea con puntos suspensivos justo donde está el dato —
+                    "Post operatorio de mang…" ocultaba el 44% del texto y
+                    Griselda no podía saber qué hombro era sin abrir la ficha.
+                    Es lo único que distingue un paciente de otro en la lista.
+                    Con dos líneas entran los tres casos medidos. */}
+                <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", fontSize: 14, color: C.tinta2, marginTop: 2, overflow: "hidden", lineHeight: 1.35 }}>
                   {p.motivo || "Sin motivo de consulta cargado"}
                 </span>
               </span>
@@ -253,7 +262,9 @@ function Encabezado({ kine, onSalir, onVolver, volverTexto }) {
         zIndex: 10,
       }}
     >
-      <div style={{ ...columna, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 60 }}>
+      {/* flexWrap (2026-08-13): con el zoom del sistema al 200% la marca y el
+          botón de salir no entran en un renglón y se salían de la pantalla. */}
+      <div style={{ ...columna, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, minHeight: 60 }}>
         {onVolver ? (
           <button onClick={onVolver} style={{ ...boton("fantasma"), marginLeft: -8 }}>
             <ArrowLeft size={18} /> {volverTexto || "Pacientes"}
@@ -345,9 +356,11 @@ export function FormPaciente({ inicial, onGuardar, onCancelar }) {
         <BarraAccion>
           {/* Cancelar va como texto y no como botón con caja: si las dos son
               cajas, "Crear paciente" no entra en una línea en 375px. */}
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          {/* flexWrap + basis (2026-08-13): con el zoom al 200% los dos botones
+              no entran juntos y "Crear paciente" se salía de la pantalla. */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
             <button type="button" onClick={onCancelar} style={{ ...boton("fantasma"), flex: "0 0 auto", padding: "12px 14px" }}>Cancelar</button>
-            <button type="submit" disabled={guardando} style={{ ...boton("primario"), flex: 1, opacity: guardando ? 0.7 : 1 }}>
+            <button type="submit" disabled={guardando} style={{ ...boton("primario"), flex: "1 1 140px", opacity: guardando ? 0.7 : 1 }}>
               {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Crear paciente"}
             </button>
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClipboardList, Check, Inbox, Calendar, Trash2 } from "lucide-react";
-import { S, card, inp } from "../utils/theme.js";
+import { S, card, inp, TS, TAP } from "../utils/theme.js";
 import { hoy } from "../utils/helpers.js";
 import {
   saveEvaluacion,
@@ -89,11 +89,11 @@ export function ProtocoloEvaluacionSeccion({ alumnoId, alumno, showToast }) {
   return (
     <div>
       <ProtocoloEvaluacionForm alumno={alumno} onGuardar={guardar} guardando={guardando} />
-      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, color: S.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><ClipboardList size={16} strokeWidth={2} />Evaluaciones registradas</span>
       </div>
       {cargando ? (
-        <div style={{ color: S.gray, fontSize: 12, padding: 16, textAlign: "center" }}>Cargando...</div>
+        <div style={{ color: S.gray, fontSize: TS.chip, padding: 16, textAlign: "center" }}>Cargando...</div>
       ) : (
         <ProtocoloEvaluacionHistorial registros={registros} onEliminar={eliminar} />
       )}
@@ -102,9 +102,18 @@ export function ProtocoloEvaluacionSeccion({ alumnoId, alumno, showToast }) {
 }
 
 // ── Selector de escala 1 a 5 ──────────────────────────────────────────
+// 2026-08-13 (auditoría de uso): los 45 botones de puntaje medían 27x33px —
+// el 46% del área táctil mínima (44x44) y con 4px entre uno y otro. Esta es
+// la pantalla que el profe llena de PIE durante la clase: cada toque errado
+// escribía un puntaje que no era, en la evaluación de un alumno. Ahora cada
+// botón declara el piso de 44x44 y el gap sube a 8px.
+// `flexWrap` + `flex: "1 1 44px"`: con los 5 botones a ancho completo entran
+// holgados a ~57px en 375px, y cuando el ancho útil se achica (zoom del
+// sistema al 200% = viewport efectivo de ~187px) envuelven a dos filas en vez
+// de desbordar la pantalla. Nunca se achican por debajo de 44.
 function Escala({ valor, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 4 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {[1, 2, 3, 4, 5].map((n) => {
         const activo = valor === n;
         return (
@@ -113,13 +122,15 @@ function Escala({ valor, onChange }) {
             type="button"
             onClick={() => onChange(activo ? null : n)}
             style={{
-              flex: 1,
+              flex: "1 1 44px",
+              minWidth: TAP,
+              minHeight: TAP,
               background: activo ? S.white : S.card2,
               color: activo ? S.bg : S.gray,
               border: "1px solid " + (activo ? S.white : S.border),
-              borderRadius: 6,
+              borderRadius: 8,
               padding: "8px 0",
-              fontSize: 13,
+              fontSize: TS.ui,
               fontWeight: 700,
               cursor: "pointer",
             }}
@@ -153,19 +164,27 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
   const toggleSeg = (k) =>
     setF((p) => ({ ...p, seguridad: { ...p.seguridad, [k]: !p.seguridad[k] } }));
 
+  // 2026-08-13 (auditoría de uso): este formulario tenía 29 textos por debajo
+  // de 12px, incluidos los nombres de los campos que hay que completar. Piso
+  // de 13px para rótulos y 15px (TS.chip) para todo lo que se toca o se lee
+  // para decidir — el mismo piso que ya declara el sistema de diseño.
   const label = (t) => (
-    <div style={{ fontSize: 10, color: S.gray, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+    <div style={{ fontSize: 13, color: S.gray, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>
       {t}
     </div>
   );
   const subtitulo = (t) => (
-    <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", letterSpacing: 1, margin: "18px 0 10px" }}>
+    <div style={{ fontSize: 13, color: S.gray, textTransform: "uppercase", letterSpacing: 1, margin: "20px 0 10px" }}>
       {t}
     </div>
   );
+  // El nombre de la capacidad va ARRIBA de la escala, no al lado: con los
+  // botones a 44px de mínimo, una fila de dos columnas dejaba ~180px para
+  // cinco botones y desbordaba la pantalla. A ancho completo entran los cinco
+  // en una línea sin apretarse.
   const filaEscala = (grupo, k, txt) => (
-    <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8, alignItems: "center", marginBottom: 8 }}>
-      <div style={{ fontSize: 12, color: S.white }}>{txt}</div>
+    <div key={k} style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: TS.chip, color: S.white, marginBottom: 6 }}>{txt}</div>
       <Escala valor={f[grupo][k] || null} onChange={setEscala(grupo, k)} />
     </div>
   );
@@ -177,25 +196,32 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
 
   return (
     <div style={{ ...card, padding: "14px 16px", marginBottom: 14 }}>
-      <div style={{ fontSize: 11, color: S.gray, textTransform: "uppercase", marginBottom: 4, letterSpacing: 1 }}>
+      <div style={{ fontSize: 13, color: S.gray, textTransform: "uppercase", marginBottom: 4, letterSpacing: 1 }}>
         Nueva evaluación
       </div>
 
-      {/* Fecha + evaluador */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-        <div>
+      {/* Fecha + evaluador — auto-fit en vez de dos columnas fijas: con el
+          zoom del sistema al 200% las dos columnas de ~80px no alcanzaban ni
+          para el input de fecha (el navegador le da un ancho mínimo propio) y
+          "Evaluador" quedaba 193px fuera de la pantalla. Debajo de ~150px por
+          columna, la grilla pasa sola a una sola columna. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))", gap: 8, marginTop: 10 }}>
+        {/* minWidth:0 en la celda: sin esto una celda de grilla no baja del
+            ancho mínimo de su contenido y el input empuja la fila hacia
+            afuera de la pantalla en vez de encogerse. */}
+        <div style={{ minWidth: 0 }}>
           {label("Fecha")}
-          <input type="date" value={f.fecha} onChange={setCampo("fecha")} style={inp} />
+          <input type="date" value={f.fecha} onChange={setCampo("fecha")} style={{ ...inp, minWidth: 0 }} />
         </div>
-        <div>
+        <div style={{ minWidth: 0 }}>
           {label("Evaluador")}
-          <input type="text" placeholder="Ari / Lucas" value={f.evaluador} onChange={setCampo("evaluador")} style={inp} />
+          <input type="text" placeholder="Ari / Lucas" value={f.evaluador} onChange={setCampo("evaluador")} style={{ ...inp, minWidth: 0 }} />
         </div>
       </div>
 
       {/* Nivel general */}
       {subtitulo("Nivel general")}
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {NIVELES.map((n) => {
           const activo = f.nivel === n;
           return (
@@ -204,13 +230,14 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
               type="button"
               onClick={() => setF((p) => ({ ...p, nivel: activo ? "" : n }))}
               style={{
-                flex: 1,
+                flex: "1 1 92px",
+                minHeight: TAP,
                 background: activo ? S.white : S.card2,
                 color: activo ? S.bg : S.gray,
                 border: "1px solid " + (activo ? S.white : S.border),
                 borderRadius: 8,
-                padding: "9px 4px",
-                fontSize: 11,
+                padding: "9px 6px",
+                fontSize: TS.chip,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
@@ -223,7 +250,7 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
 
       {/* Objetivo principal */}
       {subtitulo("Objetivo principal")}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {OBJETIVOS.map(([k, txt]) => {
           const activo = f.objetivo === k;
           return (
@@ -235,9 +262,11 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
                 background: activo ? S.white : S.card2,
                 color: activo ? S.bg : S.gray,
                 border: "1px solid " + (activo ? S.white : S.border),
-                borderRadius: 20,
-                padding: "7px 14px",
-                fontSize: 11,
+                borderRadius: 22,
+                padding: "10px 16px",
+                minHeight: TAP,
+                maxWidth: "100%",
+                fontSize: TS.chip,
                 fontWeight: 700,
                 cursor: "pointer",
               }}
@@ -273,7 +302,8 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
                 background: activo ? S.card3 || S.card2 : S.card2,
                 border: "1px solid " + (activo ? S.white : S.border),
                 borderRadius: 8,
-                padding: "10px 12px",
+                padding: "12px",
+                minHeight: TAP,
                 cursor: "pointer",
                 textAlign: "left",
               }}
@@ -285,7 +315,9 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
                 color: S.bg, fontSize: 12, fontWeight: 900,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>{activo ? <Check size={14} strokeWidth={2} /> : ""}</span>
-              <span style={{ fontSize: 12, color: S.white }}>{txt}</span>
+              {/* minWidth:0 + overflowWrap: con el zoom al 200% estos textos
+                  no podían envolver y se salían 18px de la tarjeta. */}
+              <span style={{ fontSize: TS.chip, color: S.white, minWidth: 0, overflowWrap: "anywhere" }}>{txt}</span>
             </button>
           );
         })}
@@ -331,8 +363,9 @@ export function ProtocoloEvaluacionForm({ alumno, onGuardar, guardando = false }
           color: guardando ? S.gray : S.bg,
           border: "none",
           borderRadius: 8,
-          padding: 12,
-          fontSize: 13,
+          padding: 14,
+          minHeight: TAP,
+          fontSize: TS.ui,
           fontWeight: 700,
           cursor: guardando ? "default" : "pointer",
           marginTop: 16,
@@ -351,7 +384,7 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
     return (
       <div style={{ ...card, padding: "40px 16px", textAlign: "center" }}>
         <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", color: S.gray }}><Inbox size={24} strokeWidth={2} /></div>
-        <div style={{ color: S.gray, fontSize: 12 }}>Sin evaluaciones registradas aún</div>
+        <div style={{ color: S.gray, fontSize: TS.chip }}>Sin evaluaciones registradas aún</div>
       </div>
     );
   }
@@ -362,12 +395,12 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
     if (items.length === 0) return null;
     return (
       <div style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 9, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{titulo}</div>
+        <div style={{ fontSize: 13, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{titulo}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {items.map(([k, txt]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: S.card2, borderRadius: 6, padding: "6px 10px" }}>
-              <span style={{ fontSize: 11, color: S.lgray }}>{txt}</span>
-              <span style={{ fontSize: 13, color: S.white, fontWeight: 800 }}>{valores[k]}<span style={{ fontSize: 9, color: S.gray }}>/5</span></span>
+              <span style={{ fontSize: 13, color: S.lgray }}>{txt}</span>
+              <span style={{ fontSize: 13, color: S.white, fontWeight: 800 }}>{valores[k]}<span style={{ fontSize: 13, color: S.gray }}>/5</span></span>
             </div>
           ))}
         </div>
@@ -384,13 +417,13 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
         return (
           <div key={ev.id} style={{ ...card, padding: "12px 14px", marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color: S.lgray, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 13, color: S.lgray, display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Calendar size={14} strokeWidth={2} />{ev.fecha}{ev.evaluador ? ` · ${ev.evaluador}` : ""}
               </div>
               {onEliminar && (
                 <button
                   onClick={() => onEliminar(ev)}
-                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+                  style={{ background: "transparent", color: S.red, border: "1px solid " + S.red, borderRadius: 8, padding: "2px 8px", minWidth: TAP, minHeight: TAP, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <Trash2 size={16} strokeWidth={2} />
                 </button>
@@ -400,12 +433,12 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
             {(ev.nivel || ev.objetivo) && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                 {ev.nivel && (
-                  <span style={{ background: S.card2, color: S.white, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
+                  <span style={{ background: S.card2, color: S.white, borderRadius: 20, padding: "3px 10px", fontSize: 13, fontWeight: 700 }}>
                     {ev.nivel}
                   </span>
                 )}
                 {ev.objetivo && (
-                  <span style={{ background: S.card2, color: S.green, borderRadius: 20, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
+                  <span style={{ background: S.card2, color: S.green, borderRadius: 20, padding: "3px 10px", fontSize: 13, fontWeight: 700 }}>
                     {objetivoTxt(ev.objetivo)}
                   </span>
                 )}
@@ -417,28 +450,28 @@ export function ProtocoloEvaluacionHistorial({ registros, onEliminar }) {
 
             {(segMarcadas.length > 0 || seg.detalle) && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 9, color: S.yellow || S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Seguridad</div>
+                <div style={{ fontSize: 13, color: S.yellow || S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Seguridad</div>
                 {segMarcadas.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: seg.detalle ? 6 : 0 }}>
                     {segMarcadas.map(([k, txt]) => (
-                      <span key={k} style={{ background: S.card2, color: S.white, borderRadius: 6, padding: "3px 8px", fontSize: 10 }}>• {txt}</span>
+                      <span key={k} style={{ background: S.card2, color: S.white, borderRadius: 6, padding: "4px 9px", fontSize: 13 }}>• {txt}</span>
                     ))}
                   </div>
                 )}
-                {seg.detalle && <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>{seg.detalle}</div>}
+                {seg.detalle && <div style={{ color: S.white, fontSize: TS.chip, lineHeight: 1.5 }}>{seg.detalle}</div>}
               </div>
             )}
 
             {d.observaciones && (
               <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 9, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Observaciones</div>
-                <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>{d.observaciones}</div>
+                <div style={{ fontSize: 13, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Observaciones</div>
+                <div style={{ color: S.white, fontSize: TS.chip, lineHeight: 1.5 }}>{d.observaciones}</div>
               </div>
             )}
             {d.plan_sugerido && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 9, color: S.green, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Plan sugerido</div>
-                <div style={{ color: S.white, fontSize: 12, lineHeight: 1.5 }}>{d.plan_sugerido}</div>
+                <div style={{ fontSize: 13, color: S.green, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Plan sugerido</div>
+                <div style={{ color: S.white, fontSize: TS.chip, lineHeight: 1.5 }}>{d.plan_sugerido}</div>
               </div>
             )}
           </div>
