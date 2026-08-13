@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Play, ChevronDown } from "lucide-react";
 import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
@@ -7,6 +7,9 @@ import { resolverGif } from "../utils/ejerciciosMedia.js";
 import { vueltasDe, cantidadDeVueltas, resumenVueltas } from "../utils/pesos.js";
 import { useSignedUrl } from "../utils/useSignedUrl.js";
 import { unidadDe, ETIQUETA_HOY, SUFIJO, PASO_UNIDAD } from "../utils/unidades.js";
+import { formaDe, NECESITA_SELECTOR, QUE_ANOTA, conValorSimple, pesoTotal, resumenCarga, detalleCoincide } from "../utils/carga.js";
+import { normalizarEquipamiento } from "../utils/equipamiento.js";
+import SelectorCarga from "./SelectorCarga.jsx";
 
 // Tarjeta de ejercicio colapsable: media + descripción + registro de peso.
 // `pesoAnterior` ({peso, fecha}) muestra el último peso registrado en días
@@ -34,6 +37,18 @@ export default function ItemCard({
   vueltas,
   seriesPlan,
   onVueltaChange,
+  // ── FORMA DE CARGA (2026-08-13) ──────────────────────────────────────
+  // `equipamiento` es el equipment_es del catálogo (Barra · Mancuerna ·
+  // Polea…) y viaja con el ejercicio desde el plan, igual que `unidad`. De ahí
+  // sale la forma: qué tiene que anotar el alumno y qué cuenta hace la app.
+  // `equipoSala` es lo que hay de verdad en la sala (barras, discos,
+  // mancuernas), editable por Lucas — sin esto no hay lista para tocar.
+  // `detalles` es, por vuelta, de qué está hecho el peso; `onDetalleChange`
+  // (serie, detalle) lo persiste junto con el total.
+  equipamiento,
+  equipoSala,
+  detalles,
+  onDetalleChange,
 }) {
   peso = peso || 0;
   historial = historial || [];
@@ -47,6 +62,13 @@ export default function ItemCard({
   // se escribió a mano.
   const uni = unidadDe({ unidad, nombre });
   const sufijo = SUFIJO[uni];
+  // 2026-08-13 — LA FORMA DE CARGA. La unidad decía "kilos" pero no de qué:
+  // con dos mancuernas de 10 un alumno anotaba 10 y otro 20, y la evolución
+  // comparaba números que no medían lo mismo. La forma sale del equipamiento
+  // del catálogo (ver src/utils/carga.js) y decide dos cosas: qué le pedimos
+  // que anote, y qué cuenta hace la app con eso.
+  const forma = formaDe({ unidad, nombre, equipamiento });
+  const equipSala = useMemo(() => normalizarEquipamiento(equipoSala), [equipoSala]);
   const [open, setOpen] = useState(false);
 
   // ── PESO POR VUELTA (2026-08-09) ─────────────────────────────────────
@@ -74,6 +96,51 @@ export default function ItemCard({
     if (porVuelta) onVueltaChange(vueltaActiva + 1, v);
     else if (onPesoChange) onPesoChange(v);
   };
+
+  // ── DE QUÉ ESTÁ HECHO EL PESO (2026-08-13) ───────────────────────────
+  // `detalles` viene con una entrada por vuelta, igual que `vueltas`. Un
+  // registro viejo no tiene detalle: ahí la lista queda corta y el casillero
+  // muestra el número pelado, sin inventar de dónde salió.
+  const listaDetalles = Array.isArray(detalles) ? detalles : detalles != null ? [detalles] : [];
+  const serieActiva = porVuelta ? vueltaActiva + 1 : 1;
+  const detalleActivo = listaDetalles[serieActiva - 1] || null;
+  // El selector se prende solo si el llamador sabe persistir el detalle. Sin
+  // onDetalleChange la tarjeta se comporta exactamente como antes — así las
+  // otras pantallas que montan ItemCard no cambian solas.
+  const conSelector = NECESITA_SELECTOR(forma) && typeof onDetalleChange === "function";
+  const cambiarDetalle = (nuevo) => onDetalleChange(serieActiva, nuevo, pesoTotal(nuevo));
+  // Las formas que se anotan con un número suelto (placa, peso corporal,
+  // banda, segundos) igual guardan el detalle: así el día de mañana el
+  // historial sabe que ese 45 era una placa y no una barra.
+  //
+  // Se escribe por UN solo camino: si el llamador sabe guardar el detalle, va
+  // todo por ahí (total incluido). Llamar a los dos dispararía dos guardados
+  // para el mismo casillero, con dos debounces distintos, sobre la misma fila.
+  const cambiarSimple = (v) => {
+    if (typeof onDetalleChange === "function") {
+      onDetalleChange(serieActiva, conValorSimple(detalleActivo, forma, v), Number(v) || 0);
+    } else {
+      cambiarPeso(v);
+    }
+  };
+  // Peso corporal con lastre y "con peso extra" guardan LAS DOS COSAS, como
+  // pidió Lucas. El número principal es el que le corresponde a la unidad del
+  // ejercicio (reps para peso corporal, kilos para el lastre) y el otro dato
+  // viaja acá al lado sin cambiar la evolución de nadie.
+  const conAcompanante = (forma === "corporal" || forma === "lastre") && typeof onDetalleChange === "function";
+  const campoAcompanante = forma === "lastre" ? "reps" : "lastre";
+  const valorAcompanante = Number((detalleActivo && detalleActivo[campoAcompanante]) || 0);
+  const cambiarAcompanante = (v) => {
+    const base = detalleActivo && detalleActivo.forma === forma
+      ? { ...detalleActivo }
+      : conValorSimple(null, forma, valorActivo);
+    base[campoAcompanante] = Math.max(0, Number(v) || 0);
+    onDetalleChange(serieActiva, base, valorActivo);
+  };
+  // El resumen ("Barra 20 + 5 por lado") solo se muestra si describe DE VERDAD
+  // el número guardado: un registro editado a mano después dejaría un texto
+  // que miente sobre lo que hay que cargar.
+  const resumenActivo = detalleCoincide(detalleActivo, valorActivo) ? resumenCarga(detalleActivo) : "";
   // Las instrucciones vienen del catálogo como un párrafo corrido de ~493
   // caracteres, y el alumno las lee de pie en medio de la serie: se muestran
   // como pasos numerados. Si el texto no se deja partir en una lista razonable,
@@ -279,34 +346,89 @@ export default function ItemCard({
                     carga: sin la unidad al lado, el alumno de un plan de TRX
                     escribe kilos donde van repeticiones (2026-08-12). */}
                 {porVuelta ? `VUELTA ${vueltaActiva + 1} · ${sufijo.toUpperCase()}` : ETIQUETA_HOY[uni]}
+                {/* 2026-08-13: y encima tiene que decir QUÉ NÚMERO anotar. La
+                    unidad sola ("KG") era justamente el problema: con dos
+                    mancuernas de 10 no dice si van 10 o 20. */}
+                {!conSelector && (
+                  <div style={{ color: S.lgray, fontSize: 11, fontWeight: 500, lineHeight: 1.25, marginTop: 2 }}>
+                    {QUE_ANOTA[forma]}
+                  </div>
+                )}
               </div>
-              <div style={stepperTrack()}>
-                <button
-                  onClick={() => cambiarPeso(Math.max(0, valorActivo - 1))}
-                  aria-label={PASO_UNIDAD[uni][0]}
-                  style={stepperBtn()}
-                >
-                  −
-                </button>
-                <div style={stepperDivider()} />
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={valorActivo || ""}
-                  placeholder="0"
-                  onChange={(e) => cambiarPeso(Math.max(0, Number(e.target.value) || 0))}
-                  style={{ ...stepperValue(), minWidth: 44, height: TAP }}
-                />
-                <div style={stepperDivider()} />
-                <button
-                  onClick={() => cambiarPeso(valorActivo + 1)}
-                  aria-label={PASO_UNIDAD[uni][1]}
-                  style={stepperBtn()}
-                >
-                  +
-                </button>
-              </div>
+              {!conSelector && (
+                <div style={stepperTrack()}>
+                  <button
+                    onClick={() => cambiarSimple(Math.max(0, valorActivo - 1))}
+                    aria-label={PASO_UNIDAD[uni][0]}
+                    style={stepperBtn()}
+                  >
+                    −
+                  </button>
+                  <div style={stepperDivider()} />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={valorActivo || ""}
+                    placeholder="0"
+                    onChange={(e) => cambiarSimple(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ ...stepperValue(), minWidth: 44, height: TAP }}
+                  />
+                  <div style={stepperDivider()} />
+                  <button
+                    onClick={() => cambiarSimple(valorActivo + 1)}
+                    aria-label={PASO_UNIDAD[uni][1]}
+                    style={stepperBtn()}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
             </div>
+            {/* La barra y las mancuernas se eligen tocando: el alumno anota lo
+                que ve (la barra y los discos de un lado) y la app hace la
+                cuenta — 5 + 20 + 5 = 30, el pedido textual de Lucas. */}
+            {conSelector && (
+              <SelectorCarga
+                key={serieActiva}
+                forma={forma}
+                nombre={nombre}
+                equipo={equipamiento}
+                equipamiento={equipSala}
+                detalle={detalleActivo}
+                total={valorActivo}
+                sufijo={sufijo}
+                onChange={cambiarDetalle}
+              />
+            )}
+            {/* El resumen queda a la vista con la tarjeta cerrada: es lo que el
+                alumno mira la próxima sesión para saber qué cargar. */}
+            {!conSelector && resumenActivo && (
+              <div style={{ color: S.lgray, fontSize: TS.chip, marginTop: 6, paddingLeft: 36 }}>{resumenActivo}</div>
+            )}
+            {conAcompanante && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginTop: 8, paddingLeft: 36 }} className="di-sin-sangria-angosto">
+                <div style={{ color: S.gray, fontSize: TS.chip }}>
+                  {forma === "lastre" ? "REPETICIONES" : "LASTRE (KG)"}
+                  <div style={{ color: S.lgray, fontSize: 11, fontWeight: 500, lineHeight: 1.25, marginTop: 2 }}>
+                    {forma === "lastre" ? "Cuántas hiciste con ese lastre" : "Dejalo en 0 si fue a peso corporal"}
+                  </div>
+                </div>
+                <div style={stepperTrack()}>
+                  <button onClick={() => cambiarAcompanante(valorAcompanante - 1)} aria-label={forma === "lastre" ? "Restar una repetición" : "Restar un kilo de lastre"} style={stepperBtn()}>−</button>
+                  <div style={stepperDivider()} />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={valorAcompanante || ""}
+                    placeholder="0"
+                    onChange={(e) => cambiarAcompanante(e.target.value)}
+                    style={{ ...stepperValue(), minWidth: 44, height: TAP }}
+                  />
+                  <div style={stepperDivider()} />
+                  <button onClick={() => cambiarAcompanante(valorAcompanante + 1)} aria-label={forma === "lastre" ? "Sumar una repetición" : "Sumar un kilo de lastre"} style={stepperBtn()}>+</button>
+                </div>
+              </div>
+            )}
             {porVuelta && (
               /* Una pastilla por vuelta. La que está seleccionada es la que
                  edita el stepper de arriba. Muestra el peso ya cargado, así

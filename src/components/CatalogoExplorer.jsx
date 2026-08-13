@@ -26,7 +26,7 @@
 // de imágenes — pensado para no explotar el celular con 1.344 items.
 // ══════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef, Fragment } from "react";
-import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move, CalendarRange } from "lucide-react";
+import { X, Archive, Dumbbell, BookOpen, FolderTree, Search, Pencil, Trash2, Check, RotateCcw, Flag, ChevronRight, Layers, Move, CalendarRange, Weight, AlertTriangle } from "lucide-react";
 import { S, card, inp, eyebrow, smallBtn, FONT_DISPLAY, FONT_BODY, TS, TAP, useIsWide } from "../utils/theme.js";
 import { uid } from "../utils/helpers.js";
 import { UNIDADES, NOMBRE_UNIDAD, unidadDe } from "../utils/unidades.js";
@@ -53,6 +53,8 @@ import {
   renombrarPeriodizacion,
   listarVariantesPlan,
   renombrarVariantePlan,
+  getEquipamiento,
+  guardarEquipamiento,
   supabase,
 } from "../../services/supabase.js";
 // gifAlRenombrar (2026-08-12): para NO perder la ilustración al renombrar un
@@ -69,6 +71,9 @@ import {
   objetivoLabel,
   nivelLabel,
 } from "../utils/periodizacion.js";
+// 2026-08-13 — el equipamiento REAL de la sala (barras, discos, mancuernas).
+// Es lo que hace posible que el alumno elija tocando en vez de escribir.
+import { normalizarEquipamiento, BARRA_DEFAULT_KG } from "../utils/equipamiento.js";
 
 // Niveles asignables a un ejercicio o a una plantilla de plan (ronda 18).
 const NIVELES = [
@@ -495,6 +500,66 @@ export default function CatalogoExplorer({
     setPrepGlobales((g) => ({ ...g, [prepSel]: lista }));
     setPrepDraft((d) => { const n = { ...d }; delete n[prepSel]; return n; });
     showToast && showToast("Predeterminado guardado — lo heredan los alumnos sin lista propia");
+  };
+
+  // ── EL EQUIPAMIENTO DE LA SALA (2026-08-13) ───────────────────────────
+  // Textual de Lucas: "tenemos distintas barras, de 20, de 18, de 11, Barra
+  // Olimpica Romana Rulemanes, barra-ez-olimpica, eso tiene que poder
+  // modificarse, predeterminado 20 y poder bajar o subir".
+  //
+  // MISMO PATRÓN que la preparación y las periodizaciones, no uno nuevo:
+  // borrador en memoria mientras se edita + un botón "GUARDAR". Lo que se
+  // guarda es un jsonb en app_config, la misma tabla donde ya viven la
+  // movilidad y la entrada en calor.
+  const [equip, setEquip] = useState(null);
+  const [guardandoEquip, setGuardandoEquip] = useState(false);
+  useEffect(() => {
+    if (pantalla === "equipamiento" && equip === null) getEquipamiento().then(setEquip);
+  }, [pantalla, equip]);
+  const equipEdit = equip || normalizarEquipamiento(null);
+  // Las barras se editan una por una: cambiar el peso saca la marca de "sin
+  // confirmar" sola, porque confirmarlo ES escribir el número real.
+  const setBarra = (i, campo, valor) =>
+    setEquip((e) => {
+      const barras = [...equipEdit.barras];
+      const b = { ...barras[i], [campo]: valor };
+      if (campo === "peso") delete b.confirmar;
+      barras[i] = b;
+      return { ...(e || equipEdit), barras };
+    });
+  const sacarBarra = (i) =>
+    setEquip((e) => ({ ...(e || equipEdit), barras: equipEdit.barras.filter((_, x) => x !== i) }));
+  const agregarBarra = () =>
+    setEquip((e) => ({
+      ...(e || equipEdit),
+      barras: [...equipEdit.barras, { id: "barra" + Date.now(), nombre: "Barra nueva", peso: BARRA_DEFAULT_KG }],
+    }));
+  // Discos, mancuernas y kettlebells son listas de números sueltos: se editan
+  // como texto libre separado por comas. Es una lista de 6 a 24 números y
+  // Lucas la corrige entera de una sentada — un campo por número sería
+  // veinticuatro campos para cambiar dos.
+  const [numDraft, setNumDraft] = useState({});
+  const textoLista = (clave) =>
+    numDraft[clave] !== undefined
+      ? numDraft[clave]
+      : (equipEdit[clave] || []).map((n) => String(n).replace(".", ",")).join(" · ");
+  const setLista = (clave, texto) => {
+    setNumDraft((d) => ({ ...d, [clave]: texto }));
+    const nums = texto
+      .split(/[·,;\n\t]+|\s{2,}/)
+      .map((t) => Number(String(t).trim().replace(",", ".")))
+      .filter((n) => isFinite(n) && n > 0);
+    setEquip((e) => ({ ...(e || equipEdit), [clave]: nums }));
+  };
+  const guardarEquip = async () => {
+    setGuardandoEquip(true);
+    const limpio = normalizarEquipamiento(equipEdit);
+    const ok = await guardarEquipamiento(limpio);
+    setGuardandoEquip(false);
+    if (!ok) { showToast && showToast("Error guardando el equipamiento — revisá la consola"); return; }
+    setEquip(limpio);
+    setNumDraft({});
+    showToast && showToast("Guardado — los alumnos ya ven estos botones al registrar el peso");
   };
 
   // ── Predeterminados de PERIODIZACIÓN (2026-08-10) ─────────────────────
@@ -1004,6 +1069,11 @@ export default function CatalogoExplorer({
           // 2026-08-12: la unidad viaja desde el catálogo al plan (antes se
           // guardaba "reps" para todo y la pantalla lo mostraba como kilos).
           unidad: unidadDe(it),
+          // 2026-08-13: el equipamiento viaja por el mismo camino, porque de
+          // ahí sale la FORMA DE CARGA (barra + discos por lado, dos
+          // mancuernas, placa, banda). No se carga a mano ejercicio por
+          // ejercicio: es un dato que el catálogo ya tenía.
+          equipamiento: it.equipment_es || null,
         });
       }
       const creado = await crearPlanPredeterminado(nombrePlan.trim(), grupoPlan.trim(), [{ dia: "Sesion", subtitulo: "", ejercicios }], nivelPlan);
@@ -1445,6 +1515,7 @@ export default function CatalogoExplorer({
         codigo: codigo || null,
         gif: catalogoMediaUrl(it.gif_url || ""),
         unidad: unidadDe(it), // 2026-08-12: la unidad la define el catálogo
+        equipamiento: it.equipment_es || null, // 2026-08-13: y la forma de carga
       });
       return { ...f, dias };
     });
@@ -1691,6 +1762,149 @@ export default function CatalogoExplorer({
     </>
   );
 
+  // ── BARRAS Y DISCOS SUGERIDOS — la pantalla (2026-08-13) ────────────
+  // Acá Lucas define los ATAJOS: los pesos que aparecen como botones cuando el
+  // alumno registra la carga.
+  //
+  // NO es un inventario. Corrección textual de Lucas: "no puede basarse en lo
+  // que tengo porque trabajamos en distintos gimnasios". Lo que se carga acá
+  // es un punto de partida razonable para tocar rápido; el alumno que entrena
+  // en otro lado siempre puede escribir el peso a mano en el momento, sin
+  // pasar por esta pantalla. Si acá falta la barra de 15, igual la puede
+  // registrar.
+  const pantallaEquipamiento = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => setPantalla("biblioteca")} style={{ ...smallBtn(S.gray) }}>← Volver</button>
+        <div style={{ color: S.white, fontWeight: 800, fontSize: TS.title, lineHeight: 1, letterSpacing: 0.5, textTransform: "uppercase", flex: 1, minWidth: 0, fontFamily: FONT_DISPLAY }}>
+          Barras y discos sugeridos
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ ...card, padding: "10px 14px", marginBottom: 10, color: S.gray, fontSize: TS.body, lineHeight: 1.5 }}>
+          Estos son los <b>botones</b> que va a ver el alumno cuando registre el
+          peso: toca la barra que agarró y los discos que puso de un lado, y la
+          app hace la cuenta. <b>No es un inventario:</b> como los alumnos entrenan
+          en gimnasios distintos, el que tenga una barra o un disco que no esté
+          acá igual puede escribir el número a mano en el momento. Lo que cargues
+          acá es solo el camino rápido para el caso de siempre.
+        </div>
+
+        {(equipEdit.barras || []).some((b) => b.confirmar) && (
+          <div
+            style={{
+              ...card,
+              padding: "10px 14px",
+              marginBottom: 10,
+              borderColor: "#b8860b",
+              color: "#f0c040",
+              fontSize: TS.body,
+              lineHeight: 1.5,
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+            }}
+          >
+            <AlertTriangle size={18} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <b>{(equipEdit.barras || []).filter((b) => b.confirmar).length} barra(s) con el peso estimado.</b>{" "}
+              Nos dijiste que tenés la romana a rulemanes y la EZ olímpica, pero no
+              cuánto pesan — el número que está puesto lo puso la app, no vos.
+              Pesalas y corregilas acá para que el atajo sea el correcto. (El alumno
+              igual puede escribir el peso de su barra en el momento.)
+            </div>
+          </div>
+        )}
+
+        <div style={{ maxWidth: 560 }}>
+          <div style={{ ...card, padding: 12, marginBottom: 10 }}>
+            <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 8 }}>
+              Barras · predeterminada {BARRA_DEFAULT_KG} kg
+            </div>
+            <div style={{ display: "flex", gap: 6, color: S.lgray, fontSize: TS.chip, fontWeight: 800, padding: "0 2px 6px" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>NOMBRE</span>
+              <span style={{ width: 84, flexShrink: 0 }}>KILOS</span>
+              <span style={{ width: 40, flexShrink: 0 }} />
+            </div>
+            {(equipEdit.barras || []).map((b, i) => (
+              <div key={b.id || i} style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    value={b.nombre}
+                    onChange={(e) => setBarra(i, "nombre", e.target.value)}
+                    style={{ ...inp, flex: 1, minWidth: 0 }}
+                  />
+                  <input
+                    value={String(b.peso ?? "")}
+                    onChange={(e) => setBarra(i, "peso", e.target.value)}
+                    inputMode="decimal"
+                    style={{ ...inp, width: 84, flexShrink: 0, textAlign: "center", fontWeight: 800, ...(b.confirmar ? { borderColor: "#b8860b", color: "#f0c040" } : {}) }}
+                  />
+                  <button
+                    onClick={() => sacarBarra(i)}
+                    title="Sacar esta barra"
+                    className="di-tap"
+                    style={{ ...smallBtn(S.red), padding: "0 8px", minWidth: 40, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <X size={16} strokeWidth={2} />
+                  </button>
+                </div>
+                {b.confirmar && (
+                  <div style={{ color: "#f0c040", fontSize: TS.chip, padding: "2px 2px 0" }}>
+                    Confirmá el peso — este número lo puso la app, no vos.
+                  </div>
+                )}
+              </div>
+            ))}
+            <button onClick={agregarBarra} className="di-tap" style={{ ...smallBtn(S.white), width: "100%", marginTop: 6 }}>
+              ＋ Agregar barra
+            </button>
+          </div>
+
+          {[
+            // Los discos son DATO REAL: los dijo Lucas el 2026-08-13 ("los
+            // discos son de 1.25, 2.5, 5, 10, 15, 20 y 25"). Las mancuernas y
+            // los kettlebells todavía no, y la pantalla lo dice en vez de
+            // hacerlos pasar por confirmados.
+            ["discos", "Discos (los de UN lado)", "El alumno toca los que puso de un lado; la app los multiplica por dos. El juego 1,25 · 2,5 · 5 · 10 · 15 · 20 · 25 lo dio Lucas.", false],
+            ["mancuernas", "Mancuernas", "El alumno toca el peso de UNA; si agarró dos, la app duplica.", true],
+            ["kettlebells", "Kettlebells", "Igual que las mancuernas, pero con su propia serie de pesos.", true],
+          ].map(([clave, titulo, ayuda, sinConfirmar]) => (
+            <div key={clave} style={{ ...card, padding: 12, marginBottom: 10 }}>
+              <div style={{ ...eyebrow, fontSize: TS.chip, marginBottom: 4 }}>{titulo}</div>
+              <div style={{ color: S.gray, fontSize: TS.chip, marginBottom: 8, lineHeight: 1.45 }}>{ayuda}</div>
+              <textarea
+                value={textoLista(clave)}
+                onChange={(e) => setLista(clave, e.target.value)}
+                rows={2}
+                placeholder="1,25 · 2,5 · 5 · 10"
+                style={{ ...inp, resize: "vertical", lineHeight: 1.5 }}
+              />
+              <div style={{ color: S.lgray, fontSize: TS.chip, marginTop: 6 }}>
+                {(equipEdit[clave] || []).length} peso(s) — separalos con coma o con “·”. Los decimales van con coma (1,25).
+              </div>
+              {sinConfirmar && (
+                <div style={{ color: S.lgray, fontSize: TS.chip, marginTop: 6, lineHeight: 1.4 }}>
+                  Son los pesos estándar de gimnasio, puestos como atajo. Ajustalos a
+                  los que uses más seguido; el que falte se escribe a mano.
+                </div>
+              )}
+            </div>
+          ))}
+
+          <button
+            onClick={guardarEquip}
+            disabled={guardandoEquip}
+            className="di-tap"
+            style={{ width: "100%", marginBottom: 20, background: S.white, color: S.bg, border: "none", borderRadius: 10, padding: 13, minHeight: TAP, fontSize: TS.ui, fontWeight: 900, cursor: "pointer", opacity: guardandoEquip ? 0.6 : 1, fontFamily: FONT_BODY }}
+          >
+            {guardandoEquip ? "GUARDANDO..." : "GUARDAR LOS ATAJOS"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   const pantallaPlanes = (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -1922,6 +2136,20 @@ export default function CatalogoExplorer({
         >
           <CalendarRange size={16} strokeWidth={2} />Periodizaciones
         </button>
+        {/* 2026-08-13, pedido de Lucas: "tenemos distintas barras, de 20, de
+            18, de 11... eso tiene que poder modificarse". Vive acá, al lado de
+            la movilidad y las periodizaciones, porque es lo mismo: un
+            predeterminado global que él edita y que heredan todos los alumnos.
+            OJO con el nombre: son los VALORES POR DEFECTO de los botones, no
+            un inventario — los alumnos entrenan en gimnasios distintos y
+            siempre pueden escribir un peso que no esté en la lista. */}
+        <button
+          onClick={() => setPantalla("equipamiento")}
+          className="di-tap"
+          style={{ flex: "1 1 180px", minWidth: 0, background: S.card3, color: S.white, border: "1px solid " + S.border2, borderRadius: 10, padding: "12px 14px", minHeight: TAP, fontSize: TS.ui, fontWeight: 800, cursor: "pointer", fontFamily: FONT_BODY, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+        >
+          <Weight size={16} strokeWidth={2} />Barras y discos sugeridos
+        </button>
       </div>
       {navPropia}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
@@ -1934,7 +2162,7 @@ export default function CatalogoExplorer({
   return (
     <div style={{ position: "fixed", inset: 0, background: S.bg, zIndex: 100, display: "flex", flexDirection: "column", padding: isWide ? "24px 24px 16px" : "14px 12px", overflow: "hidden" }}>
       <style>{cssCatalogo()}</style>
-      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantalla === "preparacion" ? pantallaPreparacion : pantalla === "periodizacion" ? pantallaPeriodizacion : pantallaBiblioteca}
+      {pantalla === "planes" ? pantallaPlanes : pantalla === "armador" ? pantallaArmador : pantalla === "preparacion" ? pantallaPreparacion : pantalla === "periodizacion" ? pantallaPeriodizacion : pantalla === "equipamiento" ? pantallaEquipamiento : pantallaBiblioteca}
 
       {/* detalle */}
       {detalle && form && (

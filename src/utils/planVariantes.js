@@ -151,6 +151,11 @@ export function varianteAPlan(variante, ejerciciosDelCatalogo) {
       // unidad es del día, no de cada ejercicio, así que se fuerza acá y no
       // hay que marcar ocho ejercicios uno por uno.
       unidad: porTiempo || /plancha/i.test(nombre) ? "segundos" : "reps",
+      // 2026-08-13: el equipamiento del catálogo viaja con el ejercicio — de
+      // ahí sale la FORMA DE CARGA (barra + discos por lado vs. dos
+      // mancuernas). Sin esto, las rutinas asignadas desde una variante
+      // volverían a pedir "kilos" a secas.
+      equipamiento: c?.equipment_es || null,
       // Bloque al que pertenece (2026-08-10): principal · core · finisher.
       // Sin `seccion` en la variante queda "principal" — las 10 variantes
       // viejas siguen siendo exactamente lo que eran.

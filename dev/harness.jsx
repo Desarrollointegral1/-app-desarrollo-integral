@@ -25,6 +25,7 @@ import PlanDelDia from "../src/components/PlanDelDia.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
+import { setDetalleVuelta } from "../src/utils/carga.js";
 import SelectorPlanDia from "../src/components/SelectorPlanDia.jsx";
 import SelectorDiasAlta from "../src/components/SelectorDiasAlta.jsx";
 import { agruparVariantes, SIN_PLAN } from "../src/utils/planVariantes.js";
@@ -220,6 +221,29 @@ const FILAS_CATALOGO = [
   { id: "c6", nombre_es: "Remo con barra a la cintura", categoria: "back", target_es: "Dorsal ancho", equipment_es: "Barra", codigo_di: "RO004", nivel: "intermedio", archivado: false },
   { id: "c7", nombre_es: "Ejercicio ya archivado de prueba", categoria: "back", target_es: "Dorsal ancho", equipment_es: "Polea", codigo_di: "RO099", nivel: null, archivado: true },
 ];
+// AUDITORÍA 2026-08-12: con 7 tarjetas la Biblioteca no se parece a la real,
+// que tiene 1343. Con ?catalogo=1343 se generan las 1343 filas (nombres largos
+// de verdad, del mismo estilo que los del catálogo) para poder mirar en 375px
+// la grilla, el scroll, el paginado y qué pasa con un nombre de 60 caracteres.
+const CATALOGO_GRANDE = (() => {
+  const n = Number(new URLSearchParams(window.location.search).get("catalogo") || 0);
+  if (!n) return null;
+  const cats = ["waist", "chest", "back", "upper legs", "shoulders", "upper arms", "lower legs", "cardio"];
+  const tgt = ["Abdominales", "Pectoral mayor", "Dorsal ancho", "Cuádriceps", "Deltoides", "Bíceps", "Gemelos", "Glúteo mayor"];
+  const eq = ["Peso corporal", "Barra", "Mancuernas", "Polea", "Banda elástica", "Kettlebell", "Máquina Smith", "TRX"];
+  const patron = ["con agarre supino", "en banco inclinado a 30 grados", "a una pierna con apoyo posterior", "con rotación externa de hombro", "en polea alta con cuerda", "unilateral con pausa isométrica", "sentado con la espalda apoyada", "de pie con agarre neutro"];
+  const base = ["Press de banca", "Remo inclinado", "Sentadilla frontal", "Elevación lateral", "Curl de bíceps", "Extensión de tríceps", "Peso muerto rumano", "Zancada caminando", "Jalón al pecho", "Hip thrust"];
+  return Array.from({ length: n }, (_, i) => ({
+    id: "g" + i,
+    nombre_es: `${base[i % base.length]} ${patron[(i * 3) % patron.length]}`,
+    categoria: cats[i % cats.length],
+    target_es: tgt[i % tgt.length],
+    equipment_es: eq[i % eq.length],
+    codigo_di: "XX" + String(i).padStart(4, "0"),
+    nivel: [null, "inicial", "intermedio", "avanzado"][i % 4],
+    archivado: false,
+  }));
+})();
 const RESPUESTA_JSON = (datos) => new Response(JSON.stringify(datos), { status: 200, headers: { "Content-Type": "application/json" } });
 // 2026-08-12: las otras tres tablas que lee la Biblioteca también están detrás
 // de RLS `authenticated`, así que sin esto las pantallas "Todos los planes" y
@@ -239,7 +263,17 @@ const FILAS_PERIODIZACIONES = [
 ];
 const fetchOriginal = window.fetch.bind(window);
 const TABLAS_FALSAS = {
-  catalogo_ejercicios: (url) => (url.includes("revisar=eq.true") ? [] : FILAS_CATALOGO), // bandeja "Para revisar" vacía
+  // cargarCatalogo() pagina de a 1000 con Range y corta cuando una página
+  // vuelve incompleta: si el mock devuelve siempre todo, el bucle no termina
+  // nunca y la Biblioteca queda en «Cargando catálogo…». Se respeta el rango.
+  catalogo_ejercicios: (url, opciones) => {
+    if (url.includes("revisar=eq.true")) return [];
+    const filas = CATALOGO_GRANDE || FILAS_CATALOGO;
+    const h = (opciones && opciones.headers) || {};
+    const rango = h.Range || h.range || (h.get && h.get("Range"));
+    const m = rango && String(rango).match(/(\d+)-(\d+)/);
+    return m ? filas.slice(+m[1], +m[2] + 1) : filas;
+  },
   plan_variantes: () => VARIANTES_DEMO,
   periodizaciones: () => FILAS_PERIODIZACIONES,
   planes_predeterminados: () => [],
@@ -250,7 +284,7 @@ window.fetch = (entrada, opciones = {}) => {
   if (!tabla) return fetchOriginal(entrada, opciones);
   const metodo = (opciones.method || "GET").toUpperCase();
   if (metodo !== "GET") return Promise.resolve(new Response(null, { status: 204 }));
-  return Promise.resolve(RESPUESTA_JSON(TABLAS_FALSAS[tabla](url)));
+  return Promise.resolve(RESPUESTA_JSON(TABLAS_FALSAS[tabla](url, opciones)));
 };
 
 function BibliotecaDemo() {
@@ -312,9 +346,22 @@ const ALUMNO_DEMO = {
 function AdminDemo() {
   const [alumnos, setAlumnos] = useState([ALUMNO_DEMO]);
   const [abierto, setAbierto] = useState(() => {
+    // AUDITORÍA 2026-08-12: navegación genérica por query. Con ?sec=alumnos,
+    // ?sec=planes&planesTab=plan-dias, ?sec=plan&planTab=entrenamiento, etc.
+    // se llega a CUALQUIER pantalla del panel sin PIN, que es lo que hacía
+    // falta para fotografiar la ficha del alumno y el plan por día.
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("sec")) {
+      const nav = { sec: q.get("sec"), selId: "al-1" };
+      ["planTab", "planesTab", "repTab", "evalTab"].forEach((k) => {
+        if (q.get(k)) nav[k] = q.get(k);
+      });
+      sessionStorage.setItem("di_admin_nav", JSON.stringify(nav));
+      return true;
+    }
     // Se acepta ?admin=movilidad además del hash: las capturas headless
     // pierden el fragmento y así se puede fotografiar la pantalla real.
-    const h = window.location.hash || (new URLSearchParams(window.location.search).get("admin") ? "#" + new URLSearchParams(window.location.search).get("admin") : "");
+    const h = window.location.hash || (q.get("admin") ? "#" + q.get("admin") : "");
     // 2026-08-10: #movilidad y #calor abren el panel en Plan → esa pestaña,
     // para poder mirar el sistema de preparación en dos niveles sin login.
     // 2026-08-10: #periodizacion abre Planes → Periodización, para mirar la
@@ -349,6 +396,7 @@ function AdminDemo() {
       </button>
     );
   return (
+    <div data-admin>
     <AdminPanel
       alumnos={alumnos}
       onUpdate={setAlumnos}
@@ -363,6 +411,7 @@ function AdminDemo() {
       onToggleTheme={() => {}}
       onModoEntrenador={() => {}}
     />
+    </div>
   );
 }
 
@@ -429,6 +478,69 @@ function VueltasDemo() {
       />
       <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace" }}>
         Sentadilla: [{resumenVueltas(vueltas.a) || "vacío"}] · Hip thrust: [{resumenVueltas(vueltas.b) || "vacío"}]
+      </div>
+    </>
+  );
+}
+
+// EL PESO POR FORMA DE CARGA (2026-08-13) — lo más importante de la app según
+// Lucas. Cuatro tarjetas que cubren los cuatro casos que hay que poder mirar:
+// la barra (donde vive el "5 + 20 + 5 = 30"), las dos mancuernas, la banda
+// elástica (repeticiones y nada más) y un registro VIEJO, que es un número
+// suelto sin detalle y tiene que seguir viéndose igual que siempre.
+function CargaDemo() {
+  const [pesos, setPesos] = useState({ press: [], mancu: [], banda: [], viejo: 40 });
+  const [dets, setDets] = useState({ press: [], mancu: [], banda: [], viejo: [] });
+  const cambiar = (id) => (serie, detalle, total) => {
+    setPesos((p) => ({ ...p, [id]: setVuelta(p[id], serie, total) || [] }));
+    setDets((d) => ({ ...d, [id]: setDetalleVuelta(d[id], serie, total > 0 ? detalle : null) || [] }));
+  };
+  const comun = {
+    showPeso: true,
+    semana: { series: 4, reps: 8, intensidad: "75%" },
+    seriesPlan: 4,
+    historial: [],
+    // equipoSala en null a propósito: normalizarEquipamiento devuelve el
+    // equipamiento base, que es exactamente lo que ve un gimnasio que todavía
+    // no tocó la pantalla de Equipamiento.
+    equipoSala: null,
+  };
+  return (
+    <>
+      <ItemCard
+        {...comun}
+        nombre="Press de banca plano con barra" numero={1}
+        desc="Bajá la barra al pecho con los codos a 45 grados y empujá."
+        equipamiento="Barra"
+        vueltas={pesos.press} detalles={dets.press}
+        onVueltaChange={() => {}} onDetalleChange={cambiar("press")}
+      />
+      <ItemCard
+        {...comun}
+        nombre="Press de hombro con mancuernas" numero={2}
+        desc="Sentado, espalda apoyada, empujá las dos mancuernas arriba."
+        equipamiento="Mancuerna"
+        vueltas={pesos.mancu} detalles={dets.mancu}
+        onVueltaChange={() => {}} onDetalleChange={cambiar("mancu")}
+      />
+      <ItemCard
+        {...comun}
+        nombre="Remo con banda elástica" numero={3}
+        desc="Pisá la banda y traccionála hacia el abdomen."
+        equipamiento="Banda elástica" unidad="repeticiones"
+        vueltas={pesos.banda} detalles={dets.banda}
+        onVueltaChange={() => {}} onDetalleChange={cambiar("banda")}
+      />
+      <ItemCard
+        {...comun}
+        nombre="Hip thrust (registro viejo, sin detalle)" numero={4}
+        desc="Apoyá la espalda alta en el banco y empujá con los talones."
+        equipamiento="Barra"
+        vueltas={pesos.viejo} detalles={dets.viejo}
+        onVueltaChange={() => {}} onDetalleChange={cambiar("viejo")}
+      />
+      <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace", wordBreak: "break-all" }}>
+        pesos: {JSON.stringify(pesos)}<br />detalle: {JSON.stringify(dets)}
       </div>
     </>
   );
@@ -504,6 +616,13 @@ function Harness() {
           Los componentes reales del panel admin, con datos falsos y sin login.
           Lo que se ve acá es lo que ve el admin en la app.
         </p>
+
+        <Panel
+          titulo="Registro de peso por forma de carga"
+          nota="2026-08-13, lo más importante de la app según Lucas. El alumno anota LO QUE VE y la app hace la cuenta. Probar acá: (1) en el press, abrir el botón de peso, tocar la barra de 20 y después el disco de 5 — tiene que dar 30 kg y decir «Barra 20 + 5 por lado», que es el ejemplo textual de Lucas; (2) en las mancuernas, tocar «Dos mancuernas» y el 10 — tiene que dar 20 kg; (3) la banda pide REPETICIONES y nada más, sin kilos ni colores; (4) el cuarto ejercicio arranca con un registro VIEJO (40, un número suelto sin detalle) y tiene que seguir viéndose igual, sin inventarle una explicación. Ningún control baja de 44px y ninguno abre el teclado."
+        >
+          <CargaDemo />
+        </Panel>
 
         <Panel
           titulo="Pantalla del alumno «solo video»"

@@ -44,6 +44,15 @@ export default function PlanDelDia({
   // peso como siempre.
   pesosPorVuelta,
   onPesoVuelta,
+  // ── DE QUÉ ESTÁ HECHO EL PESO (2026-08-13) ───────────────────────────
+  // `detallesPorVuelta` es, por ejercicio y por vuelta, la barra y los discos
+  // (o la mancuerna) con los que se hizo el número; `onDetalleVuelta(ejId,
+  // serie, detalle, total)` guarda las dos cosas. `equipoSala` es lo que hay
+  // de verdad en el gimnasio (editable por Lucas), sin lo cual no hay lista
+  // que tocar. Si no llegan, las tarjetas piden un número suelto como siempre.
+  detallesPorVuelta,
+  onDetalleVuelta,
+  equipoSala,
   rm,
   onRegistrarDia,
   diaRegistrado,
@@ -511,6 +520,10 @@ export default function PlanDelDia({
                   pesoSugerido={pesoSugerido}
                   intensidad={semDia.intensidad}
                   unidad={cfg.modo === "tiempo" ? "segundos" : ej.unidad}
+                  equipamiento={ej.equipamiento}
+                  equipoSala={equipoSala}
+                  detalles={detallesPorVuelta ? detallesPorVuelta[ej.id] : undefined}
+                  onDetalleChange={onDetalleVuelta ? (serie, det, total) => onDetalleVuelta(ej.id, serie, det, total) : undefined}
                 />
               );
             };

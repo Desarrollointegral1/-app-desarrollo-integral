@@ -2,6 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 // setVuelta ya no se usa acá (2026-08-13): el merge de vueltas lo hace la base
 // en la RPC guardar_peso_vuelta — ver saveDailyWeight.
 import { pesoRepresentativo } from "../src/utils/pesos.js";
+// 2026-08-13: el equipamiento de la sala (barras, discos, mancuernas) es lo
+// que hace posible que el alumno elija tocando en vez de escribir.
+import { CLAVE_EQUIPAMIENTO, normalizarEquipamiento } from "../src/utils/equipamiento.js";
 // Mapa nombre→código oficial (M/E/C/P), fuente de verdad en planTemplates.js.
 // Se usa en propagarEjercicioATodos para asignarle código en el momento a un
 // ejercicio viejo que todavía no lo tiene, SI su nombre matchea uno oficial.
@@ -241,6 +244,10 @@ function _mapEjercicio(e) {
     codigo:     e.codigo      || "",
     gif:        e.gif         || "",
     unidad:     e.unidad      || "reps",
+    // 2026-08-13: el equipamiento del catálogo viaja con el ejercicio porque
+    // de ahí sale la FORMA DE CARGA (barra + discos por lado, dos mancuernas,
+    // placa, banda…). Sin este dato la app volvería a pedir "kilos" a secas.
+    equipamiento: e.equipamiento || "",
     seccion:    e.seccion     || "principal",
     mediaLocal: "",
     historial:  [],
@@ -274,9 +281,9 @@ export async function cargarDatos(fallback) {
       .select(`${COLS_ALUMNO_SIN_FOTO},
         alumno_planes(id, dia_semana, nombre, estado, periodizacion,
           plan_dias(id, dia, subtitulo, orden, config,
-            plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, seccion, orden))),
+            plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, equipamiento, seccion, orden))),
         plan_dias(id, dia, subtitulo, orden, alumno_plan_id, config,
-          plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, seccion, orden))`)
+          plan_ejercicios(id, nombre, descripcion, video, codigo, gif, unidad, equipamiento, seccion, orden))`)
       // 2026-08-04: los archivados (ver deleteAlumno/migración 030) no
       // aparecen en el listado normal del Dashboard.
       .eq("archivado", false)
@@ -1143,6 +1150,10 @@ async function _savePlanDiasImpl(idParam, dias, isAlumnoPlan, alumnoId) {
         codigo:      ej.codigo      || null,
         gif:         ej.gif         || null,
         unidad:      ej.unidad      || "reps",
+        // 2026-08-13: null y no "" cuando no se sabe — la columna es nullable
+        // a propósito, para poder distinguir "este ejercicio no pasó por el
+        // catálogo" de "el catálogo dice que no lleva equipamiento".
+        equipamiento: ej.equipamiento || null,
         // 2026-08-10: bloque al que pertenece (principal · core · finisher).
         // El check de la migración 037 solo acepta esos tres, así que se
         // normaliza acá en vez de dejar que un dato raro reviente el insert.
@@ -1192,7 +1203,10 @@ export async function cargarPesos(alumno_id, fallback) {
   try {
     const { data, error } = await supabase
       .from("registros_diarios")
-      .select("fecha, pesos")
+      // 2026-08-13: `pesos_detalle` es de qué está hecho cada número (barra 20
+      // + 5 por lado, 2 mancuernas de 10). Viaja al lado, no adentro, para que
+      // los registros viejos —que no lo tienen— se sigan leyendo igual.
+      .select("fecha, pesos, pesos_detalle")
       .eq("alumno_id", alumno_id)
       .order("fecha", { ascending: true });
 
@@ -1218,7 +1232,10 @@ export async function cargarPesos(alumno_id, fallback) {
         if (!historiales[eid]) historiales[eid] = [];
         // `vueltas` va crudo para que la vista pueda mostrar las series del
         // día; `peso` sigue siendo un número para no romper a quien lo lea.
-        historiales[eid].push({ peso: val, serie: 1, fecha: row.fecha, vueltas: p });
+        // `detalles` (2026-08-13) es el array paralelo con la barra y los
+        // discos de cada vuelta — undefined en todo lo registrado hasta hoy.
+        const det = (row.pesos_detalle || {})[eid];
+        historiales[eid].push({ peso: val, serie: 1, fecha: row.fecha, vueltas: p, ...(det ? { detalles: det } : {}) });
       });
     });
 
@@ -2123,7 +2140,7 @@ export async function assignPlanToStudent(alumno_id, plan_type) {
  * Un peso vacío o 0 ya no se ignora cuando hay serie: es la forma de BORRAR
  * una vuelta mal cargada. Sin serie se mantiene el ignorado de siempre.
  */
-export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, serie) {
+export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, serie, detalle) {
   const porVuelta = serie != null;
   if (!porVuelta && (!peso || Number(peso) <= 0)) {
     LOG("saveDailyWeight", `⏭️ Ignorado (peso 0): ${ejercicio_id}`);
@@ -2151,6 +2168,13 @@ export async function saveDailyWeight(alumno_id, fecha, ejercicio_id, peso, seri
     p_ejercicio_id: String(ejercicio_id),
     p_peso: peso === "" || peso == null ? null : Number(peso),
     p_serie: porVuelta ? Number(serie) : null,
+    // 2026-08-13 — DE QUÉ ESTÁ HECHO EL PESO. Se guarda junto al total, en la
+    // misma transacción: si fueran dos llamadas, un corte de red entre las dos
+    // dejaría un total sin explicación o una explicación sin total.
+    // null = "no se sabe" y NO borra el detalle que ya estaba (ver migración
+    // 042): el stepper simple de un ejercicio de placa no tiene por qué
+    // arrastrarse el detalle de nadie, pero tampoco puede pisarlo.
+    p_detalle: detalle == null ? null : detalle,
   });
 
   if (error) {
@@ -2496,6 +2520,24 @@ export async function setAppConfig(clave, valor) {
   if (error) { ERR("setAppConfig", `No se pudo guardar "${clave}" (¿corrió la migración 007?)`, error); return false; }
   LOG("setAppConfig", `✅ Config "${clave}" guardada.`);
   return true;
+}
+
+// ── EL EQUIPAMIENTO DE LA SALA (2026-08-13) ───────────────────────────
+// Textual de Lucas: "tenemos distintas barras, de 20, de 18, de 11, Barra
+// Olimpica Romana Rulemanes, barra-ez-olimpica, eso tiene que poder
+// modificarse, predeterminado 20 y poder bajar o subir".
+//
+// Barras, discos, mancuernas y kettlebells que hay DE VERDAD en el gimnasio.
+// Sin esto el alumno no tiene lista que tocar y volvería a escribir a mano.
+// Vive en app_config (misma tabla y mismo patrón que la movilidad y la entrada
+// en calor), y normalizarEquipamiento devuelve el equipamiento base si la
+// clave todavía no está cargada — así la app nunca queda sin listas.
+export async function getEquipamiento() {
+  return normalizarEquipamiento(await getAppConfig(CLAVE_EQUIPAMIENTO));
+}
+
+export async function guardarEquipamiento(equip) {
+  return setAppConfig(CLAVE_EQUIPAMIENTO, normalizarEquipamiento(equip));
 }
 
 // Predeterminados de PREPARACIÓN (2026-08-10): las 3 versiones de movilidad y

@@ -22,32 +22,28 @@
 // nombre no habría forma de distinguir "el admin eligió repeticiones" de "esto
 // viene sin definir". Por eso 'reps' se lee acá como "no definido" → se deduce.
 
+// 2026-08-13 — LA REGLA SE MUDÓ, NO SE DUPLICÓ.
+//
+// Al implementar el registro de peso por forma de carga hizo falta una regla
+// más fina que kilos/reps/segundos: una barra y una mancuerna son las dos
+// "kilos", pero se anotan y se calculan distinto. Esa regla vive ahora en
+// src/utils/carga.js y decide OCHO formas; la unidad se deduce de la forma.
+//
+// POR QUÉ SE MUDÓ EN VEZ DE COPIARSE: eran dos listas de equipamiento
+// paralelas. El día que Lucas sume "Barra Smith" al catálogo, agregarla en un
+// solo lado dejaría un ejercicio que se registra por forma de barra pero se
+// muestra en repeticiones. Con una sola tabla eso no puede pasar.
+//
+// El reparto sobre los 1.343 ejercicios del catálogo es IDÉNTICO al que dejó
+// la migración 038 (kilos 875 · repeticiones 401 · segundos 67). Hay tests en
+// utils.test.js que lo verifican equipamiento por equipamiento.
+import { formaPorRegla, UNIDAD_DE_FORMA } from "./carga.js";
+
 export const UNIDADES = ["kilos", "repeticiones", "segundos"];
 
-// Isométricos: lo que se registra es el tiempo. Gana sobre "peso corporal",
-// porque una plancha es las dos cosas y lo que importa es cuánto aguantó.
-const RE_ISOMETRICO =
-  /(planch|isom|puente|hollow|superman|colgad|colgar|dead hang|l-sit|wall sit|estátic|estatic|sostenid)/i;
-
-// Elementos que se miden por tiempo, no por carga.
-const EQUIPO_POR_TIEMPO = new Set([
-  "Rodillo", "Elíptico", "Bicicleta fija", "Escalador",
-  "Máquina SkiErg", "Ergómetro de brazos", "Soga",
-]);
-
-// Sin número de carga posible: el propio cuerpo, o una banda que no tiene kilos.
-const EQUIPO_SIN_CARGA = new Set([
-  "Peso corporal", "Asistido", "Bosu", "Pelota de estabilidad",
-  "Rueda abdominal", "Banda", "Banda elástica",
-]);
-
 /** La regla objetiva, idéntica a la de migrations/038_unidad_por_ejercicio.sql. */
-export function unidadPorRegla({ nombre, nombre_es, equipment_es } = {}) {
-  const n = String(nombre || nombre_es || "");
-  if (RE_ISOMETRICO.test(n)) return "segundos";
-  if (EQUIPO_POR_TIEMPO.has(equipment_es)) return "segundos";
-  if (EQUIPO_SIN_CARGA.has(equipment_es)) return "repeticiones";
-  return "kilos";
+export function unidadPorRegla(ej = {}) {
+  return UNIDAD_DE_FORMA[formaPorRegla(ej)] || "kilos";
 }
 
 /**
