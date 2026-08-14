@@ -25,7 +25,6 @@ import PlanDelDia from "../src/components/PlanDelDia.jsx";
 import AsistenteEjercicio from "../src/components/AsistenteEjercicio.jsx";
 import VistaVideoAlumno from "../src/components/VistaVideoAlumno.jsx";
 import { setVuelta, resumenVueltas } from "../src/utils/pesos.js";
-import { setDetalleVuelta } from "../src/utils/carga.js";
 import SelectorPlanDia from "../src/components/SelectorPlanDia.jsx";
 import SelectorDiasAlta from "../src/components/SelectorDiasAlta.jsx";
 import { agruparVariantes, SIN_PLAN } from "../src/utils/planVariantes.js";
@@ -451,7 +450,7 @@ function Panel({ titulo, children, nota }) {
 // poder confirmar de un vistazo que los registros que ya existen se siguen
 // leyendo bien y no se pierden.
 function VueltasDemo() {
-  const [vueltas, setVueltas] = useState({ "a": [60, 62.5], "b": 40 });
+  const [vueltas, setVueltas] = useState({ a: [60, 62.5], b: 40, c: [12], d: [] });
   const cambiar = (id) => (serie, peso) =>
     setVueltas((v) => {
       const nuevo = setVuelta(v[id], serie, peso);
@@ -465,82 +464,38 @@ function VueltasDemo() {
       <ItemCard
         nombre="Sentadilla con barra" numero={1}
         desc="Bajá hasta que los muslos queden paralelos al piso, con la espalda recta."
+        equipamiento="Barra"
         showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
         vueltas={vueltas.a} onVueltaChange={cambiar("a")}
         pesoAnterior={{ peso: 60, fecha: "02/08" }} historial={[]}
       />
       <ItemCard
-        nombre="Hip thrust" numero={2}
-        desc="Apoyá la espalda alta en el banco y empujá con los talones."
+        nombre="Press de hombro con mancuernas" numero={2}
+        desc="Sentado, espalda apoyada, empujá las dos mancuernas arriba."
+        equipamiento="Mancuerna"
         showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
         vueltas={vueltas.b} onVueltaChange={cambiar("b")}
         historial={[]}
       />
+      {/* Los dos que NO llevan referencia: el número es el que se contó. */}
+      <ItemCard
+        nombre="Fondos de tríceps en paralelas" numero={3}
+        desc="Bajá hasta que los codos queden a 90 grados y empujá."
+        equipamiento="Peso corporal" unidad="repeticiones"
+        showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
+        vueltas={vueltas.c} onVueltaChange={cambiar("c")}
+        historial={[]}
+      />
+      <ItemCard
+        nombre="Plancha frontal" numero={4}
+        desc="Codos debajo de los hombros, cadera en línea, sin hundir la espalda."
+        equipamiento="Peso corporal" unidad="segundos"
+        showPeso semana={{ series: 4, reps: 8, intensidad: "75%" }} seriesPlan={4}
+        vueltas={vueltas.d} onVueltaChange={cambiar("d")}
+        historial={[]}
+      />
       <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace" }}>
-        Sentadilla: [{resumenVueltas(vueltas.a) || "vacío"}] · Hip thrust: [{resumenVueltas(vueltas.b) || "vacío"}]
-      </div>
-    </>
-  );
-}
-
-// EL PESO POR FORMA DE CARGA (2026-08-13) — lo más importante de la app según
-// Lucas. Cuatro tarjetas que cubren los cuatro casos que hay que poder mirar:
-// la barra (donde vive el "5 + 20 + 5 = 30"), las dos mancuernas, la banda
-// elástica (repeticiones y nada más) y un registro VIEJO, que es un número
-// suelto sin detalle y tiene que seguir viéndose igual que siempre.
-function CargaDemo() {
-  const [pesos, setPesos] = useState({ press: [], mancu: [], banda: [], viejo: 40 });
-  const [dets, setDets] = useState({ press: [], mancu: [], banda: [], viejo: [] });
-  const cambiar = (id) => (serie, detalle, total) => {
-    setPesos((p) => ({ ...p, [id]: setVuelta(p[id], serie, total) || [] }));
-    setDets((d) => ({ ...d, [id]: setDetalleVuelta(d[id], serie, total > 0 ? detalle : null) || [] }));
-  };
-  const comun = {
-    showPeso: true,
-    semana: { series: 4, reps: 8, intensidad: "75%" },
-    seriesPlan: 4,
-    historial: [],
-    // equipoSala en null a propósito: normalizarEquipamiento devuelve el
-    // equipamiento base, que es exactamente lo que ve un gimnasio que todavía
-    // no tocó la pantalla de Equipamiento.
-    equipoSala: null,
-  };
-  return (
-    <>
-      <ItemCard
-        {...comun}
-        nombre="Press de banca plano con barra" numero={1}
-        desc="Bajá la barra al pecho con los codos a 45 grados y empujá."
-        equipamiento="Barra"
-        vueltas={pesos.press} detalles={dets.press}
-        onVueltaChange={() => {}} onDetalleChange={cambiar("press")}
-      />
-      <ItemCard
-        {...comun}
-        nombre="Press de hombro con mancuernas" numero={2}
-        desc="Sentado, espalda apoyada, empujá las dos mancuernas arriba."
-        equipamiento="Mancuerna"
-        vueltas={pesos.mancu} detalles={dets.mancu}
-        onVueltaChange={() => {}} onDetalleChange={cambiar("mancu")}
-      />
-      <ItemCard
-        {...comun}
-        nombre="Remo con banda elástica" numero={3}
-        desc="Pisá la banda y traccionála hacia el abdomen."
-        equipamiento="Banda elástica" unidad="repeticiones"
-        vueltas={pesos.banda} detalles={dets.banda}
-        onVueltaChange={() => {}} onDetalleChange={cambiar("banda")}
-      />
-      <ItemCard
-        {...comun}
-        nombre="Hip thrust (registro viejo, sin detalle)" numero={4}
-        desc="Apoyá la espalda alta en el banco y empujá con los talones."
-        equipamiento="Barra"
-        vueltas={pesos.viejo} detalles={dets.viejo}
-        onVueltaChange={() => {}} onDetalleChange={cambiar("viejo")}
-      />
-      <div style={{ color: "#9ae6b4", fontSize: 12, marginTop: 10, fontFamily: "monospace", wordBreak: "break-all" }}>
-        pesos: {JSON.stringify(pesos)}<br />detalle: {JSON.stringify(dets)}
+        Sentadilla: [{resumenVueltas(vueltas.a) || "vacío"}] · Mancuernas: [{resumenVueltas(vueltas.b) || "vacío"}]
       </div>
     </>
   );
@@ -616,13 +571,6 @@ function Harness() {
           Los componentes reales del panel admin, con datos falsos y sin login.
           Lo que se ve acá es lo que ve el admin en la app.
         </p>
-
-        <Panel
-          titulo="Registro de peso por forma de carga"
-          nota="2026-08-13, lo más importante de la app según Lucas. El alumno anota LO QUE VE y la app hace la cuenta. Probar acá: (1) en el press, abrir el botón de peso, tocar la barra de 20 y después el disco de 5 — tiene que dar 30 kg y decir «Barra 20 + 5 por lado», que es el ejemplo textual de Lucas; (2) en las mancuernas, tocar «Dos mancuernas» y el 10 — tiene que dar 20 kg; (3) la banda pide REPETICIONES y nada más, sin kilos ni colores; (4) el cuarto ejercicio arranca con un registro VIEJO (40, un número suelto sin detalle) y tiene que seguir viéndose igual, sin inventarle una explicación. Ningún control baja de 44px y ninguno abre el teclado."
-        >
-          <CargaDemo />
-        </Panel>
 
         <Panel
           titulo="Pantalla del alumno «solo video»"
@@ -723,8 +671,8 @@ function Harness() {
         </Panel>
 
         <Panel
-          titulo="Vista del alumno · peso por vuelta"
-          nota="El plan pide 4 series, así que hay 4 casilleros. Tocar una vuelta la selecciona y el − / + de arriba edita esa. El primero arranca con 2 vueltas ya cargadas; el segundo tiene un registro viejo (un solo número) y debe seguir viéndose bien."
+          titulo="Vista del alumno · peso por serie"
+          nota="2026-08-14. El plan pide 4 series, así que hay 4 casilleros y cada uno dice SERIE N — tiene que quedar obvio que son las series, sin explicárselo a nadie. Tocar una la selecciona y el − / + de arriba edita esa. La barra y las mancuernas llevan UNA línea de referencia para hacer la cuenta de cabeza; los fondos y la plancha no llevan ninguna. Un solo campo por serie: acá NO va ningún selector de discos."
         >
           <div data-vueltas><VueltasDemo /></div>
         </Panel>

@@ -72,12 +72,8 @@ import {
   setVuelta, cantidadDeVueltas, resumenVueltas,
 } from "./pesos.js";
 import { unidadDe, unidadPorRegla, ETIQUETA_HOY } from "./unidades.js";
-// 2026-08-13 — la forma de carga: qué anota el alumno y qué cuenta hace la app.
-import {
-  pesoTotal, resumenCarga, formaPorRegla, NECESITA_SELECTOR,
-  setDetalleVuelta, detalleCoincide,
-} from "./carga.js";
-import { normalizarEquipamiento, barraPredeterminada, barrasSinConfirmar } from "./equipamiento.js";
+// Con qué se hace cada ejercicio: de ahí salen la unidad y la línea de ayuda.
+import { formaPorRegla, ayudaDe } from "./carga.js";
 import {
   normalizarBusqueda, buscarEnCatalogo, ordenarSugerencias, normalizarGrupo, GRUPOS_DI,
 } from "./ejercicioAsistido.js";
@@ -967,97 +963,18 @@ describe("4 · el historial es del ejercicio, no de la fila del plan", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// 5 · EL PESO SE REGISTRA POR FORMA DE CARGA (2026-08-13)
+// 5 · CON QUÉ SE HACE CADA EJERCICIO (2026-08-13, podado el 2026-08-14)
 //
-// Pedido de Lucas: "creo que eso es lo mas importante en la app, el registro
-// de los pesos, el registro de cuanta evolucion la persona hizo con sus pesos".
+// El 13 acá se verificaba la cuenta de un selector de barra y discos. Lucas lo
+// probó y lo sacó: "quedó mucho... la persona tiene que poder hacer la cuenta
+// mentalmente y luego completar". Los tests de esa cuenta se fueron con ella.
 //
-// Hasta hoy la app pedía "kilos" y no decía de qué: con dos mancuernas de 10
-// un alumno anotaba 10 y otro 20, y la evolución comparaba números que no
-// medían lo mismo. La regla nueva es "el alumno anota lo que ve, la app hace
-// la cuenta", y toda esa cuenta vive en una función pura — que es lo que se
-// verifica acá, caso por caso, con los ejemplos que dio Lucas.
+// Lo que queda es la parte que sí sirvió y que sigue viva: saber CON QUÉ se
+// hace el ejercicio a partir del equipamiento del catálogo. De eso dependen la
+// unidad en la que se registra (que NO puede cambiar, o los pesos ya cargados
+// se leerían distinto) y la línea de ayuda al lado del casillero.
 // ══════════════════════════════════════════════════════════════════════
-describe("5 · forma de carga — la cuenta que hace la app", () => {
-  it("barra + discos: 5 + 20 + 5 = 30, el ejemplo textual de Lucas", () => {
-    // "que cuando haga pecho plano sepa que tiene que poner el peso que uso de
-    // cada lado mas la barra el peso que tenga, por ejemplo 5 + 20 + 5 igual a
-    // 30 kilos". El alumno anota UN lado; la app duplica.
-    expect(pesoTotal({ forma: "barra", barra: 20, discos: [5] })).toBe(30);
-    expect(resumenCarga({ forma: "barra", barra: 20, discos: [5] })).toBe("Barra 20 + 5 por lado");
-    // Varios discos del mismo lado se suman antes de duplicarse.
-    expect(pesoTotal({ forma: "barra", barra: 20, discos: [20, 10, 1.25] })).toBe(82.5);
-    // La barra sola es la barra.
-    expect(pesoTotal({ forma: "barra", barra: 11, discos: [] })).toBe(11);
-    // Los decimales no dejan basura de coma flotante (20 + 1,25 × 2).
-    expect(pesoTotal({ forma: "barra", barra: 20, discos: [1.25] })).toBe(22.5);
-  });
-
-  it("dos mancuernas de 10 son 20 kg; una es 10", () => {
-    expect(pesoTotal({ forma: "mancuernas", unitario: 10, cantidad: 2 })).toBe(20);
-    expect(pesoTotal({ forma: "mancuernas", unitario: 10, cantidad: 1 })).toBe(10);
-    expect(resumenCarga({ forma: "mancuernas", unitario: 10, cantidad: 2 })).toBe("2 mancuernas de 10");
-    expect(resumenCarga({ forma: "mancuernas", unitario: 10, cantidad: 1 })).toBe("1 mancuerna de 10");
-  });
-
-  it("máquina y polea: lo que marca la placa, y nada más", () => {
-    expect(pesoTotal({ forma: "placa", valor: 45 })).toBe(45);
-    expect(pesoTotal({ forma: "libre", valor: 8 })).toBe(8);
-  });
-
-  it("peso corporal: se cuentan repeticiones", () => {
-    expect(pesoTotal({ forma: "corporal", reps: 12 })).toBe(12);
-    expect(unidadDe({ nombre: "Fondo de tríceps", equipment_es: "Peso corporal" })).toBe("repeticiones");
-  });
-
-  it("peso corporal con lastre: guarda LAS DOS COSAS", () => {
-    // El número que sigue la evolución es el lastre (así venía desde la
-    // migración 038, y así progresa una dominada lastrada); las repeticiones
-    // viajan en el mismo detalle sin pisarlo.
-    const d = { forma: "lastre", lastre: 10, reps: 8 };
-    expect(pesoTotal(d)).toBe(10);
-    expect(d.reps).toBe(8);
-    expect(resumenCarga(d)).toBe("8 reps con 10 kg de lastre");
-    // Un ejercicio de peso corporal al que le suman lastre guarda las dos
-    // igual, pero su número sigue siendo las repeticiones: no se le cambia la
-    // unidad a un ejercicio por haberse colgado un disco un día.
-    expect(pesoTotal({ forma: "corporal", reps: 8, lastre: 10 })).toBe(8);
-    expect(resumenCarga({ forma: "corporal", reps: 8, lastre: 10 })).toBe("8 reps con 10 kg de lastre");
-  });
-
-  it("isométrico: segundos, y le gana al peso corporal", () => {
-    // Una plancha es peso corporal Y es isométrica: lo que importa es cuánto
-    // aguantó, no cuántas hizo.
-    expect(formaPorRegla({ nombre: "Plancha frontal", equipment_es: "Peso corporal" })).toBe("tiempo");
-    expect(pesoTotal({ forma: "tiempo", segundos: 45 })).toBe(45);
-    expect(unidadDe({ nombre: "Plancha frontal", equipment_es: "Peso corporal" })).toBe("segundos");
-  });
-
-  it("banda elástica: repeticiones y nada más", () => {
-    // Textual de Lucas: "en banda elastica contemos por repeticiones nada
-    // mas". Una banda no tiene kilos comparables y no los inventamos.
-    expect(formaPorRegla({ nombre: "Remo con banda", equipment_es: "Banda elástica" })).toBe("banda");
-    expect(pesoTotal({ forma: "banda", reps: 15 })).toBe(15);
-    expect(unidadDe({ nombre: "Remo con banda", equipment_es: "Banda" })).toBe("repeticiones");
-    // Y en el detalle no aparece ni color ni nivel de banda.
-    expect(resumenCarga({ forma: "banda", reps: 15 })).toBe("15 reps");
-  });
-
-  it("un registro viejo es un número suelto y se sigue leyendo", () => {
-    // Todo lo cargado antes del 2026-08-13 es un número sin detalle. No migra
-    // nada: pesoTotal lo devuelve tal cual, y la pantalla no le inventa una
-    // explicación que no tiene.
-    expect(pesoTotal(60)).toBe(60);
-    expect(pesoTotal("62.5")).toBe(62.5);
-    expect(pesoTotal(null)).toBe(0);
-    expect(resumenCarga(60)).toBe("");
-    expect(detalleCoincide(null, 60)).toBe(false);
-    // Y un detalle que ya no describe el número guardado tampoco se muestra:
-    // sería decirle al alumno que cargue algo que no da ese peso.
-    expect(detalleCoincide({ forma: "barra", barra: 20, discos: [5] }, 45)).toBe(false);
-    expect(detalleCoincide({ forma: "barra", barra: 20, discos: [5] }, 30)).toBe(true);
-  });
-
+describe("5 · con qué se hace cada ejercicio", () => {
   it("la forma sale del equipamiento del catálogo, no se carga a mano", () => {
     expect(formaPorRegla({ nombre: "Press plano", equipment_es: "Barra" })).toBe("barra");
     expect(formaPorRegla({ nombre: "Press plano", equipment_es: "Máquina Smith" })).toBe("barra");
@@ -1069,23 +986,33 @@ describe("5 · forma de carga — la cuenta que hace la app", () => {
     expect(formaPorRegla({ nombre: "Dominada lastrada", equipment_es: "Con peso extra" })).toBe("lastre");
     expect(formaPorRegla({ nombre: "Sentadilla", equipment_es: "Peso corporal" })).toBe("corporal");
     expect(formaPorRegla({ nombre: "Remo", equipment_es: "Ergómetro de brazos" })).toBe("tiempo");
+    expect(formaPorRegla({ nombre: "Remo con banda", equipment_es: "Banda elástica" })).toBe("banda");
+    // Una plancha es peso corporal Y es isométrica: gana el tiempo, porque lo
+    // que importa registrar es cuánto aguantó.
+    expect(formaPorRegla({ nombre: "Plancha frontal", equipment_es: "Peso corporal" })).toBe("tiempo");
     // Un ejercicio sin equipamiento cargado no rompe: cae en "libre", que es
-    // exactamente lo que hacía la app hasta hoy (un número suelto).
+    // un número suelto — exactamente lo que hacía la app desde siempre.
     expect(formaPorRegla({ nombre: "Ejercicio raro" })).toBe("libre");
-    // Solo la barra y las mancuernas necesitan el selector; el resto se anota
-    // con el número que el alumno ve.
-    expect(NECESITA_SELECTOR("barra")).toBe(true);
-    expect(NECESITA_SELECTOR("mancuernas")).toBe(true);
-    expect(NECESITA_SELECTOR("placa")).toBe(false);
-    expect(NECESITA_SELECTOR("banda")).toBe(false);
+  });
+
+  it("la referencia es UNA línea, y solo donde la cuenta se puede errar", () => {
+    // 2026-08-14: barra y mancuernas son los dos casos donde el alumno puede
+    // anotar la mitad del peso sin darse cuenta. En el resto el número es el
+    // que se lee en la máquina o el que contó, y una frase de más sería ruido.
+    expect(ayudaDe("barra")).toBe("Sumá la barra más los discos de los dos lados");
+    expect(ayudaDe("mancuernas")).toBe("Si usás dos, sumá las dos");
+    expect(ayudaDe("placa")).toBe("");
+    expect(ayudaDe("corporal")).toBe("");
+    expect(ayudaDe("tiempo")).toBe("");
+    expect(ayudaDe("banda")).toBe("");
   });
 
   it("la unidad se deduce de la forma y no cambió ni un ejercicio", () => {
-    // unidades.js dejó de tener su propia lista de equipamiento: ahora deduce
-    // la unidad de la forma. El reparto tiene que seguir siendo IDÉNTICO al
-    // que dejó la migración 038, o los pesos ya registrados se leerían en otra
-    // unidad. Se verifica equipamiento por equipamiento, con los 28 valores
-    // reales de catalogo_ejercicios.equipment_es.
+    // unidades.js no tiene su propia lista de equipamiento: deduce la unidad
+    // de la forma. El reparto tiene que seguir siendo IDÉNTICO al que dejó la
+    // migración 038, o los pesos ya registrados se leerían en otra unidad. Se
+    // verifica equipamiento por equipamiento, con los 28 valores reales de
+    // catalogo_ejercicios.equipment_es.
     const esperado = {
       "Peso corporal": "repeticiones", "Asistido": "repeticiones", "Bosu": "repeticiones",
       "Pelota de estabilidad": "repeticiones", "Rueda abdominal": "repeticiones",
@@ -1102,55 +1029,7 @@ describe("5 · forma de carga — la cuenta que hace la app", () => {
     Object.entries(esperado).forEach(([eq, uni]) => {
       expect(unidadPorRegla({ nombre: "Ejercicio", equipment_es: eq })).toBe(uni);
     });
-  });
-
-  it("el detalle se escribe por vuelta, con huecos y sin correr las posiciones", () => {
-    // Misma semántica que setVuelta() y que la RPC guardar_peso_vuelta: si las
-    // tres no coinciden, el detalle de la vuelta 3 terminaría explicando el
-    // peso de la vuelta 2.
-    const uno = setDetalleVuelta(null, 3, { forma: "barra", barra: 20, discos: [10] });
-    expect(uno).toEqual([null, null, { forma: "barra", barra: 20, discos: [10] }]);
-    const dos = setDetalleVuelta(uno, 1, { forma: "barra", barra: 20, discos: [5] });
-    expect(dos[0]).toEqual({ forma: "barra", barra: 20, discos: [5] });
-    expect(dos[2]).toEqual({ forma: "barra", barra: 20, discos: [10] });
-    // Borrar la única vuelta cargada devuelve null, para poder sacar el
-    // ejercicio del registro en vez de dejar un array de nulls.
-    expect(setDetalleVuelta([{ forma: "banda", reps: 10 }], 1, null)).toBe(null);
-  });
-
-  it("los botones son un atajo: un peso que no está en la lista se registra igual", () => {
-    // Corrección de Lucas: "no puede basarse en lo que tengo porque trabajamos
-    // en distintos gimnasios". La cuenta no consulta ninguna lista — toma los
-    // números que le pasan. Una barra de 15 y un disco de 7,5 que no existen
-    // en el juego sugerido dan un total correcto igual.
-    expect(pesoTotal({ forma: "barra", barra: 15, discos: [7.5] })).toBe(30);
-    expect(resumenCarga({ forma: "barra", barra: 15, discos: [7.5] })).toBe("Barra 15 + 7,5 por lado");
-    // Y una mancuerna de 4,5 (que tampoco está en la lista sugerida).
-    expect(pesoTotal({ forma: "mancuernas", unitario: 4.5, cantidad: 2 })).toBe(9);
-    // El juego sugerido no es una validación: normalizarEquipamiento no filtra
-    // ni recorta nada de lo que se registre.
-    expect(normalizarEquipamiento(null).discos).not.toContain(7.5);
-  });
-
-  it("el juego sugerido: predeterminado 20 kg y lo que es estimación", () => {
-    const equip = normalizarEquipamiento(null);
-    // "predeterminado 20 y poder bajar o subir".
-    expect(barraPredeterminada(equip).peso).toBe(20);
-    // Las cinco barras que nombró Lucas, con los tres pesos que dio.
-    expect(equip.barras.map((b) => b.peso).slice(0, 3)).toEqual([20, 18, 11]);
-    // Y las dos que NO dio quedan marcadas para que las confirme: no se
-    // inventa un dato y se lo hace pasar por real.
-    expect(barrasSinConfirmar(equip).map((b) => b.id)).toEqual(["romana", "ez"]);
-    // Los discos SÍ son dato real, textual de Lucas: "los discos son de 1.25,
-    // 2.5, 5, 10, 15, 20 y 25". Son siete — el de 25 no está en el juego
-    // estándar que traía la app de arranque.
-    expect(equip.discos).toEqual([1.25, 2.5, 5, 10, 15, 20, 25]);
-    // Editable: si Lucas guarda otra lista, manda la suya.
-    const mia = normalizarEquipamiento({ barras: [{ id: "x", nombre: "Barra de 15", peso: 15 }], discos: [5, 2.5, 5] });
-    expect(mia.barras).toEqual([{ id: "x", nombre: "Barra de 15", peso: 15 }]);
-    // Los discos quedan ordenados y sin repetidos: el alumno los busca tocando.
-    expect(mia.discos).toEqual([2.5, 5]);
-    // Y una lista vacía no lo deja sin nada que tocar.
-    expect(normalizarEquipamiento({ mancuernas: [] }).mancuernas.length).toBeGreaterThan(0);
+    expect(unidadDe({ nombre: "Plancha frontal", equipment_es: "Peso corporal" })).toBe("segundos");
+    expect(unidadDe({ nombre: "Fondo de tríceps", equipment_es: "Peso corporal" })).toBe("repeticiones");
   });
 });

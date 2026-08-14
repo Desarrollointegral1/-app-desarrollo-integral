@@ -22,18 +22,21 @@ await page.goto(`http://localhost:5173/dev/${PAGINA}.html`, { waitUntil: "networ
 // lo que corresponda en cada uno en vez de colgarse 30 segundos.
 await page.waitForSelector(PAGINA === "harness" ? "[data-fila-ej]" : "[data-panel]");
 
-// Comprobación puntual: todas las pastillas de vuelta tienen que ser
-// visibles y tocables. Es lo que se rompió al agregar el peso por vuelta.
+// Comprobación puntual: todas las pastillas de SERIE tienen que ser visibles
+// y tocables. Es lo que se rompió al agregar el peso por serie.
+// (2026-08-14: se llamaban "Vuelta N" hasta que unificamos el vocabulario en
+// pantalla — si acá quedaba el selector viejo, la medición devolvía 0 siempre
+// y el desborde de la cuarta pastilla volvía sin que nadie se enterara.)
 // En bancos sin pastillas devuelve 0 y no molesta.
 const vueltas = await page.evaluate((ancho) => {
-  const grupos = [...document.querySelectorAll('[aria-label^="Vuelta "]')];
+  const grupos = [...document.querySelectorAll('[aria-label^="Serie "]')];
   const fuera = grupos.filter((b) => {
     const r = b.getBoundingClientRect();
     return r.right > ancho + 1 || r.width < 40 || r.height < 40;
   });
   return { total: grupos.length, fuera: fuera.map((b) => b.getAttribute("aria-label")) };
 }, ANCHO);
-console.log(`Pastillas de vuelta: ${vueltas.total} · fuera de pantalla o muy chicas: ${vueltas.fuera.length}`);
+console.log(`Pastillas de serie: ${vueltas.total} · fuera de pantalla o muy chicas: ${vueltas.fuera.length}`);
 vueltas.fuera.forEach((v) => console.log(`  NO SE VE BIEN: ${v}`));
 
 const r = await page.evaluate((ancho) => {

@@ -142,10 +142,7 @@ import VistaVideoAlumno from "./src/components/VistaVideoAlumno.jsx";
 import AsistenteEjercicio, { llamarAsistente as llamarAsistenteReal } from "./src/components/AsistenteEjercicio.jsx";
 import { GIFS_DISPONIBLES, getEjercicioGif, getNombresPorGif, MEDIA_CREDITO, SIN_GIF, resolverGif } from "./src/utils/ejerciciosMedia.js";
 import { setVuelta, pesoRepresentativo, resumenVueltas, vueltasCargadas, vueltasDe } from "./src/utils/pesos.js";
-// 2026-08-13 — el peso se registra por FORMA DE CARGA: el alumno anota lo que
-// ve (la barra y los discos de un lado) y la app hace la cuenta.
-import { setDetalleVuelta, pesoTotal } from "./src/utils/carga.js";
-import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, getEquipamiento, listarPeriodizacionesConNombres, listarVariantesPlan } from "./services/supabase.js";
+import { actualizarEjercicioBibliotecaPorId, getPrepGlobales, listarPeriodizacionesConNombres, listarVariantesPlan } from "./services/supabase.js";
 // Variantes de plan (2026-08-10): conversión pura variante → plan asignable.
 // 2026-08-12: SIN_PLAN / planDeEleccion / valorVariante — el sentinel de "sin
 // plan de ejercicios" y la traducción de lo elegido en el alta a un plan real.
@@ -7872,32 +7869,6 @@ export default function App() {
     setPesosVuelta((prev) => ({ ...dehoy, ...prev }));
   }, [historiales]);
 
-  // ── DE QUÉ ESTÁ HECHO EL PESO (2026-08-13) ───────────────────────────
-  // Pedido de Lucas: "creo que eso es lo mas importante en la app, el registro
-  // de los pesos". El total solo no alcanza: 30 kg pueden ser la barra de 20
-  // con 5 por lado o la de 10 con 10 por lado, y la próxima sesión el alumno
-  // tiene que saber cuál de las dos cargar. Se guardan LAS DOS COSAS — el
-  // total va a `pesos` (es lo que mide la evolución) y el detalle a
-  // `pesos_detalle`, en la misma llamada y la misma transacción.
-  const [detallesVuelta, setDetallesVuelta] = useState({});
-  useEffect(() => {
-    const hoyStr = hoy();
-    const dehoy = {};
-    Object.entries(historiales || {}).forEach(([eid, arr]) => {
-      const reg = (arr || []).find((h) => h.fecha === hoyStr);
-      if (reg && reg.detalles !== undefined) dehoy[eid] = reg.detalles;
-    });
-    // Mismo merge que pesosVuelta: lo que el alumno acaba de tocar (y todavía
-    // está en el debounce) no puede quedar pisado por la recarga.
-    setDetallesVuelta((prev) => ({ ...dehoy, ...prev }));
-  }, [historiales]);
-
-  // El equipamiento REAL de la sala (barras, discos, mancuernas), editable por
-  // Lucas en Biblioteca → Equipamiento. Sin esto no hay lista que tocar y el
-  // alumno volvería a escribir un número a mano entre serie y serie.
-  const [equipoSala, setEquipoSala] = useState(null);
-  useEffect(() => { getEquipamiento().then(setEquipoSala); }, []);
-
   const _vueltaSaveTimers = useRef(new Map());
   const handlePesoVuelta = (id, serie, val) => {
     // Mismo cap de sanidad que handlePeso: sin tope quedaban pesos absurdos.
@@ -7924,49 +7895,6 @@ export default function App() {
     timers.set(clave, setTimeout(() => saveDailyWeight(alumno.id, hoyStr, id, num, serie), 600));
   };
 
-  // Guarda el TOTAL y el DETALLE de una vuelta de una sola vez.
-  //
-  // Es el único camino de escritura cuando la tarjeta sabe de qué está hecho
-  // el peso (o sea, siempre que el ejercicio tenga forma de carga conocida).
-  // Reusa el mismo debounce por casillero y la misma RPC que handlePesoVuelta:
-  // `guardar_peso_vuelta` hace el merge de las dos columnas adentro de la
-  // transacción, así que dos casilleros cargados casi juntos no se pisan
-  // (el bug que arregló la migración 041 sigue arreglado).
-  const handleDetalleVuelta = (id, serie, detalle, total) => {
-    const num = Math.min(Math.max(0, Number(total != null ? total : pesoTotal(detalle)) || 0), 500);
-    const nuevoPeso = setVuelta(pesosVuelta[id], serie, num);
-    const nuevoDet = setDetalleVuelta(detallesVuelta[id], serie, num > 0 ? detalle : null);
-
-    setPesosVuelta((p) => {
-      const np = { ...p };
-      if (nuevoPeso == null) delete np[id]; else np[id] = nuevoPeso;
-      return np;
-    });
-    setDetallesVuelta((d) => {
-      const nd = { ...d };
-      if (nuevoDet == null) delete nd[id]; else nd[id] = nuevoDet;
-      return nd;
-    });
-
-    const repr = pesoRepresentativo(nuevoPeso);
-    const hoyStr = hoy();
-    setPesos((p) => ({ ...p, [id]: repr }));
-    setHistoriales((h) => {
-      const resto = (h[id] || []).filter((x) => x.fecha !== hoyStr);
-      return {
-        ...h,
-        [id]: repr > 0 ? [...resto, { fecha: hoyStr, peso: repr, vueltas: nuevoPeso, detalles: nuevoDet }] : resto,
-      };
-    });
-
-    const timers = _vueltaSaveTimers.current;
-    const clave = id + ":" + serie;
-    clearTimeout(timers.get(clave));
-    timers.set(
-      clave,
-      setTimeout(() => saveDailyWeight(alumno.id, hoyStr, id, num, serie, num > 0 ? detalle : null), 600),
-    );
-  };
   const marcarAsistencia = (fecha) => {
     // La asistencia de HOY se guarda con hora ("YYYY-MM-DD HH:mm"); días
     // anteriores quedan solo fecha. registroAsistencia() (helpers.js) es la
@@ -8029,20 +7957,15 @@ export default function App() {
         // peso por ejercicio y este botón, pensado como red de seguridad para
         // guardados que fallaron sin conexión, habría aplastado las series
         // cargadas dejando una sola.
-        // 2026-08-13, dos cosas en esta re-sincronización:
-        //
-        // 1) Se recorre CON los huecos (vueltasDe, no vueltasCargadas). Con
-        //    vueltasCargadas los nulls se filtraban y las posiciones se
-        //    corrían: un alumno que cargó solo la vuelta 3 la veía volver
-        //    como vuelta 1 después de tocar "Registrar día".
-        // 2) Va también el DETALLE de cada vuelta, para que la red de
-        //    seguridad no deje el total sin su explicación.
+        // 2026-08-13: se recorre CON los huecos (vueltasDe, no
+        // vueltasCargadas). Con vueltasCargadas los nulls se filtraban y las
+        // posiciones se corrían: un alumno que cargó solo la serie 3 la veía
+        // volver como serie 1 después de tocar "Registrar día".
         const vueltas = vueltasDe(pesosVuelta[ej.id]);
-        const dets = Array.isArray(detallesVuelta[ej.id]) ? detallesVuelta[ej.id] : [];
         if (vueltasCargadas(vueltas).length) {
           for (let i = 0; i < vueltas.length; i++) {
             if (!(vueltas[i] > 0)) continue;
-            await saveDailyWeight(alumno.id, f, ej.id, vueltas[i], i + 1, dets[i] || null);
+            await saveDailyWeight(alumno.id, f, ej.id, vueltas[i], i + 1);
           }
           continue;
         }
@@ -8606,11 +8529,6 @@ export default function App() {
               onPeso={handlePeso}
               pesosPorVuelta={pesosVuelta}
               onPesoVuelta={handlePesoVuelta}
-              // 2026-08-13 — de qué está hecho cada peso, y qué hay de verdad
-              // en la sala para poder elegirlo tocando.
-              detallesPorVuelta={detallesVuelta}
-              onDetalleVuelta={handleDetalleVuelta}
-              equipoSala={equipoSala}
               rm={al.rm}
               onRegistrarDia={() => registrarDia(dia?.ejercicios || [])}
               diaRegistrado={diaRegistrado === hoy() + ":" + al.id}
