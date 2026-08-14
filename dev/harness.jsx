@@ -678,6 +678,32 @@ function Harness() {
         </Panel>
 
         <Panel
+          titulo="Vista del alumno · el marcador SIEMPRE a la misma altura"
+          nota="2026-08-14, pedido de Lucas: «que sea padrón siempre en el mismo lugar». Las cuatro tarjetas de acá abajo son los casos que movían el marcador: nombre de una línea y de dos, con línea de ayuda y sin ella, 3 series y 5. El − / + tiene que quedar a la MISMA distancia del borde de arriba de la tarjeta en las cuatro, y no moverse al abrir una. Se mide con dev/medir-marcador.mjs."
+        >
+          <div data-alturas>
+            <ItemCard
+              nombre="Sentadilla" numero={1} desc="Nombre corto, con barra: lleva línea de ayuda."
+              equipamiento="Barra" showPeso seriesPlan={3} vueltas={[60]} onVueltaChange={() => {}} historial={[]}
+            />
+            <ItemCard
+              nombre="Press de banca inclinado con mancuernas a 30 grados" numero={2}
+              desc="Nombre largo (dos renglones), con mancuernas: también lleva ayuda."
+              equipamiento="Mancuerna" showPeso seriesPlan={5} vueltas={[20, 20]} onVueltaChange={() => {}} historial={[]}
+            />
+            <ItemCard
+              nombre="Plancha frontal" numero={3} desc="Isométrico: segundos y SIN línea de ayuda."
+              equipamiento="Peso corporal" unidad="segundos" showPeso seriesPlan={3} vueltas={[45]} onVueltaChange={() => {}} historial={[]}
+            />
+            <ItemCard
+              nombre="Fondos de tríceps en paralelas con las piernas estiradas" numero={4}
+              desc="Nombre largo, peso corporal: repeticiones y sin ayuda."
+              equipamiento="Peso corporal" showPeso seriesPlan={5} vueltas={[]} onVueltaChange={() => {}} historial={[]}
+            />
+          </div>
+        </Panel>
+
+        <Panel
           titulo="Vista del alumno · core intercalado y finisher (plan de Jacobo)"
           nota="El core va ARRIBA del bloque principal porque es intercalado entre rondas: el orden en que se lee es el orden en que se hace, y todo el punto es que no termine siendo lo último. El finisher va último, con su aclaración."
         >

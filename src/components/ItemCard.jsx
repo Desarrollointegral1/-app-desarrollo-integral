@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Play, ChevronDown } from "lucide-react";
 import { S, card, TS, TAP, stepperTrack, stepperBtn, stepperDivider, stepperValue } from "../utils/theme.js";
 import { getYTId } from "../utils/helpers.js";
@@ -86,6 +86,61 @@ export default function ItemCard({
     if (porVuelta) onVueltaChange(vueltaActiva + 1, v);
     else if (onPesoChange) onPesoChange(v);
   };
+
+  // ── EL NÚMERO QUE CAMBIA (2026-08-14) ────────────────────────────────
+  // Pedido de Lucas: "que tenga algo de movimiento el marcador de peso". El
+  // número entra desde el lado hacia el que se movió: con + sube desde abajo,
+  // con − baja desde arriba. Es información (para dónde fue el peso), no un
+  // show: 4px de recorrido y 180ms.
+  //
+  // Se anima con la API del navegador (element.animate) y NO con una clase
+  // CSS por dos razones: el valor ya está en pantalla cuando arranca —el
+  // movimiento nunca retrasa la lectura del número— y volver a dispararla en
+  // toques rápidos no necesita ningún truco de reflow. Solo se llama desde el
+  // − y el +: si se disparara en cada onChange, escribir a mano el número
+  // haría temblar el casillero letra por letra.
+  const valorRef = useRef(null);
+  const animarValor = (dir) => {
+    const el = valorRef.current;
+    if (!el || typeof el.animate !== "function") return;
+    // prefers-reduced-motion se chequea acá a mano: la regla global de
+    // App.jsx apaga animaciones CSS, pero element.animate no las escucha.
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.getAnimations().forEach((a) => a.cancel());
+    el.animate(
+      [{ transform: `translateY(${dir * 4}px)`, opacity: 0.5 }, { transform: "none", opacity: 1 }],
+      { duration: 180, easing: "cubic-bezier(0.23,1,0.32,1)" }
+    );
+  };
+
+  // ── LA SERIE ACTIVA SE DESLIZA (2026-08-14) ──────────────────────────
+  // Antes el recuadro blanco saltaba de una pastilla a otra: aparecía en la
+  // nueva y desaparecía en la vieja, sin nada en el medio. Ahora hay UN solo
+  // recuadro que viaja hasta la pastilla tocada, así el ojo lo sigue y no
+  // tiene que volver a buscar cuál está seleccionada. Se mide la posición
+  // real de la pastilla (offsetLeft/offsetTop) en vez de calcularla: si las
+  // pastillas se envuelven en dos renglones —zoom del sistema al 200%— el
+  // recuadro las sigue igual.
+  const pastillasRef = useRef(null);
+  const [marca, setMarca] = useState(null);
+  // El recuadro no se desliza en el primer render (al montar la tarjeta la
+  // serie activa la elige sola: sería un movimiento que nadie pidió).
+  const [tocada, setTocada] = useState(false);
+  useLayoutEffect(() => {
+    const cont = pastillasRef.current;
+    if (!cont) return;
+    const medir = () => {
+      const btn = cont.querySelector(`[data-serie="${vueltaActiva}"]`);
+      if (btn) setMarca({ x: btn.offsetLeft, y: btn.offsetTop, w: btn.offsetWidth, h: btn.offsetHeight });
+    };
+    medir();
+    // Cambia el ancho (giro de pantalla, zoom): las pastillas son flex y se
+    // reacomodan — el recuadro tiene que volver a medirse o queda corrido.
+    if (typeof ResizeObserver !== "function") return;
+    const ro = new ResizeObserver(medir);
+    ro.observe(cont);
+    return () => ro.disconnect();
+  }, [porVuelta, vueltaActiva, listaVueltas.length]);
 
   // Las instrucciones vienen del catálogo como un párrafo corrido de ~493
   // caracteres, y el alumno las lee de pie en medio de la serie: se muestran
@@ -252,7 +307,34 @@ export default function ItemCard({
           >
             {numero}
           </div>
-          <div style={{ flex: 1, color: S.white, fontSize: TS.ui, fontWeight: 600, lineHeight: 1.3 }}>{nombre}</div>
+          {/* 2026-08-14 · ALTURA FIJA DEL NOMBRE (punto 1 del pedido: "que sea
+              padrón siempre en el mismo lugar"). El nombre ocupa una o dos
+              líneas según el ejercicio, y eso empujaba el marcador de peso
+              unos 20px hacia abajo en unas tarjetas y no en otras: el alumno
+              tenía que buscar el − y el + con la vista en cada ejercicio.
+              Reservando SIEMPRE dos renglones, el marcador queda a la misma
+              altura en todas. Se recorta a dos líneas (el nombre más largo
+              del catálogo entra en dos a 375px) para que un nombre gigante no
+              vuelva a mover nada. Solo cuando hay marcador: la tarjeta sin
+              peso no tiene por qué reservar aire. */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              color: S.white,
+              fontSize: TS.ui,
+              fontWeight: 600,
+              lineHeight: 1.3,
+              ...(showPeso ? { height: 42, display: "flex", alignItems: "center" } : null),
+            }}
+          >
+            {/* El recorte a dos líneas va en el hijo: así el nombre corto
+                queda centrado contra el círculo del número y no pegado
+                arriba, que es lo que pasa con -webkit-box a secas. */}
+            <span style={showPeso ? { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } : null}>
+              {nombre}
+            </span>
+          </div>
           {/* Chevron de lucide (mismo set de íconos que el resto de la app) en
               vez de los caracteres ▲/▼, que se renderizaban con la fuente de
               emoji del sistema y cambiaban de forma según el celular. */}
@@ -286,7 +368,13 @@ export default function ItemCard({
                 útil baja a ~120px y el stepper (132px) no entra al lado del
                 rótulo — envolviendo, el stepper cae a su propio renglón en vez
                 de salirse de la pantalla. */}
-            <div className="di-sin-sangria-angosto" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, paddingLeft: 36 }}>
+            {/* 2026-08-14 · minHeight fijo de 44: la fila mide lo mismo haya o
+                no línea de ayuda. Antes la ayuda vivía DENTRO de esta columna,
+                envolvía en dos renglones a 375px y estiraba la fila a 48 — el
+                stepper y las pastillas bajaban unos píxeles solo en los
+                ejercicios de barra y mancuernas. Ahora la ayuda va abajo, a lo
+                ancho, donde entra en un renglón. */}
+            <div className="di-sin-sangria-angosto" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, paddingLeft: 36, minHeight: TAP }}>
               <div style={{ color: S.gray, fontSize: TS.chip }}>
                 {/* Con vueltas el casillero igual tiene que decir QUÉ se
                     carga: sin la unidad al lado, el alumno de un plan de TRX
@@ -296,18 +384,12 @@ export default function ItemCard({
                     el alumno que lee "VUELTA 3" arriba y unos cuadraditos
                     abajo no ata que son la misma cosa. */}
                 {porVuelta ? `SERIE ${vueltaActiva + 1} · ${sufijo.toUpperCase()}` : ETIQUETA_HOY[uni]}
-                {/* La referencia de una línea (2026-08-14). Solo aparece donde
-                    la cuenta se puede errar: barra y mancuernas. */}
-                {ayuda && (
-                  <div style={{ color: S.lgray, fontSize: 11, fontWeight: 500, lineHeight: 1.25, marginTop: 2 }}>
-                    {ayuda}
-                  </div>
-                )}
               </div>
-              <div style={stepperTrack()}>
+              <div style={stepperTrack()} data-marcador>
                 <button
-                  onClick={() => cambiarPeso(Math.max(0, valorActivo - 1))}
+                  onClick={() => { cambiarPeso(Math.max(0, valorActivo - 1)); animarValor(-1); }}
                   aria-label={PASO_UNIDAD[uni][0]}
+                  className="di-tap"
                   style={stepperBtn()}
                 >
                   −
@@ -316,6 +398,7 @@ export default function ItemCard({
                 <input
                   type="number"
                   inputMode="decimal"
+                  ref={valorRef}
                   value={valorActivo || ""}
                   placeholder="0"
                   onChange={(e) => cambiarPeso(Math.max(0, Number(e.target.value) || 0))}
@@ -323,13 +406,22 @@ export default function ItemCard({
                 />
                 <div style={stepperDivider()} />
                 <button
-                  onClick={() => cambiarPeso(valorActivo + 1)}
+                  onClick={() => { cambiarPeso(valorActivo + 1); animarValor(1); }}
                   aria-label={PASO_UNIDAD[uni][1]}
+                  className="di-tap"
                   style={stepperBtn()}
                 >
                   +
                 </button>
               </div>
+            </div>
+            {/* La referencia de una línea (2026-08-14). Solo aparece donde la
+                cuenta se puede errar: barra y mancuernas. El renglón se
+                reserva SIEMPRE (minHeight), aunque esté vacío: si apareciera y
+                desapareciera según el ejercicio, las pastillas de serie
+                cambiarían de altura de una tarjeta a la otra. */}
+            <div className="di-sin-sangria-angosto" style={{ minHeight: 15, paddingLeft: 36, marginTop: 2, color: S.lgray, fontSize: 11, fontWeight: 500, lineHeight: 1.25 }}>
+              {ayuda}
             </div>
             {porVuelta && (
               /* Una pastilla por SERIE. La que está seleccionada es la que
@@ -341,16 +433,45 @@ export default function ItemCard({
                  número va la palabra SERIE, no un dígito suelto. Cuatro
                  cuadraditos numerados no dicen qué son. Entra en 375px porque
                  a 9px "SERIE 4" mide ~34px y el piso de la pastilla es 44. */
-              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              <div ref={pastillasRef} style={{ position: "relative", display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                {/* EL RECUADRO QUE VIAJA. Va detrás de las pastillas (zIndex 0)
+                    y es el único que lleva el marco blanco: la pastilla activa
+                    ya no se pinta sola, se la señala este. La curva es la del
+                    resto de la app (0.32,0.72,0,1, la de iOS) y 240ms: alcanza
+                    para que el ojo lo siga sin que nadie espere. Con
+                    prefers-reduced-motion la regla global de App.jsx deja la
+                    transición en 0.01ms y el recuadro simplemente aparece en
+                    la serie tocada, sin viaje. */}
+                {marca && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      width: marca.w,
+                      height: marca.h,
+                      transform: `translate(${marca.x}px, ${marca.y}px)`,
+                      borderRadius: 8,
+                      border: "1px solid " + S.white,
+                      background: S.card2,
+                      pointerEvents: "none",
+                      zIndex: 0,
+                      transition: tocada ? "transform 240ms cubic-bezier(0.32,0.72,0,1)" : "none",
+                    }}
+                  />
+                )}
                 {listaVueltas.map((v, i) => {
                   const activa = i === vueltaActiva;
                   const cargada = v != null && v > 0;
                   return (
                     <button
                       key={i}
-                      onClick={() => setVueltaActiva(i)}
+                      data-serie={i}
+                      onClick={() => { setTocada(true); setVueltaActiva(i); }}
                       aria-label={`Serie ${i + 1}${cargada ? `: ${v}` : ", sin cargar"}`}
                       aria-pressed={activa}
+                      className="di-tap"
                       style={{
                         flex: "1 1 0",
                         // 44px es el piso táctil (iOS HIG / WCAG 2.5.5) y a la
@@ -358,17 +479,25 @@ export default function ItemCard({
                         minWidth: 44,
                         minHeight: TAP,
                         borderRadius: 8,
-                        border: "1px solid " + (activa ? S.white : S.border),
-                        background: activa ? S.card2 : "transparent",
+                        // El marco de la activa lo dibuja el recuadro de
+                        // arriba; acá queda transparente (no "none") para que
+                        // la pastilla mida igual activa que apagada.
+                        border: "1px solid " + (activa ? "transparent" : S.border),
+                        background: "transparent",
                         color: cargada ? S.white : S.lgray,
                         fontSize: TS.chip,
                         fontWeight: cargada ? 900 : 500,
                         cursor: "pointer",
                         padding: "4px 2px",
                         lineHeight: 1.2,
+                        zIndex: 1,
+                        transition: "color 160ms cubic-bezier(0.23,1,0.32,1)",
                       }}
                     >
-                      <span style={{ display: "block", color: S.gray, fontSize: 9, fontWeight: 700, letterSpacing: 0.3, whiteSpace: "nowrap" }}>SERIE {i + 1}</span>
+                      {/* La palabra SERIE se enciende en la activa: de un
+                          vistazo, a un metro y de pie, el contraste del rótulo
+                          es más rápido de leer que el marco solo. */}
+                      <span style={{ display: "block", color: activa ? S.white : S.gray, fontSize: 9, fontWeight: 700, letterSpacing: 0.3, whiteSpace: "nowrap", transition: "color 160ms cubic-bezier(0.23,1,0.32,1)" }}>SERIE {i + 1}</span>
                       {cargada ? String(v).replace(".", ",") : "—"}
                     </button>
                   );
