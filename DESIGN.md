@@ -64,14 +64,20 @@ diferencia con borde y sombra (en claro). Así los módulos se distinguen sin de
 3. **375px es el ancho de diseño**, no un caso borde: la usan desde el celular.
 4. **Cada cambio se ve andando** antes del commit. Hay datos de alumnos reales adentro.
 
-## Deuda medida (2026-08-17)
+## Deuda medida (2026-08-17, con `wc -l`)
 
 | Archivo | Líneas |
 |---|---|
-| `App.jsx` (en la **raíz**, no en `src/`) | **8720** |
-| `App_old.jsx` | 4420 — no lo importa ningún código |
-| `services/supabase.js` | 2540 |
-| `src/components/CatalogoExplorer.jsx` | 2044 |
+| `App.jsx` (en la **raíz**, no en `src/`) | **8825** |
+| `services/supabase.js` | 2845 |
+| `src/components/CatalogoExplorer.jsx` | 2097 |
+
+> El método importa: estos números salen de `wc -l`. Medir con `Get-Content \| Measure-Object -Line`
+> de PowerShell da entre 1 y 300 líneas menos según el archivo, y esa diferencia ya hizo que una
+> primera versión de esta tabla subestimara los cuatro valores.
+>
+> `App_old.jsx` (4420 líneas) se sacó del disco el 17/08: no lo importaba ningún archivo de código
+> y git había dejado de seguirlo en `75104e0`. Si hace falta: `git show 75104e0~1:App_old.jsx`.
 
 `App.jsx` es el archivo que hay que partir, y es cirugía: 856 bloques `style={{…}}`
 apoyados en los tokens de `theme.js`. **No se parte de una sentada ni sin la app corriendo
