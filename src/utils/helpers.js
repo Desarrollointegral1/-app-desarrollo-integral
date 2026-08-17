@@ -166,3 +166,5 @@ export function getSemanaActual(periodizacion) {
   }
   return 1;
 }
+
+export const ORDEN_DIAS = { Lunes: 1, Martes: 2, Miercoles: 3, Jueves: 4, Viernes: 5, Sabado: 6, Domingo: 7, Fijo: 8 };

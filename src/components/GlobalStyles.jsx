@@ -1,0 +1,21 @@
+// ── ESTILOS GLOBALES (animaciones) ────────────────────────────────────────────
+// 2026-07-30: prefers-reduced-motion apaga TODAS las animaciones — correcto
+// para transiciones de interfaz, pero de paso dejó fijo el logo pendulando
+// (.di-logo3d) del login, que Lucas pidió recuperar explícitamente. Es
+// identidad de marca, no una animación de UI: lenta (9s), sin parpadeo, sin
+// desplazamiento brusco — no dispara mareo vestibular, que es lo que la
+// preferencia intenta evitar. Se la exime puntualmente al final del media
+// query de abajo, el resto de la app sigue respetando la preferencia.
+export function GlobalStyles() {
+  return (
+    <style>{`      @keyframes diSlideUp {        from { opacity:0; transform:translateY(16px); }        to   { opacity:1; transform:translateY(0); }      }      @keyframes diFadeIn {        from { opacity:0; }        to   { opacity:1; }      }      @keyframes diPopIn {        0%   { opacity:0; transform:scale(0.88); }        65%  { transform:scale(1.04); }        100% { opacity:1; transform:scale(1); }      }      @keyframes diPulse {        0%,100% { box-shadow:0 0 0 0 rgba(76,175,80,0.45); }        50%     { box-shadow:0 0 0 10px rgba(76,175,80,0); }      }      @keyframes diSpin {        to { transform:rotate(360deg); }      }      @keyframes diSwing {        0% { transform:rotateY(0deg); }        25% { transform:rotateY(80deg); }        50% { transform:rotateY(0deg); }        75% { transform:rotateY(-80deg); }        100% { transform:rotateY(0deg); }      }      .di-logo3d { animation:diSwing 9s ease-in-out infinite; transform-style:preserve-3d; will-change:transform; backface-visibility:visible; }      .di-slide { animation:diSlideUp 0.22s ease both; }      .di-fade  { animation:diFadeIn  0.18s ease both; }      .di-pop   { animation:diPopIn   0.28s cubic-bezier(0.34,1.56,0.64,1) both; }      .di-pulse { animation:diPulse   1.6s ease infinite; }      button { -webkit-tap-highlight-color:transparent; transition:transform 0.1s,opacity 0.1s; }      button:active:not(:disabled) { transform:scale(0.95) !important; opacity:0.85; }      input,textarea,select { transition:border-color 0.15s,box-shadow 0.15s; }      input:focus,textarea:focus,select:focus { box-shadow:0 0 0 2px rgba(255,255,255,0.15); }      :focus-visible { outline:2px solid #fff; outline-offset:2px; }      .di-grid-cards { display:flex; flex-direction:column; gap:10px; }      /* 2026-08-14 · EL MARCADOR SE ENCIENDE AL TOCARLO. Pedido de Lucas: "que
+         se encienda cuando uno lo toque". La regla global de arriba encoge
+         todos los botones (scale .95 + opacity .85): eso ATENUA, y en el
+         stepper —fondo transparente adentro de una pastilla— solo se ve
+         achicarse el signo. Acá la respuesta es un velo de currentColor sobre
+         el area tocable entera: en oscuro aclara, en claro oscurece, y ocupa
+         los 44px del boton. Se prende en 0s (en el celular cualquier retardo
+         se lee como "no funciono") y se apaga en 160ms. Es opacity: no toca
+         layout y no retrasa el numero. */      .di-tap { position:relative; overflow:hidden; }      .di-tap::after { content:""; position:absolute; inset:0; border-radius:inherit; background:currentColor; opacity:0; pointer-events:none; transition:opacity 160ms cubic-bezier(0.23,1,0.32,1); }      .di-tap:active:not(:disabled)::after { opacity:0.16; transition-duration:0s; }      .di-tap:active:not(:disabled) { transform:none !important; opacity:1 !important; }      /* 2026-08-13: con el zoom del sistema al 200% el ancho util cae a ~188px y la sangria de 36px del casillero de peso deja al stepper sin lugar (se salia de la pantalla). Por debajo de 340px la sangria se va. */      @media (max-width:340px) { .di-sin-sangria-angosto { padding-left:0 !important; } }      @media (min-width:900px) { .di-grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; align-items:start; } }      @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; } .di-logo3d, .di-logo3d * { animation-duration:9s !important; animation-iteration-count:infinite !important; } }    `}</style>
+  );
+}
