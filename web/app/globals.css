@@ -36,6 +36,13 @@
   --red-border: rgba(229,72,77,0.30);
   --red-semi: rgba(229,72,77,0.12);
 
+  /* Rojo real de marca (#C50023, sampleado de las luces del gimnasio real,
+     Brand Kit v1.1). Solo para RELLENOS SÓLIDOS (botón, chip, punto de mapa)
+     con texto blanco encima — 6.18:1 de contraste, mejor que el --red anterior.
+     NUNCA como color de texto sobre --bg directo: da 2.84:1, no pasa AA. */
+  --red-solid: #C50023;
+  --red-solid-dark: #A1001C;
+
   /* COLORS - Background */
   --bg: #1B1917;
   --bg2: #211E1B;
@@ -86,7 +93,7 @@
   --space-4xl: 80px;
 
   /* SECTION RHYTHM */
-  --section-pad: 120px;
+  --section-pad: 160px;
 
   /* ANIMATION TIMING */
   --duration-instant: 100ms;
@@ -180,7 +187,7 @@ html { scroll-behavior: smooth; font-size: 16px; scroll-padding-top: 80px; }
   top: -100%;
   left: 16px;
   z-index: 9999;
-  background: var(--red);
+  background: var(--red-solid);
   color: #fff;
   padding: 8px 16px;
   font-size: 13px;
@@ -592,14 +599,14 @@ section { position: relative; }
 .hero-h1 {
   font-family: var(--sans);
   font-weight: 300;
-  font-size: clamp(36px, 5vw, 64px);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  font-size: clamp(40px, 6.5vw, 88px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
   color: var(--t1);
   margin: var(--space-xl) 0 0;
   display: flex;
   flex-direction: column;
-  max-width: 900px;
+  max-width: 980px;
 }
 
 .hero-line {
@@ -607,7 +614,7 @@ section { position: relative; }
 }
 
 .hero-line-em {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--t1);
 }
 
@@ -666,13 +673,13 @@ section { position: relative; }
 
 .hero-cta-primary {
   color: #fff;
-  background: var(--red);
-  border: 1px solid var(--red);
+  background: var(--red-solid);
+  border: 1px solid var(--red-solid);
 }
 
 .hero-cta-primary:hover {
-  background: var(--red-dark);
-  border-color: var(--red-dark);
+  background: var(--red-solid-dark);
+  border-color: var(--red-solid-dark);
 }
 
 .hero-cta-secondary {
@@ -1366,7 +1373,7 @@ button.method-header:focus-visible {
   transition: color 300ms var(--ease-out);
 }
 .map-link:hover { color: var(--t1); }
-.map-pin-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); margin: 0 auto 12px; }
+.map-pin-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red-solid); margin: 0 auto 12px; }
 
 /* ── IDENTIDAD (componente no montado — estilos neutros) ── */
 #identidad {
@@ -1405,14 +1412,16 @@ button.method-header:focus-visible {
 .identidad-list li:first-child { border-top: 1px solid var(--border-light); }
 .list-num {
   font-family: var(--sans);
-  font-size: 14px;
-  color: var(--t3);
+  font-size: 28px;
+  color: var(--red);
   flex-shrink: 0;
-  margin-top: 3px;
-  min-width: 32px;
-  font-weight: 500;
+  margin-top: -2px;
+  min-width: 56px;
+  font-weight: 300;
+  line-height: 1;
 }
 .list-text { font-size: 16px; color: var(--t2); line-height: 1.7; font-weight: 300; }
+.list-text strong { color: var(--t1); font-weight: 500; }
 
 /* ── QUÉ TE RESUELVE (matriz) ───────────────────────────── */
 .resuelve-table { border-top: 1px solid var(--border); margin-top: 48px; }
@@ -1555,7 +1564,7 @@ button.method-header:focus-visible {
 }
 .form-submit {
   width: 100%;
-  background: var(--red);
+  background: var(--red-solid);
   color: #fff;
   border: none;
   padding: 16px 32px;
@@ -1572,7 +1581,7 @@ button.method-header:focus-visible {
   gap: 8px;
   margin-top: 8px;
 }
-.form-submit:hover:not(:disabled) { background: var(--red-dark); }
+.form-submit:hover:not(:disabled) { background: var(--red-solid-dark); }
 .form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 .form-success {
   margin-top: 16px;
@@ -1656,7 +1665,7 @@ footer {
 
 /* Mobile (≤640px) */
 @media (max-width: 640px) {
-  :root { --section-pad: 72px; }
+  :root { --section-pad: 88px; }
 
   .container { padding: 0 20px; }
 
