@@ -608,7 +608,52 @@ section { position: relative; }
       rgba(20,18,16,0.00) 55%);
 }
 
-/* Content — un solo fade del bloque completo */
+/* ── Escudo que se dibuja sobre el video (patrón Koumori) ────────────
+   Secuencia: 0→1.6s se traza el contorno · 1.3→2.1s aparece el relleno ·
+   2.2→3.2s el escudo se retira a una marca de agua tenue y entra el título.
+   Solo stroke-dashoffset y opacity (compositor). Una sola vez por carga. */
+.hero-logo-draw {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: min(42vh, 60vw);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: hldSettle 1000ms var(--ease-in-out) 2200ms both;
+}
+.hld-stroke {
+  fill: rgba(255,255,255,0);
+  stroke: #FFFFFF;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 4200;
+  stroke-dashoffset: 4200;
+  animation:
+    hldDraw 1600ms var(--ease-in-out) 150ms forwards,
+    hldFill 800ms ease 1300ms forwards;
+}
+.hld-arms  { animation-delay: 550ms, 1500ms; }
+.hld-legs  { animation-delay: 850ms, 1600ms; }
+.hld-head  { fill: #FFFFFF; opacity: 0; animation: hldHead 500ms ease 1500ms forwards; }
+@keyframes hldDraw { to { stroke-dashoffset: 0; } }
+@keyframes hldFill { to { fill: rgba(255,255,255,0.92); } }
+@keyframes hldHead { to { opacity: 1; } }
+@keyframes hldSettle {
+  to { opacity: 0.06; transform: translate(-50%, -50%) scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-logo-draw { animation: none; opacity: 0.06; }
+  .hld-stroke { animation: none; stroke-dashoffset: 0; fill: rgba(255,255,255,0.92); }
+  .hld-head { animation: none; opacity: 1; }
+}
+@media (max-width: 640px) {
+  .hero-logo-draw { width: min(36vh, 70vw); }
+}
+
+/* Content — un solo fade del bloque completo, entra cuando el escudo se retira */
 @keyframes heroFade {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -625,7 +670,7 @@ section { position: relative; }
   align-items: flex-start;
   padding: 120px 80px 120px;
   min-height: 100svh;
-  animation: heroFade 0.6s var(--ease-out) 0.2s both;
+  animation: heroFade 0.7s var(--ease-out) 2.4s both;
 }
 
 /* Mayúsculas en SemiExtendedBold: la fuente es ancha, así que la escala

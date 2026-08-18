@@ -11,7 +11,6 @@ import IdentitySection from "./components/IdentitySection";
 import ComoTrabajamosSection from "./components/ComoTrabajamosSection";
 import PlatformSection from "./components/PlatformSection";
 import QueResuelveSection from "./components/QueResuelveSection";
-import TeamSection from "./components/TeamSection";
 import TestimonialSlider from "./components/TestimonialSlider";
 import CTAForm from "./components/CTAForm";
 import LocationSection from "./components/LocationSection";
@@ -87,9 +86,6 @@ export default function Home() {
 
         {/* QUÉ TE RESUELVE — Bloque 7 */}
         <QueResuelveSection rows={QUE_RESUELVE} />
-
-        {/* EQUIPO — Ariel editorial */}
-        <TeamSection />
 
         {/* TESTIMONIOS */}
         <TestimonialSlider testimonials={TESTIMONIALS} />

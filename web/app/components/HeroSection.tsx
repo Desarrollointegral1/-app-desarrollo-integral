@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import HeroLogoDraw from "./HeroLogoDraw";
 
 export function HeroSection() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -33,6 +34,9 @@ export function HeroSection() {
         )}
         <div className="hero-video-overlay" />
       </div>
+
+      {/* Escudo que se dibuja sobre el video al cargar (patrón Koumori) */}
+      <HeroLogoDraw />
 
       {/* Fórmula Equinox: título dominante + una línea + un solo CTA */}
       <div className="hero-inner">
