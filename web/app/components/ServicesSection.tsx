@@ -10,16 +10,29 @@ export function ServicesSection({ services }: ServicesSectionProps) {
   return (
     <section id="areas">
       <div className="container">
-        <p className="section-eyebrow fade-in">Áreas de trabajo</p>
-        <h2 className="section-h2 fade-in">Servicios</h2>
+        <p className="section-eyebrow fade-in">Nuestras modalidades</p>
+        <h2 className="section-h2 fade-in">Cuatro formas de entrenar</h2>
 
-        <div className="areas-grid">
-          {services.map((service) => (
-            <div key={service.title} className="area-item fade-in">
-              <p className="area-chip">{service.chip}</p>
-              <h3 className="area-title">{service.title}</h3>
-              <p className="area-desc">{service.desc}</p>
-            </div>
+        <div className="modalidades-grid">
+          {services.map((service, i) => (
+            <article key={service.title} className="modalidad-card fade-in">
+              <div className="modalidad-media">
+                <img
+                  src={service.image}
+                  alt={service.imageAlt}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <div className="modalidad-body">
+                <span className="modalidad-num" aria-hidden="true">
+                  {(i + 1).toString().padStart(2, "0")}
+                </span>
+                <h3 className="modalidad-title">{service.title}</h3>
+                <p className="modalidad-chip">{service.chip}</p>
+                <p className="modalidad-desc">{service.desc}</p>
+              </div>
+            </article>
           ))}
         </div>
       </div>

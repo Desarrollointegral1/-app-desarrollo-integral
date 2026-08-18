@@ -161,29 +161,42 @@ export type Service = {
   title: string;
   chip: string;
   desc: string;
-  icon?: string;
+  image: string;
+  imageAlt: string;
 };
 
+// Imágenes: generadas con IA ENCIMA de las fotos reales del gimnasio
+// (marca/fotos-gimnasio/), con los ejercicios reales que se entrenan acá.
+// Se reemplazan 1 a 1 por fotos del shoot cuando exista
+// (BRIEF-AUDIOVISUAL-WEB-2026-08-06.md).
 export const SERVICES: Service[] = [
   {
     title: "Entrenamiento personal",
     chip: "Progreso con guía directa",
     desc: "Sesiones uno a uno con plan propio: corrección técnica en vivo y cargas registradas en cada sesión.",
+    image: "/web/modalidades/entrenamiento-personal.webp",
+    imageAlt: "Sentadilla con barra en el rack de Desarrollo Integral",
   },
   {
     title: "Preparación física",
     chip: "Deportistas que compiten",
     desc: "Fuerza, potencia y resistencia planificadas por ciclos según tu calendario.",
+    image: "/web/modalidades/preparacion-fisica.webp",
+    imageAlt: "Peso muerto con barra en Desarrollo Integral",
   },
   {
     title: "Composición corporal",
     chip: "Decidir con datos, no con la balanza",
     desc: "Bioimpedancia periódica que mide masa muscular, grasa e hidratación en el tiempo.",
+    image: "/web/modalidades/composicion-corporal.webp",
+    imageAlt: "Medición de bioimpedancia en Desarrollo Integral",
   },
   {
     title: "Recuperación y osteopatía",
     chip: "Dolor o límite de movimiento",
     desc: "Osteopatía y kinesiología integradas al plan para volver a moverte sin riesgo.",
+    image: "/web/modalidades/recuperacion-osteopatia.webp",
+    imageAlt: "Remo con TRX en Desarrollo Integral",
   },
 ];
 

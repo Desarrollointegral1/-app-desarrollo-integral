@@ -46,7 +46,7 @@ export default function Home() {
       },
       { threshold: 0.08, rootMargin: "-32px 0px" }
     );
-    document.querySelectorAll(".fade-in").forEach((el) => io.observe(el));
+    document.querySelectorAll(".fade-in, .reveal-clip").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 

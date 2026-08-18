@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LOCATION } from "../data";
 
 export function HeroSection() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    // Check viewport size for lazy video loading (Performance Spec)
-    const checkViewport = () => {
-      setIsDesktop(window.innerWidth >= 768);
-    };
+    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
     checkViewport();
     window.addEventListener("resize", checkViewport);
     return () => window.removeEventListener("resize", checkViewport);
@@ -18,66 +14,37 @@ export function HeroSection() {
 
   return (
     <section id="hero">
-      {/* Background Media: Poster eager-loaded, Video lazy on desktop only */}
+      {/* Fondo: poster eager (frame 0 del video), video lazy solo en desktop.
+          Video: push-in lento sobre el gimnasio real, generado con Veo 3.1 a
+          partir de un frame maestro compuesto sobre las fotos reales
+          (marca/fotos-gimnasio/). 8s, 1.3 MB, sin audio, sin gente. */}
       <div className="hero-video-wrap" aria-hidden="true">
         <img
-          src="/web/espacio/gym.webp"
+          src="/web/espacio/hero-poster.webp"
           alt=""
           className="hero-poster"
           fetchPriority="high"
           loading="eager"
         />
         {isDesktop && (
-          <video
-            className="hero-video"
-            autoPlay
-            muted
-            playsInline
-            loop
-            preload="none"
-          >
-            <source src="/web/espacio/video.mp4" type="video/mp4" />
+          <video className="hero-video" autoPlay muted playsInline loop preload="none">
+            <source src="/web/espacio/hero.mp4" type="video/mp4" />
           </video>
         )}
         <div className="hero-video-overlay" />
       </div>
 
-      {/* Content — un solo fade CSS del bloque completo */}
+      {/* Fórmula Equinox: título dominante + una línea + un solo CTA */}
       <div className="hero-inner">
-        <div className="hero-top">
-          <p className="hero-eyebrow">El bienestar empieza con el movimiento</p>
-        </div>
-
         <h1 className="hero-h1">
-          <span className="hero-line">Entrenamiento personalizado</span>
-          <span className="hero-line hero-line-em">para moverte, rendir y vivir mejor</span>
+          <span className="hero-line">Entrenamiento</span>
+          <span className="hero-line">personalizado</span>
+          <span className="hero-line">de precisión</span>
         </h1>
-
-        <div className="hero-bottom">
-          <p className="hero-desc">
-            Evaluamos tu punto de partida, diseñamos un plan de entrenamiento y
-            acompañamos cada sesión con seguimiento profesional y una plataforma propia.
-          </p>
-
-          <div className="hero-cta-col">
-            <div className="hero-cta-group">
-              <a href="#cierre" className="hero-cta hero-cta-primary">
-                Solicitar evaluación
-              </a>
-              <a href="#metodo" className="hero-cta hero-cta-secondary">
-                Conocer el método
-              </a>
-            </div>
-            <p className="hero-microcopy">
-              {LOCATION.address}, Belgrano · Respondemos en el día
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Scroll hint visual */}
-      <div className="hero-scroll-hint" aria-hidden="true">
-        <span className="hero-scroll-line" />
+        <p className="hero-tagline">El bienestar empieza con el movimiento.</p>
+        <a href="#cierre" className="hero-cta hero-cta-primary">
+          Solicitar evaluación
+        </a>
       </div>
     </section>
   );
