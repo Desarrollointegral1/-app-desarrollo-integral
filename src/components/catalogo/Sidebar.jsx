@@ -89,7 +89,7 @@ export function Sidebar({
           estaba al fondo de una columna de filtros, así que se leía como un
           filtro más del catálogo cuando en realidad NAVEGA a otra biblioteca
           (tabla distinta). Se mudó arriba, fuera de la zona de filtros, como
-          bloque de navegación rotulado. Ver `navPropia`. */}
+          bloque de navegación rotulado (hoy vive adentro de PantallaPreparacion). */}
     </div>
   );
 }

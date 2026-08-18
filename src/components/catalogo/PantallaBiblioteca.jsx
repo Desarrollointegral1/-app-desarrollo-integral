@@ -10,7 +10,6 @@ export function PantallaBiblioteca({
   grid,
   isWide,
   mostrarFiltros,
-  navPropia,
   onClose,
   setMostrarFiltros,
   setPantalla,
@@ -76,7 +75,6 @@ export function PantallaBiblioteca({
           <CalendarRange size={16} strokeWidth={2} />Periodizaciones
         </button>
       </div>
-      {navPropia}
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isWide ? "row" : "column", gap: isWide ? 14 : 10 }}>
         {(isWide || mostrarFiltros) && sidebar}
         {grid}

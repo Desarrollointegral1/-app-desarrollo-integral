@@ -108,16 +108,6 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     // campos (nombre, clave, video) — todo lo demás no aplica.
     [nvideo, setNvideo] = useState(""),
     [nsubiendo, setNsubiendo] = useState(false);
-  // Fecha de evaluación POR ALUMNO (ronda 4): es la fecha en que el entrenador
-  // evaluó a ESE alumno. Vive dentro del jsonb `rm` como `fecha_evaluacion` —
-  // sin migración nueva. Se guarda apenas se cambia.
-  const setFechaEvalAlumno = (v) => {
-    if (!al) return;
-    setRm((r) => ({ ...r, [al.id]: { ...r[al.id], fecha_evaluacion: v } }));
-    const rmNuevo = { ...(rm[al.id] || al.rm || {}), fecha_evaluacion: v };
-    onUpdate(alumnos.map((a) => (a.id === al.id ? { ...a, rm: rmNuevo } : a)));
-    showToast && showToast("Fecha de evaluación guardada");
-  };
   // Movilidad PREDETERMINADA por alumno (ronda 5): con cuál de las 3 versiones
   // (superrapida/corta/completa) arranca el alumno al entrar. Vive en el jsonb
   // `rm` como `movilidad_default` — sin migración nueva. El alumno puede
@@ -398,10 +388,6 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
     } else {
       showToast && showToast("Error al propagar . Revisá la consola");
     }
-  };
-  const guardarRM = () => {
-    onUpdate(alumnos.map((a) => ({ ...a, rm: rm[a.id] || a.rm })));
-    showToast && showToast("Guardado");
   };
 
   // ── REPORTE MENSUAL INSTITUCIONAL (ronda 5) ──
@@ -822,17 +808,17 @@ export function AdminPanel({ alumnos, onUpdate, onClose, showToast, biblioteca =
         {/* ── Grupo PLANES: Periodización · Plan x día (ronda 10: se sacó el
             subtab "Eval. peso max" de acá — Lucas ahora carga los pesos
             máximos entrando como el alumno vía Modo Entrenador, no desde el
-            admin. El bloque planesTab==="rm" de abajo queda en el código sin
-            usar, ya no es alcanzable desde esta fila de tabs. ── */}
+            admin; el bloque planesTab==="rm" que quedaba sin usar se borró
+            el 2026-08-18). ── */}
         {sec === "planes" && <SeccionPlanes
           agregandoDia={agregandoDia} al={al} asignarPeriodizacion={asignarPeriodizacion}
           guardarPeriodizacionAlumno={guardarPeriodizacionAlumno}
-          guardarPeriodizacionDelDia={guardarPeriodizacionDelDia} guardarRM={guardarRM}
+          guardarPeriodizacionDelDia={guardarPeriodizacionDelDia}
           hacerPeriodizacionPropiaDelDia={hacerPeriodizacionPropiaDelDia} perDiaSel={perDiaSel}
-          perNombres={perNombres} planesTab={planesTab} rm={rm} sacarPeriodizacion={sacarPeriodizacion}
+          perNombres={perNombres} planesTab={planesTab} sacarPeriodizacion={sacarPeriodizacion}
           selectedDia={selectedDia} selectorDePlan={selectorDePlan} setAgregandoDia={setAgregandoDia}
-          setFechaEvalAlumno={setFechaEvalAlumno} setPerDiaSel={setPerDiaSel} setPlanesTab={setPlanesTab}
-          setRm={setRm} setSelectedDia={setSelectedDia} volverACompartirPeriodizacion={volverACompartirPeriodizacion}
+          setPerDiaSel={setPerDiaSel} setPlanesTab={setPlanesTab} setSelectedDia={setSelectedDia}
+          volverACompartirPeriodizacion={volverACompartirPeriodizacion}
           volverPeriodizacionGlobal={volverPeriodizacionGlobal}
         />}{" "}
         {/* ── Grupo REPORTES: Asistencia · Historial ──

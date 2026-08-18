@@ -1,8 +1,8 @@
-import { Calendar, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { PeriodizacionEditor } from "../../components/editores/PeriodizacionEditor.jsx";
-import { ORDEN_DIAS, RM_EJS } from "../../utils/helpers.js";
+import { ORDEN_DIAS } from "../../utils/helpers.js";
 import { esPeriodizacionDiaPropia, esPeriodizacionPropia, etiquetaPeriodizacion, NIVELES as NIVELES_PER, OBJETIVOS as OBJETIVOS_PER, periodizacionDelDia, refPeriodizacion, tienePeriodizacion } from "../../utils/periodizacion.js";
-import { card, innerCard, inp, S, segChip, segTrack, smallBtn } from "../../utils/theme.js";
+import { card, innerCard, S, segChip, segTrack, smallBtn } from "../../utils/theme.js";
 
 // Sección "planes" del AdminPanel. Solo JSX: todo el estado y los
 // handlers viven en AdminPanel.jsx y llegan por props (refactor 2026-08-17).
@@ -12,20 +12,16 @@ export function SeccionPlanes({
   asignarPeriodizacion,
   guardarPeriodizacionAlumno,
   guardarPeriodizacionDelDia,
-  guardarRM,
   hacerPeriodizacionPropiaDelDia,
   perDiaSel,
   perNombres,
   planesTab,
-  rm,
   sacarPeriodizacion,
   selectedDia,
   selectorDePlan,
   setAgregandoDia,
-  setFechaEvalAlumno,
   setPerDiaSel,
   setPlanesTab,
-  setRm,
   setSelectedDia,
   volverACompartirPeriodizacion,
   volverPeriodizacionGlobal,
@@ -342,102 +338,6 @@ export function SeccionPlanes({
           );
         })()}{" "}
       </div>{" "}
-      {planesTab === "rm" && (
-        <div>
-          {" "}
-          {/* Fecha de evaluación POR ALUMNO: cuándo se lo evaluó a ESTE alumno.
-              Ronda 7: Peso Max aplica a TODOS — sin filtro por modalidad. */}
-          {al && (
-            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 14, color: S.gray, letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Calendar size={13} />Fecha de evaluación de {al.nombre}</span>
-              </div>
-              <input
-                type="date"
-                value={(rm[al.id] && rm[al.id].fecha_evaluacion) || (al.rm && al.rm.fecha_evaluacion) || ""}
-                onChange={(e) => setFechaEvalAlumno(e.target.value)}
-                style={inp}
-              />
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: S.gray, letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
-            Peso máximo · {al ? al.nombre : "—"}
-          </div>{" "}
-          {!al && <div style={{ ...card, padding: 24, textAlign: "center", color: S.gray, fontSize: 13 }}>Seleccioná un alumno desde Dashboard</div>}{" "}
-          {al &&
-            RM_EJS.map((ej) => (
-              <div key={ej} style={{ ...card, marginBottom: 8, padding: "12px 14px" }}>
-                {" "}
-                <div style={{ color: S.white, fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{ej}</div>{" "}
-                {/* Solo el peso — la fecha de evaluación es UNA por alumno (arriba) */}
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 14, color: S.gray, marginBottom: 4 }}>PESO MAXIMO (kg)</div>
-                  {/* Auditoría 2026-07-30: el peso máximo se carga en kg y
-                      admite decimales (62.5). `inputMode="decimal"` abre el
-                      teclado numérico con separador en vez del alfabético. */}
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="0"
-                    value={(rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso) || ""}
-                    onChange={(e) =>
-                      setRm((r) => {
-                        const n = { ...r };
-                        n[al.id] = { ...n[al.id] };
-                        n[al.id][ej] = { ...n[al.id][ej], peso: Number(e.target.value) };
-                        return n;
-                      })
-                    }
-                    style={inp}
-                  />
-                </div>{" "}
-                {rm[al.id] && rm[al.id][ej] && rm[al.id][ej].peso > 0 && (
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {" "}
-                    {[60, 65, 70, 75, 80, 85, 90, 95].map((pct) => (
-                      <div
-                        key={pct}
-                        style={{
-                          background: S.card2,
-                          borderRadius: 6,
-                          padding: "4px 8px",
-                          textAlign: "center",
-                          flex: 1,
-                          minWidth: 44,
-                        }}
-                      >
-                        <div style={{ color: S.white, fontSize: 12, fontWeight: 700 }}>
-                          {Math.round((rm[al.id][ej].peso * pct) / 100)}kg
-                        </div>
-                        <div style={{ color: S.gray, fontSize: 14 }}>{pct}%</div>
-                      </div>
-                    ))}{" "}
-                  </div>
-                )}{" "}
-              </div>
-            ))}{" "}
-          {al && (
-            <button
-              onClick={guardarRM}
-              style={{
-                width: "100%",
-                marginTop: 8,
-                background: S.white,
-                color: S.bg,
-                border: "none",
-                borderRadius: 8,
-                padding: 14,
-                fontSize: 14,
-                fontWeight: 900,
-                cursor: "pointer",
-              }}
-            >
-              GUARDAR
-            </button>
-          )}{" "}
-        </div>
-      )}
     </>
   );
 }

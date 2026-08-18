@@ -811,8 +811,8 @@ export default function CatalogoExplorer({
   // pantalla. Queda UNA sola en la barra de acciones — la que nombra lo que
   // hay adentro ("Movilidad y entrada en calor") — y el acceso a la lista de
   // rutinas propias baja un nivel, adentro de esa pantalla, que es donde
-  // corresponde por tema. Ver `pantallaPreparacion`.
-  const navPropia = null;
+  // corresponde por tema. Ver `pantallaPreparacion`. (El `navPropia = null`
+  // que quedaba acá como resto se borró el 2026-08-18.)
 
   const grid = <Grid
     abrirDetalle={abrirDetalle} agregarAlCarrito={agregarAlCarrito} archivarRapido={archivarRapido}
@@ -935,7 +935,7 @@ export default function CatalogoExplorer({
   />;
 
   const pantallaBiblioteca = <PantallaBiblioteca
-    abrirNuevo={abrirNuevo} grid={grid} isWide={isWide} mostrarFiltros={mostrarFiltros} navPropia={navPropia}
+    abrirNuevo={abrirNuevo} grid={grid} isWide={isWide} mostrarFiltros={mostrarFiltros}
     onClose={onClose} setMostrarFiltros={setMostrarFiltros} setPantalla={setPantalla} sidebar={sidebar}
   />;
 
