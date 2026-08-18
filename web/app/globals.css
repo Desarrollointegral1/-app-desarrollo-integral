@@ -225,6 +225,14 @@ html { scroll-behavior: smooth; font-size: 16px; scroll-padding-top: 80px; }
   transform: scale(0.97);
   transition: transform 160ms var(--ease-out);
 }
+/* Piso táctil 44px para links secundarios que visualmente son texto chico
+   (auditoría 2026-08-18: medían 15-41px). El alto visual no cambia; el
+   área de toque se extiende con padding vertical simétrico. */
+.ariel-cta, .map-link, .griselda-link, .nav-toggle-theme {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
 /* (reduced-motion global ya está al final del archivo) */
 
 body {
@@ -322,7 +330,12 @@ body {
   transition: color 200ms ease;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
+  /* Piso táctil 44px sin cambiar el aspecto: el link mide 23px de texto,
+     el padding vertical extiende el área de toque (auditoría 2026-08-18). */
+  min-height: 44px;
+  padding: 0 4px;
 }
 
 .nav-link:hover,
@@ -375,6 +388,9 @@ body {
   border: 1px solid rgba(237,235,231,0.25);
   color: var(--t1);
   padding: var(--space-sm) var(--space-lg);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -872,10 +888,12 @@ section { position: relative; }
   display: flex;
   align-items: baseline;
   gap: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   font: inherit;
   color: inherit;
   letter-spacing: inherit;
+  min-height: 44px;
+  padding: 8px 0;
 }
 button.method-header {
   border-radius: 0;
