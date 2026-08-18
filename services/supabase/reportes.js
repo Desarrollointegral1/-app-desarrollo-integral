@@ -1,4 +1,5 @@
 import { supabase, LOG, ERR } from "./cliente.js";
+import { resumirPesos } from "../../src/utils/pesos.js";
 
 // ────────────────────────────────────────────────────────────────────────
 // REPORTE MENSUAL: Obtener datos del mes para admin
@@ -38,26 +39,11 @@ export async function getMonthlyReport(alumno_id, mes_yyyy_mm) {
     const asistencias = registros?.filter(r => r.presente).length || 0;
     const totalDias = registros?.length || 0;
 
-    // Calcular pesos promedio
-    const pesosPromedio = {};
-    registros?.forEach(reg => {
-      if (reg.pesos) {
-        Object.entries(reg.pesos).forEach(([ejercicio, peso]) => {
-          if (!pesosPromedio[ejercicio]) pesosPromedio[ejercicio] = [];
-          pesosPromedio[ejercicio].push(Number(peso));
-        });
-      }
-    });
-
-    Object.keys(pesosPromedio).forEach(ejercicio => {
-      const pesos = pesosPromedio[ejercicio];
-      pesosPromedio[ejercicio] = {
-        promedio: (pesos.reduce((a, b) => a + b) / pesos.length).toFixed(2),
-        maximo: Math.max(...pesos),
-        minimo: Math.min(...pesos),
-        registros: pesos.length,
-      };
-    });
+    // Pesos por ejercicio (promedio, máximo, mínimo, días con carga).
+    // Antes hacía Number(peso) directo: con el formato por vuelta (array,
+    // 2026-08-09) daba NaN y arruinaba el promedio del mes. Ahora cada día
+    // aporta su peso representativo, en src/utils/pesos.js.
+    const pesosPromedio = resumirPesos(registros);
 
     const ultimaBio = bioData?.[0] || null;
 

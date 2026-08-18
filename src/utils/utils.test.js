@@ -69,7 +69,7 @@ import {
 } from "./estructuraDia.js";
 import {
   vueltasDe, vueltasCargadas, pesoRepresentativo, volumenDe,
-  setVuelta, cantidadDeVueltas, resumenVueltas,
+  setVuelta, cantidadDeVueltas, resumenVueltas, resumirPesos,
 } from "./pesos.js";
 import { unidadDe, unidadPorRegla, ETIQUETA_HOY } from "./unidades.js";
 // Con qué se hace cada ejercicio: de ahí salen la unidad y la línea de ayuda.
@@ -81,6 +81,29 @@ import {
   varianteAPlan, agruparVariantes, indexarCatalogo, etiquetaVariante,
   SIN_PLAN, planVacio, planDeEleccion, valorVariante,
 } from "./planVariantes.js";
+
+describe("resumirPesos (reporte mensual)", () => {
+  it("un mes con vueltas en array no da NaN: cada día aporta su peso máximo", () => {
+    // Bug real (2026-08-18): getMonthlyReport hacía Number(peso) y con el
+    // formato por vuelta (array) el promedio del mes salía "NaN".
+    const registros = [
+      { fecha: "2026-08-04", pesos: { pm: [60, 62.5, 65], sq: 80 } },
+      { fecha: "2026-08-06", pesos: { pm: [null, 70], sq: "82.5" } },
+      { fecha: "2026-08-08", pesos: { pm: 0, sq: [null, null], dl: "" } },
+      { fecha: "2026-08-11", presente: true },
+      { fecha: "2026-08-13", pesos: null },
+    ];
+    expect(resumirPesos(registros)).toEqual({
+      pm: { promedio: "67.50", maximo: 70, minimo: 65, registros: 2 },
+      sq: { promedio: "81.25", maximo: 82.5, minimo: 80, registros: 2 },
+    });
+  });
+  it("sin registros o sin pesos devuelve un objeto vacío, no revienta", () => {
+    expect(resumirPesos([])).toEqual({});
+    expect(resumirPesos(undefined)).toEqual({});
+    expect(resumirPesos([{ pesos: { pm: [null] } }])).toEqual({});
+  });
+});
 
 describe("peso por vuelta", () => {
   it("un dato viejo (un número suelto) se lee como una sola vuelta", () => {

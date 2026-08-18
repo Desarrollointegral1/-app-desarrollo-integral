@@ -74,6 +74,37 @@ export function cantidadDeVueltas(valorActual, seriesDelPlan) {
   return Math.max(base, cargadas, 1);
 }
 
+/**
+ * Resumen por ejercicio de un conjunto de registros diarios (reporte mensual):
+ * promedio, máximo, mínimo y cantidad de días con carga.
+ *
+ * Cada día aporta su `pesoRepresentativo` (el máximo del día), así el formato
+ * por vuelta (array) y el viejo (número) se leen igual. Los días sin carga
+ * (`0`, `null`, `""`, array de huecos) no cuentan: antes entraban como
+ * `Number(array)` = NaN y arruinaban el promedio del mes entero (2026-08-18).
+ */
+export function resumirPesos(registros) {
+  const porEjercicio = {};
+  for (const reg of registros || []) {
+    if (!reg?.pesos || typeof reg.pesos !== "object") continue;
+    for (const [ejercicio, valor] of Object.entries(reg.pesos)) {
+      const p = pesoRepresentativo(valor);
+      if (!(p > 0)) continue;
+      (porEjercicio[ejercicio] ||= []).push(p);
+    }
+  }
+  const resumen = {};
+  for (const [ejercicio, pesos] of Object.entries(porEjercicio)) {
+    resumen[ejercicio] = {
+      promedio: (pesos.reduce((a, b) => a + b, 0) / pesos.length).toFixed(2),
+      maximo: Math.max(...pesos),
+      minimo: Math.min(...pesos),
+      registros: pesos.length,
+    };
+  }
+  return resumen;
+}
+
 /** Texto corto para mostrar las vueltas de un día. Ej: "60 · 62,5 · 65" */
 export function resumenVueltas(valor) {
   const v = vueltasCargadas(valor);
