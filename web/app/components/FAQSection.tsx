@@ -29,7 +29,7 @@ export function FAQSection({ items }: FAQSectionProps) {
                 <button
                   id={headerId}
                   aria-expanded={isOpen}
-                  aria-controls={panelId}
+                  aria-controls={isOpen ? panelId : undefined}
                   className="faq-header"
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                 >

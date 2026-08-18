@@ -13,6 +13,9 @@ export function Footer() {
         <img
           src={LOGO_WHITE}
           alt="Desarrollo Integral"
+          loading="lazy"
+          width={60}
+          height={40}
           style={{
             height: 40,
             width: "auto",
@@ -25,7 +28,7 @@ export function Footer() {
         />
       </a>
 
-      <p className="footer-brandline">Wellness starts with movement</p>
+      <p className="footer-brandline">El bienestar empieza con el movimiento</p>
 
       <p className="footer-copy">
         © {currentYear} Desarrollo Integral · {LOCATION.address}, {LOCATION.floor} · Buenos Aires

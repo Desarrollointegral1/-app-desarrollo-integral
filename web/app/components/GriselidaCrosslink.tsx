@@ -14,7 +14,7 @@ export function GriselidaCrosslink() {
     >
       <div className="container">
         <div
-          className="fade-in"
+          className="fade-in griselda-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "auto 1fr",
@@ -38,6 +38,10 @@ export function GriselidaCrosslink() {
             <img
               src="/web/Griselda/head-sonriendo.jpeg"
               alt="Griselda Politino"
+              loading="lazy"
+              decoding="async"
+              width={88}
+              height={110}
               style={{
                 width: "100%",
                 height: "100%",
@@ -74,7 +78,7 @@ export function GriselidaCrosslink() {
                 letterSpacing: "-0.005em",
               }}
             >
-              Griselda Politino — Kinesióloga &amp; Osteópata
+              Griselda Politino, kinesióloga y osteópata
             </h2>
 
             <p

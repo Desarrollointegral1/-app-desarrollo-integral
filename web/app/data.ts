@@ -248,7 +248,7 @@ export type FAQItem = {
 export const FAQ: FAQItem[] = [
   {
     question: "¿Necesito experiencia previa para empezar?",
-    answer: "No — atiende desde quien nunca entrenó hasta deportistas, de los 15 a los 90 años.",
+    answer: "No. Atiende desde quien nunca entrenó hasta deportistas, de los 15 a los 90 años.",
   },
   {
     question: "¿Cómo es la primera sesión?",
@@ -260,7 +260,7 @@ export const FAQ: FAQItem[] = [
   },
   {
     question: "Vengo con una lesión o derivado de kinesiología, ¿puedo entrenar igual?",
-    answer: "Sí — osteopatía y kinesiología están integradas al plan de entrenamiento.",
+    answer: "Sí. Osteopatía y kinesiología están integradas al plan de entrenamiento.",
   },
   {
     question: "¿Puedo ver mi progreso?",

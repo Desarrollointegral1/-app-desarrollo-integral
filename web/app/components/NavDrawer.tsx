@@ -136,6 +136,7 @@ export function NavDrawer({ isOpen, onClose, items }: NavDrawerProps) {
         aria-modal="true"
         aria-label="Menú de navegación móvil"
         aria-hidden={!isOpen}
+        inert={!isOpen}
         style={{
           transform: isOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 300ms cubic-bezier(0.23, 1, 0.32, 1)",
@@ -185,13 +186,6 @@ export function NavDrawer({ isOpen, onClose, items }: NavDrawerProps) {
           })}
         </nav>
 
-        {/* Premium Branding Badge */}
-        <div className="nav-drawer-footer" aria-hidden="true">
-          <div className="nav-drawer-badge">
-            <span className="nav-drawer-badge-icon">DI</span>
-            <span className="nav-drawer-badge-text">Premium Experience</span>
-          </div>
-        </div>
       </aside>
     </>
   );

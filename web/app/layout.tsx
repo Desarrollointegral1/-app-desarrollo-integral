@@ -21,6 +21,14 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/* La fuente del H1 (LCP) se descubre desde el HTML, no recién desde el CSS */}
+        <link
+          rel="preload"
+          href="/web/fonts/pp-formula/PPFormula-SemiExtendedBold.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         {/* Aplica el tema persistido antes del primer paint (evita flash) */}
         <script
           dangerouslySetInnerHTML={{

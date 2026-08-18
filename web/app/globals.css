@@ -1,7 +1,8 @@
 /* FONTS */
 @font-face {
   font-family: 'PP Formula';
-  src: url('/web/fonts/pp-formula/PPFormula-Light.otf') format('opentype');
+  src: url('/web/fonts/pp-formula/PPFormula-Light.woff2') format('woff2'),
+       url('/web/fonts/pp-formula/PPFormula-Light.otf') format('opentype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -9,7 +10,8 @@
 
 @font-face {
   font-family: 'PP Formula';
-  src: url('/web/fonts/pp-formula/PPFormula-Medium.otf') format('opentype');
+  src: url('/web/fonts/pp-formula/PPFormula-Medium.woff2') format('woff2'),
+       url('/web/fonts/pp-formula/PPFormula-Medium.otf') format('opentype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -17,7 +19,8 @@
 
 @font-face {
   font-family: 'PP Formula';
-  src: url('/web/fonts/pp-formula/PPFormula-SemiExtendedBold.otf') format('opentype');
+  src: url('/web/fonts/pp-formula/PPFormula-SemiExtendedBold.woff2') format('woff2'),
+       url('/web/fonts/pp-formula/PPFormula-SemiExtendedBold.otf') format('opentype');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -233,6 +236,19 @@ html { scroll-behavior: smooth; font-size: 16px; scroll-padding-top: 80px; }
   display: inline-flex;
   align-items: center;
 }
+.nav-toggle-theme { min-width: 44px; justify-content: center; }
+/* Hover solo con puntero fino (Emil): en touch el "hover" queda pegado tras
+   el tap y se ve como estado roto. Anula los :hover de superficie y de nav
+   cuando no hay hover real. */
+@media (hover: none), (pointer: coarse) {
+  .stat-card:hover, .method-card:hover { background: transparent; }
+  .feature-item:hover { background: inherit; }
+  .nav-cta:hover, .nav-button:hover { background: transparent; border-color: rgba(237,235,231,0.25); color: var(--t1); }
+  .nav-link:hover { color: var(--t2); }
+  .nav-link:hover .nav-link-underline { width: 0; }
+  .nav-logo-link:hover { opacity: 1; }
+  .ariel-cta:hover, .map-link:hover, .griselda-link:hover { color: inherit; }
+}
 /* (reduced-motion global ya está al final del archivo) */
 
 body {
@@ -270,7 +286,7 @@ body {
   gap: var(--space-md);
   text-decoration: none;
   cursor: pointer;
-  transition: opacity 200ms ease;
+  transition: opacity 200ms var(--ease-out);
 }
 
 .nav-logo-link:hover {
@@ -327,7 +343,7 @@ body {
   font-size: 13px;
   color: var(--t2);
   text-decoration: none;
-  transition: color 200ms ease;
+  transition: color 200ms var(--ease-out);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -371,7 +387,7 @@ body {
   color: var(--t2);
   display: none;
   line-height: 0;
-  transition: color 200ms ease;
+  transition: color 200ms var(--ease-out);
 }
 
 .nav-toggle-theme:hover {
@@ -412,14 +428,14 @@ body {
   appearance: none;
   background: none;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
   cursor: pointer;
-  padding: 0;
+  padding: 6px; box-sizing: border-box; margin-right: -6px;
 }
 
 @media (min-width: 1024px) {
@@ -480,7 +496,7 @@ body {
   position: absolute;
   top: var(--space-md);
   right: var(--space-md);
-  transition: color 200ms ease;
+  transition: color 200ms var(--ease-out);
 }
 
 .nav-drawer-close:hover {
@@ -499,7 +515,7 @@ body {
   text-decoration: none;
   padding: var(--space-lg) 0;
   border-bottom: 1px solid var(--border-light);
-  transition: color 200ms ease;
+  transition: color 200ms var(--ease-out);
 }
 
 .nav-drawer-link:hover {
@@ -534,6 +550,7 @@ section { position: relative; }
 
 /* ── DISPLAY H2 (compartido) ───────────────────────────────── */
 .section-h2 {
+  text-wrap: balance;
   font-family: var(--sans);
   font-size: clamp(32px, 4vw, 52px);
   font-weight: 300;
@@ -621,7 +638,7 @@ section { position: relative; }
   height: auto;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  animation: hldSettle 1000ms var(--ease-in-out) 2200ms both;
+  animation: hldSettle 700ms var(--ease-in-out) 1900ms both;
 }
 .hld-stroke {
   fill: rgba(255,255,255,0);
@@ -631,13 +648,13 @@ section { position: relative; }
   stroke-linejoin: round;
   stroke-dasharray: 4200;
   stroke-dashoffset: 4200;
-  animation:
-    hldDraw 1600ms var(--ease-in-out) 150ms forwards,
-    hldFill 800ms ease 1300ms forwards;
+  animation: hldDraw 1600ms var(--ease-in-out) 150ms forwards;
 }
-.hld-arms  { animation-delay: 550ms, 1500ms; }
-.hld-legs  { animation-delay: 850ms, 1600ms; }
-.hld-head  { fill: #FFFFFF; opacity: 0; animation: hldHead 500ms ease 1500ms forwards; }
+/* El escudo queda solo en trazo; la figura (brazos, piernas, cabeza) se
+   rellena de blanco. Asi la figura no desaparece dentro de un bloque blanco. */
+.hld-arms  { animation: hldDraw 1600ms var(--ease-in-out) 550ms forwards, hldFill 700ms var(--ease-out) 1500ms forwards; }
+.hld-legs  { animation: hldDraw 1600ms var(--ease-in-out) 850ms forwards, hldFill 700ms var(--ease-out) 1600ms forwards; }
+.hld-head  { fill: #FFFFFF; opacity: 0; animation: hldHead 500ms var(--ease-out) 1500ms forwards; }
 @keyframes hldDraw { to { stroke-dashoffset: 0; } }
 @keyframes hldFill { to { fill: rgba(255,255,255,0.92); } }
 @keyframes hldHead { to { opacity: 1; } }
@@ -670,7 +687,7 @@ section { position: relative; }
   align-items: flex-start;
   padding: 120px 80px 120px;
   min-height: 100svh;
-  animation: heroFade 0.7s var(--ease-out) 2.4s both;
+  animation: heroFade 0.7s var(--ease-out) 2.3s both;
 }
 
 /* Mayúsculas en SemiExtendedBold: la fuente es ancha, así que la escala
@@ -839,6 +856,8 @@ section { position: relative; }
   object-fit: cover;
   display: block;
 }
+/* La foto de Vision es horizontal en caja vertical: centrar en la alumna (68%). */
+#manifiesto .split-media img { object-position: 68% 50%; }
 /* Reveal: oculta desde abajo, se abre al entrar. El IO de page.tsx agrega
    .visible a cualquier .reveal-clip igual que a .fade-in. */
 .reveal-clip {
@@ -895,6 +914,7 @@ section { position: relative; }
 }
 
 .manifiesto-cierre {
+  text-wrap: pretty;
   font-family: var(--sans);
   font-size: clamp(16px, 1.3vw, 19px);
   line-height: 1.7;
@@ -976,7 +996,7 @@ button.method-header:focus-visible {
 }
 .method-quick { margin-bottom: 8px; }
 .quick-item {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   padding: 8px 0;
   border-bottom: 1px solid var(--border-light);
@@ -985,8 +1005,13 @@ button.method-header:focus-visible {
   gap: 10px;
 }
 /* Panel de detalle a ancho completo, debajo de la fila de pilares */
-.method-detail { overflow: hidden; }
+/* El panel es hijo directo de la grilla, hermano de su tarjeta. En desktop
+   y tablet ocupa toda la fila y cae debajo de los pilares (order alto); en
+   mobile (1 columna) se queda justo debajo de su botón (order natural). */
+.method-detail { overflow: hidden; grid-column: 1 / -1; order: 99; }
+@media (max-width: 640px) { .method-detail { order: 0; } }
 .detail-description {
+  text-wrap: pretty;
   font-size: 15px;
   color: var(--t2);
   line-height: 1.85;
@@ -1007,7 +1032,7 @@ button.method-header:focus-visible {
   .detail-items { grid-template-columns: 1fr; }
 }
 .detail-items li {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   padding: 7px 0;
   border-bottom: 1px solid var(--border-light);
@@ -1026,7 +1051,7 @@ button.method-header:focus-visible {
 #areas {
   border-top: 1px solid var(--border);
   padding: var(--section-pad) 0;
-  background: var(--bg2);
+  background: var(--bg3);
 }
 /* Modalidades — patrón Pause: 4 tarjetas con foto vertical 3:4 arriba,
    número + título + chip + línea abajo. Foto generada encima del gimnasio real. */
@@ -1068,6 +1093,7 @@ button.method-header:focus-visible {
   font-family: var(--sans);
   font-weight: 500;
   font-size: 22px;
+  min-height: 2lh;
   color: var(--t1);
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -1075,7 +1101,9 @@ button.method-header:focus-visible {
 }
 .modalidad-chip {
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-wrap: balance;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1149,13 +1177,14 @@ button.method-header:focus-visible {
 .feature-title {
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 16px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
   color: var(--t1);
   margin-bottom: 10px;
   line-height: 1.4;
 }
 .feature-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--t2);
   line-height: 1.7;
   font-weight: 300;
@@ -1463,7 +1492,7 @@ button.method-header:focus-visible {
 
 /* ── IDENTIDAD (componente no montado — estilos neutros) ── */
 #identidad {
-  background: var(--bg2);
+  background: var(--bg3);
   border-top: 1px solid var(--border);
   padding: var(--section-pad) 0;
 }
@@ -1506,10 +1535,11 @@ button.method-header:focus-visible {
   font-weight: 300;
   line-height: 1;
 }
-.list-text { font-size: 16px; color: var(--t2); line-height: 1.7; font-weight: 300; }
+.list-text { font-size: 16px; color: var(--t2); line-height: 1.7; font-weight: 300; text-wrap: pretty; }
 .list-text strong { color: var(--t1); font-weight: 500; }
 
 /* ── QUÉ TE RESUELVE (matriz) ───────────────────────────── */
+#como-trabajamos, #que-resuelve, #faq { padding: var(--section-pad) 0; }
 .resuelve-table { border-top: 1px solid var(--border); margin-top: 48px; }
 .resuelve-head {
   display: grid;
@@ -1591,6 +1621,7 @@ button.method-header:focus-visible {
   background: transparent;
 }
 .form-title {
+  text-wrap: balance;
   font-family: var(--sans);
   font-weight: 300;
   font-size: clamp(30px, 3vw, 44px);
@@ -1600,6 +1631,7 @@ button.method-header:focus-visible {
   line-height: 1.15;
 }
 .form-desc {
+  text-wrap: pretty;
   font-size: 15px;
   color: var(--t2);
   line-height: 1.8;
@@ -1703,10 +1735,10 @@ footer {
   gap: 16px;
   background: var(--bg);
 }
-.footer-logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.footer-logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; min-height: 44px; }
 .footer-brandline {
   font-family: var(--sans);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.30em;
   text-transform: uppercase;
   color: var(--t3);
@@ -1720,6 +1752,11 @@ footer {
   transform: translateY(20px);
   transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
 }
+.modalidad-card.fade-in:nth-child(2), .stat-card.fade-in:nth-child(2), .feature-item.fade-in:nth-child(2) { transition-delay: 60ms; }
+.modalidad-card.fade-in:nth-child(3), .stat-card.fade-in:nth-child(3), .feature-item.fade-in:nth-child(3) { transition-delay: 120ms; }
+.modalidad-card.fade-in:nth-child(4), .stat-card.fade-in:nth-child(4), .feature-item.fade-in:nth-child(4) { transition-delay: 180ms; }
+.feature-item.fade-in:nth-child(5) { transition-delay: 240ms; }
+.feature-item.fade-in:nth-child(6) { transition-delay: 300ms; }
 .fade-in.visible {
   opacity: 1;
   transform: translateY(0);
@@ -1752,6 +1789,7 @@ footer {
 /* Mobile (≤640px) */
 @media (max-width: 640px) {
   :root { --section-pad: 88px; }
+  .griselda-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
 
   .container { padding: 0 20px; }
 
@@ -1766,7 +1804,7 @@ footer {
   /* "ENTRENAMIENTO" en SemiExtendedBold mayúsculas: 13 letras anchas.
      A 375px entra hasta ~36px; el vw manda para que escale con la pantalla.
      Medido en captura real: a 48px desbordaba (2026-08-18). */
-  .hero-h1 { font-size: clamp(30px, 9.6vw, 44px); letter-spacing: -0.03em; }
+  .hero-h1 { font-size: clamp(27px, 8.4vw, 44px); letter-spacing: -0.03em; }
   .hero-tagline { margin: 28px 0 32px; font-size: 17px; }
   .hero-cta { width: 100%; }
   /* En angosto el título cae encima de la pared blanca del video: overlay
@@ -1780,7 +1818,7 @@ footer {
   }
 
   .manifiesto-eyebrow { margin-bottom: 48px; }
-  .manifiesto-lines { gap: 6px; margin-bottom: 64px; }
+  .manifiesto-lines { gap: 18px; margin-bottom: 64px; }
   .manifiesto-line-muted { padding-left: 20px; }
   .manifiesto-rule { margin-bottom: 36px; }
 
@@ -1808,7 +1846,6 @@ footer {
 
 
   footer { padding: 20px; flex-direction: column; gap: 12px; align-items: flex-start; }
-  .footer-copy { font-size: 10px; }
 }
 
 /* ============================================================

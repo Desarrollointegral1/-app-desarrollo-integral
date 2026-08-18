@@ -4,13 +4,31 @@ import { useEffect, useState } from "react";
 import HeroLogoDraw from "./HeroLogoDraw";
 
 export function HeroSection() {
-  const [isDesktop, setIsDesktop] = useState(false);
+  // El video se monta solo en desktop, solo si el usuario no pidió movimiento
+  // reducido, y recién después de que la página cargó y el hilo está libre:
+  // así no entra en la primera carga ni compite con el LCP (el poster ya
+  // cubre el hero desde el primer frame).
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
-    const checkViewport = () => setIsDesktop(window.innerWidth >= 768);
-    checkViewport();
-    window.addEventListener("resize", checkViewport);
-    return () => window.removeEventListener("resize", checkViewport);
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let armed = false;
+    const decide = () => setShowVideo(armed && window.innerWidth >= 768 && !mq.matches);
+    const arm = () => {
+      armed = true;
+      const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+      if (idle) idle(decide);
+      else setTimeout(decide, 1);
+    };
+    if (document.readyState === "complete") arm();
+    else window.addEventListener("load", arm, { once: true });
+    window.addEventListener("resize", decide);
+    mq.addEventListener("change", decide);
+    return () => {
+      window.removeEventListener("load", arm);
+      window.removeEventListener("resize", decide);
+      mq.removeEventListener("change", decide);
+    };
   }, []);
 
   return (
@@ -18,7 +36,8 @@ export function HeroSection() {
       {/* Fondo: poster eager (frame 0 del video), video lazy solo en desktop.
           Video: push-in lento sobre el gimnasio real, generado con Veo 3.1 a
           partir de un frame maestro compuesto sobre las fotos reales
-          (marca/fotos-gimnasio/). 8s, 1.3 MB, sin audio, sin gente. */}
+          (marca/fotos-gimnasio/). Push-in + pull-back con crossfade, 15.5 s en
+          loop sin corte, 1.7 MB, sin audio, sin gente. */}
       <div className="hero-video-wrap" aria-hidden="true">
         <img
           src="/web/espacio/hero-poster.webp"
@@ -27,7 +46,7 @@ export function HeroSection() {
           fetchPriority="high"
           loading="eager"
         />
-        {isDesktop && (
+        {showVideo && (
           <video className="hero-video" autoPlay muted playsInline loop preload="none">
             <source src="/web/espacio/hero.mp4" type="video/mp4" />
           </video>
