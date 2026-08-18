@@ -19,9 +19,13 @@ export function ServicesSection({ services }: ServicesSectionProps) {
               <div className="modalidad-media">
                 <img
                   src={service.image}
+                  srcSet={`${service.image.replace(".webp", "-720.webp")} 720w, ${service.image} 1200w`}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   alt={service.imageAlt}
                   loading="lazy"
                   decoding="async"
+                  width={1200}
+                  height={1607}
                 />
               </div>
               <div className="modalidad-body">

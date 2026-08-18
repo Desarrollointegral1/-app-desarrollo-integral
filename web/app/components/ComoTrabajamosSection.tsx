@@ -10,7 +10,7 @@ export function ComoTrabajamosSection({ points }: ComoTrabajamosSectionProps) {
   return (
     <section id="como-trabajamos">
       <div className="container">
-        <p className="identidad-eyebrow fade-in">Detrás de cada plan</p>
+        <p className="section-eyebrow fade-in">Detrás de cada plan</p>
         <h2 className="section-h2 fade-in" style={{ marginBottom: 64 }}>
           Cómo trabajamos
         </h2>

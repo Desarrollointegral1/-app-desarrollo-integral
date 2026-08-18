@@ -1,6 +1,5 @@
 "use client";
 
-import RippleButton from "./RippleButton";
 import { WHATSAPP_URL } from "../data";
 
 export function CTAForm() {
@@ -17,7 +16,7 @@ export function CTAForm() {
         </div>
 
         <div className="split-text cta-form fade-in">
-          <p className="section-eyebrow" style={{ marginBottom: 12 }}>Desarrollo Integral</p>
+          <p className="section-eyebrow">Desarrollo Integral</p>
           <h2 className="form-title">
             El cuerpo es lo único tuyo para siempre.
             <br />
@@ -29,15 +28,9 @@ export function CTAForm() {
             Salís con un sistema personal de entrenamiento. No con una rutina genérica.
           </p>
 
-          <RippleButton
-            as="a"
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="form-submit"
-          >
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="form-submit">
             Escribinos
-          </RippleButton>
+          </a>
         </div>
       </div>
     </section>

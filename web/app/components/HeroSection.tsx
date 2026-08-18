@@ -41,6 +41,8 @@ export function HeroSection() {
       <div className="hero-video-wrap" aria-hidden="true">
         <img
           src="/web/espacio/hero-poster.webp"
+          srcSet="/web/espacio/hero-poster-1080.webp 1080w, /web/espacio/hero-poster.webp 1920w"
+          sizes="100vw"
           alt=""
           className="hero-poster"
           fetchPriority="high"

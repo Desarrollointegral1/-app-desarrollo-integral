@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { NavDrawer } from "./NavDrawer";
 
@@ -62,7 +62,10 @@ export function NavBar({
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [isHidden, setIsHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  // Umbral de 8px (Apple/Medium): en trackpad e inercia iOS los ultimos frames
+  // oscilan +-1-3px y sin umbral la nav parpadea.
+  const lastY = useRef(0);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const [activeSection, setActiveSection] = useState<ValidSection | "">("");
   
   // SECURITY: Rate limiter instance (memoized)
@@ -117,8 +120,11 @@ export function NavBar({
       lastKnownScrollY = window.scrollY;
       if (!ticking) {
         requestAnimationFrame(() => {
-          setIsHidden(lastKnownScrollY > lastScrollY && lastKnownScrollY > 80);
-          setLastScrollY(lastKnownScrollY);
+          const dy = lastKnownScrollY - lastY.current;
+          if (Math.abs(dy) >= 8) {
+            setIsHidden(dy > 0 && lastKnownScrollY > 80);
+            lastY.current = lastKnownScrollY;
+          }
           ticking = false;
         });
         ticking = true;
@@ -127,7 +133,7 @@ export function NavBar({
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // SECURITY: Active section with validated IDs
@@ -162,6 +168,7 @@ export function NavBar({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         setIsOpen(false);
+        hamburgerRef.current?.focus();
       }
     };
     
@@ -184,7 +191,7 @@ export function NavBar({
           {/* ─────────────────────────────────────────────────────────────── */}
           {/* Logo — Premium Gold Accent                                      */}
           {/* ─────────────────────────────────────────────────────────────── */}
-          <Link href="/" className="nav-logo-link" aria-label="Desarrollo Integral - Home">
+          <Link href="/" className="nav-logo-link" aria-label="Desarrollo Integral, inicio">
             <div className="nav-logo-icon" aria-hidden="true">DI</div>
             <span className="nav-logo-text">Desarrollo Integral</span>
           </Link>
@@ -256,6 +263,7 @@ export function NavBar({
             </a>
             
             <button
+              ref={hamburgerRef}
               className="nav-hamburger"
               onClick={() => setIsOpen(!isOpen)}
               aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
@@ -272,7 +280,10 @@ export function NavBar({
 
       <NavDrawer
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={() => {
+          setIsOpen(false);
+          hamburgerRef.current?.focus();
+        }}
         items={drawerItems}
       />
     </>
