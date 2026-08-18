@@ -159,6 +159,7 @@ export const PLATFORM_FEATURES: Feature[] = [
 // SERVICES
 export type Service = {
   title: string;
+  chip: string;
   desc: string;
   icon?: string;
 };
@@ -166,21 +167,95 @@ export type Service = {
 export const SERVICES: Service[] = [
   {
     title: "Entrenamiento personal",
-    desc: "Para quienes buscan progresar con guía directa. Sesiones uno a uno con plan propio, corrección técnica y cargas registradas en cada entrenamiento.",
+    chip: "Progreso con guía directa",
+    desc: "Sesiones uno a uno con plan propio: corrección técnica en vivo y cargas registradas en cada sesión.",
   },
   {
     title: "Preparación física",
-    desc: "Para deportistas que necesitan rendir en su disciplina. Fuerza, potencia y resistencia específicas, planificadas por ciclos según tu calendario.",
+    chip: "Deportistas que compiten",
+    desc: "Fuerza, potencia y resistencia planificadas por ciclos según tu calendario.",
   },
   {
     title: "Composición corporal",
-    desc: "Para quienes quieren decidir con datos, no con la balanza. Mediciones de bioimpedancia periódicas que muestran masa muscular, grasa e hidratación en el tiempo.",
+    chip: "Decidir con datos, no con la balanza",
+    desc: "Bioimpedancia periódica que mide masa muscular, grasa e hidratación en el tiempo.",
   },
   {
     title: "Recuperación y osteopatía",
-    desc: "Para cuerpos con dolor, lesión o limitación de movimiento. Osteopatía y kinesiología integradas al plan de entrenamiento para volver a moverte sin riesgo.",
+    chip: "Dolor o límite de movimiento",
+    desc: "Osteopatía y kinesiología integradas al plan para volver a moverte sin riesgo.",
   },
 ];
+
+// CÓMO TRABAJAMOS — narrativa, sin CTA (Bloque 6)
+export type ComoTrabajamosPoint = {
+  title: string;
+  desc: string;
+};
+
+export const COMO_TRABAJAMOS: ComoTrabajamosPoint[] = [
+  {
+    title: "El método no nace de una sola mirada",
+    desc: "Se construye y se actualiza cruzando medicina del deporte, nutrición y preparación física. No es la rutina que un entrenador aprendió una vez: es un criterio que se revisa contra evidencia real, todo el tiempo.",
+  },
+  {
+    title: "Dos formas de medir tu cuerpo, no una sola balanza",
+    desc: "La bioimpedancia tradicional mide masa muscular, grasa e hidratación con el aparato. El scan corporal con dos fotos usa inteligencia artificial para estimar lo mismo, sin aparatos, en segundos. Las dos quedan en tu ficha, comparables en el tiempo.",
+  },
+  {
+    title: "Cada dato tuyo, guardado y a la vista",
+    desc: "Cada peso que levantaste, cada sesión, cada medición. Nada se estima de memoria: tu evolución completa queda en la app, tuya, para ver cuándo quieras.",
+  },
+  {
+    title: "El dato no es la última palabra",
+    desc: "Se cruza con la palpación del entrenador y con lo que vos decís que sentís. Un número sin ese cruce es solo un número.",
+  },
+];
+
+// QUÉ BUSCÁS → QUÉ TE RESUELVE (Bloque 7)
+export type ResuelveRow = {
+  buscas: string;
+  resuelve: string;
+};
+
+export const QUE_RESUELVE: ResuelveRow[] = [
+  { buscas: "Nunca entrené en mi vida", resuelve: "Entrenamiento personal · Composición corporal" },
+  { buscas: "Me lastimé en otro lado y no quiero repetirlo", resuelve: "Recuperación y osteopatía · Entrenamiento personal" },
+  { buscas: "Entrenar en la tercera edad, con seguridad", resuelve: "Recuperación y osteopatía · Entrenamiento personal" },
+  { buscas: "Vengo derivado de kinesiología u osteopatía", resuelve: "Recuperación y osteopatía · Entrenamiento personal" },
+  { buscas: "Necesito rendir en mi deporte", resuelve: "Preparación física · Composición corporal" },
+];
+
+// PREGUNTAS FRECUENTES (Bloque 10)
+export type FAQItem = {
+  question: string;
+  answer: string;
+};
+
+export const FAQ: FAQItem[] = [
+  {
+    question: "¿Necesito experiencia previa para empezar?",
+    answer: "No — atiende desde quien nunca entrenó hasta deportistas, de los 15 a los 90 años.",
+  },
+  {
+    question: "¿Cómo es la primera sesión?",
+    answer: "Evaluación completa antes de tocar una pesa: composición corporal, movilidad, fuerza e historial.",
+  },
+  {
+    question: "¿Las sesiones son individuales o en grupo?",
+    answer: "Individuales, uno a uno.",
+  },
+  {
+    question: "Vengo con una lesión o derivado de kinesiología, ¿puedo entrenar igual?",
+    answer: "Sí — osteopatía y kinesiología están integradas al plan de entrenamiento.",
+  },
+  {
+    question: "¿Puedo ver mi progreso?",
+    answer: "Sí, en la app: cada sesión, cada peso, cada medición queda registrada.",
+  },
+];
+
+export const WHATSAPP_URL = "https://wa.me/5491165115832";
 
 // TEAM
 export type TeamMember = {
@@ -245,8 +320,8 @@ export const IDENTITY_PILLARS: IdentityPillar[] = [
   },
   {
     number: 4,
-    title: "Movimiento inteligente",
-    description: "Evitar lesiones, maximizar resultados. Combinamos fuerza con seguridad, rendimiento con sostenibilidad.",
+    title: "Entrenamiento de precisión",
+    description: "Tensión mecánica, progresión y control en la ejecución. Nunca esfuerzo al azar.",
   },
   {
     number: 5,
@@ -271,8 +346,13 @@ export type Location = {
 };
 
 export const LOCATION: Location = {
-  address: "Sucre 2538",
+  address: "Av. Cabildo 450",
   floor: "3er piso",
-  city: "Belgrano · Buenos Aires",
-  mapUrl: "https://maps.google.com/maps?q=Sucre+2538,+Belgrano,+Buenos+Aires,+Argentina&output=embed&z=16",
+  city: "Belgrano · Capital Federal",
+  mapUrl: "https://maps.google.com/maps?q=Av.+Cabildo+450,+Belgrano,+Buenos+Aires,+Argentina&output=embed&z=16",
+};
+
+export const HORARIOS = {
+  semana: "Lunes a viernes, 8:00 a 22:00 hs",
+  sabado: "Sábados, 9:00 a 20:00 hs",
 };

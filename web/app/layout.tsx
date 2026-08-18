@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === "development") {
 export const metadata: Metadata = {
   title: "Desarrollo Integral | Entrenamiento Personalizado en Belgrano, Buenos Aires",
   description:
-    "Centro de entrenamiento personalizado en Belgrano. Evaluación con bioimpedancia, plan de entrenamiento propio y seguimiento profesional sesión a sesión. Sucre 2538, Buenos Aires.",
+    "Centro de entrenamiento personalizado en Belgrano. Evaluación con bioimpedancia, plan de entrenamiento propio y seguimiento profesional sesión a sesión. Av. Cabildo 450, Buenos Aires.",
 };
 
 export default function RootLayout({

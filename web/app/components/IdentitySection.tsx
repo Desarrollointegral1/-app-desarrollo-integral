@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { IdentityPillar } from "../data";
 
 interface IdentitySectionProps {
@@ -13,14 +12,8 @@ export function IdentitySection({ pillars }: IdentitySectionProps) {
       <div className="container">
         <p className="identidad-eyebrow fade-in">Qué es Desarrollo Integral</p>
 
-        <motion.div
-          className="identidad-grid"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-        >
-          <div className="fade-in">
+        <div className="identidad-grid fade-in">
+          <div>
             <p className="identidad-quote">
               &ldquo;Un método de trabajo construido a partir de más de 30 años de experiencia.&rdquo;
             </p>
@@ -29,28 +22,17 @@ export function IdentitySection({ pillars }: IdentitySectionProps) {
             </p>
           </div>
 
-          <ul className="identidad-list fade-in">
-            {pillars.map((pillar, i) => (
-              <motion.li
-                key={pillar.number}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{
-                  type: "spring",
-                  damping: 25,
-                  stiffness: 100,
-                  delay: i * 0.1,
-                }}
-                viewport={{ once: true }}
-              >
+          <ul className="identidad-list">
+            {pillars.map((pillar) => (
+              <li key={pillar.number}>
                 <span className="list-num">{pillar.number.toString().padStart(2, "0")}.</span>
                 <span className="list-text">
                   <strong>{pillar.title}</strong> · {pillar.description}
                 </span>
-              </motion.li>
+              </li>
             ))}
           </ul>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

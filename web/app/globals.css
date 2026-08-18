@@ -978,6 +978,15 @@ button.method-header:focus-visible {
   border-radius: 4px;
   margin-bottom: 28px;
 }
+.area-chip {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 12px;
+}
 .area-title {
   font-family: var(--sans);
   font-weight: 500;
@@ -1404,6 +1413,76 @@ button.method-header:focus-visible {
   font-weight: 500;
 }
 .list-text { font-size: 16px; color: var(--t2); line-height: 1.7; font-weight: 300; }
+
+/* ── QUÉ TE RESUELVE (matriz) ───────────────────────────── */
+.resuelve-table { border-top: 1px solid var(--border); margin-top: 48px; }
+.resuelve-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 16px 0;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t3);
+  border-bottom: 1px solid var(--border);
+}
+.resuelve-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border-light);
+  align-items: baseline;
+}
+.resuelve-buscas {
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--t1);
+}
+.resuelve-resultado {
+  font-size: 15px;
+  color: var(--t2);
+  font-weight: 300;
+}
+@media (max-width: 768px) {
+  .resuelve-head, .resuelve-row { grid-template-columns: 1fr; gap: 8px; }
+  .resuelve-head span:last-child { display: none; }
+}
+
+/* ── PREGUNTAS FRECUENTES ───────────────────────────────── */
+.faq-list { border-top: 1px solid var(--border); max-width: 880px; }
+.faq-item { border-bottom: 1px solid var(--border-light); }
+.faq-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.faq-header:focus-visible { outline: 2px solid var(--red); }
+.faq-question {
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--t1);
+}
+.faq-answer {
+  padding: 0 0 28px;
+  font-size: 15px;
+  color: var(--t2);
+  line-height: 1.8;
+  font-weight: 300;
+  max-width: 640px;
+}
 
 /* ── CIERRE + FORM (fusionados) ─────────────────────────── */
 .cta-form-wrapper {

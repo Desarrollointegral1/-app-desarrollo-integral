@@ -1,6 +1,6 @@
 "use client";
 
-import { Location } from "../data";
+import { Location, HORARIOS } from "../data";
 
 interface LocationSectionProps {
   location: Location;
@@ -27,6 +27,8 @@ export function LocationSection({ location }: LocationSectionProps) {
             <p className="espacio-eyebrow">Ubicación</p>
             <p className="ubicacion-address">{location.address}</p>
             <p className="ubicacion-detail">{location.floor} · {location.city}</p>
+            <p className="ubicacion-detail">{HORARIOS.semana}</p>
+            <p className="ubicacion-detail">{HORARIOS.sabado}</p>
 
             <div className="map-container">
               <iframe

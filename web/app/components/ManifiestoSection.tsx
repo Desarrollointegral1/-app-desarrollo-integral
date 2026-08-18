@@ -2,18 +2,22 @@
 
 const MANIFESTO_LINES = [
   "Hay personas que nunca pensaron en que tienen un cuerpo.",
-  "Hasta que el cuerpo los para.",
-  "Y hay personas que saben exactamente qué quieren de él.",
-  "Y no saben cómo llegar.",
+  "Hay personas que creyeron que el movimiento no era para ellas.",
+  "Hay personas que llegaron rotas, por el deporte, por la vida, por la cabeza.",
+  "No prometemos transformaciones físicas espectaculares.",
 ];
 
-const CIERRE = "Prometemos algo más difícil de encontrar: que alguien te vea, te escuche, y te mueva. Desde el tobillo hasta la muñeca. Desde los 15 hasta los 90. Eso es Integral.";
+const CIERRE = "De pies a cabeza. Desde los 15 hasta los 90. Eso es Integral.";
 
 export function ManifiestoSection() {
   return (
     <section id="manifiesto" className="manifiesto-section">
       <div className="manifiesto-inner">
-        <p className="manifiesto-eyebrow fade-in">Manifiesto</p>
+        <p className="manifiesto-eyebrow fade-in">Nuestra visión</p>
+
+        <h2 className="section-h2 fade-in" style={{ marginBottom: 40 }}>
+          Que te vean, te escuchen, y te muevas.
+        </h2>
 
         <div className="manifiesto-lines fade-in" role="article">
           {MANIFESTO_LINES.map((line, i) => (

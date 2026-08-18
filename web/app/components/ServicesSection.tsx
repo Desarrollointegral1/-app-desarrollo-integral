@@ -16,6 +16,7 @@ export function ServicesSection({ services }: ServicesSectionProps) {
         <div className="areas-grid">
           {services.map((service) => (
             <div key={service.title} className="area-item fade-in">
+              <p className="area-chip">{service.chip}</p>
               <h3 className="area-title">{service.title}</h3>
               <p className="area-desc">{service.desc}</p>
             </div>
